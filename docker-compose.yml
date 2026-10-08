@@ -1,0 +1,366 @@
+# ==============================================================================
+# Forja B2B — Docker Compose Orchestration (Local & Development)
+# ==============================================================================
+# Serviços:
+#  - postgres: PostgreSQL 16 com RLS e init-roles script
+#  - redis: Cache, Celery backend e Rate Limiter
+#  - rabbitmq: Broker de Mensageria e Filas Celery
+#  - mailpit: Servidor SMTP fake e Web UI para inspecionar e-mails
+#  - elasticsearch: Motor de busca e catálogo
+#  - otel-collector: Coletor OpenTelemetry (OTLP gRPC/HTTP -> Prometheus/Logs)
+#  - prometheus: Time-series database para métricas
+#  - grafana: Dashboards e visualização de métricas/alertas
+#  - backend: API FastAPI (Python 3.12)
+#  - celery-worker: Processamento assíncrono de tarefas (Celery)
+#  - frontend: Aplicação Next.js 14+ standalone
+# ==============================================================================
+
+networks:
+  forja-network:
+    name: forja-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: forja_postgres_data
+  redis_data:
+    name: forja_redis_data
+  rabbitmq_data:
+    name: forja_rabbitmq_data
+  elasticsearch_data:
+    name: forja_elasticsearch_data
+  prometheus_data:
+    name: forja_prometheus_data
+  grafana_data:
+    name: forja_grafana_data
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 16 (Relational Database)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: forja-postgres
+    restart: unless-stopped
+    environment:
+      # Credencial elevada APENAS para o initdb do cluster; nunca exposta ao
+      # backend/worker (esses servicos recebem somente variaveis explicitas).
+      POSTGRES_USER: ${POSTGRES_BOOTSTRAP_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_BOOTSTRAP_PASSWORD:-forja_bootstrap_secret_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-forja_db}
+      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:-forja_admin}
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-forja_admin_secret_dev}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:-forja_app}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:-forja_app_secret_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Wrappers .sh executam na ordem numerica e invocam os SQLs em sql/ com
+      # as credenciais do ambiente (a imagem nao executa .sql de subdiretorios).
+      - ./docker/postgres/01-init-roles.sh:/docker-entrypoint-initdb.d/01-init-roles.sh:ro
+      - ./docker/postgres/02-rls-setup.sh:/docker-entrypoint-initdb.d/02-rls-setup.sh:ro
+      - ./docker/postgres/init-roles.sql:/docker-entrypoint-initdb.d/sql/init-roles.sql:ro
+      - ./docker/postgres/02-rls-setup.sql:/docker-entrypoint-initdb.d/sql/02-rls-setup.sql:ro
+    networks:
+      - forja-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_BOOTSTRAP_USER:-postgres} -d ${POSTGRES_DB:-forja_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # Redis 7 (Cache, Sessions & Rate Limiter)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: forja-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - forja-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+
+  # ----------------------------------------------------------------------------
+  # RabbitMQ 3.13 (Message Broker)
+  # ----------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: forja-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "15672:15672" # Management Web UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - forja-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # Mailpit (Local SMTP Server & Web Inspector)
+  # ----------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:v1.18
+    container_name: forja-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025" # SMTP Port
+      - "${MAILPIT_WEB_PORT:-8025}:8025"  # Web UI
+    networks:
+      - forja-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 1025 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 2s
+
+  # ----------------------------------------------------------------------------
+  # Elasticsearch 8 (Search & Analytics)
+  # ----------------------------------------------------------------------------
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: forja-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - forja-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ----------------------------------------------------------------------------
+  # OpenTelemetry Collector (Contrib)
+  # ----------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    container_name: forja-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./docker/otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8889:8889"   # Prometheus metrics exporter
+      - "13133:13133" # Health check extension
+    networks:
+      - forja-network
+    # A imagem oficial e `FROM scratch`: nao existe shell, curl nem wget, e o
+    # upstream nao distribui um binario /healthcheck (issue #30798). O unico
+    # executavel disponivel e /otelcol-contrib, portanto o healthcheck usa o
+    # proprio binario do collector para validar a configuracao efetiva que o
+    # processo em execucao carrega (readiness). O endpoint de liveness real
+    # (extensao health_check em :13133) permanece exposto para sondagem externa.
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # Prometheus (Metrics Storage & Scraper)
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.54.0
+    container_name: forja-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - forja-network
+    depends_on:
+      otel-collector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 -O- http://localhost:9090/-/healthy | grep -q 'Prometheus Server is Healthy' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # Grafana (Metrics & Dashboards Visualization)
+  # ----------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: forja-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_dev_secret}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_DEFAULT_THEME: "dark"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    networks:
+      - forja-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # Backend API (FastAPI)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: forja-backend
+    restart: unless-stopped
+    # Sem env_file: o backend recebe SOMENTE as variaveis explicitas abaixo.
+    # Credenciais de bootstrap (POSTGRES_BOOTSTRAP_*) e de migracao
+    # (POSTGRES_ADMIN_*/DATABASE_ADMIN_URL) ficam fora do runtime.
+    environment:
+      PORT: 8000
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_APP_USER:-forja_app}:${POSTGRES_APP_PASSWORD:-forja_app_secret_dev}@postgres:5432/${POSTGRES_DB:-forja_db}
+      REDIS_HOST: redis
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RABBITMQ_HOST: rabbitmq
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-forja-backend}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example)}
+      PEPPER: ${PEPPER:?PEPPER is required (see .env.example)}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (see .env.example)}
+    ports:
+      - "8000:8000"
+    networks:
+      - forja-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ----------------------------------------------------------------------------
+  # Celery Worker (Background Tasks & Events)
+  # ----------------------------------------------------------------------------
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: forja-celery-worker
+    restart: unless-stopped
+    # Sem env_file: mesma regra do backend; apenas variaveis explicitas,
+    # nunca credenciais de bootstrap/migracao.
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_APP_USER:-forja_app}:${POSTGRES_APP_PASSWORD:-forja_app_secret_dev}@postgres:5432/${POSTGRES_DB:-forja_db}
+      REDIS_HOST: redis
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RABBITMQ_HOST: rabbitmq
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-forja-backend}-worker
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example)}
+      PEPPER: ${PEPPER:?PEPPER is required (see .env.example)}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (see .env.example)}
+    networks:
+      - forja-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # Frontend Web (Next.js Standalone)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: forja-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "${PORT:-3000}:3000"
+    networks:
+      - forja-network
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || curl -f http://localhost:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

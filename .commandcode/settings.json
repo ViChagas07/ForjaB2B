@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(dir:*)",
+      "Shell(type:*)",
+      "Shell(node -e JSON.parse(require('fs').readFileSync('messages/pt-BR.json','utf8')); console.log('pt-BR.json OK'))",
+      "Shell(node scripts/sync-i18n.mjs)",
+      "Shell(npx vitest run tests/unit/i18n-parity.test.ts 2 >& 1)",
+      "Shell(findstr:*)",
+      "Shell(npm:*)",
+      "Shell(npx prettier --write app/[locale]/catalog/[id]/product-detail-client.tsx features/cart/cart-view.tsx features/cart/hooks.ts features/catalog/product-detail.tsx features/credit/credit-view.tsx features/ordering/checkout-view.tsx tests/unit/with-auth.test.ts 2 >& 1)",
+      "Shell(cd /d D:\\ForjaB2B\\frontend && del scripts\\sync-i18n.mjs && rmdir scripts 2>nul & echo done)",
+      "Shell(cd /d/ForjaB2B/backend && ls -la .venv/Scripts/python.exe 2>/dev/null; echo \"---\"; docker version --format '{{.Server.Version}}' 2>&1 | head -3; echo \"---DOCKER COMPOSE---\"; docker compose version 2>&1 | head -1)",
+      "powershell"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

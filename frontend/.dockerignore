@@ -1,0 +1,42 @@
+node_modules
+.next
+out
+build
+dist
+.npm
+.yarn
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# Testing & Coverage
+coverage
+.nyc_output
+cypress/videos
+cypress/screenshots
+playwright-report
+test-results
+
+# IDEs & OS
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore

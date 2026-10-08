@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Superfícies — platinum (slate) */
+    --background: 210 40% 96.1%; /* platinum-50 #F8FAFC */
+    --foreground: 222.2 47.4% 11.2%; /* steel-900 #0F172A */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    /* Marca — forge (orange) */
+    --primary: 24.6 95% 53.1%; /* forge-500 #F97316 */
+    /* Texto escuro sobre laranja para contraste AA (ver README). */
+    --primary-foreground: 222.2 47.4% 11.2%; /* steel-900 */
+
+    --secondary: 214.3 31.8% 91.4%; /* platinum-200 #E2E8F0 */
+    --secondary-foreground: 217.2 32.6% 17.5%; /* steel-800 #1E293B */
+
+    --muted: 214.3 31.8% 91.4%;
+    --muted-foreground: 215.4 19.3% 33.9%; /* slate-600 (contraste AA) */
+
+    --accent: 214.3 31.8% 91.4%;
+    --accent-foreground: 217.2 32.6% 17.5%;
+
+    --destructive: 0 72.2% 50.6%; /* red-600 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 24.6 95% 53.1%;
+
+    /* Semânticos */
+    --success: 142.1 76.2% 36.3%; /* green-600 */
+    --success-foreground: 0 0% 100%;
+
+    --info: 221.2 83.2% 53.3%; /* blue-600 */
+    --info-foreground: 0 0% 100%;
+
+    --warning: 37.7 92.1% 50.2%; /* amber-500 */
+    --warning-foreground: 222.2 47.4% 11.2%;
+
+    --danger: 0 72.2% 50.6%;
+    --danger-foreground: 0 0% 100%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222.2 47.4% 11.2%; /* steel-900 */
+    --foreground: 210 40% 96.1%; /* platinum-50 */
+
+    --card: 217.2 32.6% 17.5%; /* steel-800 */
+    --card-foreground: 210 40% 96.1%;
+
+    --popover: 217.2 32.6% 17.5%;
+    --popover-foreground: 210 40% 96.1%;
+
+    --primary: 24.6 95% 53.1%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 96.1%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 96.1%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 96.1%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 24.6 95% 53.1%;
+
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 222.2 47.4% 11.2%;
+    --info: 217.2 91.2% 59.8%;
+    --info-foreground: 222.2 47.4% 11.2%;
+    --warning: 37.7 92.1% 50.2%;
+    --warning-foreground: 222.2 47.4% 11.2%;
+    --danger: 0 72.2% 50.6%;
+    --danger-foreground: 210 40% 96.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Link "pular para o conteúdo" (acessibilidade de teclado). */
+  .skip-link {
+    position: absolute;
+    inset-inline-start: 1rem;
+    top: 0.75rem;
+    z-index: 100;
+    transform: translateY(-300%);
+    border-radius: var(--radius);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: transform 150ms ease;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+}

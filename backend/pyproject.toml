@@ -1,0 +1,111 @@
+# ==============================================================================
+# Forja B2B, Backend (Fase 0, fundacao)
+#
+# Este pyproject.toml concentra APENAS a configuracao de ferramentas de
+# qualidade (Ruff, mypy, pytest, coverage). O gerenciamento de dependencias
+# permanece em requirements.txt / requirements-dev.txt porque o Dockerfile,
+# o Dockerfile.worker e o CI (ci-backend.yml) ja estao preparados para pip.
+# A migracao para Poetry exigiria reescrever Dockerfile e CI: fica registrada
+# como decisao pendente para o Architect, fora do escopo da Fase 0.
+# ==============================================================================
+
+[project]
+name = "forja-backend"
+version = "0.1.0"
+description = "Forja B2B backend API (Fase 0, fundacao)"
+requires-python = ">=3.12,<3.13"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+# ------------------------------------------------------------------------------
+# Ruff (linter + formatter)
+# ------------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["."]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "BLE",    # flake8-blind-except
+    "SIM",    # flake8-simplify
+    "C901",   # complexidade ciclomatica
+    "ASYNC",  # flake8-async
+    "S",      # bandit (seguranca)
+    "RUF",    # regras especificas do Ruff
+]
+ignore = []
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.per-file-ignores]
+# S101: assert e idiomático em pytest.
+# S105: credenciais efêmeras de containers descartáveis de teste, nunca reais.
+# S608: SQL estático intencional nos testes de integração PostgreSQL.
+"tests/**" = ["S101", "S105", "S608"]
+
+# S608: migrations Alembic emitem DDL determinístico com identificadores
+# estáticos (versionados), nunca SQL montado a partir de entrada do usuário.
+"alembic/versions/**" = ["S608"]
+
+# S608: seeds constroem SQL a partir de identificadores/colunas hardcoded
+# (constantes do modulo), nunca a partir de entrada do usuario.
+"app/infrastructure/db/seeds.py" = ["S608"]
+
+# ------------------------------------------------------------------------------
+# mypy (strict)
+# ------------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "."
+packages = ["app", "tests"]
+plugins = ["pydantic.mypy"]
+exclude = ["\\.venv/", "\\.mypy_cache/", "alembic/versions/"]
+
+# docker-py (usado apenas no conftest de Testcontainers) nao tem py.typed.
+# Override restrito a esse pacote, sem afetar a tipagem estrita do app.
+[[tool.mypy.overrides]]
+module = ["docker", "docker.*"]
+ignore_missing_imports = true
+
+# ------------------------------------------------------------------------------
+# pytest
+# ------------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error"]
+
+# ------------------------------------------------------------------------------
+# coverage
+# ------------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+    "\\.\\.\\.",
+]

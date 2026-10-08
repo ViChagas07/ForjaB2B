@@ -1,0 +1,12 @@
+# Forja B2B - dependencias de desenvolvimento/teste.
+# Inclui a fundacao de testes PostgreSQL reais (Testcontainers) do
+# DB-Specialist e as ferramentas de qualidade do backend.
+pytest==8.4.2
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+httpx==0.28.1
+testcontainers[postgres]==4.15.0
+psycopg[binary]==3.3.6
+ruff==0.16.10
+mypy==2.4.0
+import-linter==2.15

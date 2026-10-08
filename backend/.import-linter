@@ -1,0 +1,94 @@
+# ==============================================================================
+# Forja B2B, contratos de arquitetura (import-linter)
+#
+# Quebra de contrato falha o CI (ci-backend.yml, etapa lint).
+# Regra da dependencia: interface/infrastructure -> application -> domain.
+# O dominio nao conhece frameworks nem camadas externas.
+# ==============================================================================
+
+[importlinter]
+root_package = app
+include_external_packages = True
+# Imports dentro de `if TYPE_CHECKING` (somente para o type checker) nao sao
+# acoplamento de runtime: os mapeadores ORM centralizados em
+# app.infrastructure.db.models usam esses imports apenas para anotar
+# relacionamentos. Sem isso, a Fase 2 (repositorios por modulo) violaria a
+# independencia de bounded contexts por um caminho que nao existe em runtime.
+exclude_type_checking_imports = true
+
+# ------------------------------------------------------------------------------
+# Camadas da Clean Architecture.
+# `app.interface` e `app.infrastructure` sao irmaos independentes (nao podem
+# importar um ao outro). Ambos podem importar application e domain.
+# application pode importar domain. domain nao importa nenhuma das demais.
+# A raiz de composicao (app.main) fica fora do contrato e liga tudo.
+# ------------------------------------------------------------------------------
+[importlinter:contract:clean-architecture-layers]
+name = Clean Architecture: interface | infrastructure > application > domain
+type = layers
+layers =
+    app.interface | app.infrastructure
+    app.application
+    app.domain
+
+# ------------------------------------------------------------------------------
+# Bounded contexts independentes: nenhum modulo importa outro modulo.
+# Comunicacao entre modulos acontece por portas de aplicacao e eventos.
+# ------------------------------------------------------------------------------
+[importlinter:contract:bounded-contexts-independence]
+name = Bounded contexts (app.modules.*) sao independentes entre si
+type = independence
+modules =
+    app.modules.identity
+    app.modules.companies
+    app.modules.credit
+    app.modules.catalog
+    app.modules.pricing
+    app.modules.cart
+    app.modules.ordering
+    app.modules.invoicing
+    app.modules.shipping
+    app.modules.tax
+    app.modules.rfq
+    app.modules.notifications
+    app.modules.privacy
+    app.modules.search
+    app.modules.audit
+
+# ------------------------------------------------------------------------------
+# Pureza do dominio: nem o dominio compartilhado nem o dominio de qualquer
+# modulo podem depender de frameworks, drivers ou camadas externas.
+# ------------------------------------------------------------------------------
+[importlinter:contract:domain-purity]
+name = Dominio nao importa frameworks nem camadas externas
+type = forbidden
+source_modules =
+    app.domain
+    app.modules.*.domain
+forbidden_modules =
+    fastapi
+    starlette
+    pydantic
+    sqlalchemy
+    alembic
+    redis
+    celery
+    httpx
+    app.core
+    app.application
+    app.infrastructure
+    app.interface
+
+# ------------------------------------------------------------------------------
+# Neutralidade transversal: app.core nao conhece camadas nem modulos.
+# ------------------------------------------------------------------------------
+[importlinter:contract:core-neutrality]
+name = app.core e transversal e nao importa camadas nem modulos
+type = forbidden
+source_modules = app.core
+forbidden_modules =
+    app.domain
+    app.application
+    app.infrastructure
+    app.interface
+    app.modules

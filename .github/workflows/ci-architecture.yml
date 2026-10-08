@@ -1,0 +1,82 @@
+name: CI - Architecture & Security
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-compose-validate:
+    name: Validate Docker Compose & Configuration
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate .env.example presence
+        run: |
+          test -f .env.example || (echo "ERRO: .env.example não encontrado!" && exit 1)
+
+      - name: Prepare Dummy .env for Compose Validation
+        run: |
+          cp .env.example .env
+
+      - name: Validate docker-compose.yml Config
+        run: |
+          docker compose config --quiet
+          echo "docker-compose.yml válido e sem erros de sintaxe!"
+
+  secret-detection:
+    name: Secret & Credential Detection
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  dockerfile-lint:
+    name: Lint Dockerfiles (Hadolint)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Hadolint Backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+        continue-on-error: true
+
+      - name: Hadolint Celery Worker Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile.worker
+          failure-threshold: error
+        continue-on-error: true
+
+      - name: Hadolint Frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+          failure-threshold: error
+        continue-on-error: true

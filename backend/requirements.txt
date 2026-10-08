@@ -1,0 +1,33 @@
+# Forja B2B - dependencias de RUNTIME da aplicacao (Fase 0, fundacao).
+# Versoes pinadas para builds reproduziveis. Nao adicionar dependencias sem
+# necessidade; nenhuma biblioteca de dominio de negocio aqui.
+
+fastapi==0.119.1
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+
+# SQLAlchemy 2.x assincrono + driver PostgreSQL + migrations (Alembic fica na
+# imagem porque o container one-off de `make migrate` usa a imagem do backend).
+sqlalchemy[asyncio]==2.0.54
+asyncpg==0.32.0
+alembic==1.20.0
+
+# Redis (fundacao de infraestrutura: readiness, base p/ cache e rate limit).
+redis==8.1.0
+
+# Seguranca de aplicacao (Fase 2): Argon2id para senhas e JWT para sessoes.
+argon2-cffi==23.1.0
+PyJWT==2.10.1
+
+# Cliente HTTP para integracoes externas (OAuth Google, Authorization Code Flow).
+httpx==0.28.1
+
+# Logging estruturado JSON.
+structlog==26.1.0
+
+# OpenTelemetry (fundacao: traces/metricas OTLP + instrumentacao base).
+opentelemetry-sdk==1.45.1
+opentelemetry-exporter-otlp-proto-grpc==1.45.1
+opentelemetry-instrumentation-fastapi==0.66b1
+opentelemetry-instrumentation-sqlalchemy==0.66b1
