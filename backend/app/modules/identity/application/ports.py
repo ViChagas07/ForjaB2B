@@ -126,3 +126,34 @@ class ExternalIdentityRepository(Protocol):
         email: str,
     ) -> None:
         """Vincula a identidade externa ao usuario; idempotente; conflito -> erro."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class OAuthExchange:
+    """Conteudo de um exchange code de uso unico (sessao OU onboarding).
+
+    Nunca vai em URL: fica no servidor (Redis) e e consumido uma unica vez pelo
+    endpoint de troca. Para ``status == "authenticated"`` os campos de token e
+    perfil estao preenchidos; para ``status == "onboarding"`` apenas
+    ``email``/``full_name`` (identidade Google) estao disponiveis.
+    """
+
+    status: str
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str | None = None
+    expires_in: int | None = None
+    user_id: str | None = None
+    email: str | None = None
+    full_name: str | None = None
+    role: str | None = None
+
+
+class OAuthExchangeCodeStore(Protocol):
+    """Armazenamento de exchange codes de uso unico (curta duracao, atomico)."""
+
+    async def put(self, code: str, payload: OAuthExchange, ttl_seconds: int) -> None:
+        """Registra um exchange code associado ao payload."""
+
+    async def consume(self, code: str) -> OAuthExchange | None:
+        """Consome um exchange code (devolve None se ausente/expirado/reutilizado)."""

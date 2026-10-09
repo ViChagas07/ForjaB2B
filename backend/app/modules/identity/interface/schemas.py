@@ -56,3 +56,26 @@ class RefreshResponse(BaseModel):
     refresh_token: str
     token_type: str
     expires_in: int
+
+
+class OAuthExchangeRequest(BaseModel):
+    """Exchange code de uso unico recebido do callback OAuth."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=16, max_length=256)
+
+
+class OAuthExchangeResponse(BaseModel):
+    """Resultado da troca: sessao (authenticated) OU onboarding."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: str
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str | None = None
+    expires_in: int | None = None
+    user: UserProfile | None = None
+    email: str | None = None
+    full_name: str | None = None

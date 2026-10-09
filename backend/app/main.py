@@ -64,6 +64,7 @@ from app.modules.identity.application.auth import AuthenticateUser, Logout, Refr
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,
+    ExchangeOAuthCode,
 )
 from app.modules.identity.infrastructure.external_identity import (
     SqlAlchemyExternalIdentityRepository,
@@ -71,6 +72,7 @@ from app.modules.identity.infrastructure.external_identity import (
 from app.modules.identity.infrastructure.google_client import GoogleIdentityClientImpl
 from app.modules.identity.infrastructure.identity_resolver import SqlAlchemyUserIdentityResolver
 from app.modules.identity.infrastructure.membership import SqlAlchemyMembershipReader
+from app.modules.identity.infrastructure.oauth_exchange import RedisOAuthExchangeCodeStore
 from app.modules.identity.infrastructure.oauth_state import RedisOAuthStateStore
 from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 from app.modules.identity.infrastructure.tokens import RedisRefreshTokenStore
@@ -159,6 +161,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ):  # pragma: no cover - guarda defensiva de tipos
             raise ConfigurationError("Google OAuth configuracao incompleta")
         oauth_state_store = RedisOAuthStateStore(redis_client)
+        oauth_exchange_store = RedisOAuthExchangeCodeStore(redis_client)
         app.state.oauth_google_start = BuildGoogleAuthorizationUrl(
             client_id=client_id,
             redirect_uri=redirect_uri,
@@ -171,6 +174,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 redirect_uri=redirect_uri,
             ),
             state_store=oauth_state_store,
+            exchange_code_store=oauth_exchange_store,
             resolver=SqlAlchemyUserIdentityResolver(app.state.session_factory),
             external_identity_repository=SqlAlchemyExternalIdentityRepository(
                 app.state.uow_factory
@@ -180,12 +184,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             refresh_store=refresh_store,
             access_token_expire_minutes=settings.access_token_expire_minutes,
             refresh_token_expire_seconds=settings.refresh_token_expire_days * 24 * 3600,
-            secret_key=settings.secret_key,
-            jwt_algorithm=settings.jwt_algorithm,
         )
+        app.state.oauth_google_exchange = ExchangeOAuthCode(store=oauth_exchange_store)
     else:
         app.state.oauth_google_start = None
         app.state.oauth_google_callback = None
+        app.state.oauth_google_exchange = None
 
     # Composicao do contexto de empresas (onboarding + consulta). O hasher de
     # senha e a MESMA instancia Argon2 usada pelo identity; o hasher de CPF usa

@@ -73,3 +73,11 @@ class OAuthAccountLinkConflictError(AppError):
     status_code = 409
     title = "Conflict"
     code = "oauth_account_link_conflict"
+
+
+class OAuthExchangeError(AppError):
+    """Exchange code ausente, expirado ou ja consumido."""
+
+    status_code = 400
+    title = "Bad Request"
+    code = "oauth_exchange_invalid"

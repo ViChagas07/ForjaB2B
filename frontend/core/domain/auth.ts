@@ -33,3 +33,16 @@ export interface AuthTokens {
   token_type: string;
   expires_in: number;
 }
+
+/**
+ * Resultado da troca do exchange code OAuth (`POST /api/v1/auth/oauth/exchange`).
+ *
+ * - `authenticated`: sessão completa (mesma forma de `AuthSession`).
+ * - `onboarding`: usuário ainda não existe; o frontend redireciona para o
+ *   onboarding pré-preenchendo email/nome vindos do Google.
+ *
+ * Nenhum token/secret trafega na URL de redirect; apenas o exchange code opaco.
+ */
+export type OAuthExchangeResult =
+  | { status: "authenticated"; session: AuthSession }
+  | { status: "onboarding"; email: string | null; full_name: string | null };

@@ -24,6 +24,7 @@ from app.modules.ordering.application.errors import (
     CreditAccountNotFoundError,
     IdempotencyConflictError,
     InsufficientCreditError,
+    InvalidOrderStateError,
     OrderNotFoundError,
 )
 from app.modules.ordering.application.ports import (
@@ -32,6 +33,8 @@ from app.modules.ordering.application.ports import (
     ProductForOrder,
     ResolvedItem,
 )
+from app.modules.ordering.domain.enums import OrderStatus
+from app.modules.ordering.domain.order import can_cancel
 
 _ORDERS_KEY_UNIQUE = "uq_orders_idempotency_key"
 
@@ -314,6 +317,12 @@ class SqlAlchemyOrderingRepository:
     async def cancel_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
+            # Serializa o cancelamento com a captura de fatura (que tambem
+            # bloqueia a conta de credito). Isso impede que um pedido seja
+            # cancelado e faturado ao mesmo tempo, o que liberaria a reserva
+            # duas vezes. Sem conta (empresa so PIX) o SELECT nao trava nada.
+            await uow.session.execute(_LOCK_CREDIT, {"company_id": company_id})
+
             order = (
                 await uow.session.execute(
                     _SELECT_ORDER, {"order_id": order_id, "company_id": company_id}
@@ -322,6 +331,11 @@ class SqlAlchemyOrderingRepository:
             if order is None:
                 await uow.commit()
                 raise OrderNotFoundError()
+            # Revalida o estado SOB O LOCK: fecha o TOCTOU entre o caso de uso
+            # (que checa can_cancel) e a escrita aqui.
+            if not can_cancel(OrderStatus(order.status)):
+                raise InvalidOrderStateError()
+
             await uow.session.execute(
                 _UPDATE_ORDER_STATUS,
                 {"order_id": order_id, "company_id": company_id, "status": "CANCELLED"},

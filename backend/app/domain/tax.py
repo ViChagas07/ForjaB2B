@@ -9,6 +9,11 @@ Separacao explicita de responsabilidades:
 
 - Tax calculation != Invoice generation: esta funcao e pura e nao persiste nada.
 - Tax calculation != Payment: esta funcao nao movimenta credito nem dinheiro.
+- Tax calculation != Order total: o imposto NAO e somado ao ``orders.total``.
+  Integrar exigiria origem/destino da operacao, hoje ausentes do contrato de
+  Ordering (o pedido nao carrega UF de destino; o catalogo tem ``products.ncm``,
+  mas nao ha UF de origem configurada nem endereco de entrega no fluxo aprovado).
+  Sem esses dados, qualquer estimativa embutida no total seria inventada.
 """
 
 from __future__ import annotations

@@ -2,29 +2,28 @@
 
 Fluxo:
 
-    GET /auth/google          -> state anti-CSRF + redirect para o Google
-    GET /auth/google/callback -> valida state, troca code, resolve identidade,
-                                 vincula ao usuario existente (ou onboarding) e
-                                 estabelece a sessao (mesmo access/refresh token).
+    GET  /auth/google            -> state anti-CSRF + redirect para o Google
+    GET  /auth/google/callback   -> valida state/code, resolve identidade,
+                                    vincula ao usuario (ou onboarding) e devolve
+                                    apenas um exchange code de uso unico
+    POST /auth/oauth/exchange    -> troca o exchange code pela sessao (JSON)
 
-Nunca usar Google Identity Services (GIS) nem popup. O client_secret vive
-somente no backend. Nenhum token do Google e exposto ao frontend.
+Nenhum access/refresh token, authorization code, secret ou identidade e exposto
+em URL de redirect. O exchange code e opaco, aleatorio, curto e consumido uma
+unica vez (GETDEL). Nunca usar Google Identity Services (GIS) nem popup.
 """
 
 from __future__ import annotations
 
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
-import jwt
-
 from app.application.security import AuthContext, TokenService
-from app.modules.identity.application.auth import AuthenticationResult
 from app.modules.identity.application.errors import (
     OAuthCodeError,
     OAuthEmailNotVerifiedError,
+    OAuthExchangeError,
     OAuthStateError,
     UserInactiveError,
 )
@@ -33,6 +32,8 @@ from app.modules.identity.application.ports import (
     GoogleIdentityClient,
     GoogleUserInfo,
     MembershipReader,
+    OAuthExchange,
+    OAuthExchangeCodeStore,
     OAuthStateStore,
     RefreshTokenPayload,
     RefreshTokenStore,
@@ -44,16 +45,15 @@ _GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_SCOPE = "openid email profile"
 _STATE_BYTES = 32
 _REFRESH_TOKEN_BYTES = 32
-_ONBOARDING_TOKEN_TYPE = "onboarding"  # noqa: S105 - tipo de claim, nao segredo
+_EXCHANGE_CODE_BYTES = 32
 
 
 @dataclass(frozen=True, kw_only=True)
 class GoogleOAuthResult:
-    """Resultado do fluxo OAuth (sessao estabelecida OU onboarding)."""
+    """Resultado do callback OAuth: apenas um exchange code de uso unico."""
 
     status: str  # "authenticated" | "onboarding"
-    session: AuthenticationResult | None = None
-    onboarding_token: str | None = None
+    exchange_code: str
 
 
 class BuildGoogleAuthorizationUrl:
@@ -90,13 +90,14 @@ class BuildGoogleAuthorizationUrl:
 
 
 class CompleteGoogleOAuth:
-    """Caso de uso: conclui o fluxo OAuth (callback)."""
+    """Caso de uso: conclui o callback e emite um exchange code de uso unico."""
 
     def __init__(
         self,
         *,
         google_client: GoogleIdentityClient,
         state_store: OAuthStateStore,
+        exchange_code_store: OAuthExchangeCodeStore,
         resolver: UserIdentityResolver,
         external_identity_repository: ExternalIdentityRepository,
         membership_reader: MembershipReader,
@@ -104,12 +105,11 @@ class CompleteGoogleOAuth:
         refresh_store: RefreshTokenStore,
         access_token_expire_minutes: int,
         refresh_token_expire_seconds: int,
-        secret_key: str,
-        jwt_algorithm: str,
-        onboarding_token_ttl_seconds: int = 600,
+        exchange_code_ttl_seconds: int = 60,
     ) -> None:
         self._google_client = google_client
         self._state_store = state_store
+        self._exchange_code_store = exchange_code_store
         self._resolver = resolver
         self._external_identity_repository = external_identity_repository
         self._membership_reader = membership_reader
@@ -117,9 +117,7 @@ class CompleteGoogleOAuth:
         self._refresh_store = refresh_store
         self._access_token_expire_minutes = access_token_expire_minutes
         self._refresh_token_expire_seconds = refresh_token_expire_seconds
-        self._secret_key = secret_key
-        self._jwt_algorithm = jwt_algorithm
-        self._onboarding_token_ttl_seconds = onboarding_token_ttl_seconds
+        self._exchange_code_ttl_seconds = exchange_code_ttl_seconds
 
     async def complete(self, *, code: str, state: str) -> GoogleOAuthResult:
         if not await self._state_store.consume(state):
@@ -132,9 +130,13 @@ class CompleteGoogleOAuth:
         email = userinfo.email.strip().lower()
         identity = await self._resolver.resolve_by_email(email)
         if identity is None:
-            return GoogleOAuthResult(
-                status="onboarding", onboarding_token=self._issue_onboarding_token(userinfo)
+            payload = OAuthExchange(
+                status="onboarding",
+                email=email,
+                full_name=userinfo.name,
             )
+            return await self._issue(payload)
+
         if identity.status is not UserStatus.ACTIVE:
             raise UserInactiveError()
 
@@ -169,18 +171,24 @@ class CompleteGoogleOAuth:
             ),
             self._refresh_token_expire_seconds,
         )
-        session = AuthenticationResult(
+
+        payload = OAuthExchange(
+            status="authenticated",
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",  # noqa: S106 - tipo OAuth2 padrao, nao segredo
             expires_in=self._access_token_expire_minutes * 60,
-            user_id=identity.user_id,
-            company_id=identity.company_id,
-            role=role,
+            user_id=str(identity.user_id),
             email=membership.email,
             full_name=membership.full_name,
+            role=role,
         )
-        return GoogleOAuthResult(status="authenticated", session=session)
+        return await self._issue(payload)
+
+    async def _issue(self, payload: OAuthExchange) -> GoogleOAuthResult:
+        exchange_code = secrets.token_urlsafe(_EXCHANGE_CODE_BYTES)
+        await self._exchange_code_store.put(exchange_code, payload, self._exchange_code_ttl_seconds)
+        return GoogleOAuthResult(status=payload.status, exchange_code=exchange_code)
 
     async def _exchange(self, code: str) -> GoogleUserInfo:
         try:
@@ -190,15 +198,15 @@ class CompleteGoogleOAuth:
         except Exception as exc:
             raise OAuthCodeError() from exc
 
-    def _issue_onboarding_token(self, userinfo: GoogleUserInfo) -> str:
-        now = datetime.now(UTC)
-        payload = {
-            "type": _ONBOARDING_TOKEN_TYPE,
-            "provider": "google",
-            "sub": userinfo.subject,
-            "email": userinfo.email,
-            "name": userinfo.name,
-            "iat": now,
-            "exp": now + timedelta(seconds=self._onboarding_token_ttl_seconds),
-        }
-        return jwt.encode(payload, self._secret_key, algorithm=self._jwt_algorithm)
+
+class ExchangeOAuthCode:
+    """Caso de uso: troca um exchange code de uso unico pelo conteudo da sessao."""
+
+    def __init__(self, *, store: OAuthExchangeCodeStore) -> None:
+        self._store = store
+
+    async def exchange(self, code: str) -> OAuthExchange:
+        payload = await self._store.consume(code)
+        if payload is None:
+            raise OAuthExchangeError()
+        return payload

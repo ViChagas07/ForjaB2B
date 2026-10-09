@@ -8,6 +8,7 @@ e infraestrutura sao irmaos independentes).
 
 from __future__ import annotations
 
+import uuid
 from typing import Annotated, cast
 from urllib.parse import urlencode
 
@@ -23,11 +24,15 @@ from app.modules.identity.application.errors import (
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,
+    ExchangeOAuthCode,
     GoogleOAuthResult,
 )
+from app.modules.identity.application.ports import OAuthExchange
 from app.modules.identity.interface.schemas import (
     LoginRequest,
     LoginResponse,
+    OAuthExchangeRequest,
+    OAuthExchangeResponse,
     RefreshRequest,
     RefreshResponse,
     UserProfile,
@@ -56,27 +61,44 @@ def _oauth_callback_usecase(request: Request) -> CompleteGoogleOAuth | None:
     return cast(CompleteGoogleOAuth | None, request.app.state.oauth_google_callback)
 
 
+def _oauth_exchange_usecase(request: Request) -> ExchangeOAuthCode | None:
+    return cast(ExchangeOAuthCode | None, request.app.state.oauth_google_exchange)
+
+
 def _frontend_redirect(request: Request) -> str:
     return cast(str, request.app.state.settings.google_oauth_frontend_redirect)
 
 
-def _session_redirect(base_url: str, result: GoogleOAuthResult) -> RedirectResponse:
-    """Monta o redirect final para o frontend (sessao OU onboarding)."""
-    if result.status == "authenticated" and result.session is not None:
-        params = {
-            "access_token": result.session.access_token,
-            "refresh_token": result.session.refresh_token,
-            "token_type": result.session.token_type,
-            "expires_in": result.session.expires_in,
-            "user_id": str(result.session.user_id),
-            "email": result.session.email,
-            "full_name": result.session.full_name,
-            "role": result.session.role,
-        }
-    else:
-        params = {"onboarding": "1", "token": result.onboarding_token or ""}
+def _code_redirect(base_url: str, result: GoogleOAuthResult) -> RedirectResponse:
+    """Redirect final para o frontend carregando APENAS o exchange code."""
     separator = "&" if "?" in base_url else "?"
-    return RedirectResponse(f"{base_url}{separator}{urlencode(params)}", status_code=302)
+    return RedirectResponse(
+        f"{base_url}{separator}{urlencode({'code': result.exchange_code})}",
+        status_code=status.HTTP_302_FOUND,
+    )
+
+
+def _to_exchange_response(exchange: OAuthExchange) -> OAuthExchangeResponse:
+    """Traduz o payload trocado para o contrato HTTP (sessao OU onboarding)."""
+    if exchange.status == "authenticated" and exchange.user_id is not None:
+        return OAuthExchangeResponse(
+            status="authenticated",
+            access_token=exchange.access_token,
+            refresh_token=exchange.refresh_token,
+            token_type=exchange.token_type,
+            expires_in=exchange.expires_in,
+            user=UserProfile(
+                id=uuid.UUID(exchange.user_id),
+                email=exchange.email or "",
+                full_name=exchange.full_name or "",
+                role=exchange.role or "",
+            ),
+        )
+    return OAuthExchangeResponse(
+        status="onboarding",
+        email=exchange.email,
+        full_name=exchange.full_name,
+    )
 
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
@@ -136,7 +158,7 @@ async def google_callback(
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
 ) -> RedirectResponse:
-    """Callback OAuth: valida state/code e redireciona ao frontend com a sessao."""
+    """Callback OAuth: valida state/code e redireciona com um exchange code."""
     use_case = _oauth_callback_usecase(request)
     if use_case is None:
         raise OAuthConfigurationError()
@@ -145,4 +167,21 @@ async def google_callback(
     if not state:
         raise OAuthStateError()
     result = await use_case.complete(code=code, state=state)
-    return _session_redirect(_frontend_redirect(request), result)
+    return _code_redirect(_frontend_redirect(request), result)
+
+
+@router.post(
+    "/oauth/exchange",
+    response_model=OAuthExchangeResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def oauth_exchange(
+    payload: OAuthExchangeRequest,
+    request: Request,
+) -> OAuthExchangeResponse:
+    """Troca um exchange code de uso unico pela sessao (ou onboarding)."""
+    use_case = _oauth_exchange_usecase(request)
+    if use_case is None:
+        raise OAuthConfigurationError()
+    exchange = await use_case.exchange(payload.code)
+    return _to_exchange_response(exchange)

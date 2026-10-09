@@ -1,4 +1,4 @@
-import type { AuthSession } from "@/core/domain/auth";
+import type { AuthSession, OAuthExchangeResult } from "@/core/domain/auth";
 
 import { authApi, problemCode } from "@/infrastructure/http";
 
@@ -59,4 +59,17 @@ export async function refreshSession(): Promise<AuthSession> {
 /** Access token atual (sem disparar re-render); usado em chamadas autenticadas. */
 export function getAccessToken(): string | null {
   return useAuthStore.getState().session?.access_token ?? null;
+}
+
+/**
+ * Troca o exchange code do OAuth Google pela sessão (ou pelo fluxo de
+ * onboarding). Se autenticado, persiste a sessão na store (mesma forma do
+ * login por email/senha). Nunca trafega token/secret na URL.
+ */
+export async function exchangeGoogleOAuthCode(code: string): Promise<OAuthExchangeResult> {
+  const result = await authApi.exchangeOAuthCode(code);
+  if (result.status === "authenticated") {
+    useAuthStore.getState().setSession(result.session);
+  }
+  return result;
 }

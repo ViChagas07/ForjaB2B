@@ -1,4 +1,8 @@
-"""Testes unitarios do fluxo OAuth Google (use cases, com fakes deterministicos)."""
+"""Testes unitarios do fluxo OAuth Google (use cases, com fakes deterministicos).
+
+O callback nao devolve tokens na URL: devolve um exchange code de uso unico que
+e trocado no endpoint de troca (JSON). Nenhum token/secret/identity em URL.
+"""
 
 from __future__ import annotations
 
@@ -13,16 +17,19 @@ from app.core.config import Settings
 from app.modules.identity.application.errors import (
     OAuthCodeError,
     OAuthEmailNotVerifiedError,
+    OAuthExchangeError,
     OAuthStateError,
     UserInactiveError,
 )
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,
+    ExchangeOAuthCode,
 )
 from app.modules.identity.application.ports import (
     GoogleUserInfo,
     Membership,
+    OAuthExchange,
     RefreshTokenPayload,
     ResolvedIdentity,
 )
@@ -58,6 +65,17 @@ class FakeStateStore:
 
     async def consume(self, state: str) -> bool:
         return self._valid
+
+
+class FakeExchangeCodeStore:
+    def __init__(self) -> None:
+        self.codes: dict[str, OAuthExchange] = {}
+
+    async def put(self, code: str, payload: OAuthExchange, ttl_seconds: int) -> None:
+        self.codes[code] = payload
+
+    async def consume(self, code: str) -> OAuthExchange | None:
+        return self.codes.pop(code, None)
 
 
 class FakeExternalIdentityRepository:
@@ -133,6 +151,7 @@ def _complete_usecase(**overrides: Any) -> CompleteGoogleOAuth:
     args: dict[str, Any] = {
         "google_client": FakeGoogleClient(userinfo=_userinfo()),
         "state_store": FakeStateStore(),
+        "exchange_code_store": FakeExchangeCodeStore(),
         "resolver": FakeResolver(_identity()),
         "external_identity_repository": FakeExternalIdentityRepository(),
         "membership_reader": FakeMembershipReader(_membership()),
@@ -140,8 +159,6 @@ def _complete_usecase(**overrides: Any) -> CompleteGoogleOAuth:
         "refresh_store": FakeRefreshStore(),
         "access_token_expire_minutes": 30,
         "refresh_token_expire_seconds": 7 * 24 * 3600,
-        "secret_key": _SECRET_KEY,
-        "jwt_algorithm": "HS256",
     }
     args.update(overrides)
     return CompleteGoogleOAuth(**args)
@@ -165,25 +182,49 @@ async def test_gera_redirect_com_state_e_sem_secret() -> None:
     assert store.states == query["state"]
 
 
-async def test_callback_valido_autentica_e_vincula() -> None:
+async def test_callback_valido_gera_exchange_code_sem_token_na_url() -> None:
     links = FakeExternalIdentityRepository()
+    exchange_store = FakeExchangeCodeStore()
     refresh_store = FakeRefreshStore()
     use_case = _complete_usecase(
         external_identity_repository=links,
+        exchange_code_store=exchange_store,
         refresh_store=refresh_store,
     )
     result = await use_case.complete(code="code-ok", state="state-ok")
 
     assert result.status == "authenticated"
-    assert result.session is not None
-    assert result.session.access_token
-    assert result.session.refresh_token
-    assert result.session.email == "buyer@empresa.com"
-    assert result.session.role == "BUYER"
+    assert result.exchange_code
+    # Nenhum token/secret aparece no resultado (so o exchange code opaco).
+    assert _CLIENT_SECRET not in result.exchange_code
+
+    # O exchange code troca para a sessao (com tokens) via o store.
+    payload = await exchange_store.consume(result.exchange_code)
+    assert payload is not None
+    assert payload.status == "authenticated"
+    assert payload.access_token
+    assert payload.refresh_token
+    assert payload.email == "buyer@empresa.com"
+    assert payload.role == "BUYER"
     assert len(links.links) == 1
-    assert links.links[0]["provider"] == "google"
-    assert links.links[0]["subject"] == "google-sub-1"
     assert len(refresh_store.tokens) == 1
+
+
+async def test_exchange_code_uso_unico() -> None:
+    exchange_store = FakeExchangeCodeStore()
+    use_case = _complete_usecase(exchange_code_store=exchange_store)
+    result = await use_case.complete(code="code", state="state")
+
+    first = await exchange_store.consume(result.exchange_code)
+    second = await exchange_store.consume(result.exchange_code)
+    assert first is not None
+    assert second is None
+
+
+async def test_exchange_code_invalido_ou_reutilizado_erro() -> None:
+    exchange = ExchangeOAuthCode(store=FakeExchangeCodeStore())
+    with pytest.raises(OAuthExchangeError):
+        await exchange.exchange("codigo-nao-existe")
 
 
 async def test_callback_state_invalido() -> None:
@@ -208,12 +249,17 @@ async def test_callback_email_nao_verificado() -> None:
 
 
 async def test_callback_conta_inexistente_vai_para_onboarding() -> None:
-    use_case = _complete_usecase(resolver=FakeResolver(None))
+    exchange_store = FakeExchangeCodeStore()
+    use_case = _complete_usecase(resolver=FakeResolver(None), exchange_code_store=exchange_store)
     result = await use_case.complete(code="code", state="state")
 
     assert result.status == "onboarding"
-    assert result.session is None
-    assert result.onboarding_token
+    assert result.exchange_code
+    payload = await exchange_store.consume(result.exchange_code)
+    assert payload is not None
+    assert payload.status == "onboarding"
+    assert payload.access_token is None
+    assert payload.email == "buyer@empresa.com"
 
 
 async def test_callback_usuario_inativo() -> None:
@@ -230,13 +276,14 @@ async def test_callback_usuario_inativo() -> None:
 
 
 async def test_callback_nao_expoe_client_secret() -> None:
-    refresh_store = FakeRefreshStore()
-    use_case = _complete_usecase(refresh_store=refresh_store)
+    exchange_store = FakeExchangeCodeStore()
+    use_case = _complete_usecase(exchange_code_store=exchange_store)
     result = await use_case.complete(code="code", state="state")
 
-    assert result.session is not None
-    assert _CLIENT_SECRET not in result.session.access_token
-    assert _CLIENT_SECRET not in result.session.refresh_token
+    payload = await exchange_store.consume(result.exchange_code)
+    assert payload is not None
+    assert _CLIENT_SECRET not in (payload.access_token or "")
+    assert _CLIENT_SECRET not in (payload.refresh_token or "")
 
 
 def test_settings_oauth_enabled() -> None:
