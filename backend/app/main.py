@@ -37,6 +37,7 @@ from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.interface.errors import register_exception_handlers
 from app.interface.health import ReadinessProbe
 from app.interface.health import router as health_router
+from app.interface.metrics import PrometheusMiddleware
 from app.interface.middleware import CorrelationIdMiddleware
 from app.interface.v1.router import api_v1_router
 from app.modules.cart.application.cart import CartService
@@ -50,7 +51,11 @@ from app.modules.catalog.application.catalog import (
     ListProducts,
 )
 from app.modules.catalog.infrastructure.repository import SqlAlchemyCatalogRepository
-from app.modules.companies.application.company import GetCurrentCompany, RegisterCompany
+from app.modules.companies.application.company import (
+    ApproveCompany,
+    GetCurrentCompany,
+    RegisterCompany,
+)
 from app.modules.companies.infrastructure.cpf import HmacCpfHasher
 from app.modules.companies.infrastructure.repository import SqlAlchemyCompanyRepository
 from app.modules.credit.application.credit import (
@@ -214,6 +219,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         cpf_hasher=HmacCpfHasher(settings.pepper),
     )
     app.state.companies_get = GetCurrentCompany(repository=company_repository)
+    app.state.companies_approve = ApproveCompany(repository=company_repository)
 
     # Composicao do contexto de catalogo (somente leitura, global).
     catalog_repository = SqlAlchemyCatalogRepository(app.state.uow_factory)
@@ -276,6 +282,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.readiness_probes = readiness_probes
 
     app.add_middleware(CorrelationIdMiddleware)
+    app.add_middleware(PrometheusMiddleware)
     register_exception_handlers(app)
 
     app.include_router(health_router)

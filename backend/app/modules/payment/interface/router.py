@@ -15,6 +15,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Header, Request, status
 
 from app.application.security import AuthContext
+from app.core.metrics import increment_payment_confirmed
 from app.interface.deps import get_current_auth
 from app.modules.payment.application.errors import InvalidWebhookEventError, WebhookSignatureError
 from app.modules.payment.application.payment import ConfirmPayment, GetPayment, InitiatePayment
@@ -102,14 +103,17 @@ async def get_payment(
 @router.post("/webhook", response_model=WebhookResponse, status_code=status.HTTP_200_OK)
 async def payment_webhook(
     request: Request,
-    payload: WebhookEventRequest,
     use_case: Annotated[ConfirmPayment, Depends(_confirm)],
     signature: Annotated[str | None, Header(alias="X-Forja-Signature")] = None,
 ) -> WebhookResponse:
-    secret = cast(str, request.app.state.settings.payment_webhook_secret)
+    # Le o corpo BRUTO antes de qualquer parse: a assinatura HMAC cobre os bytes
+    # originais. Deixar o FastAPI/Pydantic consumir o stream antes da verificacao
+    # invalidaria a comparacao e abriria brecha no controle de integridade.
     body = await request.body()
+    secret = cast(str, request.app.state.settings.payment_webhook_secret)
     _verify_signature(secret, body, signature)
 
+    payload = WebhookEventRequest.model_validate_json(body)
     target_status = _EVENT_TO_STATUS.get(payload.event_type)
     if target_status is None:  # pragma: no cover - enum ja valida o contrato
         raise InvalidWebhookEventError()
@@ -120,6 +124,10 @@ async def payment_webhook(
         provider=payload.provider,
         event_id=payload.event_id,
         target_status=target_status,
+    )
+    increment_payment_confirmed(
+        method=result.payment.method,
+        outcome=result.outcome,
     )
     return WebhookResponse(
         outcome=result.outcome,

@@ -34,3 +34,6 @@ opentelemetry-sdk==1.45.1
 opentelemetry-exporter-otlp-proto-grpc==1.45.1
 opentelemetry-instrumentation-fastapi==0.66b1
 opentelemetry-instrumentation-sqlalchemy==0.66b1
+
+# Prometheus (endpoint /metrics e formatacao de metricas customizadas).
+prometheus-client==0.21.0

@@ -281,6 +281,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (see .env.example)}
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-dev_payment_webhook_secret_change_in_production}
       PIX_DISCOUNT_RATE: ${PIX_DISCOUNT_RATE:-0.05}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-dev_admin_api_key_change_in_production}
     ports:
       - "8000:8000"
     networks:
@@ -342,6 +343,12 @@ services:
         condition: service_healthy
       otel-collector:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping -d celery@$$HOSTNAME | grep -q 'pong'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   # ----------------------------------------------------------------------------
   # Celery Beat (agendador de tarefas periodicas)
@@ -378,6 +385,12 @@ services:
       otel-collector:
         condition: service_healthy
     command: ["celery", "-A", "app.tasks.celery_app", "beat", "--loglevel=INFO"]
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'celery.*beat' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ----------------------------------------------------------------------------
   # Frontend Web (Next.js Standalone)

@@ -41,6 +41,9 @@ class FakeRepository:
     async def get_by_id(self, company_id: uuid.UUID) -> CompanyRecord | None:
         return None
 
+    async def approve(self, company_id: uuid.UUID) -> bool:
+        return True
+
 
 def _command(
     *,

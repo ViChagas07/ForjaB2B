@@ -151,3 +151,37 @@ async def test_empresa_me_isolada_por_tenant(
     assert uuid.UUID(body["id"]) == company_b
     assert body["cnpj"] == _CNPJ_TENANT_B
     assert body["id"] != str(company_a)
+
+
+async def test_aprovacao_empresa_com_chave_admin(
+    companies_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    reg = await companies_client.post(
+        "/api/v1/companies",
+        json=_payload("55667788000186", "admin@empresa-c.com", "Empresa C", "12345678909"),
+    )
+    assert reg.status_code == 201
+    company_id = uuid.UUID(reg.json()["company"]["id"])
+
+    # Sem chave -> 403.
+    resp = await companies_client.post(f"/api/v1/companies/{company_id}/approve")
+    assert resp.status_code == 403
+
+    # Chave incorreta -> 403.
+    resp = await companies_client.post(
+        f"/api/v1/companies/{company_id}/approve", headers={"X-Admin-Key": "wrong"}
+    )
+    assert resp.status_code == 403
+
+    # Chave correta -> 204.
+    resp = await companies_client.post(
+        f"/api/v1/companies/{company_id}/approve",
+        headers={"X-Admin-Key": "test-admin-key"},
+    )
+    assert resp.status_code == 204
+
+    # Segunda aprovacao -> 404 (nao ha PENDING).
+    resp = await companies_client.post(
+        f"/api/v1/companies/{company_id}/approve", headers={"X-Admin-Key": "test-admin-key"}
+    )
+    assert resp.status_code == 404

@@ -2,17 +2,24 @@
 
 Rotas finas: traduzem HTTP <-> caso de uso. O company_id usado na consulta vem
 do token autenticado (get_current_auth), nunca de um parametro do cliente.
+
+A aprovacao de empresas usa uma chave de administrador de plataforma
+(``ADMIN_API_KEY``) e nao o JWT de um tenant: um operador de plataforma nao
+faz parte do tenant da empresa em aprovacao.
 """
 
 from __future__ import annotations
 
+import hmac
+import uuid
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 
 from app.application.security import AuthContext
 from app.interface.deps import get_current_auth
 from app.modules.companies.application.company import (
+    ApproveCompany,
     CompanyView,
     GetCurrentCompany,
     RegisterCompany,
@@ -33,6 +40,10 @@ def _register_usecase(request: Request) -> RegisterCompany:
 
 def _get_usecase(request: Request) -> GetCurrentCompany:
     return cast(GetCurrentCompany, request.app.state.companies_get)
+
+
+def _approve_usecase(request: Request) -> ApproveCompany:
+    return cast(ApproveCompany, request.app.state.companies_approve)
 
 
 @router.post("", response_model=RegisterCompanyResponse, status_code=status.HTTP_201_CREATED)
@@ -76,3 +87,19 @@ async def get_current_company(
         trade_name=view.trade_name,
         status=view.status,
     )
+
+
+@router.post("/{company_id}/approve", status_code=status.HTTP_204_NO_CONTENT)
+async def approve_company(
+    company_id: uuid.UUID,
+    request: Request,
+    use_case: Annotated[ApproveCompany, Depends(_approve_usecase)],
+    x_admin_key: Annotated[str | None, Header(alias="X-Admin-Key")] = None,
+) -> Response:
+    expected = cast(str | None, request.app.state.settings.admin_api_key)
+    if x_admin_key is None or expected is None or not hmac.compare_digest(x_admin_key, expected):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    updated = await use_case.approve(company_id)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

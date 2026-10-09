@@ -7,6 +7,7 @@ integracao transacional do boleto pago com fatura e ledger de credito.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -281,3 +282,33 @@ async def test_webhook_pagamento_inexistente_404(payment_client: httpx.AsyncClie
     )
     assert response.status_code == 404
     assert response.json()["type"] == "urn:forja:problem:payment_not_found"
+
+
+async def test_webhook_sem_assinatura_401(payment_client: httpx.AsyncClient) -> None:
+    response = await payment_client.post(
+        "/api/v1/payments/webhook",
+        content=b"{}",
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 401
+
+
+async def test_webhook_concorrente_idempotente(payment_client: httpx.AsyncClient) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-pix-concurrent")
+    payment = await _initiate(payment_client, order["id"], "PIX", "pay-pix-init-concurrent")
+
+    responses = await asyncio.gather(
+        *[
+            _post_webhook(
+                payment_client,
+                provider_reference=payment["provider_reference"],
+                event_id="evt-concurrent",
+                event_type="payment.paid",
+            )
+            for _ in range(5)
+        ]
+    )
+    assert all(r.status_code == 200 for r in responses)
+    outcomes = [r.json()["outcome"] for r in responses]
+    assert outcomes.count("APPLIED") == 1
+    assert outcomes.count("DUPLICATE") == 4

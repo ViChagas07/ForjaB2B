@@ -12,6 +12,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
+from app.core.metrics import increment_order_created
 from app.domain.pricing import resolve_unit_price
 from app.domain.product_availability import is_sellable
 from app.domain.shipping import compute_shipping, compute_total_weight
@@ -107,6 +108,7 @@ class CreateOrder:
             shipping_total=shipping_total,
             total=total,
         )
+        increment_order_created(payment_method.value)
 
 
 class GetOrder:

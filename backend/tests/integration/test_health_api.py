@@ -60,6 +60,14 @@ async def test_health_ready_com_dependencias_saudaveis(api_client: httpx.AsyncCl
     }
 
 
+async def test_metrics_prometheus_expoe_metricas_basicas(api_client: httpx.AsyncClient) -> None:
+    response = await api_client.get("/metrics")
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+    body = response.text
+    assert "forja_http_requests_total" in body
+
+
 async def test_health_ready_sem_banco_retorna_503(redis_url: str) -> None:
     """Readiness falha deterministicamente quando o PostgreSQL esta fora."""
     from pydantic import RedisDsn

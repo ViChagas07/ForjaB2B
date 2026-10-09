@@ -39,6 +39,14 @@ _INSERT_MEMBER = text(
 _SELECT_COMPANY = text(
     "SELECT id, cnpj, legal_name, trade_name, status FROM companies WHERE id = :company_id"
 )
+_APPROVE_COMPANY = text(
+    "UPDATE companies SET status = 'ACTIVE', approved_at = now(), updated_at = now() "
+    "WHERE id = :company_id AND status = 'PENDING' RETURNING id"
+)
+_APPROVE_ADMIN = text(
+    "UPDATE users SET status = 'ACTIVE', updated_at = now() "
+    "WHERE company_id = :company_id AND status = 'PENDING_APPROVAL'"
+)
 
 
 def _constraint_name(exc: BaseException) -> str:
@@ -123,3 +131,19 @@ class SqlAlchemyCompanyRepository:
                 trade_name=row.trade_name,
                 status=row.status,
             )
+
+    async def approve(self, company_id: uuid.UUID) -> bool:
+        # O operador de plataforma nao pertence ao tenant; o contexto e
+        # estabelecido para a empresa alvo (autorizado pelo router via admin key)
+        # para que a RLS permita a escrita e ativacao atomica de empresa + admin.
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            updated = (
+                await uow.session.execute(_APPROVE_COMPANY, {"company_id": company_id})
+            ).first()
+            if updated is None:
+                await uow.commit()
+                return False
+            await uow.session.execute(_APPROVE_ADMIN, {"company_id": company_id})
+            await uow.commit()
+            return True

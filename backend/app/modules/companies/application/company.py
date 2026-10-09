@@ -144,3 +144,13 @@ class GetCurrentCompany:
             trade_name=company.trade_name,
             status=company.status,
         )
+
+
+class ApproveCompany:
+    """Caso de uso (admin de plataforma): ativa uma empresa PENDING."""
+
+    def __init__(self, *, repository: CompanyRepository) -> None:
+        self._repository = repository
+
+    async def approve(self, company_id: uuid.UUID) -> bool:
+        return await self._repository.approve(company_id)

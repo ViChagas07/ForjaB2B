@@ -100,6 +100,10 @@ class Settings(BaseSettings):
     email_smtp_port: int = Field(default=1025, ge=1)
     email_from: str = "no-reply@forja.local"
 
+    # Admin de plataforma (aprovação de empresas). Em producao deve ser uma
+    # chave forte injetada via secrets manager. Ausente, a rota admin 401.
+    admin_api_key: str | None = None
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"

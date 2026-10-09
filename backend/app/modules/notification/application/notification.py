@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import uuid
 
+from app.core.metrics import increment_notifications_dispatched
 from app.modules.notification.application.errors import (
     EmailPermanentError,
     EmailTransientError,
@@ -51,6 +52,7 @@ class DispatchOutbox:
                 await self._repository.mark(
                     company_id=row.company_id, outbox_id=row.id, status=NotificationStatus.SKIPPED
                 )
+                increment_notifications_dispatched(status="SKIPPED")
                 continue
             subject, body = build_email(
                 event_type=row.event_type, locale=recipient.locale, order_id=str(row.aggregate_id)
@@ -64,6 +66,7 @@ class DispatchOutbox:
                     status=NotificationStatus.DEAD_LETTERED,
                     error=str(exc),
                 )
+                increment_notifications_dispatched(status="DEAD_LETTERED")
                 continue
             except EmailTransientError as exc:
                 await self._repository.mark(
@@ -72,10 +75,12 @@ class DispatchOutbox:
                     status=NotificationStatus.FAILED,
                     error=str(exc),
                 )
+                increment_notifications_dispatched(status="FAILED")
                 continue
             await self._repository.mark(
                 company_id=row.company_id, outbox_id=row.id, status=NotificationStatus.SENT
             )
+            increment_notifications_dispatched(status="SENT")
             sent += 1
         return sent
 

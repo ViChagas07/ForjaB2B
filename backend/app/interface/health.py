@@ -17,6 +17,7 @@ from collections.abc import Awaitable, Callable, Mapping
 
 from fastapi import APIRouter, Request, Response, status
 
+from app.core.metrics import prometheus_metrics
 from app.interface.schemas import CheckStatus, LivenessResponse, ReadinessResponse
 
 ReadinessProbe = Callable[[], Awaitable[bool]]
@@ -55,3 +56,8 @@ async def readiness(request: Request, response: Response) -> ReadinessResponse:
     if not all_ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return ReadinessResponse(status="ready" if all_ok else "not_ready", checks=checks)
+
+
+@router.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    return Response(content=prometheus_metrics(), media_type="text/plain; version=0.0.4")

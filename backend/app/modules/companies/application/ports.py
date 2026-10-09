@@ -61,3 +61,6 @@ class CompanyRepository(Protocol):
 
     async def get_by_id(self, company_id: uuid.UUID) -> CompanyRecord | None:
         """Le a empresa do tenant (RLS limita ao proprio tenant)."""
+
+    async def approve(self, company_id: uuid.UUID) -> bool:
+        """Ativa empresa PENDING e seu admin inicial. Retorna True se alterou."""
