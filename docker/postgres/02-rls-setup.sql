@@ -37,6 +37,8 @@ GRANT USAGE ON SCHEMA app TO :"app_user";
 -- da funcao app.resolve_user_by_email (SECURITY DEFINER). A role e NOLOGIN e
 -- inalcancavel fora da funcao, portanto CREATE nao amplia a superficie real.
 GRANT USAGE, CREATE ON SCHEMA app TO forja_auth;
+-- forja_notification (despacho da outbox) segue o mesmo padrao.
+GRANT USAGE, CREATE ON SCHEMA app TO forja_notification;
 
 -- -----------------------------------------------------------------------------
 -- 1. app.current_company_id(): UUID do tenant ativo ou NULL se ausente/invalido.
@@ -151,6 +153,37 @@ COMMENT ON FUNCTION app.resolve_user_by_email(TEXT) IS
     'Resolve (user_id, company_id, status, password_hash) por email para o login. SECURITY DEFINER sobre forja_auth; retorna apenas o minimo necessario.';
 
 -- -----------------------------------------------------------------------------
+-- 5. app.list_due_notifications(p_limit, p_max_attempts): enumeracao de
+--    notificacoes pendentes para o worker (despacho da outbox).
+--    SECURITY DEFINER (owner: forja_notification, NOLOGIN) porque a tabela
+--    public.notifications tem FORCE RLS e o worker precisa enumerar pendentes
+--    de TODOS os tenants antes de despachar cada uma no seu proprio contexto.
+--    Retorna apenas (notification_id, company_id); nao e um mecanismo generico
+--    de bypass de RLS (leitura limitada a role forja_notification por politica
+--    dedicada na migration 0010). search_path fixo previne hijack.
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION app.list_due_notifications(p_limit INTEGER, p_max_attempts INTEGER)
+RETURNS TABLE(notification_id UUID, company_id UUID)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT n.id, n.company_id
+    FROM public.notifications n
+    WHERE n.status = 'PENDING'
+       OR (n.status = 'FAILED' AND n.attempts < p_max_attempts)
+    ORDER BY n.created_at, n.id
+    LIMIT p_limit;
+END;
+$$;
+
+COMMENT ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) IS
+    'Enumera (notification_id, company_id) das notificacoes pendentes para o worker. SECURITY DEFINER sobre forja_notification.';
+
+-- -----------------------------------------------------------------------------
 -- Ownership e permissoes de execucao
 -- -----------------------------------------------------------------------------
 ALTER FUNCTION app.current_company_id() OWNER TO :"admin_user";
@@ -158,17 +191,21 @@ ALTER FUNCTION app.current_user_id() OWNER TO :"admin_user";
 ALTER FUNCTION app.set_tenant_context(UUID, UUID) OWNER TO :"admin_user";
 -- A funcao de login e owned pela role dedicada forja_auth (SECURITY DEFINER).
 ALTER FUNCTION app.resolve_user_by_email(TEXT) OWNER TO forja_auth;
+-- A funcao de despacho e owned pela role dedicada forja_notification.
+ALTER FUNCTION app.list_due_notifications(INTEGER, INTEGER) OWNER TO forja_notification;
 
 -- Funcoes novas concedem EXECUTE a PUBLIC por padrao: revogar explicitamente.
 REVOKE EXECUTE ON FUNCTION app.current_company_id() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.current_user_id() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.set_tenant_context(UUID, UUID) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.resolve_user_by_email(TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION app.current_company_id() TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.current_user_id() TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.set_tenant_context(UUID, UUID) TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.resolve_user_by_email(TEXT) TO :"app_user";
+GRANT EXECUTE ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) TO :"app_user";
 
 -- Mesma politica para funcoes futuras do schema app criadas pelo admin.
 ALTER DEFAULT PRIVILEGES FOR ROLE :"admin_user" IN SCHEMA app

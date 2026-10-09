@@ -37,6 +37,14 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 # Docker
 .docker/
 

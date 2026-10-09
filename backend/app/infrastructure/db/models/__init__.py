@@ -17,7 +17,9 @@ from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
 from app.infrastructure.db.models.identity import CompanyMember, User
 from app.infrastructure.db.models.invoicing import Invoice
+from app.infrastructure.db.models.notification import Notification, NotificationPreference
 from app.infrastructure.db.models.ordering import Order, OrderItem
+from app.infrastructure.db.models.payment import Payment, PaymentEvent
 from app.infrastructure.db.models.privacy import ConsentRecord
 
 __all__ = [
@@ -33,8 +35,12 @@ __all__ = [
     "CreditAccount",
     "CreditEntry",
     "Invoice",
+    "Notification",
+    "NotificationPreference",
     "Order",
     "OrderItem",
+    "Payment",
+    "PaymentEvent",
     "Product",
     "ProductPriceTier",
     "User",

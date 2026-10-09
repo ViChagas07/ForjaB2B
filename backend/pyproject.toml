@@ -84,6 +84,17 @@ exclude = ["\\.venv/", "\\.mypy_cache/", "alembic/versions/"]
 module = ["docker", "docker.*"]
 ignore_missing_imports = true
 
+# celery (worker assincrono) nao distribui stubs; uso restrito a app.tasks.
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
+
+# O decorador celery_app.task e nao tipado; relaxa apenas o untyped-decorator
+# no modulo de integracao do worker (a logica de despacho e totalmente tipada).
+[[tool.mypy.overrides]]
+module = ["app.tasks", "app.tasks.*"]
+disable_error_code = ["untyped-decorator"]
+
 # ------------------------------------------------------------------------------
 # pytest
 # ------------------------------------------------------------------------------

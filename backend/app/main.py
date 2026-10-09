@@ -78,8 +78,21 @@ from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 from app.modules.identity.infrastructure.tokens import RedisRefreshTokenStore
 from app.modules.invoicing.application.invoice import CreateInvoice, GetInvoice, GetInvoiceByOrder
 from app.modules.invoicing.infrastructure.repository import SqlAlchemyInvoicingRepository
+from app.modules.notification.application.notification import ListNotifications, ResendNotification
+from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.infrastructure.repository import SqlAlchemyOrderingRepository
+from app.modules.payment.application.payment import ConfirmPayment, GetPayment, InitiatePayment
+from app.modules.payment.infrastructure.gateway import FakePaymentGateway
+from app.modules.payment.infrastructure.repository import SqlAlchemyPaymentRepository
+from app.modules.privacy.application.privacy import (
+    DeletePersonalData,
+    ExportPersonalData,
+    GetConsentState,
+    RecordConsent,
+    RectifyPersonalData,
+)
+from app.modules.privacy.infrastructure.repository import SqlAlchemyPrivacyRepository
 
 _logger = get_logger(__name__)
 
@@ -232,6 +245,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.invoicing_create = CreateInvoice(repository=invoicing_repository)
     app.state.invoicing_get = GetInvoice(repository=invoicing_repository)
     app.state.invoicing_get_by_order = GetInvoiceByOrder(repository=invoicing_repository)
+
+    # Composicao do contexto de pagamento (checkout PIX/cartao + webhook).
+    payment_repository = SqlAlchemyPaymentRepository(app.state.uow_factory)
+    app.state.payment_initiate = InitiatePayment(
+        repository=payment_repository,
+        gateway=FakePaymentGateway(),
+        pix_discount_rate=settings.pix_discount_rate,
+    )
+    app.state.payment_confirm = ConfirmPayment(repository=payment_repository)
+    app.state.payment_get = GetPayment(repository=payment_repository)
+
+    # Composicao do contexto de notificacao (administracao: consulta/reenvio).
+    notification_repository = SqlAlchemyNotificationRepository(app.state.uow_factory)
+    app.state.notification_list = ListNotifications(repository=notification_repository)
+    app.state.notification_resend = ResendNotification(repository=notification_repository)
+
+    # Composicao do contexto de privacidade (LGPD, self-service do titular).
+    privacy_repository = SqlAlchemyPrivacyRepository(app.state.uow_factory)
+    app.state.privacy_export = ExportPersonalData(repository=privacy_repository)
+    app.state.privacy_rectify = RectifyPersonalData(repository=privacy_repository)
+    app.state.privacy_delete = DeletePersonalData(repository=privacy_repository)
+    app.state.privacy_record_consent = RecordConsent(repository=privacy_repository)
+    app.state.privacy_get_consent = GetConsentState(repository=privacy_repository)
 
     readiness_probes: dict[str, ReadinessProbe] = {
         "database": lambda: ping_database(engine),

@@ -47,10 +47,12 @@ modules =
     app.modules.cart
     app.modules.ordering
     app.modules.invoicing
+    app.modules.payment
     app.modules.shipping
     app.modules.tax
     app.modules.rfq
     app.modules.notifications
+    app.modules.notification
     app.modules.privacy
     app.modules.search
     app.modules.audit

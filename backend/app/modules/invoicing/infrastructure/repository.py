@@ -21,6 +21,7 @@ from typing import Any
 from sqlalchemy import text
 
 from app.application.ports.tenant import TenantContext
+from app.infrastructure.db.outbox import enqueue_notification
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.invoicing.application.errors import (
     InsufficientCreditError,
@@ -239,6 +240,15 @@ class SqlAlchemyInvoicingRepository:
             await uow.session.execute(
                 _UPDATE_ORDER_STATUS, {"order_id": order_id, "company_id": company_id}
             )
+
+            # 7. Outbox: publica o evento de fatura emitida na mesma transacao.
+            await enqueue_notification(
+                uow.session,
+                company_id=company_id,
+                event_type="invoice.issued",
+                aggregate_id=order_id,
+            )
+
             await uow.commit()
 
         result = await self.get_invoice(company_id, invoice_id)

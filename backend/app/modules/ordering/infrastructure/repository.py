@@ -19,6 +19,7 @@ from sqlalchemy import text
 from app.application.ports.tenant import TenantContext
 from app.domain.ledger import LedgerEntry, exposure
 from app.domain.pricing import PriceTier
+from app.infrastructure.db.outbox import enqueue_notification
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.ordering.application.errors import (
     CreditAccountNotFoundError,
@@ -232,6 +233,14 @@ class SqlAlchemyOrderingRepository:
                         "key": f"order:{idempotency_key}",
                     },
                 )
+
+            # Outbox: publica o evento de pedido criado na mesma transacao.
+            await enqueue_notification(
+                uow.session,
+                company_id=company_id,
+                event_type="order.created",
+                aggregate_id=order_id,
+            )
 
             await uow.commit()
 

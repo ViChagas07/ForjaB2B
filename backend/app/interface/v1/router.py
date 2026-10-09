@@ -14,7 +14,10 @@ from app.modules.companies.interface.router import router as companies_router
 from app.modules.credit.interface.router import router as credit_router
 from app.modules.identity.interface.router import router as identity_router
 from app.modules.invoicing.interface.router import router as invoicing_router
+from app.modules.notification.interface.router import router as notification_router
 from app.modules.ordering.interface.router import router as ordering_router
+from app.modules.payment.interface.router import router as payment_router
+from app.modules.privacy.interface.router import router as privacy_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -25,3 +28,6 @@ api_v1_router.include_router(credit_router)
 api_v1_router.include_router(cart_router)
 api_v1_router.include_router(ordering_router)
 api_v1_router.include_router(invoicing_router)
+api_v1_router.include_router(payment_router)
+api_v1_router.include_router(notification_router)
+api_v1_router.include_router(privacy_router)

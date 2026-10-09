@@ -14,6 +14,7 @@ Separacao de credenciais (ver docs/RUNBOOK.md secao 4):
 
 from __future__ import annotations
 
+from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
@@ -82,6 +83,22 @@ class Settings(BaseSettings):
     google_client_secret: str | None = None
     google_redirect_uri: str | None = None
     google_oauth_frontend_redirect: str | None = None
+
+    # Pagamentos (Fase 10): desconto PIX simulado e segredo do webhook HMAC.
+    # `payment_webhook_secret` autentica eventos do provedor (canal
+    # sistema-a-sistema); nunca usado para autenticar usuarios. Default de dev
+    # publicado em .env.example; em producao deve ser injetado via secrets.
+    pix_discount_rate: Decimal = Field(default=Decimal("0.05"), ge=0, le=1)
+    payment_webhook_secret: str = "dev_payment_webhook_secret_change_in_production"  # noqa: S105 - default de dev, nunca em producao
+
+    # Celery (worker assincrono de notificacoes/outbox). Defaults de dev.
+    celery_broker_url: str = "amqp://guest:guest@localhost:5672//"
+    celery_result_backend: str = "redis://localhost:6379/2"
+
+    # E-mail (notificacoes, Fase 11): SMTP local (Mailpit), sem segredos.
+    email_smtp_host: str = "localhost"
+    email_smtp_port: int = Field(default=1025, ge=1)
+    email_from: str = "no-reply@forja.local"
 
     @property
     def is_production(self) -> bool:

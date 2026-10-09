@@ -279,6 +279,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example)}
       PEPPER: ${PEPPER:?PEPPER is required (see .env.example)}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (see .env.example)}
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-dev_payment_webhook_secret_change_in_production}
+      PIX_DISCOUNT_RATE: ${PIX_DISCOUNT_RATE:-0.05}
     ports:
       - "8000:8000"
     networks:
@@ -326,6 +328,9 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example)}
       PEPPER: ${PEPPER:?PEPPER is required (see .env.example)}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (see .env.example)}
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:-mailpit}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-1025}
+      EMAIL_FROM: ${EMAIL_FROM:-no-reply@forja.local}
     networks:
       - forja-network
     depends_on:
@@ -337,6 +342,42 @@ services:
         condition: service_healthy
       otel-collector:
         condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # Celery Beat (agendador de tarefas periodicas)
+  # ----------------------------------------------------------------------------
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: forja-celery-beat
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_APP_USER:-forja_app}:${POSTGRES_APP_PASSWORD:-forja_app_secret_dev}@postgres:5432/${POSTGRES_DB:-forja_db}
+      REDIS_HOST: redis
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RABBITMQ_HOST: rabbitmq
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:-mailpit}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-1025}
+      EMAIL_FROM: ${EMAIL_FROM:-no-reply@forja.local}
+    networks:
+      - forja-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+    command: ["celery", "-A", "app.tasks.celery_app", "beat", "--loglevel=INFO"]
 
   # ----------------------------------------------------------------------------
   # Frontend Web (Next.js Standalone)

@@ -117,6 +117,29 @@ ALTER ROLE forja_auth WITH
 -- de forja_auth de forma silenciosa.
 GRANT forja_auth TO :"admin_user";
 
+-- 4.6. Role dedicada ao despacho da outbox de notificacoes (Fase 11).
+--    NOLOGIN: usada APENAS como owner SECURITY DEFINER da funcao
+--    app.list_due_notifications (que o worker chama para enumerar notificacoes
+--    pendentes sem contexto de tenant, pois a tabela notifications tem FORCE
+--    RLS). A role nao pode logar e o unico objeto que roda como ela e a funcao;
+--    a politica RLS dedicada (migration 0010) restringe o acesso ao minimo.
+SELECT 'CREATE ROLE forja_notification NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
+       'NOINHERIT NOREPLICATION NOBYPASSRLS'
+WHERE NOT EXISTS (
+        SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'forja_notification')
+\gexec
+
+ALTER ROLE forja_notification WITH
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT
+    NOREPLICATION
+    NOBYPASSRLS;
+
+GRANT forja_notification TO :"admin_user";
+
 -- 5. Conectividade restrita ao banco operacional
 REVOKE CONNECT ON DATABASE :"db_name" FROM PUBLIC;
 GRANT CONNECT ON DATABASE :"db_name" TO :"app_user";
