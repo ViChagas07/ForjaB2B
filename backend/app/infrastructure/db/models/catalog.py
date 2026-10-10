@@ -113,6 +113,7 @@ class Product(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text)
+    image_url: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[ProductStatus] = mapped_column(
         Enum(ProductStatus, native_enum=False, create_constraint=False, length=24),
         nullable=False,
