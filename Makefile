@@ -95,6 +95,10 @@ migrate: ## Aplica migrações pendentes do Alembic (role admin, container one-o
 migration-rollback: ## Reverte a última migração do Alembic (role admin, one-off)
 	docker compose run --rm --no-deps --env-file .env backend alembic downgrade -1
 
+.PHONY: seed
+seed: ## Aplica os dados de demonstração (idempotente; admin, one-off). Usa DEMO_USER_PASSWORD do .env.
+	docker compose run --rm --no-deps --env-file .env backend python -m app.infrastructure.db.seeds
+
 # ------------------------------------------------------------------------------
 # Qualidade, Linting e Testes (Backend)
 # ------------------------------------------------------------------------------
