@@ -1,0 +1,72 @@
+# ==============================================================================
+# Forja B2B — Override de PRODUÇÃO para VPS própria (Fase 6: busca).
+# ==============================================================================
+# Uso:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# O que este arquivo faz (sobre a base):
+#   - Elasticsearch com TLS (HTTP e transporte) e repositório de snapshots;
+#   - backend/worker/beat apontando para HTTPS com verificação de certificado
+#     ATIVA e autenticação por API key (nunca o superusuário `elastic`);
+#   - réplicas do índice = 1 e limites de memória adequados à produção.
+#
+# SEGREDOS: não há valor real aqui. Tudo vem do `.env`/secret manager do host
+# (ELASTICSEARCH_API_KEY, ELASTICSEARCH_PASSWORD, DATABASE_URL etc.).
+# Elastic Cloud: NÃO use este arquivo; apenas defina ELASTICSEARCH_URL (HTTPS do
+# deployment) e ELASTICSEARCH_API_KEY/ELASTICSEARCH_CA_CERTS no `.env`.
+#
+# Certs esperados em ${ELASTICSEARCH_CERTS_DIR} (montado read-only):
+#   ca.crt, es-http.crt/es-http.key, es-transport.crt/es-transport.key
+# O host precisa de `vm.max_map_count >= 262144` (não é namespaced; ver runbook).
+# ==============================================================================
+
+x-search-prod-env: &search_prod_env
+  ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-https://elasticsearch:9200}
+  ELASTICSEARCH_VERIFY_CERTS: "true"
+  ELASTICSEARCH_CA_CERTS: /certs/ca.crt
+  ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
+  ELASTICSEARCH_INDEX_REPLICAS: ${ELASTICSEARCH_INDEX_REPLICAS:-1}
+  ELASTICSEARCH_ENABLED: "true"
+  EMBEDDINGS_ENABLED: ${EMBEDDINGS_ENABLED:-false}
+  EMBEDDING_MODEL_PATH: ${EMBEDDING_MODEL_PATH:-/models/multilingual-e5-small}
+
+services:
+  elasticsearch:
+    # A porta continua publicada apenas no loopback (127.0.0.1) pela base; NUNCA
+    # exponha 9200 na internet. Em VPS, restrinja também via firewall (ufw).
+    environment:
+      xpack.security.http.ssl.enabled: "true"
+      xpack.security.transport.ssl.enabled: "true"
+      xpack.security.http.ssl.key: certs/es-http.key
+      xpack.security.http.ssl.certificate: certs/es-http.crt
+      xpack.security.http.ssl.certificate_authorities: certs/ca.crt
+      xpack.security.transport.ssl.key: certs/es-transport.key
+      xpack.security.transport.ssl.certificate: certs/es-transport.crt
+      xpack.security.transport.ssl.certificate_authorities: certs/ca.crt
+      path.repo: /usr/share/elasticsearch/snapshots
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    mem_limit: 2560m
+    volumes:
+      - elasticsearch_snapshots:/usr/share/elasticsearch/snapshots
+      - ${ELASTICSEARCH_CERTS_DIR:-./docker/elasticsearch/certs}:/usr/share/elasticsearch/config/certs:ro
+
+  backend:
+    environment:
+      <<: *search_prod_env
+      ENVIRONMENT: production
+    volumes:
+      - ${ELASTICSEARCH_CA_CERTS_HOST:-./docker/elasticsearch/certs/ca.crt}:/certs/ca.crt:ro
+
+  celery-worker:
+    environment:
+      <<: *search_prod_env
+      ENVIRONMENT: production
+    volumes:
+      - ${ELASTICSEARCH_CA_CERTS_HOST:-./docker/elasticsearch/certs/ca.crt}:/certs/ca.crt:ro
+
+  celery-beat:
+    environment:
+      <<: *search_prod_env
+      ENVIRONMENT: production
+
+volumes:
+  elasticsearch_snapshots:

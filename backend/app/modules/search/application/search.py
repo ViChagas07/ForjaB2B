@@ -9,12 +9,14 @@ PostgreSQL e nunca vem de indice ou vetor. O modo real usado e sempre exposto.
 from __future__ import annotations
 
 import asyncio
+import time
 import uuid
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 
 from app.application.security import AuthContext
+from app.core import metrics
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.domain.product_availability import ca_status, is_sellable
@@ -88,6 +90,7 @@ class SearchProducts:
 
     async def run(self, *, query: SearchQuery, auth: AuthContext | None) -> SearchResultPage:
         self._validate(query)
+        started = time.perf_counter()
         ids, total, mode = await self._retrieve(query)
         page_ids = self._paginate(ids, query=query, mode=mode)
         products = await self._product_reader.get_products_by_ids(
@@ -119,6 +122,15 @@ class SearchProducts:
         if dropped:
             _logger.info("search_stale_entries_summary", dropped=dropped, returned=len(items))
 
+        duration = time.perf_counter() - started
+        metrics.observe_search(mode=mode, duration=duration)
+        _logger.info(
+            "search_completed",
+            search_mode=mode,
+            total=total,
+            returned=len(items),
+            duration_ms=round(duration * 1000, 2),
+        )
         pages = (total + query.page_size - 1) // query.page_size
         return SearchResultPage(
             items=items,

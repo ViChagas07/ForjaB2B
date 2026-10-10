@@ -1,15 +1,17 @@
 """CLI de manutencao do indice de busca (one-off, role de runtime).
 
 Comandos:
+    python -m app.modules.search.interface.cli bootstrap [--version N]
     python -m app.modules.search.interface.cli reindex [--version N]
         [--batch-size N] [--dry-run]
     python -m app.modules.search.interface.cli reconcile
     python -m app.modules.search.interface.cli backfill-embeddings
         [--batch-size N] [--dry-run]
 
-``reindex`` reconstroi o indice versionado a partir do PostgreSQL, valida a
-contagem e troca o alias de forma atomica (o indice anterior permanece para
-rollback). ``backfill-embeddings`` gera/atualiza os vetores (idempotente por
+``bootstrap`` garante o indice versionado + alias (idempotente; nao exige
+PostgreSQL). ``reindex`` reconstroi o indice a partir do PostgreSQL, valida a
+contagem e troca o alias de forma atomica (o anterior permanece para rollback).
+``backfill-embeddings`` gera/atualiza os vetores (idempotente por
 ``content_hash``). ``--dry-run`` nao escreve. Toda a execucao roda em um loop.
 """
 
@@ -56,10 +58,33 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     backfill.add_argument("--batch-size", type=int, default=256, help="Tamanho do lote.")
     backfill.add_argument("--dry-run", action="store_true", help="Somente conta (nao grava).")
+
+    bootstrap = subparsers.add_parser(
+        "bootstrap", help="Cria o indice versionado e aponta o alias (idempotente)."
+    )
+    bootstrap.add_argument("--version", type=int, default=None, help="Versao do indice.")
     return parser
 
 
+async def _bootstrap(settings: Settings, args: argparse.Namespace) -> dict[str, object]:
+    """Garante o indice versionado + alias (idempotente); nao exige PostgreSQL."""
+    index = build_product_index(settings)
+    if index is None:
+        return {"error": "elasticsearch_disabled"}
+    try:
+        version = args.version if args.version is not None else settings.elasticsearch_index_version
+        name = await index.create_versioned_index(
+            version=version, replicas=settings.elasticsearch_index_replicas
+        )
+        await index.swap_alias(index_name=name)
+        return {"index": name, "alias": index.alias, "documents": await index.count(target=name)}
+    finally:
+        await index.close()
+
+
 async def _run(settings: Settings, args: argparse.Namespace) -> dict[str, object]:
+    if args.command == "bootstrap":
+        return await _bootstrap(settings, args)
     engine = create_engine(settings)
     try:
         uow_factory = SqlAlchemyUnitOfWorkFactory(create_session_factory(engine))

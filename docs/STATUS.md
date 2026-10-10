@@ -80,7 +80,7 @@
 | 3 | Índice e sincronização (outbox + reconciliação) | ✅ |
 | 4 | Busca lexical e fallback (Postgres) | ✅ |
 | 5 | Busca semântica (PGVector) e fusão por RRF | ✅ (parcial: ver limitações) |
-| 6 | Produção, documentação e fechamento | ⏳ |
+| 6 | Produção, documentação e fechamento | ✅ (parcial: ver limitações de ambiente) |
 
 - **Fase 1 (2026-10-10):** auditoria somente-leitura e plano completo em `docs/search/PLAN.md`.
   Nenhum código/Compose/migration alterado.
@@ -223,6 +223,41 @@
     `docker compose exec -T postgres pg_dump -U "$POSTGRES_BOOTSTRAP_USER" -d "$POSTGRES_DB" -Fc
     > backup_pre_pgvector.dump` (fora do volume), subir a nova imagem (mesma major 16, volume
     reaproveitado) e rodar `alembic upgrade head`. **Não foi executado** aqui.
+
+- **Fase 6 (2026-10-10):** produção, documentação e fechamento.
+  - **Configuração de produção:** `ELASTICSEARCH_VERIFY_CERTS` (padrão `true`) e
+    `ELASTICSEARCH_CA_CERTS` em `core/config.py`, ligados ao cliente ES (health e índice);
+    autenticação por **API key** tem precedência sobre usuário/senha. Override
+    `docker-compose.prod.yml` (VPS): ES com TLS (HTTP+transporte), réplicas e memória ajustadas,
+    repositório de snapshots e backend/worker apontando para HTTPS com verificação de certificado
+    ativa + API key. Elastic Cloud documentado como alternativa (só URL HTTPS + API key).
+  - **Bootstrap idempotente:** comando `python -m app.modules.search.interface.cli bootstrap`
+    (cria o índice versionado + alias, sem exigir PostgreSQL) e script
+    `backend/scripts/elasticsearch_bootstrap_roles.sh` (role/usuário de aplicação com privilégios
+    mínimos sobre o alias, lendo credenciais do ambiente — nunca do Git).
+  - **Smoke test de produção (somente leitura):** `backend/scripts/smoke_search.py` valida
+    `/health/live`, `/health/search`, busca por SKU, busca sem acento, busca semântica, preço
+    consultivo do visitante (e do autenticado, com token) e imprime os **modos observados**.
+  - **Observabilidade:** métricas Prometheus `forja_search_requests_total{mode}`,
+    `forja_search_duration_seconds{mode}` e `forja_search_fallback_total{mode}`; log estruturado
+    `search_completed` com `search_mode`, `total`, `returned` e `duration_ms` (sem termo/tenant/segredo).
+  - **Documentação:** `docs/search/RUNBOOK.md` (guia operacional + deploy + smoke + limitações),
+    `docs/ADRs/0004-busca-hibrida.md` (decisão de arquitetura), e atualizações em
+    `docs/RUNBOOK.md` (§7.6), `docs/ARCHITECTURE.md` (módulo `search` + seção) e neste `STATUS.md`.
+  - **Validação executada:** `docker compose --env-file .env.example config --quiet` ✅ (base) e
+    `docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.prod.yml config --quiet` ✅
+    (override de produção); `ruff check` ✅; `ruff format --check` ✅; `mypy` strict ✅;
+    `import-linter` ✅ (4/4); `mypy` 330 arquivos; `ruff format --check` 343 arquivos;
+    `pytest tests/unit tests/architecture` → **218 passed** (2 novos de métricas da busca); suíte
+    completa → **220 passed, 1 skipped, 234 errors** (erros de setup por Docker indisponível).
+  - **NÃO validado (daemon Docker indisponível nesta máquina):** build da imagem do backend,
+    subida dos serviços, health check, consulta real ao Elasticsearch e ao pgvector, reindexação
+    real, fallback real (`docker compose stop elasticsearch`), smoke test contra o ambiente local,
+    backup `pg_dump`, troca da imagem do PostgreSQL e aplicação das migrations `0012`/`0013` em
+    banco real, e o que depende do ambiente de produção (que ainda está `[PREENCHER]`).
+  - **Decisão sobre o modelo de embeddings (reiterada):** runtime (`onnxruntime`/`tokenizers`) e
+    download do modelo seguem **não adotados**; `EMBEDDINGS_ENABLED=false` por padrão e a busca
+    opera em `lexical`/fallback, com o procedimento de habilitação em `docs/search/RUNBOOK.md` §9.
 
 ## Próximos passos sugeridos
 

@@ -241,3 +241,22 @@ docker compose logs -f elasticsearch   # acompanha os logs
 ```
 
 > **Atenção (volume pré-existente):** habilitar segurança sobre um volume que foi inicializado antes com `xpack.security.enabled=false` pode fazer o Elasticsearch recusar a senha configurada. **Não** apague o volume: pare o serviço, inspecione-o (`docker volume inspect forja_elasticsearch_data`) e só então siga um procedimento que **preserve os dados** antes de qualquer recriação.
+
+### 7.6. Índice, reindexação, busca e deploy (Fases 3–6)
+
+O guia completo — variáveis, criação/reconstrução do índice, busca em cada modo, fallback,
+smoke test, deploy em produção (VPS e Elastic Cloud), observabilidade e limitações — está em
+**`docs/search/RUNBOOK.md`**. Comandos essenciais:
+
+```bash
+docker compose exec backend python -m app.modules.search.interface.cli bootstrap   # índice + alias
+docker compose exec backend python -m app.modules.search.interface.cli reindex     # reconstrói do PG
+docker compose exec backend python -m app.modules.search.interface.cli backfill-embeddings  # vetorial
+python backend/scripts/smoke_search.py --base-url http://localhost:8000 --sku CAP-001  # pós-deploy
+```
+
+- Índice versionado `forja_products_vN` + alias `forja_products` (rollback por troca de alias).
+- Fallback: `docker compose stop elasticsearch` → `search_mode=postgres_fallback` (nunca `down -v`).
+- Produção VPS: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`
+  (TLS obrigatório, API key restrita, snapshots). Elastic Cloud: só URL HTTPS + API key.
+- Decisão de arquitetura: `docs/ADRs/0004-busca-hibrida.md`.

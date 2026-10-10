@@ -59,6 +59,14 @@ def _basic_auth(settings: Settings) -> tuple[str, str] | None:
     return None
 
 
+def _tls_kwargs(verify_certs: bool, ca_certs: str | None) -> dict[str, Any]:
+    """TLS explicito apenas quando ha CA configurada (o cliente usa um sentinela)."""
+    kwargs: dict[str, Any] = {"verify_certs": verify_certs}
+    if ca_certs:
+        kwargs["ca_certs"] = ca_certs
+    return kwargs
+
+
 def _create_client(settings: Settings) -> AsyncElasticsearch:
     return AsyncElasticsearch(
         hosts=[settings.elasticsearch_url],
@@ -67,6 +75,7 @@ def _create_client(settings: Settings) -> AsyncElasticsearch:
         retry_on_timeout=True,
         basic_auth=_basic_auth(settings),
         api_key=settings.elasticsearch_api_key,
+        **_tls_kwargs(settings.elasticsearch_verify_certs, settings.elasticsearch_ca_certs),
     )
 
 
@@ -83,6 +92,8 @@ class ElasticsearchSearchEngine(SearchEngine):
         index: str,
         request_timeout_seconds: float,
         max_retries: int,
+        verify_certs: bool = True,
+        ca_certs: str | None = None,
     ) -> None:
         self._index = index
         # Autenticacao: API key tem precedencia; caso contrario, basic auth.
@@ -96,6 +107,7 @@ class ElasticsearchSearchEngine(SearchEngine):
             retry_on_timeout=True,
             basic_auth=basic_auth,
             api_key=api_key,
+            **_tls_kwargs(verify_certs, ca_certs),
         )
 
     @property
@@ -382,6 +394,8 @@ def build_search_engine(settings: Settings) -> SearchEngine | None:
         index=settings.elasticsearch_index,
         request_timeout_seconds=settings.elasticsearch_request_timeout_seconds,
         max_retries=settings.elasticsearch_max_retries,
+        verify_certs=settings.elasticsearch_verify_certs,
+        ca_certs=settings.elasticsearch_ca_certs,
     )
 
 

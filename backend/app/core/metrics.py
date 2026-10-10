@@ -36,6 +36,25 @@ notifications_dispatched_total = Counter(
     "Total de notificacoes despachadas",
     ["status"],
 )
+# Busca do catalogo (Fases 4/5/6): modo real, latencia e degradacoes.
+# Labels de baixa cardinalidade (mode) e NUNCA incluem termo buscado nem tenant.
+search_requests_total = Counter(
+    "forja_search_requests_total",
+    "Buscas de catalogo por modo real (hybrid/lexical/semantic_postgres/postgres_fallback)",
+    ["mode"],
+)
+search_duration_seconds = Histogram(
+    "forja_search_duration_seconds",
+    "Latencia da busca de catalogo por modo real",
+    ["mode"],
+)
+search_fallback_total = Counter(
+    "forja_search_fallback_total",
+    "Buscas que degradaram de modo (semantico/fallback) por modo real",
+    ["mode"],
+)
+
+_DEGRADED_SEARCH_MODES = frozenset({"semantic_postgres", "postgres_fallback"})
 
 
 def increment_request_counter(*, method: str, status_code: int) -> None:
@@ -56,6 +75,14 @@ def increment_payment_confirmed(*, method: str, outcome: str) -> None:
 
 def increment_notifications_dispatched(*, status: str) -> None:
     notifications_dispatched_total.labels(status=status).inc()
+
+
+def observe_search(*, mode: str, duration: float) -> None:
+    """Contabiliza uma busca: modo real, latencia e (se degradado) fallback."""
+    search_requests_total.labels(mode=mode).inc()
+    search_duration_seconds.labels(mode=mode).observe(duration)
+    if mode in _DEGRADED_SEARCH_MODES:
+        search_fallback_total.labels(mode=mode).inc()
 
 
 def prometheus_metrics() -> bytes:

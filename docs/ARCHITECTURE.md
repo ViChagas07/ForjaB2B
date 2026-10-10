@@ -31,7 +31,20 @@ A raiz de composição (`app/main.py`) liga portas a implementações e as expõ
 | `payment` | pagamentos (PIX/CARD/BOLETO), webhook idempotente, máquina de estados |
 | `notification` | outbox transacional + despacho (Celery/RabbitMQ) + e-mail |
 | `privacy` | LGPD: exportação, retificação, exclusão, consentimento |
-| `audit` / `search` / `rfq` / `notifications` | scaffolds (fases futuras) |
+| `search` | busca do catálogo: lexical (Elasticsearch) + semântica (pgvector) fundidas por RRF, com fallback PostgreSQL |
+| `audit` / `rfq` / `notifications` | scaffolds (fases futuras) |
+
+## Busca do catálogo (Fases 2–6)
+
+- **PostgreSQL** é a fonte de verdade (preço/CA/disponibilidade) e o **fallback** textual
+  (`tsvector` + `unaccent` + `pg_trgm`); **Elasticsearch** é o motor lexical (índice versionado
+  + alias) e **pgvector** o motor semântico (embeddings locais).
+- O índice e os vetores devolvem apenas **ids**; os dados exibidos são **hidratados do PostgreSQL**
+  (preço consultivo para visitante), e entradas defasadas são descartadas.
+- A aplicação roda os dois caminhos em paralelo, funde por **RRF** e reporta o **modo real**
+  (`hybrid`/`lexical`/`semantic_postgres`/`postgres_fallback`); falha de infraestrutura nunca vira
+  lista vazia. Detalhes operacionais em `docs/search/RUNBOOK.md`; decisão em
+  `docs/ADRs/0004-busca-hibrida.md`.
 
 ## Isolamento multi-tenant (RLS)
 

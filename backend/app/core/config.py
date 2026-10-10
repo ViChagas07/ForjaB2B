@@ -81,6 +81,10 @@ class Settings(BaseSettings):
     elasticsearch_bulk_batch_size: int = Field(default=500, ge=1)
     elasticsearch_enabled: bool = True
     elasticsearch_max_retries: int = Field(default=3, ge=0)
+    # TLS (Fase 6): a verificacao de certificado e SEMPRE ativa (nunca desabilitar
+    # em producao). `ca_certs` aponta para a CA do cluster (Elastic Cloud ou VPS).
+    elasticsearch_verify_certs: bool = True
+    elasticsearch_ca_certs: str | None = None
 
     # Sincronizacao do indice de busca (Fase 3): tentativas por evento na
     # outbox antes de descartar (dead-letter).
