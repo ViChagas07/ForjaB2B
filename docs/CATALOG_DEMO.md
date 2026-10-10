@@ -120,7 +120,7 @@ vêm de `DEMO_USER_PASSWORD` no momento do seed.
 | Empresa (slug) | CNPJ (sintético, válido) | Condição comercial |
 | :--- | :--- | :--- |
 | `metalurgica-alfa` | 11222333000181 | **sem desconto** (preço de lista) |
-| `construcoes-beta` | 44555666000181 | **desconto de 10%** na categoria EPIs |
+| `construcoes-beta` | 44555666000181 | **desconto de 10%** na categoria Proteção da Cabeça |
 | `industria-gama` | 77888999000181 | **desconto global de 5%** + **preço negociado** em `CAP-002` (R$ 27,90) e `BOT-001` (R$ 89,90) |
 
 E-mails (fictícios, domínio reservado `example.com`):
@@ -166,7 +166,7 @@ sem tier, o `base_unit_price`. O desconto percentual é arredondado ao centavo
 | :--- | :--- | :--- |
 | Visitante | consultivo | sob consulta (sem valor) |
 | alfa | lista | R$ 32,90 |
-| beta | 10% EPIs sobre a lista | R$ 29,61 |
+| beta | 10% (Proteção da Cabeça) sobre a lista | R$ 29,61 |
 | gama | negociado `CAP-002` (vence o desconto de 5%) | R$ 27,90 |
 
 Quantidade 10 em `CAP-002` para a empresa **beta**: lista = tier `R$ 30,90`;
@@ -216,13 +216,78 @@ docker compose run --rm --no-deps --env-file .env backend \
 
 ## 8. Limitações conhecidas
 
-- **Endpoint público de catálogo** (`GET /catalog/products`) devolve
-  `base_unit_price` a visitantes; apenas a **busca** aplica o preço consultivo
-  (a UI já mascara). Corrigir exigiria tornar o campo opcional/autenticado no
-  contrato do catálogo (fora do escopo desta fase).
+- (Corrigido na Fase 9A-2, item 0a) o catálogo público devolvia `base_unit_price`
+  a visitantes; agora segue a mesma regra da busca (ver seção 10).
 - O desconto da empresa vira o próprio `unit_price` do snapshot; **não** há
   coluna dedicada de desconto por item/empresa (o `discount_total` segue `0`).
 - Apenas **dois tipos** de regra (preço fixo por produto e desconto percentual
   por categoria/global); não há desconto por quantidade por empresa nem vigência
   (`valid_from`/`valid_until`).
 - Apenas os 4 produtos da Fase 1 mantêm preço "de borda" (`R$ 24,90`).
+
+---
+
+## 9. Imagens por categoria (Fase 9A-2)
+
+- Campo opcional `products.image_url` (migration `0015`), validado no domínio
+  (`app/domain/catalog_image.py`): aceita `https://...` ou caminho relativo
+  iniciado por `/`; rejeita `javascript:`, `data:`, `http:`, protocol-relative
+  (`//host`) e acima de 500 caracteres. Pronto para o admin e a importação CSV.
+- **Resolução (única e testável):** imagem do produto > imagem padrão da
+  categoria (por slug) > placeholder genérico.
+- **Onde ficam as ilustrações:** `backend/app/static/catalog/*.svg` (12 SVGs
+  originais: 11 categorias do seed + `generic.svg`), **servidas pela própria API**
+  em `/static`. Decisão: a API é a dona do contrato de imagem; servir do backend
+  mantém a URL diretamente acessível (HTTP 200) e cacheável (ETag/Last-Modified),
+  sem depender do frontend. O frontend resolve o caminho relativo com
+  `NEXT_PUBLIC_API_URL`.
+- **Sem base de URL obrigatória:** como as imagens são servidas pela API (mesma
+  origem do backend), **não** há `CATALOG_IMAGE_BASE_URL` nesta fase; consumidores
+  externos resolvem o caminho relativo contra a origem da API (uma `image_url`
+  absoluta `https://` é devolvida como está).
+- **API:** `image_url` (resolvida, nunca nula) e `image_alt` (= nome do produto)
+  no catálogo (lista/detalhe), na busca e no carrinho. A imagem é **hidratada do
+  PostgreSQL** (nada no Elasticsearch) e nada é gravado em disco em runtime.
+- **Seed:** mantém `image_url` nulo (as imagens padrão cobrem tudo) e continua
+  idempotente.
+- As ilustrações são **originais deste projeto** (sem marcas/terceiros), ~0,5 KB
+  cada; podem ser substituídas por fotos reais na **Fase 9A-3** (basta preencher
+  `image_url`).
+
+### Como definir a imagem de um produto
+
+```sql
+-- admin/backoffice (Fase 9A-3); precedência: produto > categoria
+UPDATE products SET image_url = 'https://cdn.exemplo/produto.jpg' WHERE sku = 'CAP-002';
+-- ou caminho relativo servido pela própria API:
+UPDATE products SET image_url = '/static/catalog/custom.svg' WHERE sku = 'CAP-002';
+```
+
+---
+
+## 10. Contrato de preço do catálogo (item 0a da Fase 9A-2)
+
+`GET /catalog/products` e `GET /catalog/products/{id}` passaram a seguir a
+**mesma regra** da busca (reutilizando o serviço de preços compartilhado):
+
+- **visitante:** `price_on_request=true` e `base_unit_price=null` (nenhum valor);
+- **autenticado:** preço resolvido pela precedência (negociado > desconto > lista).
+
+Mudança de contrato para o frontend: `base_unit_price` passou a ser **opcional**
+(`string | null`) e surgiu o campo booleano `price_on_request` (a UI já exibe
+"sob consulta"). Endpoints que expõem preço: `/catalog/products`,
+`/catalog/products/{id}` e `/search/products` (todos agora mascarados para
+visitante); `/cart` e `/orders` exigem autenticação.
+
+---
+
+## 11. Correções correlatas (Fase 9A-2)
+
+- **0b — credenciais vazias do Elasticsearch:** `ELASTICSEARCH_API_KEY=` (vazio)
+  no `.env.example` fazia o cliente tratar a chave como definida e ignorar
+  usuário/senha (HTTP 401). Agora string vazia (ou só espaços) vira `None` nos
+  campos opcionais de credencial do ES, mantendo a regra "API key vence".
+- **0c — `.pyc` versionados:** 212 arquivos `__pycache__/*.pyc` estavam no
+  índice do Git (anteriores às regras de ignore); foram removidos **do índice
+  apenas** (`git rm --cached`), sem apagar do disco. O `.gitignore` já cobre
+  `__pycache__/` e `*.pyc`.

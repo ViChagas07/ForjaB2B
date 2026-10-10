@@ -361,6 +361,39 @@ Auditoria completa e decisões em `docs/CATALOG_DEMO.md`. Resumo:
   definida e **ignora usuário/senha** (HTTP 401); containers que usam esse arquivo como
   env precisam remover a chave. O `.env` de dev do dono não a define.
 
+## Imagens por categoria e correções da 9A-1 (Fase 9A-2)
+
+- **0a — preço consultivo no catálogo:** `/catalog/products` e
+  `/catalog/products/{id}` passaram a usar o serviço de preços compartilhado:
+  visitante recebe `price_on_request=true` e `base_unit_price=null`; autenticado
+  recebe o preço por empresa (negociado > desconto > lista). Contrato do frontend
+  atualizado (`base_unit_price` opcional + `price_on_request`).
+- **0b — credenciais ES vazias:** string vazia em `ELASTICSEARCH_API_KEY`,
+  `USERNAME`, `PASSWORD` ou `CA_CERTS` passa a ser tratada como ausente (antes a
+  chave vazia fazia o cliente ignorar usuário/senha e retornar HTTP 401).
+- **0c — `.pyc` versionados:** 212 arquivos `__pycache__/*.pyc` removidos **do
+  índice** do Git (`git rm --cached`, sem apagar do disco); `.gitignore` já cobria.
+- **Imagens por categoria:** campo opcional `products.image_url` (migration
+  `0015`) + domínio de validação/resolução (`app/domain/catalog_image.py`):
+  **produto > categoria > genérico**. 12 SVGs originais em
+  `backend/app/static/catalog`, servidos pela API em `/static`.
+  `image_url`/`image_alt` no catálogo, na busca e no carrinho; nada no
+  Elasticsearch; o seed mantém `image_url` nulo e continua idempotente.
+- **Validação (Docker de pé, 2026-10-10):** `docker compose config --quiet` (base
+  e override) ✅; backup `pg_dump` do dev (201.010 bytes, não vazio) **antes** da
+  migration; `0014 -> 0015` aplicada; `alembic check` limpo; 12 imagens
+  `HTTP 200 / image/svg+xml`; catálogo por perfil (visitante consultivo; alfa
+  `32.90`; beta `29.61`; gama `27.90`) e `image_url` resolvida nas 11 categorias;
+  `image_url` definida manualmente retornada e revertida; Elasticsearch inalterado
+  (`41` docs, sem campo de preço).
+- **Qualidade:** `ruff`/formato ✅ (354 arquivos); `mypy` strict ✅ (339 arquivos);
+  `import-linter` ✅ (4/4); `pytest tests/` com Docker → **508 passed, 1 skipped**;
+  frontend `typecheck`/`lint`/`format`/`depcruise` ✅ e `test` → **67 passed**.
+- **Não validado:** a renderização visual no navegador (a porta 3000 está ocupada
+  por um servidor de terceiro neste ambiente); a verificação de frontend foi
+  estática (tipos/lint/testes/depcruise). **Fase 9A-3:** fotos reais via
+  `image_url`.
+
 ## Próximos passos sugeridos
 
 1. Rotação do segredo Google (responsável).
