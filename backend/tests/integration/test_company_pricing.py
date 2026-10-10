@@ -193,6 +193,43 @@ async def test_empresa_com_desconto_percentual(pricing_client: httpx.AsyncClient
     assert Decimal(str(item["base_unit_price"])) == expected
 
 
+async def _catalog_detail(client: httpx.AsyncClient, token: str | None) -> dict[str, object]:
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    response = await client.get(f"/api/v1/catalog/products/{_PRODUCT}", headers=headers)
+    assert response.status_code == 200
+    return cast(dict[str, object], response.json())
+
+
+async def test_catalogo_visitante_recebe_preco_consultivo(
+    pricing_client: httpx.AsyncClient,
+) -> None:
+    response = await pricing_client.get("/api/v1/catalog/products", params={"page_size": 100})
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert any(item["sku"] == _SKU for item in items)
+    for item in items:
+        assert item["price_on_request"] is True
+        assert item["base_unit_price"] is None
+
+    body = await _catalog_detail(pricing_client, None)
+    assert body["price_on_request"] is True
+    assert body["base_unit_price"] is None
+
+
+async def test_catalogo_preco_por_empresa(pricing_client: httpx.AsyncClient) -> None:
+    token_a = await _login(pricing_client, _EMAIL_A)
+    body_a = await _catalog_detail(pricing_client, token_a)
+    assert body_a["price_on_request"] is False
+    assert Decimal(str(body_a["base_unit_price"])) == _NEGOTIATED_A
+
+    token_b = await _login(pricing_client, _EMAIL_B)
+    body_b = await _catalog_detail(pricing_client, token_b)
+    expected_b = (_BASE_PRICE * (Decimal("100") - _DISCOUNT_B) / Decimal("100")).quantize(
+        Decimal("0.01")
+    )
+    assert Decimal(str(body_b["base_unit_price"])) == expected_b
+
+
 async def test_carrinho_revalida_preco_por_empresa(pricing_client: httpx.AsyncClient) -> None:
     token = await _login(pricing_client, _EMAIL_A)
     response = await pricing_client.post(
@@ -204,6 +241,30 @@ async def test_carrinho_revalida_preco_por_empresa(pricing_client: httpx.AsyncCl
     item = response.json()["items"][0]
     assert Decimal(item["unit_price"]) == _NEGOTIATED_A
     assert Decimal(item["line_total"]) == _NEGOTIATED_A * 2
+
+
+async def test_imagem_resolvida_no_catalogo_busca_e_carrinho(
+    pricing_client: httpx.AsyncClient,
+) -> None:
+    # Categoria sem ilustracao propria => placeholder generico.
+    detail = await _catalog_detail(pricing_client, None)
+    assert detail["image_url"] == "/static/catalog/generic.svg"
+    assert detail["image_alt"] == "Produto Pricing Demo"
+
+    item = await _search_price(pricing_client, None)
+    assert item["image_url"] == "/static/catalog/generic.svg"
+    assert item["image_alt"] == "Produto Pricing Demo"
+
+    token = await _login(pricing_client, _EMAIL_A)
+    response = await pricing_client.post(
+        "/api/v1/cart/items",
+        json={"product_id": str(_PRODUCT), "quantity": 1},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    cart_item = response.json()["items"][0]
+    assert cart_item["image_url"] == "/static/catalog/generic.svg"
+    assert cart_item["image_alt"] == "Produto Pricing Demo"
 
 
 def test_regras_de_preco_sao_isoladas_por_rls(pg: PostgresInstance, pricing_seed: None) -> None:

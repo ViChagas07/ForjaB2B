@@ -12,6 +12,8 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Query, Request, status
 
+from app.application.security import AuthContext
+from app.interface.deps import get_optional_auth
 from app.modules.catalog.application.catalog import (
     GetBrand,
     GetCategory,
@@ -76,6 +78,9 @@ def _to_summary(view: ProductView) -> ProductSummary:
         base_unit_price=view.base_unit_price,
         currency=view.currency,
         min_order_qty=view.min_order_qty,
+        price_on_request=view.price_on_request,
+        image_url=view.image_url or "",
+        image_alt=view.image_alt,
     )
 
 
@@ -113,6 +118,7 @@ async def get_brand(
 async def list_products(
     query: Annotated[ProductListQuery, Query()],
     use_case: Annotated[ListProducts, Depends(_list_products)],
+    auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
 ) -> ProductListResponse:
     page = await use_case.list(
         ProductFilters(
@@ -125,7 +131,8 @@ async def list_products(
             order=query.order,
             page=query.page,
             page_size=query.page_size,
-        )
+        ),
+        company_id=auth.company_id if auth is not None else None,
     )
     return ProductListResponse(
         items=[_to_summary(item) for item in page.items],
@@ -140,8 +147,9 @@ async def list_products(
 async def get_product(
     product_id: uuid.UUID,
     use_case: Annotated[GetProduct, Depends(_get_product)],
+    auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
 ) -> ProductDetail:
-    view = await use_case.get(product_id)
+    view = await use_case.get(product_id, company_id=auth.company_id if auth is not None else None)
     summary = _to_summary(view)
     return ProductDetail(
         **summary.model_dump(),

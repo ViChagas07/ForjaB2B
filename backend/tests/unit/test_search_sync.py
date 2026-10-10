@@ -55,6 +55,7 @@ def _row(
         brand_name=None,
         brand_slug=None,
         attributes=None,
+        image_url=None,
         base_unit_price=Decimal("10.00"),
         currency="BRL",
         min_order_qty=1,

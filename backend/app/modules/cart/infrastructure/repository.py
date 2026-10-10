@@ -15,6 +15,7 @@ from typing import Any, cast
 from sqlalchemy import bindparam, text
 
 from app.application.ports.tenant import TenantContext
+from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
 from app.domain.pricing import CompanyPriceRule, PriceTier, resolve_company_price
 from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
@@ -39,8 +40,10 @@ _INSERT_CART = text(
 _SELECT_CART = text("SELECT id FROM carts WHERE company_id = :company_id AND user_id = :user_id")
 _SELECT_ITEMS = text(
     "SELECT ci.product_id, ci.quantity, p.sku, p.name, p.status, p.is_epi, "
-    "       p.ca_valid_until, p.base_unit_price, p.min_order_qty, p.category_id "
+    "       p.ca_valid_until, p.base_unit_price, p.min_order_qty, p.category_id, "
+    "       p.image_url, c.slug AS category_slug "
     "FROM cart_items ci JOIN products p ON p.id = ci.product_id "
+    "JOIN categories c ON c.id = p.category_id "
     "WHERE ci.cart_id = :cart_id ORDER BY ci.created_at, ci.id"
 )
 _UPSERT_ITEM = text(
@@ -155,6 +158,10 @@ class SqlAlchemyCartRepository:
                     unit_price=resolved.unit_price,
                     line_total=resolved.unit_price * r.quantity,
                     tier_min_quantity=resolved.tier_min_quantity,
+                    image_url=resolve_product_image_path(
+                        product_image_url=r.image_url, category_slug=r.category_slug
+                    ),
+                    image_alt=resolve_image_alt(r.name),
                 )
             )
         return items

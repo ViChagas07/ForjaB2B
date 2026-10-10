@@ -13,6 +13,8 @@ export interface CartItem {
   unit_price: string;
   line_total: string;
   tier_min_quantity: number | null;
+  image_url: string;
+  image_alt: string;
 }
 
 export interface Cart {

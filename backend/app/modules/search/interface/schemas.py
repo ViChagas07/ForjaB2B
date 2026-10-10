@@ -42,6 +42,8 @@ class SearchProductOut(BaseModel):
     currency: str
     min_order_qty: int
     price_on_request: bool
+    image_url: str
+    image_alt: str
 
 
 class SearchResponse(BaseModel):

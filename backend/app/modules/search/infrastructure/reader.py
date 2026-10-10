@@ -29,7 +29,7 @@ _SELECT_PAGE = text(
     "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
     "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
     "p.attributes, p.base_unit_price, p.currency, p.min_order_qty, "
-    "p.created_at, p.updated_at "
+    "p.created_at, p.updated_at, p.image_url "
     "FROM products AS p "
     "JOIN categories AS c ON c.id = p.category_id "
     "LEFT JOIN brands AS b ON b.id = p.brand_id "
@@ -41,7 +41,7 @@ _SELECT_ONE = text(
     "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
     "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
     "p.attributes, p.base_unit_price, p.currency, p.min_order_qty, "
-    "p.created_at, p.updated_at "
+    "p.created_at, p.updated_at, p.image_url "
     "FROM products AS p "
     "JOIN categories AS c ON c.id = p.category_id "
     "LEFT JOIN brands AS b ON b.id = p.brand_id "
@@ -53,7 +53,7 @@ _SELECT_BY_IDS = text(
     "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
     "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
     "p.attributes, p.base_unit_price, p.currency, p.min_order_qty, "
-    "p.created_at, p.updated_at "
+    "p.created_at, p.updated_at, p.image_url "
     "FROM products AS p "
     "JOIN categories AS c ON c.id = p.category_id "
     "LEFT JOIN brands AS b ON b.id = p.brand_id "
@@ -84,6 +84,7 @@ def _to_row(row: Any) -> ProductRow:
         min_order_qty=row[18],
         created_at=row[19],
         updated_at=row[20],
+        image_url=row[21],
     )
 
 

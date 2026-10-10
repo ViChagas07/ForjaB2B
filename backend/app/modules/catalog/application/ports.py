@@ -13,6 +13,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Protocol
 
+from app.domain.pricing import CompanyPriceRule
+
 
 @dataclass(frozen=True, kw_only=True)
 class CategoryView:
@@ -51,8 +53,11 @@ class ProductView:
     unit_of_measure: str | None
     weight_kg: Decimal | None
     min_order_qty: int
-    base_unit_price: Decimal
+    base_unit_price: Decimal | None
     currency: str
+    price_on_request: bool
+    image_url: str | None
+    image_alt: str
     attributes: dict[str, object] | None
 
 
@@ -100,3 +105,8 @@ class CatalogRepository(Protocol):
 
     async def get_product(self, product_id: uuid.UUID) -> ProductView | None:
         """Consulta um produto completo."""
+
+    async def get_company_price_rules(
+        self, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        """Regras de preco da empresa por produto (RLS; vazio sem tenant)."""

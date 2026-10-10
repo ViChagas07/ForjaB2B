@@ -12,6 +12,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/shared/u
 import { isDisplaySellable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
 import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
+import { ProductImage } from "./product-image";
 
 interface ProductCardProps {
   product: ProductSummary;
@@ -26,6 +27,13 @@ export function ProductCard({ product, onAdd, addingProductId }: ProductCardProp
 
   return (
     <Card className="flex flex-col">
+      <div className="overflow-hidden rounded-t-lg bg-muted">
+        <ProductImage
+          src={product.image_url}
+          alt={product.image_alt}
+          className="h-40 w-full object-cover"
+        />
+      </div>
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-snug">
@@ -57,6 +65,7 @@ export function ProductCard({ product, onAdd, addingProductId }: ProductCardProp
         <CatalogPrice
           amount={product.base_unit_price}
           currency={product.currency}
+          priceOnRequest={product.price_on_request}
           className="text-lg font-semibold"
         />
         {onAdd ? (

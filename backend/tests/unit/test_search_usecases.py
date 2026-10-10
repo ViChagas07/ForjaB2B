@@ -108,6 +108,7 @@ def _row(
         brand_name=None,
         brand_slug=None,
         attributes=None,
+        image_url=None,
         base_unit_price=base_unit_price,
         currency="BRL",
         min_order_qty=1,

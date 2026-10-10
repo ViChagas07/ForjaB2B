@@ -77,6 +77,7 @@ class ProductRow:
     brand_name: str | None
     brand_slug: str | None
     attributes: dict[str, object] | None
+    image_url: str | None
     base_unit_price: Decimal
     currency: str
     min_order_qty: int

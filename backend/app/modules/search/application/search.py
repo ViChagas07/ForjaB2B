@@ -19,6 +19,7 @@ from app.application.security import AuthContext
 from app.core import metrics
 from app.core.config import Settings
 from app.core.logging import get_logger
+from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
 from app.domain.pricing import CompanyPriceRule, resolve_company_price
 from app.domain.product_availability import ca_status, is_sellable
 from app.modules.search.application.errors import InvalidSearchQueryError, SearchUnavailableError
@@ -57,6 +58,8 @@ class SearchResultItem:
     currency: str
     min_order_qty: int
     price_on_request: bool
+    image_url: str
+    image_alt: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -290,6 +293,10 @@ class SearchProducts:
             currency=product.currency,
             min_order_qty=product.min_order_qty,
             price_on_request=price_on_request,
+            image_url=resolve_product_image_path(
+                product_image_url=product.image_url, category_slug=product.category_slug
+            ),
+            image_alt=resolve_image_alt(product.name),
         )
 
 

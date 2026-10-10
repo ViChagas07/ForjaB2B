@@ -8,7 +8,10 @@ repositorio, traduzindo ausencia em 404.
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 
+from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
+from app.domain.pricing import CompanyPriceRule, resolve_company_price
 from app.modules.catalog.application.errors import (
     BrandNotFoundError,
     CategoryNotFoundError,
@@ -22,6 +25,37 @@ from app.modules.catalog.application.ports import (
     ProductPage,
     ProductView,
 )
+
+
+def _with_image(view: ProductView) -> ProductView:
+    """Resolve a imagem exibida (produto > categoria > generica)."""
+    return replace(
+        view,
+        image_url=resolve_product_image_path(
+            product_image_url=view.image_url, category_slug=view.category_slug
+        ),
+        image_alt=resolve_image_alt(view.name),
+    )
+
+
+def _mask_price(view: ProductView) -> ProductView:
+    """Visitante: preco consultivo (nenhum valor exposto)."""
+    return replace(view, base_unit_price=None, price_on_request=True)
+
+
+def _resolve_price(view: ProductView, rules: list[CompanyPriceRule]) -> ProductView:
+    """Autenticado: preco de lista ajustado pelas regras da empresa."""
+    base = view.base_unit_price
+    if base is None:
+        return view
+    resolved = resolve_company_price(
+        base_unit_price=base,
+        tiers=[],
+        quantity=1,
+        category_id=view.category_id,
+        rules=rules,
+    )
+    return replace(view, base_unit_price=resolved.unit_price, price_on_request=False)
 
 
 class ListCategories:
@@ -63,19 +97,40 @@ class GetBrand:
 
 
 class ListProducts:
+    """Lista produtos; resolve o preco por perfil (visitante x empresa)."""
+
     def __init__(self, *, repository: CatalogRepository) -> None:
         self._repository = repository
 
-    async def list(self, filters: ProductFilters) -> ProductPage:
-        return await self._repository.list_products(filters)
+    async def list(
+        self, filters: ProductFilters, *, company_id: uuid.UUID | None = None
+    ) -> ProductPage:
+        page = await self._repository.list_products(filters)
+        if company_id is None:
+            items = [_with_image(_mask_price(view)) for view in page.items]
+        else:
+            rules = await self._repository.get_company_price_rules(
+                company_id, [view.id for view in page.items]
+            )
+            items = [
+                _with_image(_resolve_price(view, rules.get(view.id, []))) for view in page.items
+            ]
+        return replace(page, items=items)
 
 
 class GetProduct:
+    """Consulta um produto; resolve o preco por perfil (visitante x empresa)."""
+
     def __init__(self, *, repository: CatalogRepository) -> None:
         self._repository = repository
 
-    async def get(self, product_id: uuid.UUID) -> ProductView:
+    async def get(
+        self, product_id: uuid.UUID, *, company_id: uuid.UUID | None = None
+    ) -> ProductView:
         product = await self._repository.get_product(product_id)
         if product is None:
             raise ProductNotFoundError()
-        return product
+        if company_id is None:
+            return _with_image(_mask_price(product))
+        rules = await self._repository.get_company_price_rules(company_id, [product_id])
+        return _with_image(_resolve_price(product, rules.get(product_id, [])))

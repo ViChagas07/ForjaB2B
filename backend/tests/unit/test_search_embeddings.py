@@ -57,6 +57,7 @@ def _row(
         brand_name="Marca",
         brand_slug="marca",
         attributes=None,
+        image_url=None,
         base_unit_price=base_unit_price,
         currency="BRL",
         min_order_qty=1,

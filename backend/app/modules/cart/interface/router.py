@@ -43,6 +43,8 @@ def _to_response(view: CartView) -> CartResponse:
                 unit_price=i.unit_price,
                 line_total=i.line_total,
                 tier_min_quantity=i.tier_min_quantity,
+                image_url=i.image_url,
+                image_alt=i.image_alt,
             )
             for i in view.items
         ],

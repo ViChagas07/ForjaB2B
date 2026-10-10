@@ -37,6 +37,8 @@ class CartItemView:
     unit_price: Decimal
     line_total: Decimal
     tier_min_quantity: int | None
+    image_url: str
+    image_alt: str
 
 
 @dataclass(frozen=True, kw_only=True)

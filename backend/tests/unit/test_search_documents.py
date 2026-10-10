@@ -34,6 +34,7 @@ def _row(
         brand_name="PROTEC",
         brand_slug="protec",
         attributes={"cor": "branco"},
+        image_url=None,
         base_unit_price=Decimal("99.90"),
         currency="BRL",
         min_order_qty=1,

@@ -49,9 +49,12 @@ class ProductSummary(BaseModel):
     ca_status: str
     category: CategoryRef
     brand: BrandRef | None
-    base_unit_price: Decimal
+    base_unit_price: Decimal | None
     currency: str
     min_order_qty: int
+    price_on_request: bool
+    image_url: str
+    image_alt: str
 
 
 class ProductDetail(ProductSummary):

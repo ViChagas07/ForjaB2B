@@ -16,6 +16,7 @@ import { useProduct } from "./hooks";
 import { isDisplaySellable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
 import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
+import { ProductImage } from "./product-image";
 
 interface ProductDetailViewProps {
   productId: string;
@@ -77,10 +78,18 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="overflow-hidden rounded-lg bg-muted">
+            <ProductImage
+              src={product.image_url}
+              alt={product.image_alt}
+              className="mx-auto h-72 w-full object-contain"
+            />
+          </div>
           <div className="flex items-center justify-between">
             <CatalogPrice
               amount={product.base_unit_price}
               currency={product.currency}
+              priceOnRequest={product.price_on_request}
               className="text-3xl font-bold"
             />
             {onAdd ? (

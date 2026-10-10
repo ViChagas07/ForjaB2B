@@ -18,6 +18,9 @@ from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.application.ports.tenant import TenantContext
+from app.domain.pricing import CompanyPriceRule
+from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.models.catalog import Brand, Category, Product
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.catalog.application.ports import (
@@ -196,5 +199,19 @@ class SqlAlchemyCatalogRepository:
             min_order_qty=product.min_order_qty,
             base_unit_price=product.base_unit_price,
             currency=product.currency,
+            price_on_request=False,
+            image_url=product.image_url,
+            image_alt=product.name,
             attributes=product.attributes,
         )
+
+    async def get_company_price_rules(
+        self, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        if not product_ids:
+            return {}
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            rules = await load_company_price_rules(uow.session, product_ids=product_ids)
+            await uow.commit()
+        return rules

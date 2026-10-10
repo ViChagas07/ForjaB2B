@@ -43,9 +43,12 @@ export interface ProductSummary {
   ca_status: CaStatus;
   category: CategoryRef;
   brand: BrandRef | null;
-  base_unit_price: string;
+  base_unit_price: string | null;
   currency: string;
   min_order_qty: number;
+  price_on_request: boolean;
+  image_url: string;
+  image_alt: string;
 }
 
 export interface ProductDetail extends ProductSummary {

@@ -61,6 +61,8 @@ def _to_product_out(item: SearchResultItem) -> SearchProductOut:
         currency=item.currency,
         min_order_qty=item.min_order_qty,
         price_on_request=item.price_on_request,
+        image_url=item.image_url,
+        image_alt=item.image_alt,
     )
 
 
