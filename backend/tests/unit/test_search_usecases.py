@@ -11,6 +11,7 @@ import pytest
 
 from app.application.security import AuthContext
 from app.core.config import Settings
+from app.domain.pricing import CompanyPriceRule
 from app.modules.search.application.errors import InvalidSearchQueryError, SearchUnavailableError
 from app.modules.search.application.ports import (
     ProductReader,
@@ -47,8 +48,13 @@ class _FakeSearchReader(SearchReader):
 
 
 class _FakeProductReader(ProductReader):
-    def __init__(self, rows: list[ProductRow]) -> None:
+    def __init__(
+        self,
+        rows: list[ProductRow],
+        rules: dict[uuid.UUID, list[CompanyPriceRule]] | None = None,
+    ) -> None:
         self._rows = {row.id: row for row in rows}
+        self._rules = rules or {}
 
     def iter_products(self, *, batch_size: int) -> AsyncIterator[list[ProductRow]]:
         raise NotImplementedError
@@ -60,6 +66,11 @@ class _FakeProductReader(ProductReader):
         self, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, ProductRow]:
         return {pid: self._rows[pid] for pid in product_ids if pid in self._rows}
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        return {pid: self._rules.get(pid, []) for pid in product_ids}
 
 
 def _settings() -> Settings:
@@ -271,6 +282,69 @@ async def test_autocomplete_usa_fallback_quando_es_indisponivel() -> None:
     use_case = AutocompleteProducts(primary=primary, fallback=fallback, settings=_settings())
     result = await use_case.run(q="cap")
     assert result == [suggestion]
+
+
+async def test_search_aplica_desconto_da_empresa() -> None:
+    a = _row("A", base_unit_price=Decimal("100.00"))
+    rules = {
+        a.id: [
+            CompanyPriceRule(
+                rule_id=uuid.uuid4(),
+                rule_type="PERCENT_DISCOUNT",
+                percent=Decimal("10"),
+            )
+        ]
+    }
+    primary = _FakeSearchReader({"luva": SearchResult(ids=[str(a.id)], total=1, mode="lexical")})
+    use_case = SearchProducts(
+        primary=primary,
+        fallback=_FakeSearchReader(),
+        semantic=None,
+        product_reader=_FakeProductReader([a], rules=rules),
+        settings=_settings(),
+    )
+    result = await use_case.run(
+        query=SearchQuery(
+            q="luva", category_id=None, brand_id=None, is_epi=None, page=1, page_size=20
+        ),
+        auth=_auth(),
+    )
+    assert result.items[0].price_on_request is False
+    assert result.items[0].base_unit_price == Decimal("90.00")
+
+
+async def test_search_preco_negociado_vence_o_desconto() -> None:
+    a = _row("A", base_unit_price=Decimal("100.00"))
+    rules = {
+        a.id: [
+            CompanyPriceRule(
+                rule_id=uuid.uuid4(),
+                rule_type="PERCENT_DISCOUNT",
+                percent=Decimal("10"),
+            ),
+            CompanyPriceRule(
+                rule_id=uuid.uuid4(),
+                rule_type="FIXED_PRICE",
+                product_id=a.id,
+                unit_price=Decimal("77.50"),
+            ),
+        ]
+    }
+    primary = _FakeSearchReader({"luva": SearchResult(ids=[str(a.id)], total=1, mode="lexical")})
+    use_case = SearchProducts(
+        primary=primary,
+        fallback=_FakeSearchReader(),
+        semantic=None,
+        product_reader=_FakeProductReader([a], rules=rules),
+        settings=_settings(),
+    )
+    result = await use_case.run(
+        query=SearchQuery(
+            q="luva", category_id=None, brand_id=None, is_epi=None, page=1, page_size=20
+        ),
+        auth=_auth(),
+    )
+    assert result.items[0].base_unit_price == Decimal("77.50")
 
 
 async def test_search_preserva_ordem_retornada_pelo_motor() -> None:

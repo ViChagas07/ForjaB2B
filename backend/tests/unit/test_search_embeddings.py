@@ -10,6 +10,7 @@ from decimal import Decimal
 import pytest
 
 from app.core.config import Settings
+from app.domain.pricing import CompanyPriceRule
 from app.modules.search.application.embedding_text import (
     build_embedding_text,
     compute_content_hash,
@@ -137,6 +138,11 @@ class _FakeReader:
         self, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, ProductRow]:
         return {row.id: row for row in self._rows if row.id in product_ids}
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        return {}
 
 
 def test_texto_embutido_nao_contem_preco_nem_dado_privado() -> None:

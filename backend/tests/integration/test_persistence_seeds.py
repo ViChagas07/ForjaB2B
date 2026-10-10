@@ -11,6 +11,7 @@ from decimal import Decimal
 import psycopg
 
 from app.infrastructure.db.seeds import (
+    _DEMO_COMPANY_SPECS,
     ADMIN_USER_ID,
     EXAMPLE_COMPANY_ID,
     EXAMPLE_CREDIT_LIMIT,
@@ -18,6 +19,8 @@ from app.infrastructure.db.seeds import (
     PRODUCT_LUVA_ID,
     PRODUCT_PARAFUSADEIRA_ID,
     PRODUCT_RESPIRADOR_ID,
+    _demo_id,
+    _tenant_id,
     cpf_hash,
     seed_database,
 )
@@ -25,6 +28,7 @@ from app.infrastructure.db.seeds import (
 from .conftest import PostgresInstance
 
 _TEST_PEPPER = "test_pepper_for_seeds"
+_DEMO_PASSWORD = "Senha@Demo123"
 
 
 def _admin_tenant_conn(pg: PostgresInstance) -> psycopg.Connection:
@@ -151,3 +155,85 @@ async def test_seeds_sao_idempotentes(
         conn.commit()
     finally:
         conn.close()
+
+
+async def test_seeds_sem_senha_nao_criam_usuarios_demo(
+    admin_database_url: str, migrated_domain_schema: None, pg: PostgresInstance
+) -> None:
+    """Sem DEMO_USER_PASSWORD: empresas e regras entram, usuarios NAO."""
+    await seed_database(admin_database_url, pepper=_TEST_PEPPER)
+    company_id = _tenant_id("company", "construcoes-beta")
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
+        company = conn.execute("SELECT cnpj FROM companies WHERE id = %s", (company_id,)).fetchone()
+        users = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE company_id = %s", (company_id,)
+        ).fetchone()
+        rules = conn.execute(
+            "SELECT COUNT(*) FROM company_price_rules WHERE company_id = %s", (company_id,)
+        ).fetchone()
+        assert company == ("44555666000181",)
+        assert users is not None and users[0] == 0
+        assert rules is not None and rules[0] == 1
+        conn.commit()
+    finally:
+        conn.close()
+
+
+async def test_seeds_com_senha_criam_empresas_demo_usuarios_e_regras(
+    admin_database_url: str, migrated_domain_schema: None, pg: PostgresInstance
+) -> None:
+    await seed_database(admin_database_url, pepper=_TEST_PEPPER, demo_user_password=_DEMO_PASSWORD)
+    for slug, cnpj, _legal, _trade in _DEMO_COMPANY_SPECS:
+        company_id = _tenant_id("company", slug)
+        conn = pg.connect_admin(autocommit=False)
+        try:
+            conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
+            company = conn.execute(
+                "SELECT cnpj, status FROM companies WHERE id = %s", (company_id,)
+            ).fetchone()
+            assert company == (cnpj, "ACTIVE")
+            users = conn.execute(
+                "SELECT COUNT(*) FROM users WHERE company_id = %s", (company_id,)
+            ).fetchone()
+            assert users is not None and users[0] == 3
+            conn.commit()
+        finally:
+            conn.close()
+
+
+async def test_seeds_demo_idempotentes_e_com_preco_atualizado(
+    admin_database_url: str, migrated_domain_schema: None, pg: PostgresInstance
+) -> None:
+    await seed_database(admin_database_url, pepper=_TEST_PEPPER, demo_user_password=_DEMO_PASSWORD)
+    await seed_database(admin_database_url, pepper=_TEST_PEPPER, demo_user_password=_DEMO_PASSWORD)
+    company_id = _tenant_id("company", "industria-gama")
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
+        companies = conn.execute(
+            "SELECT COUNT(*) FROM companies WHERE id = %s", (company_id,)
+        ).fetchone()
+        users = conn.execute(
+            "SELECT COUNT(*) FROM users WHERE company_id = %s", (company_id,)
+        ).fetchone()
+        rules = conn.execute(
+            "SELECT COUNT(*) FROM company_price_rules WHERE company_id = %s", (company_id,)
+        ).fetchone()
+        assert companies is not None and companies[0] == 1
+        assert users is not None and users[0] == 3
+        assert rules is not None and rules[0] == 3
+        conn.commit()
+    finally:
+        conn.close()
+
+    price_conn = pg.connect_admin()
+    try:
+        price = price_conn.execute(
+            "SELECT base_unit_price FROM products WHERE id = %s",
+            (_demo_id("product", "RES-006"),),
+        ).fetchone()
+        assert price == (Decimal("119.00"),)
+    finally:
+        price_conn.close()

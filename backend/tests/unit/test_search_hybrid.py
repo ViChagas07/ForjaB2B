@@ -11,6 +11,7 @@ from decimal import Decimal
 import pytest
 
 from app.core.config import Settings
+from app.domain.pricing import CompanyPriceRule
 from app.modules.search.application.errors import SearchUnavailableError
 from app.modules.search.application.ports import (
     EmbeddingEntry,
@@ -85,6 +86,11 @@ class _FakeProductReader(ProductReader):
         self, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, ProductRow]:
         return {pid: self._rows[pid] for pid in product_ids if pid in self._rows}
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        return {}
 
 
 class _FakeProvider:

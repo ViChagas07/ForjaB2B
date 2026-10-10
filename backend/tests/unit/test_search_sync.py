@@ -10,6 +10,7 @@ from typing import Any, cast
 
 import pytest
 
+from app.domain.pricing import CompanyPriceRule
 from app.modules.search.application.documents import build_product_document, is_row_sellable
 from app.modules.search.application.errors import SearchIndexError, SearchUnavailableError
 from app.modules.search.application.ports import (
@@ -176,6 +177,11 @@ class _FakeReader:
         self, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, ProductRow]:
         return {row.id: row for row in self._rows if row.id in product_ids}
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        return {}
 
 
 class _FakeOutbox:

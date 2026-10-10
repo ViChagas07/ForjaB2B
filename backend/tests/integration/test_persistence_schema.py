@@ -32,6 +32,7 @@ ALL_TABLES = {
     "invoices",
     "consent_records",
     "audit_log",
+    "company_price_rules",
 }
 
 TENANT_TABLES = {
@@ -46,6 +47,7 @@ TENANT_TABLES = {
     "invoices",
     "consent_records",
     "audit_log",
+    "company_price_rules",
 }
 
 GLOBAL_TABLES = {"categories", "brands", "products", "product_price_tiers"}

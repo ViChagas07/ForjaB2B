@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 from typing import Any, cast
 
 from app.core.config import Settings
+from app.domain.pricing import CompanyPriceRule
 from app.modules.search.application.errors import SearchUnavailableError
 from app.modules.search.application.ports import (
     ProductRow,
@@ -72,6 +73,11 @@ class _EmptyReader:
     async def get_products_by_ids(
         self, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, ProductRow]:
+        return {}
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         return {}
 
 
