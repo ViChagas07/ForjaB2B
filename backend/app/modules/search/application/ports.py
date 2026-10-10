@@ -145,6 +145,8 @@ class IndexBulkResult:
     indexed: int = 0
     deleted: int = 0
     errors: int = 0
+    # Motivos resumidos (sem dados sensiveis) das rejeicoes por documento.
+    sample_errors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)

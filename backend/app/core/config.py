@@ -108,6 +108,9 @@ class Settings(BaseSettings):
     # e retoma automaticamente (meia-abertura) apos o cooldown.
     search_circuit_breaker_failures: int = Field(default=3, ge=1)
     search_circuit_breaker_cooldown_seconds: float = Field(default=15.0, gt=0)
+    # Tolerancia de divergencia de contagem na reindexacao (Fase 8A). Zero por
+    # padrao: a troca de alias so ocorre se o novo indice bater com o Postgres.
+    search_reindex_count_tolerance: int = Field(default=0, ge=0)
 
     # Busca semantica (Fase 5): pgvector + embeddings locais (ONNX).
     # Desabilitada por padrao: sem a dependencia de runtime e o modelo baixado,

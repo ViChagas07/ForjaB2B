@@ -62,6 +62,7 @@ Todas as chaves abaixo são lidas de `app/core/config.py` (prefixo do ambiente).
 | `SEARCH_MAX_QUERY_LENGTH` | tamanho máximo do texto |
 | `SEARCH_AUTOCOMPLETE_MIN_CHARS` / `SEARCH_AUTOCOMPLETE_MAX_SUGGESTIONS` | autocomplete |
 | `SEARCH_CIRCUIT_BREAKER_FAILURES` / `SEARCH_CIRCUIT_BREAKER_COOLDOWN_SECONDS` | circuit breaker do caminho lexical (pula o ES após N falhas por T s) |
+| `SEARCH_REINDEX_COUNT_TOLERANCE` | tolerância de divergência de contagem na reindexação (0 = exato) |
 | `EMBEDDINGS_ENABLED` | liga a busca semântica (ver §9) |
 | `EMBEDDING_MODEL` / `EMBEDDING_DIMENSION` | modelo e dimensão (`intfloat/multilingual-e5-small`, `384`) |
 | `EMBEDDING_MODEL_PATH` / `EMBEDDING_ONNX_FILENAME` / `EMBEDDING_TOKENIZER_FILENAME` | artefatos do modelo |
@@ -113,6 +114,11 @@ docker compose exec backend python -m app.modules.search.interface.cli reconcile
 - O alias `forja_products` aponta para `forja_products_vN`; a reindexação cria uma **nova
   versão** e só troca o alias após validar a contagem. O índice anterior **permanece** para
   rollback: basta `swap_alias` de volta (mesmo comando, versão anterior).
+- **Rejeições por documento ou divergência de contagem** acima de `SEARCH_REINDEX_COUNT_TOLERANCE`
+  fazem o comando terminar com **código de saída ≠ 0** e **não** trocar o alias (o índice atual
+  continua servindo); o motivo resumido fica em `search_reindex_batch_rejected` /
+  `search_reindex_count_mismatch`. No `reconcile`, rejeições aparecem em `search_reconcile_rejected`
+  e no campo `rejected` do relatório.
 - **Backfill vetorial** (Fase 5):
 
 ```bash

@@ -6,9 +6,12 @@ import uuid
 from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Any, cast
+
+import pytest
 
 from app.modules.search.application.documents import build_product_document, is_row_sellable
-from app.modules.search.application.errors import SearchUnavailableError
+from app.modules.search.application.errors import SearchIndexError, SearchUnavailableError
 from app.modules.search.application.ports import (
     IndexBulkResult,
     ProductDocument,
@@ -21,6 +24,7 @@ from app.modules.search.application.sync import (
     ReconcileSearchIndex,
     ReindexProducts,
 )
+from app.modules.search.infrastructure import elasticsearch as es_mod
 
 _TODAY = date.today()
 _V1 = datetime(2026, 1, 1, tzinfo=UTC)
@@ -116,6 +120,42 @@ class _FailingIndex(_FakeIndex):
         self, *, target: str, documents: Sequence[ProductDocument]
     ) -> IndexBulkResult:
         raise SearchUnavailableError("elasticsearch down")
+
+
+class _RejectingIndex(_FakeIndex):
+    """Rejeita documentos (como o mapping faria) e reporta o motivo, sem indexar."""
+
+    def __init__(self, *, reject: set[str]) -> None:
+        super().__init__()
+        self._reject = reject
+
+    async def index_documents(
+        self, *, target: str, documents: Sequence[ProductDocument]
+    ) -> IndexBulkResult:
+        accepted = [doc for doc in documents if doc.id not in self._reject]
+        result = await super().index_documents(target=target, documents=accepted)
+        rejected = len(documents) - len(accepted)
+        if rejected:
+            return IndexBulkResult(
+                indexed=result.indexed,
+                errors=rejected,
+                sample_errors=("index:document_parsing_exception",),
+            )
+        return result
+
+
+class _DroppingIndex(_FakeIndex):
+    """Omite documentos SEM reportar erro (divergencia de contagem)."""
+
+    def __init__(self, *, drop: set[str]) -> None:
+        super().__init__()
+        self._drop = drop
+
+    async def index_documents(
+        self, *, target: str, documents: Sequence[ProductDocument]
+    ) -> IndexBulkResult:
+        kept = [doc for doc in documents if doc.id not in self._drop]
+        return await super().index_documents(target=target, documents=kept)
 
 
 class _FakeReader:
@@ -251,3 +291,86 @@ def test_documento_de_linha_vendavel_tem_versao() -> None:
     row = _row(key="A")
     assert is_row_sellable(row, today=_TODAY)
     assert build_product_document(row, today=_TODAY).version == row.version
+
+
+async def test_reindex_rejeicao_impede_troca_de_alias() -> None:
+    a = _row(key="A")
+    b = _row(key="B")
+    index = _RejectingIndex(reject={str(a.id)})
+    with pytest.raises(SearchIndexError):
+        await ReindexProducts(index=index, reader=_FakeReader([a, b]), replicas=0).run(
+            version=1, batch_size=50
+        )
+    assert index.swapped == []  # alias anterior preservado
+    assert await index.count(target="forja_products_v1") == 1
+
+
+async def test_reindex_divergencia_acima_da_tolerancia_impede_troca() -> None:
+    a = _row(key="A")
+    b = _row(key="B")
+    index = _DroppingIndex(drop={str(a.id)})
+    with pytest.raises(SearchIndexError):
+        await ReindexProducts(index=index, reader=_FakeReader([a, b]), replicas=0).run(
+            version=1, batch_size=50
+        )
+    assert index.swapped == []
+
+
+async def test_reindex_divergencia_dentro_da_tolerancia_permite_troca() -> None:
+    a = _row(key="A")
+    b = _row(key="B")
+    index = _DroppingIndex(drop={str(a.id)})
+    report = await ReindexProducts(
+        index=index, reader=_FakeReader([a, b]), replicas=0, count_tolerance=1
+    ).run(version=1, batch_size=50)
+    assert report.swapped is True
+    assert report.count == 1
+    assert report.expected == 2
+    assert index.swapped == ["forja_products_v1"]
+
+
+async def test_reindex_sem_rejeicao_troca_alias_normalmente() -> None:
+    a = _row(key="A")
+    b = _row(key="B")
+    index = _FakeIndex()
+    report = await ReindexProducts(index=index, reader=_FakeReader([a, b]), replicas=0).run(
+        version=1, batch_size=50
+    )
+    assert report.swapped is True
+    assert report.rejected == 0
+    assert report.count == 2
+    assert index.swapped == ["forja_products_v1"]
+
+
+async def test_dispatch_rejeicao_marca_evento_como_falho() -> None:
+    a = _row(key="A")
+    outbox = _FakeOutbox([_event(a)])
+    index = _RejectingIndex(reject={str(a.id)})
+    report = await DispatchSearchOutbox(
+        index=index, reader=_FakeReader([a]), outbox=outbox, max_attempts=5
+    ).run()
+    assert report.processed == 0
+    assert report.failed == 1
+    assert [event_id for event_id, _error in outbox.failed] == [outbox.events[0].id]
+    assert await index.count(target=index.alias) == 0
+
+
+async def test_reconcile_reporta_rejeicao_sem_engolir() -> None:
+    a = _row(key="A", updated_at=_V2)
+    index = _RejectingIndex(reject={str(a.id)})
+    index.docs[index.alias] = {str(a.id): (a.version - 1, {"version": a.version - 1})}
+    report = await ReconcileSearchIndex(index=index, reader=_FakeReader([a]), batch_size=50).run()
+    assert report.rejected == 1
+    assert report.upserted == 0
+
+
+async def test_bulk_guarda_motivo_resumido_da_rejeicao(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _fake_bulk(*args: object, **kwargs: object) -> tuple[bool, list[dict[str, object]]]:
+        return True, [{"index": {"error": {"type": "document_parsing_exception"}}}]
+
+    monkeypatch.setattr(es_mod, "async_bulk", _fake_bulk)
+    index = es_mod.ElasticsearchProductIndex(client=cast(Any, object()), alias="forja_products")
+    document = build_product_document(_row(key="A"), today=_TODAY)
+    result = await index.index_documents(target="forja_products_v1", documents=[document])
+    assert result.errors == 1
+    assert result.sample_errors == ("index:document_parsing_exception",)

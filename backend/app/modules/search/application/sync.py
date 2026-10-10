@@ -16,6 +16,7 @@ from app.modules.search.application.documents import build_product_document, is_
 from app.modules.search.application.embeddings_backfill import EmbeddingSync
 from app.modules.search.application.errors import SearchIndexError
 from app.modules.search.application.ports import (
+    IndexBulkResult,
     ProductIndex,
     ProductReader,
     ProductRow,
@@ -34,6 +35,8 @@ class ReindexReport:
     index_name: str | None
     indexed: int
     expected: int
+    rejected: int
+    count: int
     orphans_removed: int
     swapped: bool
     dry_run: bool
@@ -46,6 +49,7 @@ class ReconcileReport:
     checked: int
     upserted: int
     deleted: int
+    rejected: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -60,10 +64,18 @@ class DispatchReport:
 class ReindexProducts:
     """Reconstroi o indice versionado a partir do PostgreSQL (repetivel)."""
 
-    def __init__(self, *, index: ProductIndex, reader: ProductReader, replicas: int) -> None:
+    def __init__(
+        self,
+        *,
+        index: ProductIndex,
+        reader: ProductReader,
+        replicas: int,
+        count_tolerance: int = 0,
+    ) -> None:
         self._index = index
         self._reader = reader
         self._replicas = replicas
+        self._count_tolerance = count_tolerance
 
     async def run(self, *, version: int, batch_size: int, dry_run: bool = False) -> ReindexReport:
         today = date.today()
@@ -76,6 +88,8 @@ class ReindexProducts:
                 index_name=None,
                 indexed=0,
                 expected=expected,
+                rejected=0,
+                count=0,
                 orphans_removed=0,
                 swapped=False,
                 dry_run=True,
@@ -84,8 +98,65 @@ class ReindexProducts:
         index_name = await self._index.create_versioned_index(
             version=version, replicas=self._replicas
         )
+        expected, indexed, rejected, expected_ids = await self._index_all(
+            index_name=index_name, batch_size=batch_size, today=today
+        )
+        await self._index.refresh(target=index_name)
+
+        if rejected:
+            _logger.warning("search_reindex_rejected", index=index_name, rejected=rejected)
+            raise SearchIndexError(
+                f"{rejected} documento(s) rejeitado(s) pelo Elasticsearch em {index_name}; "
+                "alias NAO trocado (o indice anterior continua servindo)"
+            )
+
+        existing = await self._index.fetch_versions(target=index_name)
+        orphans = [doc_id for doc_id in existing if doc_id not in expected_ids]
+        if orphans:
+            await self._index.delete_documents(target=index_name, ids=orphans)
+            await self._index.refresh(target=index_name)
+
+        count = await self._index.count(target=index_name)
+        if abs(count - expected) > self._count_tolerance:
+            _logger.warning(
+                "search_reindex_count_mismatch",
+                index=index_name,
+                count=count,
+                expected=expected,
+                tolerance=self._count_tolerance,
+            )
+            raise SearchIndexError(
+                f"contagem divergente no indice {index_name}: {count} != {expected} "
+                f"(tolerancia {self._count_tolerance}); alias NAO trocado"
+            )
+
+        await self._index.swap_alias(index_name=index_name)
+        _logger.info(
+            "search_reindex_done",
+            index=index_name,
+            indexed=indexed,
+            expected=expected,
+            count=count,
+            orphans_removed=len(orphans),
+        )
+        return ReindexReport(
+            index_name=index_name,
+            indexed=indexed,
+            expected=expected,
+            rejected=0,
+            count=count,
+            orphans_removed=len(orphans),
+            swapped=True,
+            dry_run=False,
+        )
+
+    async def _index_all(
+        self, *, index_name: str, batch_size: int, today: date
+    ) -> tuple[int, int, int, set[str]]:
+        """Indexa todos os produtos vendaveis; devolve (expected, indexed, rejected, ids)."""
         expected = 0
         indexed = 0
+        rejected = 0
         expected_ids: set[str] = set()
         async for batch in self._reader.iter_products(batch_size=batch_size):
             documents = [
@@ -98,36 +169,15 @@ class ReindexProducts:
             if documents:
                 result = await self._index.index_documents(target=index_name, documents=documents)
                 indexed += result.indexed
-        await self._index.refresh(target=index_name)
-
-        existing = await self._index.fetch_versions(target=index_name)
-        orphans = [doc_id for doc_id in existing if doc_id not in expected_ids]
-        if orphans:
-            await self._index.delete_documents(target=index_name, ids=orphans)
-            await self._index.refresh(target=index_name)
-
-        count = await self._index.count(target=index_name)
-        if count != expected:
-            raise SearchIndexError(
-                f"contagem divergente no indice {index_name}: {count} != {expected}"
-            )
-
-        await self._index.swap_alias(index_name=index_name)
-        _logger.info(
-            "search_reindex_done",
-            index=index_name,
-            indexed=indexed,
-            expected=expected,
-            orphans_removed=len(orphans),
-        )
-        return ReindexReport(
-            index_name=index_name,
-            indexed=indexed,
-            expected=expected,
-            orphans_removed=len(orphans),
-            swapped=True,
-            dry_run=False,
-        )
+                rejected += result.errors
+                if result.errors:
+                    _logger.warning(
+                        "search_reindex_batch_rejected",
+                        index=index_name,
+                        rejected=result.errors,
+                        reasons=list(result.sample_errors),
+                    )
+        return expected, indexed, rejected, expected_ids
 
 
 class ReconcileSearchIndex:
@@ -160,18 +210,35 @@ class ReconcileSearchIndex:
         to_delete = [doc_id for doc_id in index_versions if doc_id not in sellable_ids]
 
         upserted = 0
+        deleted = 0
+        rejected = 0
         if to_upsert:
             documents = [build_product_document(row, today=today) for row in to_upsert]
             result = await self._index.index_documents(
                 target=self._index.alias, documents=documents
             )
             upserted = result.indexed
+            rejected += result.errors
+            if result.errors:
+                _logger.warning(
+                    "search_reconcile_rejected",
+                    operation="upsert",
+                    rejected=result.errors,
+                    reasons=list(result.sample_errors),
+                )
             await self._index.refresh(target=self._index.alias)
 
-        deleted = 0
         if to_delete:
             result = await self._index.delete_documents(target=self._index.alias, ids=to_delete)
             deleted = result.deleted
+            rejected += result.errors
+            if result.errors:
+                _logger.warning(
+                    "search_reconcile_rejected",
+                    operation="delete",
+                    rejected=result.errors,
+                    reasons=list(result.sample_errors),
+                )
             await self._index.refresh(target=self._index.alias)
 
         _logger.info(
@@ -179,8 +246,11 @@ class ReconcileSearchIndex:
             checked=len(versions),
             upserted=upserted,
             deleted=deleted,
+            rejected=rejected,
         )
-        return ReconcileReport(checked=len(versions), upserted=upserted, deleted=deleted)
+        return ReconcileReport(
+            checked=len(versions), upserted=upserted, deleted=deleted, rejected=rejected
+        )
 
 
 class DispatchSearchOutbox:
@@ -227,17 +297,29 @@ class DispatchSearchOutbox:
     async def _apply(self, event: SearchOutboxEvent, *, today: date) -> None:
         product_id = str(event.aggregate_id)
         if event.event_type == SearchEventType.DELETE.value:
-            await self._index.delete_documents(target=self._index.alias, ids=[product_id])
+            result = await self._index.delete_documents(target=self._index.alias, ids=[product_id])
+            self._require_accepted(result)
             await self._delete_embedding(event.aggregate_id)
             return
         row = await self._reader.get_product(event.aggregate_id)
         if row is None or not is_row_sellable(row, today=today):
-            await self._index.delete_documents(target=self._index.alias, ids=[product_id])
+            result = await self._index.delete_documents(target=self._index.alias, ids=[product_id])
+            self._require_accepted(result)
             await self._delete_embedding(event.aggregate_id)
             return
         document = build_product_document(row, today=today)
-        await self._index.index_documents(target=self._index.alias, documents=[document])
+        result = await self._index.index_documents(target=self._index.alias, documents=[document])
+        self._require_accepted(result)
         await self._upsert_embedding(row)
+
+    @staticmethod
+    def _require_accepted(result: IndexBulkResult) -> None:
+        """Documento rejeitado pelo ES vira falha do evento (reprocessavel)."""
+        if result.errors:
+            raise SearchIndexError(
+                f"{result.errors} documento(s) rejeitado(s) pelo Elasticsearch "
+                f"({', '.join(result.sample_errors)}); evento sera reprocessado"
+            )
 
     async def _delete_embedding(self, product_id: uuid.UUID) -> None:
         if self._embedding_sync is None:

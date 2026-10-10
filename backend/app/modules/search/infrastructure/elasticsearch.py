@@ -51,6 +51,8 @@ _logger = get_logger(__name__)
 # respostas HTTP 5xx do servidor.
 _ELASTICSEARCH_ERRORS = (ConnectionError, ConnectionTimeout, TransportError, ApiError)
 _VERSION_CONFLICT = "version_conflict_engine_exception"
+# Quantos motivos de rejeicao por documento guardar no resultado do bulk.
+_MAX_ERROR_SAMPLES = 3
 
 
 def _basic_auth(settings: Settings) -> tuple[str, str] | None:
@@ -366,21 +368,27 @@ class ElasticsearchProductIndex:
             raise translate_elasticsearch_error(exc) from exc
         failed_index = 0
         failed_delete = 0
+        samples: list[str] = []
         failed_items = errors if isinstance(errors, list) else []
         for item in failed_items:
             op_name = next(iter(item.keys()))
             op_detail = cast("dict[str, Any]", next(iter(item.values())))
-            error_type = str(op_detail.get("error", {}).get("type", ""))
+            error = cast("dict[str, Any]", op_detail.get("error", {}))
+            error_type = str(error.get("type", ""))
             if error_type == _VERSION_CONFLICT:
                 continue  # versao mais antiga que a indexada: ignora (idempotente)
             if op_name == "index":
                 failed_index += 1
             else:
                 failed_delete += 1
+            if len(samples) < _MAX_ERROR_SAMPLES:
+                # Somente o tipo de operacao e o motivo (id do documento fica de fora).
+                samples.append(f"{op_name}:{error_type}")
         return IndexBulkResult(
             indexed=index_ops - failed_index,
             deleted=delete_ops - failed_delete,
             errors=failed_index + failed_delete,
+            sample_errors=tuple(samples),
         )
 
 

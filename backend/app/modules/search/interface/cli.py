@@ -29,6 +29,7 @@ from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.search.application.embeddings_backfill import BackfillEmbeddings
+from app.modules.search.application.errors import SearchIndexError
 from app.modules.search.application.sync import (
     ReconcileReport,
     ReconcileSearchIndex,
@@ -109,7 +110,10 @@ async def _run(settings: Settings, args: argparse.Namespace) -> dict[str, object
                 default_version = settings.elasticsearch_index_version
                 version = args.version if args.version is not None else default_version
                 use_case = ReindexProducts(
-                    index=index, reader=reader, replicas=settings.elasticsearch_index_replicas
+                    index=index,
+                    reader=reader,
+                    replicas=settings.elasticsearch_index_replicas,
+                    count_tolerance=settings.search_reindex_count_tolerance,
                 )
                 report = await use_case.run(
                     version=version, batch_size=args.batch_size, dry_run=args.dry_run
@@ -119,9 +123,16 @@ async def _run(settings: Settings, args: argparse.Namespace) -> dict[str, object
                     index=index, reader=reader, batch_size=args.batch_size
                 )
                 report = await reconcile.run()
-            return cast("dict[str, object]", asdict(report))
+        except SearchIndexError as exc:
+            # Falha visivel (rejeicao no bulk / contagem divergente): saida != 0.
+            return {"error": f"{args.command}_failed", "detail": str(exc)}
         finally:
             await index.close()
+        payload = cast("dict[str, object]", asdict(report))
+        if isinstance(report, ReconcileReport) and report.rejected:
+            payload["error"] = "reconcile_rejected"
+            payload["detail"] = f"{report.rejected} documento(s) rejeitado(s) pelo Elasticsearch"
+        return payload
     finally:
         await engine.dispose()
 
