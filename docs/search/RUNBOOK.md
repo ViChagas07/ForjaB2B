@@ -213,19 +213,26 @@ semântica, preço consultivo do visitante (e do autenticado, se houver token) e
 
 ## 9. Embeddings e pgvector (busca semântica)
 
+**Validado localmente em 2026-10-10** com o modelo real (`intfloat/multilingual-e5-small`):
+backfill idempotente (41 embeddings), consulta em modo **`hybrid`** e degradação para `lexical`
+sem o provedor. **Medições reais:**
+
+- **Modelo** (MIT): `model.onnx` **448 MB** + `tokenizer.json` **16,3 MB** (medido por HEAD).
+- **Runtime** `onnxruntime`+`tokenizers`+`numpy`: **+172 MB** na imagem (308 MB → **480 MB**);
+  **+448 MB** se o modelo for embutido no build (total ~+620 MB).
+- **Latência (CPU):** carga do modelo ~1,4 s (uma vez, no startup); embed da consulta **~7 ms**;
+  consulta completa em modo `hybrid` **~50 ms** (ES + pgvector + hidratação).
+- **Memória:** ~0,5 GB (pesos fp32) + overhead do runtime no backend.
+
 - **Imagem do PostgreSQL:** `pgvector/pgvector:0.8.7-pg16` (mesma major 16; volume reaproveitado).
   **Faça backup lógico antes de trocar a imagem em ambiente com dados.**
-- **Modelo:** `intfloat/multilingual-e5-small` (MIT, ~493 MB fp32; ONNX `model_O4.onnx` +
-  `tokenizer.json`). Deve ser **baixado no build** para `EMBEDDING_MODEL_PATH` (nunca em tempo
-  de requisição) ou montado por volume.
-- **Runtime:** `onnxruntime` (CPU) + `tokenizers` (+ `numpy`), importados de forma tardia.
-  **Estado atual:** a dependência e o download do modelo **não estão adotados** no
-  `requirements.txt`/Dockerfile — ver §12. Com `EMBEDDINGS_ENABLED=false` (padrão), a busca é
-  **lexical** e o `search_mode` reflete isso.
-- **Memória/latência:** prever **~0,5–1,0 GB** adicionais no backend para o modelo in-process;
-  latência por consulta depende da CPU e deve ser medida no ambiente.
-- **Degradação:** sem modelo/dependência (ou timeout do embed), o sistema opera em `lexical`;
-  sem ES, em `semantic_postgres`; sem ambos, em `postgres_fallback`.
+- **Habilitar:** instale `onnxruntime`/`tokenizers`/`numpy`; baixe o modelo no build para
+  `EMBEDDING_MODEL_PATH` (`model.onnx` + `tokenizer.json`; nunca em tempo de requisição) ou monte
+  por volume; defina `EMBEDDINGS_ENABLED=true`; rode `backfill-embeddings`.
+- **Padrão do repositório:** `EMBEDDINGS_ENABLED=false` → busca **lexical com fallback PostgreSQL**.
+  Ao ser habilitado, o `search_mode` passa a **`hybrid`** quando ES e pgvector respondem.
+- **Degradação:** sem modelo/dependência (ou timeout do embed) → `lexical`; sem ES → `semantic_postgres`;
+  sem ambos → `postgres_fallback`.
 
 ## 10. Backups e recuperação
 
@@ -277,14 +284,41 @@ docker compose exec -T postgres pg_dump -U "$POSTGRES_BOOTSTRAP_USER" -d "$POSTG
   escrita de catálogo (backoffice) emitindo eventos no outbox.
 - **Catálogo é global** (sem tenant): a busca não filtra por empresa; autorização refere-se a
   preço/visibilidade, não a um catálogo por cliente.
+- **Upgrade do Elasticsearch (achado real):** um volume criado pelo ES **8.15.0** não sobe direto no
+  **9.5.5** (o 9.x exige passar por **8.19.0**). Procedimento não destrutivo, no mesmo volume: subir
+  `elasticsearch:8.19.0` (aguardar `healthy`), parar, e então subir `9.5.5`. Nunca remova o volume.
+- **Latência durante indisponibilidade do Elasticsearch:** sem circuit breaker, cada busca tenta o ES
+  (com retries do cliente) antes de cair no fallback — medido **~15 s** por requisição com o serviço
+  parado. Recomendação: circuit breaker e/ou timeout de conexão curto (não implementados).
+- **Fuzzy no nome** pode trazer correlações frouxas (ex.: `q=RES-008` retornou outro produto por
+  similaridade); o SKU exato continua prioritário e produtos não vendáveis nunca aparecem.
 
-## 14. Não validado neste ambiente (Docker indisponível)
+## 14. Estado de validação (2026-10-10)
 
-- Backup `pg_dump`, troca da imagem do PostgreSQL e aplicação das migrations `0012`/`0013` em um
-  banco real.
-- Subida dos serviços, build da imagem do backend, health check e consultas reais ao ES e ao
-  pgvector; reindexação real; fallback real com `docker compose stop elasticsearch`.
-- Smoke test contra ambiente local/produção.
-- Latência e memória do modelo de embeddings.
+**Validado com evidência real (Docker disponível):** build das imagens; subida de PostgreSQL/Redis/
+Elasticsearch com healthchecks (ES em loopback e recusando requisição sem credencial, HTTP 401);
+backup `pg_dump`; migrations `0012`/`0013` aplicadas em banco descartável (up/down) e no dev
+(extensões `vector`/`unaccent`/`pg_trgm` + índices); `bootstrap` idempotente; seed idempotente;
+`reindex` (41 documentos) idempotente; contagem do índice = vendáveis no PostgreSQL; inativos
+ausentes; `reconcile` corrigindo despublicação/republicação; usuário de aplicação do ES lendo mas
+sem operações administrativas (403); busca lexical real (SKU no topo, acento, autocomplete, filtros,
+limites, não publicados, preço consultivo/autenticado); **fallback real** com o ES parado
+(`postgres_fallback`) e recuperação; suíte completa **454 passed/1 skipped**; sem Docker
+**220 passed/235 skipped**; **smoke test** local aprovado; **embeddings**: backfill idempotente (41),
+consulta `hybrid` real e degradação para `lexical`.
 
-> Itens acima estão detalhados em `docs/STATUS.md` (Fase 6).
+**Não validado (depende do alvo real):** deploy no provedor de produção (alvo ainda `[PREENCHER]`);
+TLS + API key do Elasticsearch em produção; snapshots do ES; imagem com o modelo embutido no build
+(medida, não construída no repositório); latência/memória em produção; circuit breaker (não existe —
+ver limitação de latência abaixo).
+
+## 15. Como rodar os testes
+
+```bash
+cd backend
+pytest tests/unit tests/architecture -q   # rapido, sem Docker
+pytest -m integration -q                  # somente integracao (exige Docker)
+pytest tests/ -q                          # suite completa
+```
+Os testes de integração são marcados com `integration` e, **sem Docker, são pulados** com mensagem
+clara (a suíte padrão termina sem erros). Ver `docs/STATUS.md` para os resultados reais.

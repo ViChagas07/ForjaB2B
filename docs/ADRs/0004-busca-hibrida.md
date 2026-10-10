@@ -1,6 +1,8 @@
 # ADR-0004: Busca híbrida (Elasticsearch + pgvector) com fusão por RRF
 
-- **Status:** aceito (implementado; adoção do modelo de embeddings pendente — ver Fase 5/6)
+- **Status:** aceito; implementado e **validado localmente em 2026-10-10** (Fase 7). Em produção,
+  o padrão do repositório é **lexical + fallback PostgreSQL**; o modo **`hybrid`** foi comprovado
+  localmente com o modelo de embeddings habilitado (ver `docs/STATUS.md`).
 - **Data:** 2026-10-10
 
 ## Contexto
@@ -36,6 +38,14 @@ dados comerciais (preço, disponibilidade, CA) **não podem** viver em um índic
   modo real é reportado e registrado em métricas/logs.
 - Custo: mais um componente (ES) e, quando habilitado, o modelo de embeddings in-process
   (~0,5–1,0 GB) — o sistema degrada para `lexical` se o backend não comportar o modelo.
+
+## Validação (Fase 7, 2026-10-10)
+
+Evidência real: índice versionado reconstruído (**41/41**), reconciliação corrigindo despublicação,
+busca lexical (SKU no topo, acento, autocomplete, filtros) e **fallback real** com o ES parado
+(`postgres_fallback`); com o modelo local habilitado, o `search_mode` foi **`hybrid`** em consultas
+reais (ES + pgvector + RRF) e degradou para `lexical` sem o provedor. Medições (modelo 448 MB,
++172 MB de imagem, ~7 ms/embed) em `docs/search/RUNBOOK.md` §9.
 
 ## Alternativas consideradas
 

@@ -242,6 +242,11 @@ docker compose logs -f elasticsearch   # acompanha os logs
 
 > **Atenção (volume pré-existente):** habilitar segurança sobre um volume que foi inicializado antes com `xpack.security.enabled=false` pode fazer o Elasticsearch recusar a senha configurada. **Não** apague o volume: pare o serviço, inspecione-o (`docker volume inspect forja_elasticsearch_data`) e só então siga um procedimento que **preserve os dados** antes de qualquer recriação.
 
+> **Atenção (upgrade 8.15 → 9.5.5, achado real da Fase 7):** o ES 9 recusa subir sobre um volume do
+> **8.15.0** ("upgrade to version [8.19.0] first"). Procedimento **não destrutivo** (mesmo volume):
+> subir `docker.elastic.co/elasticsearch/elasticsearch:8.19.0` apontando para o volume, aguardar
+> `healthy`, parar, e então subir `9.5.5`. Nunca use `down -v` nem remova o volume.
+
 ### 7.6. Índice, reindexação, busca e deploy (Fases 3–6)
 
 O guia completo — variáveis, criação/reconstrução do índice, busca em cada modo, fallback,

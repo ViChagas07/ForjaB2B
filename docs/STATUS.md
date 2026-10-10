@@ -80,7 +80,8 @@
 | 3 | Índice e sincronização (outbox + reconciliação) | ✅ |
 | 4 | Busca lexical e fallback (Postgres) | ✅ |
 | 5 | Busca semântica (PGVector) e fusão por RRF | ✅ (parcial: ver limitações) |
-| 6 | Produção, documentação e fechamento | ✅ (parcial: ver limitações de ambiente) |
+| 6 | Produção, documentação e fechamento | ✅ |
+| 7 | Validação real com Docker (correções e evidências) | ✅ |
 
 - **Fase 1 (2026-10-10):** auditoria somente-leitura e plano completo em `docs/search/PLAN.md`.
   Nenhum código/Compose/migration alterado.
@@ -258,6 +259,40 @@
   - **Decisão sobre o modelo de embeddings (reiterada):** runtime (`onnxruntime`/`tokenizers`) e
     download do modelo seguem **não adotados**; `EMBEDDINGS_ENABLED=false` por padrão e a busca
     opera em `lexical`/fallback, com o procedimento de habilitação em `docs/search/RUNBOOK.md` §9.
+
+- **Fase 7 (2026-10-10) — validação real com Docker e correções.** O Docker voltou a ficar
+  disponível e as Fases 2–6 foram **executadas de verdade**. Bugs reais encontrados e corrigidos:
+  - **Upgrade do Elasticsearch:** o volume criado pelo ES **8.15.0** recusou o **9.5.5** (exige
+    8.19.0 antes). Feito upgrade **não destrutivo** no mesmo volume (8.19.0 → 9.5.5); documentado
+    no runbook.
+  - **Migration `0013` falhava:** `CREATE EXTENSION vector` como `forja_admin` não-superusuário dá
+    `permission denied` (`vector` não é extensão *trusted*). Passou a ser criada no **bootstrap**
+    (superusuário), junto de `unaccent`/`pg_trgm`. Downgrades deixaram de derrubar extensões
+    (não são da role de migração).
+  - **Normalizer `lowercase_normalizer`** usava `ascii_folding` com `preserve_original` → 2 tokens,
+    rejeitado em campo keyword (metade do catálogo não indexava). Corrigido (asciifolding simples).
+  - **Fallback PostgreSQL dava HTTP 500:** `asyncpg` não inferia o tipo dos parâmetros em `IS NULL`
+    (`AmbiguousParameterError`). Adicionados `CAST(...)` explícitos (fallback e busca vetorial).
+  - **Drift de metadata:** `product_embeddings` e os índices de busca (criados por migration/ SQL
+    puro) e o tipo `vector` quebravam o `alembic check`. Tipo `vector` registrado para reflexão e
+    objetos derivados excluídos do autogenerate.
+  - **Adaptador ONNX** quebrava em lote com textos de tamanhos diferentes (sem padding). Corrigido
+    (padding por lote + truncagem 512).
+  - **Testes de integração** agora são **pulados** (marcador `integration`) sem Docker, em vez de
+    gerar erro; esperas/índices dos testes de ES tornados robustos.
+  - **Evidências:** build (backend 308 MB) e subida com healthchecks; ES em loopback com **401** sem
+    credencial; backup `pg_dump`; migrations `0012`/`0013` em banco descartável (up/down) e no dev;
+    `bootstrap` e `seed` idempotentes; `reindex` **41/41** idempotente; índice == vendáveis no PG;
+    inativos ausentes; `reconcile` corrige despublicação/republicação; role de app lê mas **não**
+    administra (403); busca lexical real (SKU no topo, acento, autocomplete, filtros, limites,
+    autorização/preço); **fallback real** com ES parado (`postgres_fallback`, ~15 s por causa dos
+    retries) e recuperação; **smoke test** aprovado; **embeddings** validados de ponta a ponta
+    (backfill 41 idempotente; `hybrid` real; degradação `lexical`), com medições no runbook.
+  - **Suíte:** `pytest tests/` → **454 passed, 1 skipped** (com Docker); sem Docker →
+    **220 passed, 235 skipped, 0 errors**. `ruff`/`format`/`mypy` strict (331 arquivos)/
+    `import-linter` (4/4) OK.
+  - **Confirmação:** a busca em produção (padrão) é **lexical com fallback PostgreSQL**; o modo
+    **lexical + vetorial (`hybrid`)** foi **validado localmente** com o modelo real habilitado.
 
 ## Próximos passos sugeridos
 
