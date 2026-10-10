@@ -1,6 +1,6 @@
 # Forja B2B — Status do Backend
 
-> Última atualização: 2026-10-09. Este documento é a fonte de verdade do estado
+> Última atualização: 2026-10-10. Este documento é a fonte de verdade do estado
 > de implementação das fases. Atualize-o a cada fase concluída.
 
 ## Fases concluídas
@@ -71,11 +71,30 @@
 - **Integração ponta a ponta** (frontend ↔ backend): fora do escopo desta entrega
   (backend-only).
 
+## Busca do catálogo (Fases 1–6)
+
+| Fase | Escopo | Estado |
+| :--- | :--- | :--- |
+| 1 | Auditoria e plano (`docs/search/PLAN.md`) | ✅ |
+| 2 | Elasticsearch e cliente (ES 9.5.5 + `elasticsearch-py` 9.5.1) | ⏳ |
+| 3 | Índice e sincronização (outbox + reconciliação) | ⏳ |
+| 4 | Busca lexical e fallback (Postgres) | ⏳ |
+| 5 | Busca semântica (PGVector) e fusão por RRF | ⏳ |
+| 6 | Produção, documentação e fechamento | ⏳ |
+
+- **Fase 1 (2026-10-10):** auditoria somente-leitura e plano completo em `docs/search/PLAN.md`.
+  Nenhum código/Compose/migration alterado.
+- **Achado da auditoria:** o módulo `search` é scaffold vazio; o Elasticsearch 8.15.0 está
+  **provisionado no Compose mas não integrado** (o backend ignora `ELASTICSEARCH_*`); não há
+  pgvector nem embeddings; o catálogo é global e somente leitura em runtime (sem caminho de
+  escrita de produto), então a frescura do índice dependerá de **reindex + reconciliação**.
+
 ## Próximos passos sugeridos
 
 1. Rotação do segredo Google (responsável).
 2. Normalizar `.env` local e re-inicializar roles para exercitar `make migrate` +
    fluxo de notificação com Mailpit (`:8025`).
 3. Implementar as funcionalidades fora do escopo (busca, RFQ, catálogo-escrita,
-   DANFE/XML etc.) em fases futuras.
+   DANFE/XML etc.) em fases futuras. A busca tem plano próprio em
+   `docs/search/PLAN.md` (Fases 2–6, a partir da Fase 2: Elasticsearch e cliente).
 4. Integração com o frontend (fases futuras).
