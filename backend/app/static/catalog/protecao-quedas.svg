@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img">
+  <title>Ilustracao de protecao contra quedas (cinto e talabarte) - Forja B2B</title>
+  <rect width="64" height="64" rx="12" fill="#0F172A"/>
+  <path d="M22 15h20v10l-3 24H25l-3-24z" fill="none" stroke="#F8FAFC" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M24 30h16" stroke="#F97316" stroke-width="3" stroke-linecap="round"/>
+  <path d="M22 22h-5M42 22h5" fill="none" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -15,8 +15,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.application.security import TokenService
 from app.core.config import Settings, get_settings
@@ -355,6 +357,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(PrometheusMiddleware)
     register_exception_handlers(app)
+
+    # Ilustracoes originais do catalogo (SVG), versionadas em app/static e
+    # servidas pela propria API (cacheaveis via ETag/Last-Modified). Nenhum
+    # arquivo e gravado em disco em runtime.
+    app.mount(
+        "/static",
+        StaticFiles(directory=Path(__file__).resolve().parent / "static"),
+        name="static",
+    )
 
     app.include_router(health_router)
     app.include_router(api_v1_router)

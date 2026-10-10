@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img">
+  <title>Ilustracao de protecao auditiva (abafador de ruido) - Forja B2B</title>
+  <rect width="64" height="64" rx="12" fill="#0F172A"/>
+  <path d="M18 36v-2a14 14 0 0 1 28 0v2" fill="none" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round"/>
+  <g fill="none" stroke="#F97316" stroke-width="3">
+    <rect x="12" y="34" width="9" height="15" rx="4"/>
+    <rect x="43" y="34" width="9" height="15" rx="4"/>
+  </g>
+</svg>

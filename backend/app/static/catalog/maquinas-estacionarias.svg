@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img">
+  <title>Ilustracao de maquinas estacionarias (engrenagem) - Forja B2B</title>
+  <rect width="64" height="64" rx="12" fill="#0F172A"/>
+  <circle cx="32" cy="32" r="8" fill="none" stroke="#F97316" stroke-width="3"/>
+  <g fill="none" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round">
+    <path d="M32 15v7M32 42v7M15 32h7M42 32h7"/>
+    <path d="M20 20l5 5M39 39l5 5M44 20l-5 5M25 39l-5 5"/>
+  </g>
+</svg>
