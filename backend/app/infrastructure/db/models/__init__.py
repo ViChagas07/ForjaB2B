@@ -21,6 +21,7 @@ from app.infrastructure.db.models.notification import Notification, Notification
 from app.infrastructure.db.models.ordering import Order, OrderItem
 from app.infrastructure.db.models.payment import Payment, PaymentEvent
 from app.infrastructure.db.models.pgvector_type import Vector
+from app.infrastructure.db.models.pricing import CompanyPriceRule
 from app.infrastructure.db.models.privacy import ConsentRecord
 from app.infrastructure.db.models.search import SearchOutbox
 
@@ -33,6 +34,7 @@ __all__ = [
     "Company",
     "CompanyAddress",
     "CompanyMember",
+    "CompanyPriceRule",
     "ConsentRecord",
     "CreditAccount",
     "CreditEntry",
