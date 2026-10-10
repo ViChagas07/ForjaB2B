@@ -22,9 +22,9 @@ A raiz de composição (`app/main.py`) liga portas a implementações e as expõ
 | :--- | :--- |
 | `identity` | login, JWT, refresh, OAuth Google (redirect + exchange code de uso único) |
 | `companies` | onboarding, CNPJ, endereços |
-| `catalog` | categorias, marcas, produtos, tiers de preço |
+| `catalog` | categorias, marcas, produtos, tiers de preço (global) |
 | `credit` | ledger append-only (reserva/liberação/captura/pagamento) |
-| `pricing` / `shipping` / `tax` | regras de domínio compartilhadas (pure Python) |
+| `pricing` / `shipping` / `tax` | regras de domínio compartilhadas (pure Python): preço de lista (tier/base) e preço por empresa (negociado/desconto), resolvidos no PostgreSQL |
 | `cart` | carrinho (preços resolvidos no servidor) |
 | `ordering` | pedidos (snapshot + reserva de crédito atômica) |
 | `invoicing` | fatura/boleto (captura de crédito net-zero) |

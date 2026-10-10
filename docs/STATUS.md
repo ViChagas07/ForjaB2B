@@ -323,6 +323,44 @@
     `reindex/bootstrap` com `--version 3` (ou ajustar o `.env`); é resíduo de dados da validação, não
     bug de código.
 
+## Catálogo de demonstração: preços e clientes demo (Fase 9A)
+
+Auditoria completa e decisões em `docs/CATALOG_DEMO.md`. Resumo:
+
+- **Achado:** o modelo tinha preço de lista (`products.base_unit_price`), tiers por
+  quantidade (global) e **nenhum** preço por empresa. Solução mínima adotada: tabela
+  `company_price_rules` (tenant-scoped, RLS por `company_id`), leitor compartilhado
+  (`app/infrastructure/db/company_pricing.py`) e `resolve_company_price` no domínio
+  (`app/domain/pricing.py`).
+- **Preços de demonstração:** 46 produtos normalizados para faixas plausíveis por
+  categoria (BRL, arredondado como varejo). Reexecutar o seed **atualiza** os preços
+  (upsert por id), sem duplicar. Inativos/não vendáveis permanecem como estavam.
+- **Empresas demo:** 3 empresas fictícias com CNPJ **sintéticos e válidos** (dígito
+  verificador), 3 usuários cada (ADMIN/BUYER/APPROVER). Senha via `DEMO_USER_PASSWORD`
+  (nunca versionada). Condições: **alfa** sem desconto; **beta** 10% em "Proteção da
+  Cabeça"; **gama** 5% global + negociado em `CAP-002`/`BOT-001`.
+- **Precedência (testada):** negociado > desconto > lista. Visitante = **consultivo**.
+  Busca, carrinho e pedido revalidam no PostgreSQL; nenhum preço no índice/vetor/logs.
+- **Migration:** `0014_company_pricing` (head passa de `0013` para `0014`).
+- **Validação (Docker de pé, 2026-10-10):** `docker compose config --quiet` (base e
+  override) ✅; migration `0014` aplicada; seed executado 2x (relatórios idênticos);
+  contagens 50 produtos / 4 empresas / 13 usuários / 4 regras de preço; preços por
+  perfil reais para `CAP-002` (visitante consultivo; alfa `32.90`; beta `29.61`; gama
+  `27.90`) e carrinho revalidando (beta `29.61`, gama `27.90`); Elasticsearch **sem
+  campo de preço** (mapping e documento) e `41/41`; `reconcile` 50 checados / 6
+  atualizados / 0 removidos.
+- **Qualidade:** `ruff`/formato ✅ (350 arquivos); `mypy` strict ✅ (336 arquivos);
+  `import-linter` ✅ (4/4); `pytest tests/unit tests/architecture` → **247 passed**;
+  `pytest tests/` com Docker → **491 passed, 1 skipped**.
+- **Limitações:** o catálogo público (`/catalog/products`) ainda devolve
+  `base_unit_price` a visitante (apenas a busca mascara); o desconto vira o próprio
+  `unit_price` do snapshot (sem coluna dedicada); duas modalidades de regra (preço
+  fixo por produto e percentual por categoria/global), sem vigência; os 4 produtos da
+  Fase 1 mantêm o preço original. **Observação de ambiente:** com
+  `ELASTICSEARCH_API_KEY=` (vazio) no `.env.example`, o cliente ES trata a chave como
+  definida e **ignora usuário/senha** (HTTP 401); containers que usam esse arquivo como
+  env precisam remover a chave. O `.env` de dev do dono não a define.
+
 ## Próximos passos sugeridos
 
 1. Rotação do segredo Google (responsável).
