@@ -26,6 +26,11 @@ _DOCUMENT_PREFIX = "passage: "
 _QUERY_PREFIX = "query: "
 
 
+def _pad(values: Sequence[int], width: int, pad: int) -> list[int]:
+    """Preenche um lote para tamanho homogeneo (padding a direita)."""
+    return [int(value) for value in values] + [pad] * (width - len(values))
+
+
 def mean_pool_normalize(
     token_vectors: Sequence[Sequence[float]], mask: Sequence[int]
 ) -> list[float]:
@@ -64,6 +69,8 @@ class OnnxEmbeddingProvider:
         self._model = model
         self._dimension = dimension
         self._batch_size = batch_size
+        # Limita o comprimento (o encoder E5 foi treinado com ate 512 tokens).
+        self._tokenizer.enable_truncation(max_length=512)
 
     @property
     def model(self) -> str:
@@ -82,16 +89,24 @@ class OnnxEmbeddingProvider:
 
     def _embed(self, prefix: str, texts: list[str]) -> list[list[float]]:
         numpy: Any = importlib.import_module("numpy")
+        pad_id = self._tokenizer.token_to_id("<pad>")
+        pad_id = 1 if pad_id is None else int(pad_id)
         vectors: list[list[float]] = []
         for start in range(0, len(texts), self._batch_size):
             batch = [prefix + text for text in texts[start : start + self._batch_size]]
             encodings = self._tokenizer.encode_batch(batch)
-            attention = numpy.array([item.attention_mask for item in encodings], dtype=numpy.int64)
+            # Textos de tamanhos diferentes precisam de padding homogeneo.
+            width = max(len(item.ids) for item in encodings)
+            attention = numpy.array(
+                [_pad(item.attention_mask, width, 0) for item in encodings], dtype=numpy.int64
+            )
             inputs = {
-                "input_ids": numpy.array([item.ids for item in encodings], dtype=numpy.int64),
+                "input_ids": numpy.array(
+                    [_pad(item.ids, width, pad_id) for item in encodings], dtype=numpy.int64
+                ),
                 "attention_mask": attention,
                 "token_type_ids": numpy.array(
-                    [item.type_ids for item in encodings], dtype=numpy.int64
+                    [_pad(item.type_ids, width, 0) for item in encodings], dtype=numpy.int64
                 ),
             }
             outputs = self._session.run(None, inputs)

@@ -44,11 +44,12 @@ _SEARCH_SIMILAR = text(
     "WHERE p.status = 'ACTIVE' "
     "  AND (p.is_epi = false OR (p.ca_valid_until IS NOT NULL "
     "       AND p.ca_valid_until >= CURRENT_DATE)) "
-    "  AND (:category_id IS NULL OR p.category_id = CAST(:category_id AS uuid)) "
-    "  AND (:brand_id IS NULL OR p.brand_id = CAST(:brand_id AS uuid)) "
-    "  AND (:is_epi IS NULL OR p.is_epi = :is_epi) "
+    "  AND (CAST(:category_id AS uuid) IS NULL "
+    "       OR p.category_id = CAST(:category_id AS uuid)) "
+    "  AND (CAST(:brand_id AS uuid) IS NULL OR p.brand_id = CAST(:brand_id AS uuid)) "
+    "  AND (CAST(:is_epi AS boolean) IS NULL OR p.is_epi = CAST(:is_epi AS boolean)) "
     "ORDER BY e.embedding <=> CAST(:embedding AS vector) "
-    "LIMIT :limit"
+    "LIMIT CAST(:limit AS integer)"
 )
 
 

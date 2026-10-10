@@ -5,7 +5,7 @@
     "filter": {
       "pt_stop": {"type": "stop", "stopwords": "_portuguese_"},
       "pt_stemmer": {"type": "stemmer", "language": "portuguese"},
-      "ascii_folding": {"type": "asciifolding", "preserve_original": true},
+      "ascii_folding": {"type": "asciifolding"},
       "edge_ngram_2_15": {"type": "edge_ngram", "min_gram": 2, "max_gram": 15}
     },
     "normalizer": {
