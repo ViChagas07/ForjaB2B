@@ -1,5 +1,7 @@
-"""Bounded context reservado: search.
+"""Bounded context da busca do catalogo.
 
-Implementado em fase posterior. Estrutura: domain/, application/,
-infrastructure/, interface/. Nao importe internals de outros modulos.
+Fase 2: porta do motor de busca (application/), erros tipados e adaptador
+Elasticsearch assincrono (infrastructure/). Indice de produtos e sincronizacao
+chegam nas Fases 3/4. Estrutura: domain/, application/, infrastructure/,
+interface/. Nao importe internals de outros modulos.
 """

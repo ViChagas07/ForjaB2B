@@ -10,6 +10,7 @@ Este documento descreve os procedimentos operacionais padrão (SOP), contingênc
 | :--- | :--- | :--- | :--- | :--- |
 | `postgres` | 5432 | 5432 | Banco relacional com RLS e extensões | `pg_isready -U postgres` |
 | `redis` | 6379 | 6379 | Cache e Broker Celery | `redis-cli ping` |
+| `elasticsearch` | 9200 | 9200 (só loopback) | Busca lexical (Elasticsearch 9) | `curl -u elastic:... /\_cluster/health?wait_for_status=yellow` |
 | `backend` | 8000 | 8000 | API FastAPI (Python 3.12) | `GET /health` via curl |
 | `celery_worker`| - | - | Tarefas assíncronas em background | `celery inspect ping` |
 | `celery_beat` | - | - | Agendador de tarefas periódicas | Process liveness |
@@ -193,3 +194,50 @@ make db-backup
 - **Fila Celery Travada / Crescendo**:
   - Checar saúde do Redis: `docker compose exec redis redis-cli ping`
   - Inspecionar tarefas ativas: `docker compose exec celery_worker celery inspect active`
+
+---
+
+## 7. Elasticsearch (Busca — Fase 2)
+
+### 7.1. Endereços e credenciais
+
+- **Endereço interno (containers):** `http://elasticsearch:9200` — valor de `ELASTICSEARCH_URL`; é o usado pelo backend.
+- **Endereço no host:** `http://localhost:9200` — a porta é publicada **somente no loopback** (`127.0.0.1:9200:9200`), nunca em `0.0.0.0`.
+- **Credenciais:** `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD` (arquivo `.env`). Em dev usa-se o usuário `elastic` (superuser); um usuário de aplicação com privilégios mínimos fica para a Fase 6.
+- **Desligar a integração:** `ELASTICSEARCH_ENABLED=false` — o backend sobe normalmente e `GET /health/search` reporta `disabled`.
+
+### 7.2. Segurança (decisão de desenvolvimento)
+
+- `xpack.security` fica **habilitado** com autenticação por senha. **Nunca** desabilitar.
+- Em desenvolvimento usa-se **HTTP sem TLS** apenas na rede interna do Docker, com autenticação — decisão explícita de dev. **TLS é obrigatório em produção** (Fase 6); a verificação de TLS nunca é desabilitada no cliente.
+- `ELASTICSEARCH_API_KEY` é opcional e destinada a produção.
+
+### 7.3. Health check
+
+```bash
+# Do host (loopback) — usa a senha do .env
+curl -u "elastic:$ELASTICSEARCH_PASSWORD" \
+  "http://localhost:9200/_cluster/health?wait_for_status=yellow"
+# Dentro do Docker — usa a variável ELASTIC_PASSWORD do container
+docker compose exec elasticsearch \
+  curl -fsS -u "elastic:$ELASTIC_PASSWORD" \
+  "http://localhost:9200/_cluster/health?wait_for_status=yellow"
+```
+
+O endpoint da aplicação `GET /health/search` reporta `ok` / `degraded` / `unavailable` / `disabled` e **nunca** derruba o readiness. O readiness (`/health/ready`) continua dependendo apenas de PostgreSQL e Redis — o Elasticsearch **não** é essencial ao startup.
+
+### 7.4. Requisitos de sistema
+
+- **Linux:** `sudo sysctl -w vm.max_map_count=262144` (persistir em `/etc/sysctl.d/99-elasticsearch.conf`). Sem isso, o Elasticsearch 9 pode falhar ao iniciar.
+- **Docker Desktop (Windows/macOS) com WSL2:** reservar memória para Elasticsearch + PostgreSQL + Redis + backend (recomendado **≥ 6–8 GB**). O container do Elasticsearch tem `mem_limit: 1536m` e heap `-Xms512m -Xmx512m`.
+- **Volume:** usa volume nomeado próprio (`elasticsearch_data` / `forja_elasticsearch_data`). **Nunca** remova ou recrie volumes (`docker compose down -v` é proibido).
+
+### 7.5. Operação
+
+```bash
+docker compose up -d elasticsearch     # sobe apenas o Elasticsearch
+docker compose stop elasticsearch      # para o serviço (preserva os dados)
+docker compose logs -f elasticsearch   # acompanha os logs
+```
+
+> **Atenção (volume pré-existente):** habilitar segurança sobre um volume que foi inicializado antes com `xpack.security.enabled=false` pode fazer o Elasticsearch recusar a senha configurada. **Não** apague o volume: pare o serviço, inspecione-o (`docker volume inspect forja_elasticsearch_data`) e só então siga um procedimento que **preserve os dados** antes de qualquer recriação.

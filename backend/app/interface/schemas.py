@@ -39,3 +39,15 @@ class ReadinessResponse(BaseModel):
 
     status: Literal["ready", "not_ready"]
     checks: dict[str, CheckStatus]
+
+
+SearchHealthStatus = Literal["ok", "degraded", "unavailable", "disabled"]
+
+
+class SearchHealthResponse(BaseModel):
+    """Estado do motor de busca (nao essencial ao readiness da aplicacao)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    status: SearchHealthStatus
+    detail: str | None = None

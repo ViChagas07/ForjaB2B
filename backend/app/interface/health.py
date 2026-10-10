@@ -18,11 +18,25 @@ from collections.abc import Awaitable, Callable, Mapping
 from fastapi import APIRouter, Request, Response, status
 
 from app.core.metrics import prometheus_metrics
-from app.interface.schemas import CheckStatus, LivenessResponse, ReadinessResponse
+from app.interface.schemas import (
+    CheckStatus,
+    LivenessResponse,
+    ReadinessResponse,
+    SearchHealthResponse,
+    SearchHealthStatus,
+)
 
 ReadinessProbe = Callable[[], Awaitable[bool]]
 
 router = APIRouter(tags=["health"])
+
+# Estado do motor de busca -> status reportado. Estados desconhecidos degradam
+# para "unavailable" (nunca 500).
+_SEARCH_STATUS: dict[str, SearchHealthStatus] = {
+    "ok": "ok",
+    "degraded": "degraded",
+    "unavailable": "unavailable",
+}
 
 
 def _readiness_probes(request: Request) -> Mapping[str, ReadinessProbe]:
@@ -56,6 +70,23 @@ async def readiness(request: Request, response: Response) -> ReadinessResponse:
     if not all_ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return ReadinessResponse(status="ready" if all_ok else "not_ready", checks=checks)
+
+
+@router.get("/health/search", response_model=SearchHealthResponse)
+async def search_health(request: Request) -> SearchHealthResponse:
+    """Estado do motor de busca, separado da saude da aplicacao.
+
+    Sempre HTTP 200: o Elasticsearch nao e essencial ao readiness. O motor e
+    lido de `app.state` (esta camada nao importa a infraestrutura de busca).
+    """
+    engine = getattr(request.app.state, "search_engine", None)
+    if engine is None:
+        return SearchHealthResponse(status="disabled")
+    health = await engine.check_health()
+    return SearchHealthResponse(
+        status=_SEARCH_STATUS.get(str(health.state.value), "unavailable"),
+        detail=health.detail,
+    )
 
 
 @router.get("/metrics", include_in_schema=False)

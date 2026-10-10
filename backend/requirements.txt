@@ -19,6 +19,11 @@ redis==8.1.0
 # Celery (worker assincrono de notificacoes/outbox; broker RabbitMQ via kombu).
 celery==5.4.0
 
+# Cliente oficial do Elasticsearch (busca lexical; Fase 2). A major do cliente
+# acompanha a do servidor (9.x). O extra [async] traz o aiohttp usado pelo
+# cliente assincrono (AsyncElasticsearch), que nao bloqueia o event loop.
+elasticsearch[async]==9.5.1
+
 # Seguranca de aplicacao (Fase 2): Argon2id para senhas e JWT para sessoes.
 argon2-cffi==23.1.0
 PyJWT==2.10.1

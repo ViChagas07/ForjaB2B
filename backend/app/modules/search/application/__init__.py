@@ -1,1 +1,1 @@
-"""Camada application do modulo search (vazia na Fase 0)."""
+"""Camada application do modulo search (porta do motor de busca e erros)."""

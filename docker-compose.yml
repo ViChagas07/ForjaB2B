@@ -136,28 +136,41 @@ services:
       start_period: 2s
 
   # ----------------------------------------------------------------------------
-  # Elasticsearch 8 (Search & Analytics)
+  # Elasticsearch 9 (Search & Analytics)
   # ----------------------------------------------------------------------------
+  # Seguranca LIGADA (xpack.security) com autenticacao por senha vinda do
+  # ambiente. Em desenvolvimento usa-se HTTP sem TLS APENAS na rede interna do
+  # Docker (a porta e publicada somente em loopback); TLS e obrigatorio em
+  # producao (Fase 6). O backend NAO depende deste servico para iniciar (modo
+  # degradado se estiver fora) e usa um volume nomeado proprio — nunca reutiliza
+  # volumes de outros servicos.
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5
     container_name: forja-elasticsearch
     restart: unless-stopped
     environment:
       discovery.type: single-node
-      xpack.security.enabled: "false"
+      xpack.security.enabled: "true"
+      # Decisao de dev: sem TLS no HTTP/transporte interno (rede do Docker), mas
+      # COM autenticacao. Producao exige TLS (Fase 6).
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD is required (see .env.example)}
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     ports:
-      - "${ELASTICSEARCH_PORT:-9200}:9200"
+      # Publica SOMENTE no loopback do host; containers acessam pela rede interna.
+      - "127.0.0.1:${ELASTICSEARCH_PORT:-9200}:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - forja-network
+    mem_limit: 1536m
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'"]
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 -u elastic:$${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/health?wait_for_status=yellow' > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 12
+      start_period: 60s
 
   # ----------------------------------------------------------------------------
   # OpenTelemetry Collector (Contrib)

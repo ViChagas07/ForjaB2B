@@ -64,6 +64,22 @@ class Settings(BaseSettings):
     otel_service_name: str = "forja-backend"
     otel_exporter_otlp_endpoint: str | None = None
 
+    # Elasticsearch (busca lexical; Fase 2). Seguranca LIGADA no servidor
+    # (xpack.security) com autenticacao por senha. Em desenvolvimento usa-se
+    # HTTP sem TLS apenas na rede interna do Docker; TLS e obrigatorio em
+    # producao (Fase 6). `elasticsearch_enabled=False` desliga a integracao e a
+    # aplicacao sobe em modo degradado. O Elasticsearch NUNCA e fonte de
+    # verdade: os dados comerciais (preco/estoque) permanecem no PostgreSQL.
+    elasticsearch_url: str = "http://localhost:9200"
+    elasticsearch_username: str | None = "elastic"
+    elasticsearch_password: str | None = "forja_es_dev_password"  # noqa: S105 - default de dev
+    elasticsearch_api_key: str | None = None
+    elasticsearch_index: str = "forja-products"
+    elasticsearch_request_timeout_seconds: float = Field(default=5.0, gt=0)
+    elasticsearch_bulk_batch_size: int = Field(default=500, ge=1)
+    elasticsearch_enabled: bool = True
+    elasticsearch_max_retries: int = Field(default=3, ge=0)
+
     # Seguranca de aplicacao (Fase 2).
     # `secret_key`: assinatura HMAC dos JWTs de acesso (HS256). Em producao
     # DEVE ser forte e injetada via secrets; em desenvolvimento usa o valor

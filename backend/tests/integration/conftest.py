@@ -199,6 +199,7 @@ def test_settings(app_database_url: str, redis_url: str) -> Settings:
         redis_url=RedisDsn(redis_url),
         otel_enabled=False,
         admin_api_key="test-admin-key",
+        elasticsearch_enabled=False,
     )
 
 

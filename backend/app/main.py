@@ -98,8 +98,25 @@ from app.modules.privacy.application.privacy import (
     RectifyPersonalData,
 )
 from app.modules.privacy.infrastructure.repository import SqlAlchemyPrivacyRepository
+from app.modules.search.application.ports import SearchEngine
+from app.modules.search.infrastructure.elasticsearch import build_search_engine
 
 _logger = get_logger(__name__)
+
+
+async def _log_search_engine_startup(search_engine: SearchEngine) -> None:
+    """Verifica o motor de busca no startup sem tornar sua ausencia fatal.
+
+    Indisponibilidade do Elasticsearch nunca impede a aplicacao de subir: o
+    resultado e apenas registrado como aviso (modo degradado).
+    """
+    try:
+        health = await search_engine.check_health()
+    except Exception:  # noqa: BLE001 - indisponibilidade nunca e fatal
+        _logger.warning("search_engine_health_check_failed")
+        return
+    if health.state.value != "ok":
+        _logger.warning("search_engine_unavailable", state=health.state.value, detail=health.detail)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -116,8 +133,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         _logger.info("application_starting", environment=settings.environment)
+        search_engine: SearchEngine | None = app.state.search_engine
+        if search_engine is not None:
+            await _log_search_engine_startup(search_engine)
         yield
         _logger.info("application_stopping")
+        if search_engine is not None:
+            await search_engine.close()
         await engine.dispose()
         await close_redis_client(redis_client)
         shutdown_telemetry()
@@ -136,6 +158,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.redis_client = redis_client
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)
+    # Motor de busca (Elasticsearch). Construido aqui (nao apenas no lifespan)
+    # para que o health check funcione sob ASGITransport nos testes. A
+    # construcao nao abre conexao; indisponibilidade nao impede o startup.
+    app.state.search_engine = build_search_engine(settings)
 
     # Composicao do contexto de identidade (autenticacao). A raiz de composicao
     # liga casos de uso as implementacoes de infraestrutura; os routers apenas

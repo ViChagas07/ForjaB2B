@@ -76,7 +76,7 @@
 | Fase | Escopo | Estado |
 | :--- | :--- | :--- |
 | 1 | Auditoria e plano (`docs/search/PLAN.md`) | ✅ |
-| 2 | Elasticsearch e cliente (ES 9.5.5 + `elasticsearch-py` 9.5.1) | ⏳ |
+| 2 | Elasticsearch e cliente (ES 9.5.5 + `elasticsearch-py` 9.5.1) | ✅ |
 | 3 | Índice e sincronização (outbox + reconciliação) | ⏳ |
 | 4 | Busca lexical e fallback (Postgres) | ⏳ |
 | 5 | Busca semântica (PGVector) e fusão por RRF | ⏳ |
@@ -84,10 +84,29 @@
 
 - **Fase 1 (2026-10-10):** auditoria somente-leitura e plano completo em `docs/search/PLAN.md`.
   Nenhum código/Compose/migration alterado.
-- **Achado da auditoria:** o módulo `search` é scaffold vazio; o Elasticsearch 8.15.0 está
-  **provisionado no Compose mas não integrado** (o backend ignora `ELASTICSEARCH_*`); não há
+- **Achado da auditoria:** o módulo `search` é scaffold vazio; o Elasticsearch 8.15.0 estava
+  **provisionado no Compose mas não integrado** (o backend ignorava `ELASTICSEARCH_*`); não há
   pgvector nem embeddings; o catálogo é global e somente leitura em runtime (sem caminho de
   escrita de produto), então a frescura do índice dependerá de **reindex + reconciliação**.
+- **Fase 2 (2026-10-10):** Elasticsearch **9.5.5** habilitado no Compose com segurança LIGADA
+  (`xpack.security`, senha via `.env`), porta publicada **só em `127.0.0.1`**, volume próprio,
+  `mem_limit: 1536m` e healthcheck autenticado (`_cluster/health?wait_for_status=yellow`);
+  o backend **não depende** do Elasticsearch para iniciar. Cliente assíncrono oficial
+  `elasticsearch[async]==9.5.1` integrado: settings `ELASTICSEARCH_*` em `core/config.py`,
+  porta `SearchEngine` + adaptador (`modules/search/infrastructure/elasticsearch.py`), ciclo
+  de vida no `lifespan`, mapeamento de erros para `SearchUnavailableError` e endpoint
+  **`GET /health/search`** (`ok`/`degraded`/`unavailable`/`disabled`), fora do readiness.
+  - **Validação executada:** `docker compose --env-file .env.example config --quiet` ✅;
+    `ruff check` ✅; `ruff format --check` ✅ (308 arquivos); `mypy` strict ✅ (298 arquivos);
+    `import-linter` ✅ (4/4 contratos); `pytest tests/unit tests/architecture` → **156 passed**
+    (inclui 13 testes novos da busca).
+  - **Não executado (limitação de ambiente):** subir o Elasticsearch no Compose e conectar o
+    backend a ele — o daemon Docker não está acessível nesta máquina; a suíte de integração
+    (Testcontainers) resultou em **214 errors de setup**, todos por Docker indisponível
+    (não há falhas de teste). Pendência de ambiente, não de código.
+  - **Pendência operacional:** adicionar as novas variáveis `ELASTICSEARCH_*` ao `.env` local
+    (o arquivo atual, fora do Git, ainda não as tem). Usuário de aplicação com privilégios
+    mínimos e TLS em produção ficam para a Fase 6.
 
 ## Próximos passos sugeridos
 
