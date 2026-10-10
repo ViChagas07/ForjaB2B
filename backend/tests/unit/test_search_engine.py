@@ -67,9 +67,11 @@ def test_settings_leem_variaveis_elasticsearch(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setenv("ELASTICSEARCH_URL", "http://es.internal:9200")
     monkeypatch.setenv("ELASTICSEARCH_INDEX", "idx-env")
     monkeypatch.setenv("ELASTICSEARCH_ENABLED", "false")
-    monkeypatch.setenv("ELASTICSEARCH_REQUEST_TIMEOUT_SECONDS", "2.5")
+    monkeypatch.setenv("ELASTICSEARCH_INDEX_TIMEOUT_SECONDS", "2.5")
+    monkeypatch.setenv("ELASTICSEARCH_SEARCH_TIMEOUT_SECONDS", "1.5")
     settings = Settings(otel_enabled=False)
     assert settings.elasticsearch_url == "http://es.internal:9200"
     assert settings.elasticsearch_index == "idx-env"
     assert settings.elasticsearch_enabled is False
-    assert settings.elasticsearch_request_timeout_seconds == 2.5
+    assert settings.elasticsearch_index_timeout_seconds == 2.5
+    assert settings.elasticsearch_search_timeout_seconds == 1.5

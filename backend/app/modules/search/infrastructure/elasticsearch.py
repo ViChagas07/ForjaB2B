@@ -68,10 +68,11 @@ def _tls_kwargs(verify_certs: bool, ca_certs: str | None) -> dict[str, Any]:
 
 
 def _create_client(settings: Settings) -> AsyncElasticsearch:
+    """Cliente para indexacao (timeout longo + retries); a busca sobrescreve."""
     return AsyncElasticsearch(
         hosts=[settings.elasticsearch_url],
-        request_timeout=settings.elasticsearch_request_timeout_seconds,
-        max_retries=settings.elasticsearch_max_retries,
+        request_timeout=settings.elasticsearch_index_timeout_seconds,
+        max_retries=settings.elasticsearch_index_max_retries,
         retry_on_timeout=True,
         basic_auth=_basic_auth(settings),
         api_key=settings.elasticsearch_api_key,
@@ -139,9 +140,26 @@ class ElasticsearchProductIndex:
     mantendo o indice anterior para rollback.
     """
 
-    def __init__(self, *, client: AsyncElasticsearch, alias: str) -> None:
+    def __init__(
+        self,
+        *,
+        client: AsyncElasticsearch,
+        alias: str,
+        search_timeout_seconds: float = 2.0,
+        search_max_retries: int = 0,
+    ) -> None:
         self._client = client
         self._alias = alias
+        self._search_timeout = search_timeout_seconds
+        self._search_max_retries = search_max_retries
+
+    def _search_client(self) -> AsyncElasticsearch:
+        """Cliente com timeout curto e SEM retries para o caminho interativo."""
+        return self._client.options(
+            request_timeout=self._search_timeout,
+            max_retries=self._search_max_retries,
+            retry_on_timeout=False,
+        )
 
     @property
     def alias(self) -> str:
@@ -211,7 +229,7 @@ class ElasticsearchProductIndex:
             es_query = {"bool": {"filter": self._base_filters(query)}}
         from_ = (query.page - 1) * query.page_size
         try:
-            response = await self._client.search(
+            response = await self._search_client().search(
                 index=self._alias,
                 query=es_query,
                 from_=from_,
@@ -244,7 +262,7 @@ class ElasticsearchProductIndex:
             }
         }
         try:
-            response = await self._client.search(
+            response = await self._search_client().search(
                 index=self._alias,
                 query=es_query,
                 size=limit,
@@ -392,8 +410,8 @@ def build_search_engine(settings: Settings) -> SearchEngine | None:
         password=settings.elasticsearch_password,
         api_key=settings.elasticsearch_api_key,
         index=settings.elasticsearch_index,
-        request_timeout_seconds=settings.elasticsearch_request_timeout_seconds,
-        max_retries=settings.elasticsearch_max_retries,
+        request_timeout_seconds=settings.elasticsearch_index_timeout_seconds,
+        max_retries=settings.elasticsearch_index_max_retries,
         verify_certs=settings.elasticsearch_verify_certs,
         ca_certs=settings.elasticsearch_ca_certs,
     )
@@ -404,5 +422,8 @@ def build_product_index(settings: Settings) -> ElasticsearchProductIndex | None:
     if not settings.elasticsearch_enabled:
         return None
     return ElasticsearchProductIndex(
-        client=_create_client(settings), alias=settings.elasticsearch_index
+        client=_create_client(settings),
+        alias=settings.elasticsearch_index,
+        search_timeout_seconds=settings.elasticsearch_search_timeout_seconds,
+        search_max_retries=settings.elasticsearch_search_max_retries,
     )

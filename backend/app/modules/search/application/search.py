@@ -87,6 +87,9 @@ class SearchProducts:
         self._semantic = semantic
         self._product_reader = product_reader
         self._settings = settings
+        # Circuit breaker simples do caminho lexical (Fase 8A).
+        self._lexical_failures = 0
+        self._lexical_open_until = 0.0
 
     async def run(self, *, query: SearchQuery, auth: AuthContext | None) -> SearchResultPage:
         self._validate(query)
@@ -144,13 +147,19 @@ class SearchProducts:
     async def _retrieve(self, query: SearchQuery) -> tuple[list[str], int, str]:
         """Executa os caminhos disponiveis, funde por RRF e informa o modo real."""
         use_semantic = self._use_semantic(query)
+        breaker_open = time.monotonic() < self._lexical_open_until
+        if breaker_open:
+            _logger.warning(
+                "search_circuit_breaker_open",
+                retry_in_seconds=round(self._lexical_open_until - time.monotonic(), 1),
+            )
         retrieval_query = (
             replace(query, page=1, page_size=self._settings.embedding_candidate_limit)
             if use_semantic
             else query
         )
         lexical_outcome, semantic_outcome = await asyncio.gather(
-            self._run_lexical(retrieval_query),
+            self._run_lexical(retrieval_query, enabled=not breaker_open),
             self._run_semantic(query, enabled=use_semantic),
             return_exceptions=True,
         )
@@ -173,10 +182,34 @@ class SearchProducts:
         text = (query.q or "").strip()
         return self._semantic is not None and bool(text) and not looks_like_sku(text)
 
-    async def _run_lexical(self, query: SearchQuery) -> SearchResult | None:
-        if self._primary is None:
+    async def _run_lexical(self, query: SearchQuery, *, enabled: bool) -> SearchResult | None:
+        if not enabled or self._primary is None:
             return None
-        return await self._primary.search(query)
+        try:
+            result = await self._primary.search(query)
+        except SearchUnavailableError:
+            self._on_lexical_failure()
+            raise
+        self._on_lexical_success()
+        return result
+
+    def _on_lexical_failure(self) -> None:
+        """Conta falha e abre o breaker apos N falhas consecutivas (cooldown)."""
+        self._lexical_failures += 1
+        if self._lexical_failures >= self._settings.search_circuit_breaker_failures:
+            cooldown = self._settings.search_circuit_breaker_cooldown_seconds
+            self._lexical_open_until = time.monotonic() + cooldown
+            _logger.warning(
+                "search_circuit_breaker_tripped",
+                failures=self._lexical_failures,
+                cooldown_seconds=cooldown,
+            )
+
+    def _on_lexical_success(self) -> None:
+        if self._lexical_failures or self._lexical_open_until:
+            _logger.info("search_circuit_breaker_closed")
+        self._lexical_failures = 0
+        self._lexical_open_until = 0.0
 
     async def _run_semantic(self, query: SearchQuery, *, enabled: bool) -> list[str] | None:
         semantic = self._semantic

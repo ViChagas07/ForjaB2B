@@ -30,8 +30,8 @@ def _app(*, enabled: bool, url: str = "http://localhost:9200", max_retries: int 
             log_format="console",
             elasticsearch_enabled=enabled,
             elasticsearch_url=url,
-            elasticsearch_max_retries=max_retries,
-            elasticsearch_request_timeout_seconds=1.0,
+            elasticsearch_index_max_retries=max_retries,
+            elasticsearch_index_timeout_seconds=1.0,
         )
     )
 

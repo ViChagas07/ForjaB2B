@@ -50,7 +50,9 @@ Todas as chaves abaixo são lidas de `app/core/config.py` (prefixo do ambiente).
 | `ELASTICSEARCH_INDEX_VERSION` | versão do índice | `1` | incrementar a cada rebuild |
 | `ELASTICSEARCH_INDEX_REPLICAS` | réplicas | `0` (single-node) | `1`+ (multi-node) |
 | `ELASTICSEARCH_ENABLED` | liga/desliga a busca | `true` | `true` |
-| `ELASTICSEARCH_REQUEST_TIMEOUT_SECONDS` / `_MAX_RETRIES` / `_BULK_BATCH_SIZE` | timeouts/limites | `5` / `3` / `500` | ajustar ao ambiente |
+| `ELASTICSEARCH_SEARCH_TIMEOUT_SECONDS` / `_SEARCH_MAX_RETRIES` | busca interativa (curta, **sem retries**) | `2` / `0` | ajustar |
+| `ELASTICSEARCH_INDEX_TIMEOUT_SECONDS` / `_INDEX_MAX_RETRIES` | indexação/reindex/reconcile/bootstrap (longa, com retries) | `30` / `3` | ajustar |
+| `ELASTICSEARCH_BULK_BATCH_SIZE` | tamanho do lote no `bulk` | `500` | ajustar |
 
 **Busca e embeddings**
 
@@ -59,6 +61,7 @@ Todas as chaves abaixo são lidas de `app/core/config.py` (prefixo do ambiente).
 | `SEARCH_DEFAULT_PAGE_SIZE` / `SEARCH_MAX_PAGE_SIZE` / `SEARCH_MAX_DEEP_PAGINATION` | paginação e proteção de profundidade |
 | `SEARCH_MAX_QUERY_LENGTH` | tamanho máximo do texto |
 | `SEARCH_AUTOCOMPLETE_MIN_CHARS` / `SEARCH_AUTOCOMPLETE_MAX_SUGGESTIONS` | autocomplete |
+| `SEARCH_CIRCUIT_BREAKER_FAILURES` / `SEARCH_CIRCUIT_BREAKER_COOLDOWN_SECONDS` | circuit breaker do caminho lexical (pula o ES após N falhas por T s) |
 | `EMBEDDINGS_ENABLED` | liga a busca semântica (ver §9) |
 | `EMBEDDING_MODEL` / `EMBEDDING_DIMENSION` | modelo e dimensão (`intfloat/multilingual-e5-small`, `384`) |
 | `EMBEDDING_MODEL_PATH` / `EMBEDDING_ONNX_FILENAME` / `EMBEDDING_TOKENIZER_FILENAME` | artefatos do modelo |

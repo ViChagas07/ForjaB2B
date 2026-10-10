@@ -77,10 +77,16 @@ class Settings(BaseSettings):
     elasticsearch_index: str = "forja_products"
     elasticsearch_index_version: int = Field(default=1, ge=1)
     elasticsearch_index_replicas: int = Field(default=0, ge=0)
-    elasticsearch_request_timeout_seconds: float = Field(default=5.0, gt=0)
+    # Timeouts/retries SEPARADOS por uso (Fase 8A):
+    # - busca interativa (consulta/autocomplete): curto e SEM retries, para cair
+    #   no fallback rapido quando o ES nao responde;
+    # - indexacao/reindex/reconcile/bootstrap: mais longo, com retries proprios.
+    elasticsearch_search_timeout_seconds: float = Field(default=2.0, gt=0)
+    elasticsearch_search_max_retries: int = Field(default=0, ge=0)
+    elasticsearch_index_timeout_seconds: float = Field(default=30.0, gt=0)
+    elasticsearch_index_max_retries: int = Field(default=3, ge=0)
     elasticsearch_bulk_batch_size: int = Field(default=500, ge=1)
     elasticsearch_enabled: bool = True
-    elasticsearch_max_retries: int = Field(default=3, ge=0)
     # TLS (Fase 6): a verificacao de certificado e SEMPRE ativa (nunca desabilitar
     # em producao). `ca_certs` aponta para a CA do cluster (Elastic Cloud ou VPS).
     elasticsearch_verify_certs: bool = True
@@ -97,6 +103,11 @@ class Settings(BaseSettings):
     search_max_deep_pagination: int = Field(default=5000, ge=0)
     search_autocomplete_min_chars: int = Field(default=2, ge=1)
     search_autocomplete_max_suggestions: int = Field(default=10, ge=1)
+    # Circuit breaker simples do caminho lexical (Fase 8A): apos N falhas
+    # consecutivas, pula o Elasticsearch por T segundos (vai direto ao fallback)
+    # e retoma automaticamente (meia-abertura) apos o cooldown.
+    search_circuit_breaker_failures: int = Field(default=3, ge=1)
+    search_circuit_breaker_cooldown_seconds: float = Field(default=15.0, gt=0)
 
     # Busca semantica (Fase 5): pgvector + embeddings locais (ONNX).
     # Desabilitada por padrao: sem a dependencia de runtime e o modelo baixado,
