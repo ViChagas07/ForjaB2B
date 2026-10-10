@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from app.modules.search.application.documents import build_product_document, is_row_sellable
 from app.modules.search.application.errors import SearchUnavailableError
@@ -49,6 +50,9 @@ def _row(
         brand_name=None,
         brand_slug=None,
         attributes=None,
+        base_unit_price=Decimal("10.00"),
+        currency="BRL",
+        min_order_qty=1,
         created_at=updated_at,
         updated_at=updated_at,
     )
@@ -127,6 +131,11 @@ class _FakeReader:
 
     async def get_product(self, product_id: uuid.UUID) -> ProductRow | None:
         return next((row for row in self._rows if row.id == product_id), None)
+
+    async def get_products_by_ids(
+        self, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, ProductRow]:
+        return {row.id: row for row in self._rows if row.id in product_ids}
 
 
 class _FakeOutbox:

@@ -99,7 +99,10 @@ from app.modules.privacy.application.privacy import (
 )
 from app.modules.privacy.infrastructure.repository import SqlAlchemyPrivacyRepository
 from app.modules.search.application.ports import SearchEngine
-from app.modules.search.infrastructure.elasticsearch import build_search_engine
+from app.modules.search.application.search import AutocompleteProducts, SearchProducts
+from app.modules.search.infrastructure.elasticsearch import build_product_index, build_search_engine
+from app.modules.search.infrastructure.postgres_search import PostgresSearchReader
+from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
 
 _logger = get_logger(__name__)
 
@@ -162,6 +165,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # para que o health check funcione sob ASGITransport nos testes. A
     # construcao nao abre conexao; indisponibilidade nao impede o startup.
     app.state.search_engine = build_search_engine(settings)
+
+    # Composicao da busca lexical (Fase 4): leitores ES (primario) e Postgres
+    # (fallback), mais o leitor de catalogo para hidratacao. Quando o ES esta
+    # desabilitado, o proprio Postgres serve como motor unico.
+    product_reader = SqlAlchemyProductReader(app.state.uow_factory)
+    postgres_search_reader = PostgresSearchReader(app.state.uow_factory)
+    product_index = build_product_index(settings)
+    primary_search_reader = product_index or postgres_search_reader
+    app.state.search_products = SearchProducts(
+        primary=primary_search_reader,
+        fallback=postgres_search_reader,
+        product_reader=product_reader,
+        settings=settings,
+    )
+    app.state.search_autocomplete_products = AutocompleteProducts(
+        primary=primary_search_reader,
+        fallback=postgres_search_reader,
+        settings=settings,
+    )
 
     # Composicao do contexto de identidade (autenticacao). A raiz de composicao
     # liga casos de uso as implementacoes de infraestrutura; os routers apenas

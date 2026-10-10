@@ -34,6 +34,9 @@ from app.modules.search.application.ports import (
     SearchEngine,
     SearchEngineHealth,
     SearchEngineState,
+    SearchQuery,
+    SearchResult,
+    SearchSuggestion,
 )
 from app.modules.search.infrastructure.index_files import (
     load_index_mappings,
@@ -176,6 +179,109 @@ class ElasticsearchProductIndex:
             {"_op_type": "delete", "_index": target, "_id": doc_id} for doc_id in ids
         ]
         return await self._bulk(actions)
+
+    async def search(self, query: SearchQuery) -> SearchResult:
+        """Busca lexical paginada no indice apontado pelo alias.
+
+        Aplica filtros de publicacao/disponibilidade obrigatorios e prioriza
+        SKU exato/prefixo, frase no nome e termos (com fuzziness limitada).
+        """
+        q = query.q.strip() if query.q else None
+        es_query: dict[str, Any]
+        if q:
+            es_query = {
+                "bool": {
+                    "must": self._build_text_query(q),
+                    "filter": self._base_filters(query),
+                }
+            }
+        else:
+            es_query = {"bool": {"filter": self._base_filters(query)}}
+        from_ = (query.page - 1) * query.page_size
+        try:
+            response = await self._client.search(
+                index=self._alias,
+                query=es_query,
+                from_=from_,
+                size=query.page_size,
+                sort=["_score", {"name.sort": "asc"}],
+                source=False,
+            )
+        except _ELASTICSEARCH_ERRORS as exc:
+            raise translate_elasticsearch_error(exc) from exc
+        hits = cast("list[dict[str, Any]]", response.get("hits", {}).get("hits", []))
+        ids = [str(hit["_id"]) for hit in hits]
+        total = int(response.get("hits", {}).get("total", {}).get("value", 0))
+        return SearchResult(ids=ids, total=total, mode="lexical")
+
+    async def autocomplete(self, *, q: str, limit: int) -> list[SearchSuggestion]:
+        """Autocomplete por prefixo no campo ``name.autocomplete`` (produtos publicados)."""
+        q = q.strip()
+        if not q:
+            return []
+        # Filtros obrigatorios de publicacao/disponibilidade; sem facets.
+        filters = self._base_filters(
+            SearchQuery(
+                q=None, category_id=None, brand_id=None, is_epi=None, page=1, page_size=limit
+            )
+        )
+        es_query = {
+            "bool": {
+                "must": {"match_phrase_prefix": {"name.autocomplete": q}},
+                "filter": filters,
+            }
+        }
+        try:
+            response = await self._client.search(
+                index=self._alias,
+                query=es_query,
+                size=limit,
+                sort=[{"name.sort": "asc"}],
+                source_includes=["id", "name", "sku"],
+            )
+        except _ELASTICSEARCH_ERRORS as exc:
+            raise translate_elasticsearch_error(exc) from exc
+        hits = cast("list[dict[str, Any]]", response.get("hits", {}).get("hits", []))
+        return [
+            SearchSuggestion(
+                id=str(hit["_id"]),
+                sku=str(hit.get("_source", {}).get("sku", "")),
+                name=str(hit.get("_source", {}).get("name", "")),
+            )
+            for hit in hits
+        ]
+
+    def _base_filters(self, query: SearchQuery) -> list[dict[str, Any]]:
+        """Filtros obrigatorios: publicado, disponivel e facets opcionais."""
+        filters: list[dict[str, Any]] = [
+            {"term": {"status": "ACTIVE"}},
+            {"term": {"is_available": True}},
+        ]
+        if query.category_id is not None:
+            filters.append({"term": {"category_id": str(query.category_id)}})
+        if query.brand_id is not None:
+            filters.append({"term": {"brand_id": str(query.brand_id)}})
+        if query.is_epi is not None:
+            filters.append({"term": {"is_epi": query.is_epi}})
+        return filters
+
+    def _build_text_query(self, q: str) -> dict[str, Any]:
+        """Prioridade de campos testavel (SKU exato > prefixo > frase > termos)."""
+        normalized = q.lower()
+        return {
+            "bool": {
+                "should": [
+                    {"term": {"sku": {"value": normalized, "boost": 10}}},
+                    {"prefix": {"sku.prefix": {"value": normalized, "boost": 8}}},
+                    {"match_phrase": {"name": {"query": q, "boost": 6}}},
+                    {"match": {"name": {"query": q, "fuzziness": "AUTO", "boost": 4}}},
+                    {"match": {"category.text": {"query": q, "boost": 2}}},
+                    {"match": {"brand.text": {"query": q, "boost": 2}}},
+                    {"match": {"description": {"query": q, "boost": 1}}},
+                ],
+                "minimum_should_match": 1,
+            }
+        }
 
     async def fetch_versions(self, *, target: str) -> dict[str, int]:
         versions: dict[str, int] = {}

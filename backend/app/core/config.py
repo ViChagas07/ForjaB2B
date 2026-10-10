@@ -86,6 +86,14 @@ class Settings(BaseSettings):
     # outbox antes de descartar (dead-letter).
     search_outbox_max_attempts: int = Field(default=5, ge=1)
 
+    # Busca lexical (Fase 4): paginacao, limites e autocomplete.
+    search_default_page_size: int = Field(default=20, ge=1, le=100)
+    search_max_page_size: int = Field(default=100, ge=1)
+    search_max_query_length: int = Field(default=100, ge=1)
+    search_max_deep_pagination: int = Field(default=5000, ge=0)
+    search_autocomplete_min_chars: int = Field(default=2, ge=1)
+    search_autocomplete_max_suggestions: int = Field(default=10, ge=1)
+
     # Seguranca de aplicacao (Fase 2).
     # `secret_key`: assinatura HMAC dos JWTs de acesso (HS256). Em producao
     # DEVE ser forte e injetada via secrets; em desenvolvimento usa o valor

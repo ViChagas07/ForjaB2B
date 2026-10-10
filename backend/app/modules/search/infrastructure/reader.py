@@ -25,7 +25,8 @@ _SELECT_PAGE = text(
     "SELECT p.id, p.sku, p.name, p.description, p.slug, p.status, p.is_epi, "
     "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
     "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
-    "p.attributes, p.created_at, p.updated_at "
+    "p.attributes, p.base_unit_price, p.currency, p.min_order_qty, "
+    "p.created_at, p.updated_at "
     "FROM products AS p "
     "JOIN categories AS c ON c.id = p.category_id "
     "LEFT JOIN brands AS b ON b.id = p.brand_id "
@@ -36,11 +37,24 @@ _SELECT_ONE = text(
     "SELECT p.id, p.sku, p.name, p.description, p.slug, p.status, p.is_epi, "
     "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
     "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
-    "p.attributes, p.created_at, p.updated_at "
+    "p.attributes, p.base_unit_price, p.currency, p.min_order_qty, "
+    "p.created_at, p.updated_at "
     "FROM products AS p "
     "JOIN categories AS c ON c.id = p.category_id "
     "LEFT JOIN brands AS b ON b.id = p.brand_id "
     "WHERE p.id = CAST(:product_id AS uuid)"
+)
+
+_SELECT_BY_IDS = text(
+    "SELECT p.id, p.sku, p.name, p.description, p.slug, p.status, p.is_epi, "
+    "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
+    "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
+    "p.attributes, p.base_unit_price, p.currency, p.min_order_qty, "
+    "p.created_at, p.updated_at "
+    "FROM products AS p "
+    "JOIN categories AS c ON c.id = p.category_id "
+    "LEFT JOIN brands AS b ON b.id = p.brand_id "
+    "WHERE p.id = ANY(CAST(:product_ids AS uuid[]))"
 )
 
 
@@ -62,8 +76,11 @@ def _to_row(row: Any) -> ProductRow:
         brand_name=row[13],
         brand_slug=row[14],
         attributes=row[15],
-        created_at=row[16],
-        updated_at=row[17],
+        base_unit_price=row[16],
+        currency=row[17],
+        min_order_qty=row[18],
+        created_at=row[19],
+        updated_at=row[20],
     )
 
 
@@ -98,3 +115,21 @@ class SqlAlchemyProductReader:
         if row is None:
             return None
         return _to_row(row)
+
+    async def get_products_by_ids(
+        self, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, ProductRow]:
+        if not product_ids:
+            return {}
+        async with self._uow_factory.begin() as uow:
+            rows = (
+                await uow.session.execute(
+                    _SELECT_BY_IDS, {"product_ids": [str(pid) for pid in product_ids]}
+                )
+            ).all()
+            await uow.commit()
+        result: dict[uuid.UUID, ProductRow] = {}
+        for row in rows:
+            product = _to_row(row)
+            result[product.id] = product
+        return result

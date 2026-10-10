@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from app.modules.search.application.documents import build_product_document, is_row_sellable
 from app.modules.search.application.ports import ProductRow
@@ -33,6 +34,9 @@ def _row(
         brand_name="PROTEC",
         brand_slug="protec",
         attributes={"cor": "branco"},
+        base_unit_price=Decimal("99.90"),
+        currency="BRL",
+        min_order_qty=1,
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
         updated_at=updated_at,
     )

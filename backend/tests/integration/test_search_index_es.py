@@ -20,7 +20,7 @@ from elasticsearch import AsyncElasticsearch
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 
-from app.modules.search.application.ports import ProductDocument
+from app.modules.search.application.ports import ProductDocument, SearchQuery
 from app.modules.search.infrastructure.elasticsearch import ElasticsearchProductIndex
 
 _IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:9.5.5"
@@ -63,16 +63,23 @@ def _index(es_client: AsyncElasticsearch) -> ElasticsearchProductIndex:
     return ElasticsearchProductIndex(client=es_client, alias=_ALIAS)
 
 
-def _document(doc_id: str, name: str, *, version: int = 1) -> ProductDocument:
+def _document(
+    doc_id: str,
+    name: str,
+    *,
+    version: int = 1,
+    sku: str | None = None,
+    is_available: bool = True,
+) -> ProductDocument:
     return ProductDocument(
         id=doc_id,
-        sku=f"SKU-{doc_id}",
+        sku=sku or f"SKU-{doc_id}",
         name=name,
         description="item de teste",
         slug=doc_id,
         status="ACTIVE",
         is_epi=False,
-        is_available=True,
+        is_available=is_available,
         ca_number=None,
         ca_valid_until=None,
         category_id=str(uuid.uuid4()),
@@ -146,3 +153,66 @@ async def test_swap_alias_aponta_para_o_indice_novo(es_client: AsyncElasticsearc
     aliases = await es_client.indices.get_alias(name=_ALIAS)
     assert v2 in aliases
     assert v1 not in aliases
+
+
+def _query(q: str | None, *, page: int = 1, page_size: int = 10) -> SearchQuery:
+    return SearchQuery(
+        q=q, category_id=None, brand_id=None, is_epi=None, page=page, page_size=page_size
+    )
+
+
+async def test_search_prioriza_sku_exato_e_ignora_acento(
+    es_client: AsyncElasticsearch,
+) -> None:
+    index = _index(es_client)
+    name = await index.create_versioned_index(version=911, replicas=0)
+    await index.index_documents(
+        target=name,
+        documents=[
+            _document("p-sku", "Luva de Seguranca", sku="CAP-001", version=1),
+            _document("p-accent", "Oculos de Protecao Incolor", version=1),
+        ],
+    )
+    await index.swap_alias(index_name=name)
+    await index.refresh(target=name)
+
+    by_sku = await index.search(_query("cap-001"))
+    assert by_sku.mode == "lexical"
+    assert by_sku.ids[0] == "p-sku"
+
+    sem_acento = await index.search(_query("oculos"))
+    assert "p-accent" in sem_acento.ids
+
+
+async def test_search_nao_retorna_produto_indisponivel(
+    es_client: AsyncElasticsearch,
+) -> None:
+    index = _index(es_client)
+    name = await index.create_versioned_index(version=912, replicas=0)
+    await index.index_documents(
+        target=name,
+        documents=[
+            _document("p-on", "Capacete Disponivel", version=1),
+            _document("p-off", "Capacete Indisponivel", is_available=False, version=1),
+        ],
+    )
+    await index.swap_alias(index_name=name)
+    await index.refresh(target=name)
+
+    result = await index.search(_query("capacete"))
+    assert "p-on" in result.ids
+    assert "p-off" not in result.ids
+
+
+async def test_autocomplete_por_prefixo(es_client: AsyncElasticsearch) -> None:
+    index = _index(es_client)
+    name = await index.create_versioned_index(version=913, replicas=0)
+    await index.index_documents(
+        target=name, documents=[_document("p-cap", "Capacete de Seguranca", version=1)]
+    )
+    await index.swap_alias(index_name=name)
+    await index.refresh(target=name)
+
+    suggestions = await index.autocomplete(q="cap", limit=10)
+    assert any(suggestion.id == "p-cap" for suggestion in suggestions)
+    assert all(suggestion.name for suggestion in suggestions)

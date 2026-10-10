@@ -78,7 +78,7 @@
 | 1 | Auditoria e plano (`docs/search/PLAN.md`) | ✅ |
 | 2 | Elasticsearch e cliente (ES 9.5.5 + `elasticsearch-py` 9.5.1) | ✅ |
 | 3 | Índice e sincronização (outbox + reconciliação) | ✅ |
-| 4 | Busca lexical e fallback (Postgres) | ⏳ |
+| 4 | Busca lexical e fallback (Postgres) | ✅ |
 | 5 | Busca semântica (PGVector) e fusão por RRF | ⏳ |
 | 6 | Produção, documentação e fechamento | ⏳ |
 
@@ -135,6 +135,44 @@
     estiver disponível.
   - **Pendência operacional:** adicionar `ELASTICSEARCH_INDEX_VERSION`, `ELASTICSEARCH_INDEX_REPLICAS`
     e `SEARCH_OUTBOX_MAX_ATTEMPTS` ao `.env` local.
+- **Fase 4 (2026-10-10):** busca lexical com Elasticsearch como motor principal e
+  **fallback PostgreSQL**, **somente lexical (ainda não vetorial)**.
+  - **Endpoints:** `GET /api/v1/search/products` (paginado, filtros por categoria,
+    marca e `is_epi`) e `GET /api/v1/search/products/autocomplete` (mínimo de 2
+    caracteres, no máximo 10 sugestões). Públicos, com autenticação **opcional**.
+  - **DSL no Elasticsearch:** construtor dedicado na infraestrutura
+    (`ElasticsearchProductIndex.search/autocomplete`); prioridade testável:
+    SKU exato > prefixo de SKU > frase no nome > termos no nome (fuzziness `AUTO`,
+    nunca em SKU) > marca/categoria > descrição. Filtros de publicação/disponibilidade
+    **sempre** aplicados (`status=ACTIVE`, `is_available=true`), independentes do cliente.
+    Paginação com limites (`SEARCH_MAX_PAGE_SIZE`, `SEARCH_MAX_DEEP_PAGINATION`) e
+    tamanho máximo de texto (`SEARCH_MAX_QUERY_LENGTH`), validados na aplicação (400).
+  - **Hidratação autoritativa:** o índice devolve apenas ids; os dados exibidos vêm do
+    PostgreSQL (`SqlAlchemyProductReader.get_products_by_ids`), reaplicando
+    `is_sellable` (status + CA). Entradas defasadas do índice são **descartadas** e
+    registradas em log estruturado. **Nenhum preço é lido do índice.**
+  - **Preço:** autenticado recebe o preço base; visitante recebe `price_on_request=true`
+    com `base_unit_price` nulo (preço consultivo). O tenant/empresa nunca vem do cliente.
+  - **Fallback:** `PostgresSearchReader` com `tsvector('portuguese')`, `unaccent` e
+    `pg_trgm` (migration `0012_search_fallback_extensions.py`, extensões `contrib` +
+    índices GIN). Acionado quando o ES está indisponível/erro/timeout; a resposta expõe
+    `search_mode` (`lexical` ou `postgres_fallback`). "Sem resultados" permanece vazio;
+    se **ambos** os motores falharem, o erro é propagado (HTTP 503), nunca lista vazia.
+    Com o ES desabilitado, o próprio PostgreSQL é o motor único.
+  - **Validação executada:** `docker compose --env-file .env.example config --quiet` ✅;
+    `ruff check` ✅; `ruff format --check` ✅ (330 arquivos); `mypy` strict ✅ (318 arquivos);
+    `import-linter --config .import-linter` ✅ (4/4 contratos); `pytest tests/unit tests/architecture`
+    → **195 passed** (16 testes novos: construtor de consultas, casos de uso e fallback).
+    Suíte completa → **197 passed, 230 errors** (todos erros de setup por Docker indisponível;
+    nenhuma falha de teste).
+  - **Não executado (limitação de ambiente):** consulta real ao Elasticsearch e o fallback
+    real (parar o serviço com `docker compose stop elasticsearch`) — o **daemon Docker não
+    está acessível** nesta máquina. Os testes de integração correspondentes existem e rodam
+    quando houver Docker: `tests/integration/test_search_index_es.py` (ranking/acento/
+    autocomplete/indisponível sobre ES real) e `tests/integration/test_search_api.py`
+    (endpoint + fallback Postgres real, preço de visitante vs autenticado).
+  - **Limitação documentada:** ordenação por preço está **fora de escopo** (o índice não
+    contém preço); a ordenação lexical usa relevância do ES, com desempate por nome.
 
 ## Próximos passos sugeridos
 

@@ -10,6 +10,7 @@ import uuid
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
 
@@ -51,7 +52,12 @@ class SearchEventType(StrEnum):
 
 @dataclass(frozen=True, kw_only=True)
 class ProductRow:
-    """Linha do catalogo (PostgreSQL) usada para montar o documento indexavel."""
+    """Linha do catalogo (PostgreSQL) usada para sincronizacao e hidratacao.
+
+    NAO indexa preco: os campos ``base_unit_price``/``currency``/``min_order_qty``
+    existem na linha para hidratacao da resposta de busca (Fase 4), mas o
+    documento enviado ao Elasticsearch os omite de proposito.
+    """
 
     id: uuid.UUID
     sku: str
@@ -69,6 +75,9 @@ class ProductRow:
     brand_name: str | None
     brand_slug: str | None
     attributes: dict[str, object] | None
+    base_unit_price: Decimal
+    currency: str
+    min_order_qty: int
     created_at: datetime
     updated_at: datetime
 
@@ -149,6 +158,36 @@ class SearchOutboxEvent:
     attempts: int
 
 
+@dataclass(frozen=True, kw_only=True)
+class SearchQuery:
+    """Parametros de uma busca lexical (validados pela interface)."""
+
+    q: str | None
+    category_id: uuid.UUID | None
+    brand_id: uuid.UUID | None
+    is_epi: bool | None
+    page: int
+    page_size: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class SearchResult:
+    """Resultado bruto de um motor de busca: ids ordenados + total."""
+
+    ids: list[str]
+    total: int
+    mode: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class SearchSuggestion:
+    """Sugestao de autocomplete (sem preco nem dado sensivel)."""
+
+    id: str
+    sku: str
+    name: str
+
+
 class ProductReader(Protocol):
     """Leitura do catalogo (PostgreSQL) para montar documentos/versoes."""
 
@@ -158,6 +197,24 @@ class ProductReader(Protocol):
 
     async def get_product(self, product_id: uuid.UUID) -> ProductRow | None:
         """Carrega um produto pelo id (qualquer status) para reaplicar um evento."""
+        ...
+
+    async def get_products_by_ids(
+        self, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, ProductRow]:
+        """Carrega varios produtos de uma vez (hidratacao pos-busca)."""
+        ...
+
+
+class SearchReader(Protocol):
+    """Motor de busca lexical (leitura): implementado pelo ES e pelo fallback Postgres."""
+
+    async def search(self, query: SearchQuery) -> SearchResult:
+        """Busca lexical paginada; devolve ids ordenados e total."""
+        ...
+
+    async def autocomplete(self, *, q: str, limit: int) -> list[SearchSuggestion]:
+        """Autocomplete por prefixo/texto; devolve no maximo ``limit`` sugestoes."""
         ...
 
 

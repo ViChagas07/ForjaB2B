@@ -18,6 +18,7 @@ from app.modules.notification.interface.router import router as notification_rou
 from app.modules.ordering.interface.router import router as ordering_router
 from app.modules.payment.interface.router import router as payment_router
 from app.modules.privacy.interface.router import router as privacy_router
+from app.modules.search.interface.router import router as search_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -31,3 +32,4 @@ api_v1_router.include_router(invoicing_router)
 api_v1_router.include_router(payment_router)
 api_v1_router.include_router(notification_router)
 api_v1_router.include_router(privacy_router)
+api_v1_router.include_router(search_router)

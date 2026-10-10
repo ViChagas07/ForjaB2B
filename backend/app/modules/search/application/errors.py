@@ -21,3 +21,11 @@ class SearchUnavailableError(AppError):
 
 class SearchIndexError(Exception):
     """Falha na construcao/reconciliacao do indice de busca."""
+
+
+class InvalidSearchQueryError(AppError):
+    """Parametros de busca invalidos (paginacao, tamanho do texto etc.)."""
+
+    status_code = 400
+    title = "Bad Request"
+    code = "invalid_search_query"
