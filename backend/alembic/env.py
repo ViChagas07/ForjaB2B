@@ -56,6 +56,21 @@ def _migration_url() -> str:
     )
 
 
+# Objetos derivados da busca (Fases 4/5) criados por migration com SQL puro
+# (nao modelados no ORM de proposito): tabela de embeddings + indices trigram/FTS
+# + indice HNSW. Ficam fora do autogenerate/`alembic check` para nao gerar drift
+# falso nem exigir um tipo `vector` no metadata.
+_SEARCH_MANAGED_OBJECTS = frozenset(
+    {
+        "product_embeddings",
+        "ix_products_search_text",
+        "ix_products_sku_trgm",
+        "ix_products_name_trgm",
+        "ix_product_embeddings_hnsw",
+    }
+)
+
+
 def include_object(
     obj: object,
     name: str | None,
@@ -63,9 +78,10 @@ def include_object(
     reflected: bool,
     compare_to: object,
 ) -> bool:
-    """Exclui o schema `app` (fundacao RLS criada pelo bootstrap initdb)."""
+    """Exclui o schema `app` (bootstrap) e os objetos derivados da busca."""
     schema = getattr(obj, "schema", None)
-    return schema != "app"
+    is_search_managed = name is not None and name in _SEARCH_MANAGED_OBJECTS
+    return schema != "app" and not is_search_managed
 
 
 def run_migrations_offline() -> None:
