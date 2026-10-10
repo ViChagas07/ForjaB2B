@@ -43,9 +43,17 @@
     \quit 1
 \endif
 
--- 1. Extensoes base do banco operacional
+-- 1. Extensoes base do banco operacional.
+--    Criadas pelo superusuario de bootstrap: `vector` (pgvector) NAO e extensao
+--    "trusted", entao a role de migracao (forja_admin, NOSUPERUSER) nao pode
+--    cria-la; o bootstrap prepara a extensao e a migration 0013 apenas usa.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "vector";
+-- Extensoes de busca textual de fallback (Fase 4): trusted, mas mantidas aqui
+-- pelo mesmo motivo (o bootstrap roda como superusuario).
+CREATE EXTENSION IF NOT EXISTS "unaccent";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- 2. Hardening do schema public (previne criacao de objetos por roles comuns)
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

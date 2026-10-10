@@ -50,8 +50,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # `unaccent`/`pg_trgm` sao criadas pelo bootstrap (superusuario) e podem ser
+    # compartilhadas; a role de migracao nao e sua dona. Remove apenas os indices.
     op.drop_index("ix_products_name_trgm", table_name="products")
     op.drop_index("ix_products_sku_trgm", table_name="products")
     op.drop_index("ix_products_search_text", table_name="products")
-    op.execute("DROP EXTENSION IF EXISTS pg_trgm")
-    op.execute("DROP EXTENSION IF EXISTS unaccent")

@@ -41,5 +41,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # A extensao `vector` e criada pelo bootstrap (superusuario) e pode ser
+    # compartilhada; a role de migracao nao e sua dona. Por isso o downgrade
+    # remove apenas a tabela/indice, sem tentar derrubar a extensao.
     op.execute("DROP TABLE IF EXISTS product_embeddings")
-    op.execute("DROP EXTENSION IF EXISTS vector")
