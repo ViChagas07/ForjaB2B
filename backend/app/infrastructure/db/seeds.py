@@ -17,13 +17,17 @@ import hmac
 import json
 import os
 import re
+import sys
 import unicodedata
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
+
+from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 
 # PEPPER de desenvolvimento (mesmo valor publicado em .env.example). NUNCA
 # usar em producao: a Fase 2 (backend+security) assume o hash/criptografia.
@@ -93,10 +97,34 @@ async def _seed_global_catalog(conn: AsyncConnection) -> int:
         casts={"attributes": "jsonb"},
     )
     rows += await _insert(conn, "product_price_tiers", _ALL_TIERS)
+    # Reexecutar o seed ATUALIZA os precos de demonstracao (sem duplicar): o
+    # INSERT acima e ON CONFLICT DO NOTHING, entao um ajuste de preco so entra
+    # por aqui, e apenas quando o valor realmente muda.
+    await _refresh_demo_prices(conn)
     return rows
 
 
-async def _seed_tenant(conn: AsyncConnection, pepper: str) -> int:
+async def _refresh_demo_prices(conn: AsyncConnection) -> None:
+    """Atualiza os precos de lista/tier de demonstracao quando divergem."""
+    for product in _ALL_PRODUCTS:
+        await conn.execute(
+            text(
+                "UPDATE products SET base_unit_price = :price, updated_at = now() "
+                "WHERE id = :id AND base_unit_price <> :price"
+            ),
+            {"price": product["base_unit_price"], "id": product["id"]},
+        )
+    for tier in _ALL_TIERS:
+        await conn.execute(
+            text(
+                "UPDATE product_price_tiers SET unit_price = :price, updated_at = now() "
+                "WHERE id = :id AND unit_price <> :price"
+            ),
+            {"price": tier["unit_price"], "id": tier["id"]},
+        )
+
+
+async def _seed_tenant(conn: AsyncConnection, pepper: str, password_hash: str | None) -> int:
     rows = 0
     await conn.execute(
         text("SELECT app.set_tenant_context(:company_id, NULL)"),
@@ -105,11 +133,55 @@ async def _seed_tenant(conn: AsyncConnection, pepper: str) -> int:
     rows += await _insert(conn, "companies", _COMPANIES)
     rows += await _insert(conn, "company_addresses", _ADDRESSES)
     rows += await _insert(conn, "users", _USERS(pepper))
+    if password_hash is not None:
+        # Habilita o login dos usuarios da empresa-exemplo (senha do ambiente).
+        for user in _USERS(pepper):
+            await conn.execute(
+                text(
+                    "UPDATE users SET password_hash = :password_hash "
+                    "WHERE id = :id AND password_hash IS NULL"
+                ),
+                {"password_hash": password_hash, "id": user["id"]},
+            )
     rows += await _insert(conn, "company_members", _MEMBERS)
     rows += await _insert(conn, "credit_accounts", _CREDIT_ACCOUNTS, conflict_column="company_id")
     rows += await _insert(conn, "credit_entries", _CREDIT_ENTRIES)
     rows += await _insert(conn, "consent_records", _CONSENTS)
     rows += await _insert(conn, "audit_log", _AUDIT, casts={"details": "jsonb"})
+    return rows
+
+
+_UPDATE_PRICE_RULE = text(
+    "UPDATE company_price_rules SET rule_type = :rule_type, product_id = :product_id, "
+    "category_id = :category_id, percent = :percent, unit_price = :unit_price, "
+    "updated_at = now() WHERE id = :id"
+)
+
+
+async def _seed_demo_tenants(conn: AsyncConnection, pepper: str, password_hash: str | None) -> int:
+    """Cria as empresas de demonstracao, usuarios (se houver senha) e regras.
+
+    Sem ``password_hash`` (variavel ``DEMO_USER_PASSWORD`` ausente) as empresas e
+    regras de preco entram, mas os usuarios NAO sao criados (nao ha como logar).
+    Reexecutar atualiza os campos mutaveis das regras (idempotente).
+    """
+    rows = 0
+    for tenant in _build_demo_tenants(pepper, password_hash):
+        await conn.execute(
+            text("SELECT app.set_tenant_context(CAST(:company_id AS uuid), NULL)"),
+            {"company_id": str(tenant.id)},
+        )
+        rows += await _insert(conn, "companies", [tenant.company])
+        rows += await _insert(
+            conn, "credit_accounts", [tenant.credit_account], conflict_column="company_id"
+        )
+        rows += await _insert(conn, "credit_entries", [tenant.credit_entry])
+        if password_hash is not None:
+            rows += await _insert(conn, "users", tenant.users)
+            rows += await _insert(conn, "company_members", tenant.members)
+        rows += await _insert(conn, "company_price_rules", tenant.rules)
+        for rule in tenant.rules:
+            await conn.execute(_UPDATE_PRICE_RULE, rule)
     return rows
 
 
@@ -137,16 +209,32 @@ async def _insert(
     return len(rows_data)
 
 
-async def seed_database(admin_url: str, pepper: str = DEFAULT_DEV_PEPPER) -> dict[str, int]:
-    """Aplica os seeds e devolve um relatorio de linhas tentadas por tabela."""
+async def seed_database(
+    admin_url: str,
+    pepper: str = DEFAULT_DEV_PEPPER,
+    demo_user_password: str | None = None,
+) -> dict[str, int]:
+    """Aplica os seeds e devolve um relatorio de linhas tentadas por tabela.
+
+    ``demo_user_password`` (tipicamente ``DEMO_USER_PASSWORD``) habilita os
+    usuarios das empresas de demonstracao e da empresa-exemplo. Sem ele, os
+    usuarios NAO sao criados (somente empresas, regras e catalogo).
+    """
+    password_hash = Argon2PasswordHasher().hash(demo_user_password) if demo_user_password else None
     engine = create_async_engine(admin_url)
     try:
         async with engine.begin() as conn:
             catalog = await _seed_global_catalog(conn)
-            tenant = await _seed_tenant(conn, pepper)
+            tenant = await _seed_tenant(conn, pepper, password_hash)
+            demo = await _seed_demo_tenants(conn, pepper, password_hash)
     finally:
         await engine.dispose()
-    return {"catalog_rows": catalog, "tenant_rows": tenant}
+    return {
+        "catalog_rows": catalog,
+        "tenant_rows": tenant,
+        "demo_tenant_rows": demo,
+        "demo_users_seeded": 1 if password_hash is not None else 0,
+    }
 
 
 def main() -> None:
@@ -154,7 +242,8 @@ def main() -> None:
 
     Por padrao so roda em desenvolvimento/teste. Em producao exige a flag
     explicita ``SEED_ALLOW_PRODUCTION=true`` (os dados sao ficticios e nao
-    devem entrar em ambiente real por acidente).
+    devem entrar em ambiente real por acidente). A senha dos usuarios de
+    demonstracao vem de ``DEMO_USER_PASSWORD`` (nunca versionada).
     """
     environment = os.environ.get("ENVIRONMENT", "development")
     allow_production = os.environ.get("SEED_ALLOW_PRODUCTION", "false").lower() == "true"
@@ -167,7 +256,19 @@ def main() -> None:
     if not admin_url:
         raise SystemExit("DATABASE_ADMIN_URL ausente: seeds usam a role administrativa.")
     pepper = os.environ.get("PEPPER", DEFAULT_DEV_PEPPER)
-    report = asyncio.run(seed_database(admin_url, pepper))
+    demo_user_password = os.environ.get("DEMO_USER_PASSWORD") or None
+    if demo_user_password is None:
+        print(
+            json.dumps(
+                {
+                    "warning": "DEMO_USER_PASSWORD ausente: os usuarios de "
+                    "demonstracao NAO foram criados (somente empresas/regras)."
+                },
+                ensure_ascii=False,
+            ),
+            file=sys.stderr,
+        )
+    report = asyncio.run(seed_database(admin_url, pepper, demo_user_password))
     print(json.dumps(report, ensure_ascii=False))
 
 
@@ -672,7 +773,7 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "Luva Nitrílica Descartável",
         "protecao-maos",
         "ferrum",
-        "0.90",
+        "8.90",
         "valid",
         "ACTIVE",
         "UN",
@@ -742,7 +843,7 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "Respirador Semifacial Duplo Filtro",
         "protecao-respiratoria",
         "ferrum",
-        "62.00",
+        "119.00",
         "valid",
         "ACTIVE",
         "UN",
@@ -752,7 +853,7 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "Máscara de Proteção PFF1",
         "protecao-respiratoria",
         "protec",
-        "2.20",
+        "3.20",
         "valid",
         "ACTIVE",
         "UN",
@@ -772,7 +873,7 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "Protetor Auricular Plug Silicone",
         "protecao-auditiva",
         "aegis",
-        "1.90",
+        "3.50",
         "valid",
         "ACTIVE",
         "PAR",
@@ -792,7 +893,7 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "Abafador de Ruído Acoplado ao Capacete",
         "protecao-auditiva",
         "vulcano",
-        "79.00",
+        "29.90",
         "valid",
         "ACTIVE",
         "UN",
@@ -802,7 +903,7 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "Protetor Auricular Plug Moldável",
         "protecao-auditiva",
         "guardian",
-        "2.40",
+        "4.50",
         "valid",
         "ACTIVE",
         "PAR",
@@ -1064,7 +1165,7 @@ _DEMO_TIER_SPECS: list[tuple[str, int, int | None, str]] = [
     ("LUV-004", 60, None, "12.90"),
     ("BOT-001", 6, 23, "94.90"),
     ("BOT-001", 24, None, "89.90"),
-    ("RES-006", 5, None, "58.00"),
+    ("RES-006", 5, None, "109.00"),
     ("FUR-001", 3, None, "329.00"),
 ]
 
@@ -1091,6 +1192,181 @@ _ALL_CATEGORIES: list[dict[str, object]] = [*_CATEGORIES, *_DEMO_CATEGORIES]
 _ALL_BRANDS: list[dict[str, object]] = [*_BRANDS, *_DEMO_BRANDS]
 _ALL_PRODUCTS: list[dict[str, object]] = [*_PRODUCTS, *_DEMO_PRODUCTS]
 _ALL_TIERS: list[dict[str, object]] = [*_TIERS, *_DEMO_TIERS]
+
+
+# ---------------------------------------------------------------------------
+# Empresas de demonstracao e precos por empresa (Fase 9A) - FICTICIOS
+# ---------------------------------------------------------------------------
+# Tres empresas ficticias com condicoes comerciais distintas para o MESMO
+# catalogo, para exibir o diferencial B2B:
+#   * metalurgica-alfa: sem desconto (preco de lista);
+#   * construcoes-beta: desconto percentual por categoria (EPIs, 10%);
+#   * industria-gama: desconto global (5%) + preco negociado em SKUs.
+# Os CNPJ sao sinteticos e VALIDOS pelo algoritmo oficial (digito verificador),
+# mas NAO pertencem a nenhuma empresa real. As senhas dos usuarios vem de
+# DEMO_USER_PASSWORD (nunca versionada); sem ela, os usuarios nao sao criados.
+
+_DEMO_TENANT_NAMESPACE = uuid.UUID("6d656d6f-0000-4000-8000-0000000000e0")
+
+# (slug, cnpj sintetico valido, razao social, nome fantasia)
+_DEMO_COMPANY_SPECS: list[tuple[str, str, str, str]] = [
+    ("metalurgica-alfa", "11222333000181", "Metalurgica Demo Alfa Ltda", "Metalurgica Demo Alfa"),
+    ("construcoes-beta", "44555666000181", "Construcoes Demo Beta Ltda", "Construcoes Demo Beta"),
+    ("industria-gama", "77888999000181", "Industria Demo Gama Ltda", "Industria Demo Gama"),
+]
+
+# (papel RBAC, prefixo do e-mail ficticio do usuario)
+_DEMO_ROLE_SPECS: list[tuple[str, str]] = [
+    ("ADMIN", "admin"),
+    ("BUYER", "comprador"),
+    ("APPROVER", "aprovador"),
+]
+
+_DEMO_COMPANY_CREDIT_LIMIT = Decimal("25000.00")
+
+
+@dataclass(frozen=True)
+class _DemoTenant:
+    """Agregado de dados de uma empresa de demonstracao (ficticia)."""
+
+    id: uuid.UUID
+    slug: str
+    company: dict[str, object]
+    users: list[dict[str, object]]
+    members: list[dict[str, object]]
+    credit_account: dict[str, object]
+    credit_entry: dict[str, object]
+    rules: list[dict[str, object]]
+
+
+def _tenant_id(kind: str, key: str) -> uuid.UUID:
+    """UUID deterministico dos dados de tenant de demonstracao (idempotencia)."""
+    return uuid.uuid5(_DEMO_TENANT_NAMESPACE, f"{kind}:{key}")
+
+
+def _rule(
+    company_id: uuid.UUID,
+    key: str,
+    *,
+    rule_type: str,
+    product_id: uuid.UUID | None = None,
+    category_id: uuid.UUID | None = None,
+    percent: Decimal | None = None,
+    unit_price: Decimal | None = None,
+) -> dict[str, object]:
+    """Regra de preco com TODAS as colunas (facilita o upsert idempotente)."""
+    return {
+        "id": _tenant_id("rule", f"{key}"),
+        "company_id": company_id,
+        "rule_type": rule_type,
+        "product_id": product_id,
+        "category_id": category_id,
+        "percent": percent,
+        "unit_price": unit_price,
+    }
+
+
+def _demo_price_rules(company_id: uuid.UUID, slug: str) -> list[dict[str, object]]:
+    # Os produtos de EPI do catalogo demo estao em SUBCATEGORIAS (ex.: "Proteção
+    # da Cabeça"), entao o desconto por categoria aponta para a subcategoria real.
+    if slug == "construcoes-beta":
+        return [
+            _rule(
+                company_id,
+                f"{slug}:desconto-cabeca",
+                rule_type="PERCENT_DISCOUNT",
+                category_id=_CATEGORY_IDS["protecao-cabeca"],
+                percent=Decimal("10.00"),
+            )
+        ]
+    if slug == "industria-gama":
+        return [
+            _rule(
+                company_id,
+                f"{slug}:desconto-global",
+                rule_type="PERCENT_DISCOUNT",
+                percent=Decimal("5.00"),
+            ),
+            _rule(
+                company_id,
+                f"{slug}:negociado-cap-002",
+                rule_type="FIXED_PRICE",
+                product_id=_demo_id("product", "CAP-002"),
+                unit_price=Decimal("27.90"),
+            ),
+            _rule(
+                company_id,
+                f"{slug}:negociado-bot-001",
+                rule_type="FIXED_PRICE",
+                product_id=_demo_id("product", "BOT-001"),
+                unit_price=Decimal("89.90"),
+            ),
+        ]
+    return []
+
+
+def _build_demo_tenants(pepper: str, password_hash: str | None) -> list[_DemoTenant]:
+    """Empresas demo com usuarios (se houver senha) e regras de preco."""
+    tenants: list[_DemoTenant] = []
+    for slug, cnpj, legal_name, trade_name in _DEMO_COMPANY_SPECS:
+        company_id = _tenant_id("company", slug)
+        users: list[dict[str, object]] = []
+        members: list[dict[str, object]] = []
+        for role, prefix in _DEMO_ROLE_SPECS:
+            user_id = _tenant_id("user", f"{slug}:{role}")
+            user: dict[str, object] = {
+                "id": user_id,
+                "company_id": company_id,
+                "email": f"{prefix}@{slug}.example.com",
+                "full_name": f"{prefix.title()} Demo {trade_name}",
+                "cpf_hash": cpf_hash(f"demo-{slug}-{role}", pepper),
+                "status": "ACTIVE",
+                "email_verified_at": _APPROVED_AT,
+            }
+            if password_hash is not None:
+                user["password_hash"] = password_hash
+            users.append(user)
+            members.append(
+                {
+                    "id": _tenant_id("member", f"{slug}:{role}"),
+                    "company_id": company_id,
+                    "user_id": user_id,
+                    "role": role,
+                    "status": "ACTIVE",
+                }
+            )
+        tenants.append(
+            _DemoTenant(
+                id=company_id,
+                slug=slug,
+                company={
+                    "id": company_id,
+                    "cnpj": cnpj,
+                    "legal_name": legal_name,
+                    "trade_name": trade_name,
+                    "status": "ACTIVE",
+                    "approved_at": _APPROVED_AT,
+                },
+                users=users,
+                members=members,
+                credit_account={
+                    "company_id": company_id,
+                    "credit_limit": _DEMO_COMPANY_CREDIT_LIMIT,
+                },
+                credit_entry={
+                    "id": _tenant_id("credit", slug),
+                    "credit_account_id": company_id,
+                    "company_id": company_id,
+                    "entry_type": "LIMIT_SET",
+                    "amount": _DEMO_COMPANY_CREDIT_LIMIT,
+                    "reference_type": "company",
+                    "reference_id": company_id,
+                    "description": "Limite inicial do cliente de demonstracao (seed).",
+                },
+                rules=_demo_price_rules(company_id, slug),
+            )
+        )
+    return tenants
 
 
 if __name__ == "__main__":
