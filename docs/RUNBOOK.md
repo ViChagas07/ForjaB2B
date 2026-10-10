@@ -205,6 +205,7 @@ make db-backup
 - **Endereço no host:** `http://localhost:9200` — a porta é publicada **somente no loopback** (`127.0.0.1:9200:9200`), nunca em `0.0.0.0`.
 - **Credenciais:** `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD` (arquivo `.env`). Em dev usa-se o usuário `elastic` (superuser); um usuário de aplicação com privilégios mínimos fica para a Fase 6.
 - **Desligar a integração:** `ELASTICSEARCH_ENABLED=false` — o backend sobe normalmente e `GET /health/search` reporta `disabled`.
+- **Versões (Fase 8A):** servidor `docker.elastic.co/elasticsearch/elasticsearch:9.5.5` e cliente Python `elasticsearch[async]==9.5.1` — **mesma major (9)**. Em qualquer ambiente gerenciado, a major do deployment do ES deve ser a mesma do cliente Python.
 
 ### 7.2. Segurança (decisão de desenvolvimento)
 
@@ -246,6 +247,8 @@ docker compose logs -f elasticsearch   # acompanha os logs
 > **8.15.0** ("upgrade to version [8.19.0] first"). Procedimento **não destrutivo** (mesmo volume):
 > subir `docker.elastic.co/elasticsearch/elasticsearch:8.19.0` apontando para o volume, aguardar
 > `healthy`, parar, e então subir `9.5.5`. Nunca use `down -v` nem remova o volume.
+> **Só se aplica a volumes antigos criados em 8.x** — uma instalação **do zero** sobe direto no
+> `9.5.5` e não passa por esse passo.
 
 ### 7.6. Índice, reindexação, busca e deploy (Fases 3–6)
 

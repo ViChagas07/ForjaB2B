@@ -23,6 +23,10 @@
 - Consultas que **parecem SKU** (token curto com dígito) dispensam o vetorial, preservando o
   SKU exato no topo.
 
+**Versões (Fase 8A):** servidor `docker.elastic.co/elasticsearch/elasticsearch:9.5.5` ↔ cliente
+`elasticsearch[async]==9.5.1` — **mesma major (9)**, exigência do cliente (major do cliente deve
+acompanhar a do servidor). Em ambiente gerenciado, a major do deployment deve ser a mesma do cliente.
+
 ## 2. Requisitos de sistema (desenvolvimento)
 
 - **Docker Desktop** (Windows/macOS) com WSL2 ou Docker Engine (Linux).
@@ -208,6 +212,8 @@ semântica, preço consultivo do visitante (e do autenticado, se houver token) e
 4. Configure `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`, `ELASTICSEARCH_VERIFY_CERTS=true` e,
    se aplicável, `ELASTICSEARCH_CA_CERTS`.
 5. **Não** use `docker-compose.prod.yml` neste alvo (ele é para VPS).
+6. **Versão:** o deployment deve ser da **mesma major** do cliente Python
+   (`elasticsearch[async]==9.5.1` → deployment 9.x).
 
 ### 8.4 Migrations em produção (seguras)
 
@@ -296,9 +302,12 @@ docker compose exec -T postgres pg_dump -U "$POSTGRES_BOOTSTRAP_USER" -d "$POSTG
 - **Upgrade do Elasticsearch (achado real):** um volume criado pelo ES **8.15.0** não sobe direto no
   **9.5.5** (o 9.x exige passar por **8.19.0**). Procedimento não destrutivo, no mesmo volume: subir
   `elasticsearch:8.19.0` (aguardar `healthy`), parar, e então subir `9.5.5`. Nunca remova o volume.
-- **Latência durante indisponibilidade do Elasticsearch:** sem circuit breaker, cada busca tenta o ES
-  (com retries do cliente) antes de cair no fallback — medido **~15 s** por requisição com o serviço
-  parado. Recomendação: circuit breaker e/ou timeout de conexão curto (não implementados).
+  **Aplica-se apenas a volumes antigos criados em 8.x** — instalação do zero sobe direto no `9.5.5`.
+- **Latência durante indisponibilidade do Elasticsearch (resolvida na Fase 8A):** a busca interativa
+  usa timeout curto e **sem retries** — medido **~2 s** (antes ~15 s) por requisição até o fallback;
+  após `SEARCH_CIRCUIT_BREAKER_FAILURES` falhas o circuit breaker pula o Elasticsearch por
+  `SEARCH_CIRCUIT_BREAKER_COOLDOWN_SECONDS` (**~10 ms** por requisição), retomando sozinho.
+  Indexação/reindex/reconcile mantêm timeouts longos com retries próprios.
 - **Fuzzy no nome** pode trazer correlações frouxas (ex.: `q=RES-008` retornou outro produto por
   similaridade); o SKU exato continua prioritário e produtos não vendáveis nunca aparecem.
 

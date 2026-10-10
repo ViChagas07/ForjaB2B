@@ -31,6 +31,9 @@ x-search-prod-env: &search_prod_env
 
 services:
   elasticsearch:
+    # Imagem herdada da base (docker.elastic.co/elasticsearch/elasticsearch:9.5.5).
+    # Em ambiente gerenciado, a major do deployment deve ser a MESMA do cliente
+    # Python em requirements.txt (hoje elasticsearch[async]==9.5.1 -> major 9).
     # A porta continua publicada apenas no loopback (127.0.0.1) pela base; NUNCA
     # exponha 9200 na internet. Em VPS, restrinja também via firewall (ufw).
     environment:

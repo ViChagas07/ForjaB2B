@@ -35,6 +35,8 @@ Decisões confirmadas (dono): ES alvo **9.5.5** + cliente **9.5.1**; embeddings 
   **`elasticsearch:8.15.0`** (`docker-compose.yml:141-160`; `discovery.type=single-node`,
   `xpack.security.enabled=false`, `ES_JAVA_OPTS=-Xms512m -Xmx512m`), `otel-collector`, `prometheus`,
   `grafana`, `backend`, `celery-worker`, `celery-beat`, `frontend`.
+  > Nota (Fase 2 em diante): a tag foi atualizada para **`elasticsearch:9.5.5`** com segurança
+  > LIGADA. O `8.15.0` acima descreve o estado no momento desta auditoria (histórico).
 - Volume nomeado `forja_elasticsearch_data` já existe (`docker-compose.yml:30-31`).
 - Backend/worker recebem `ELASTICSEARCH_HOST`/`ELASTICSEARCH_URL` (`docker-compose.yml:275-276`), mas **o
   código ignora essas variáveis** — `app/core/config.py` não tem campo de ES e usa `extra="ignore"`.

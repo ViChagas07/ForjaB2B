@@ -82,6 +82,7 @@
 | 5 | Busca semântica (PGVector) e fusão por RRF | ✅ (parcial: ver limitações) |
 | 6 | Produção, documentação e fechamento | ✅ |
 | 7 | Validação real com Docker (correções e evidências) | ✅ |
+| 8A | Robustez: timeout de busca, falha visível no bulk, versões | ✅ |
 
 - **Fase 1 (2026-10-10):** auditoria somente-leitura e plano completo em `docs/search/PLAN.md`.
   Nenhum código/Compose/migration alterado.
@@ -293,6 +294,34 @@
     `import-linter` (4/4) OK.
   - **Confirmação:** a busca em produção (padrão) é **lexical com fallback PostgreSQL**; o modo
     **lexical + vetorial (`hybrid`)** foi **validado localmente** com o modelo real habilitado.
+
+- **Fase 8A (2026-10-10) — ajustes de robustez (sem funcionalidade nova).**
+  - **A1 — timeout curto e sem retries na busca + circuit breaker.** Timeouts separados:
+    `ELASTICSEARCH_SEARCH_TIMEOUT_SECONDS/SEARCH_MAX_RETRIES` (padrão **2 s / 0**) aplicados por
+    chamada (`client.options`) em consulta/autocomplete; indexação mantém
+    `ELASTICSEARCH_INDEX_TIMEOUT_SECONDS/INDEX_MAX_RETRIES` (**30 s / 3**). Circuit breaker simples
+    (`SEARCH_CIRCUIT_BREAKER_FAILURES/COOLDOWN_SECONDS`). **Medido (ES parado):** antes
+    **15,4–15,7 s** → depois **1,8–2,0 s**; com o breaker aberto **~10 ms**; recuperação automática
+    ao voltar o ES (`search_circuit_breaker_closed`).
+  - **A2 — falha visível na indexação em lote.** O `bulk` passou a guardar motivo resumido; reindex
+    falha com **código de saída ≠ 0** e **não troca o alias** em qualquer documento rejeitado ou
+    divergência de contagem acima de `SEARCH_REINDEX_COUNT_TOLERANCE` (padrão 0); `reconcile` reporta
+    `rejected`; `dispatch` marca o evento como falho/reprocessável; CLI retorna erro estruturado.
+    **Medido:** reindex para o índice v1 antigo rejeitou **23** documentos
+    (`document_parsing_exception`), `EXITCODE=2`, alias **permaneceu** em `forja_products_v3`; reindex
+    normal **41/41** (`EXITCODE=0`); `reconcile` `rejected=0` (`EXITCODE=0`).
+  - **A3 — consistência de versões e documentação.** Servidor `elasticsearch:9.5.5` ↔ cliente
+    `elasticsearch[async]==9.5.1` (mesma **major 9**), confirmado em Compose base/override, tests e
+    docs; documentado que o upgrade intermediário (8.19) só vale para volumes criados em 8.x e que,
+    em ambiente gerenciado, a major do deployment deve ser a mesma do cliente Python.
+  - **Validação:** `docker compose config --quiet` (base e override) ✅; testes direcionados (19) ✅;
+    suíte completa com Docker **466 passed, 1 skipped**; sem Docker **232 passed, 235 skipped, 0 erros**;
+    `ruff`/formato/`mypy` strict (332 arquivos)/`import-linter` (4/4) ✅.
+  - **Não validado:** deploy real em provedor gerenciado (alvo ainda `[PREENCHER]`); comportamento em
+    multi-node/replicas >0; latência em produção. **Ambiente dev:** o alias aponta para
+    `forja_products_v3`, mas `ELASTICSEARCH_INDEX_VERSION` no `.env` local ainda é `1` — rodar
+    `reindex/bootstrap` com `--version 3` (ou ajustar o `.env`); é resíduo de dados da validação, não
+    bug de código.
 
 ## Próximos passos sugeridos
 
