@@ -5,8 +5,9 @@ docker/postgres sao copiados para /docker-entrypoint-initdb.d/ de um container
 descartavel, com credenciais exclusivas de teste. Nenhum SQL e copiado ou
 reimplementado aqui; nenhum volume nomeado (forja_postgres_data) e utilizado.
 
-Requer daemon Docker acessivel. Se Docker for obrigatorio e estiver
-indisponivel, a fixture falha explicitamente (sem skip silencioso).
+Requer daemon Docker acessivel. Se o daemon estiver indisponivel, os testes
+deste diretorio sao PULADOS com mensagem clara (marcador `integration`) em vez
+de gerar erros, para que a suite padrao termine limpa sem Docker.
 """
 
 from __future__ import annotations
@@ -56,6 +57,20 @@ _INITDB_FILES = (
 )
 
 
+def _require_docker() -> None:
+    """Pula os testes de integracao quando o daemon Docker nao esta acessivel."""
+    try:
+        docker.from_env().ping()
+    except Exception as exc:  # noqa: BLE001 - sem Docker: pular (nao falhar)
+        pytest.skip(f"Docker indisponivel para os testes de integracao: {exc}")
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Marca automaticamente os testes deste diretorio com `integration`."""
+    for item in items:
+        item.add_marker(pytest.mark.integration)
+
+
 class PostgresInstance:
     """Parametros de conexao do container descartavel."""
 
@@ -86,17 +101,10 @@ class PostgresInstance:
 def pg() -> Iterator[PostgresInstance]:
     """Sobe PostgreSQL descartavel executando o bootstrap real do projeto.
 
-    Falha explicita (sem skip silencioso) quando o daemon Docker obrigatorio
-    esta indisponivel, distinguindo-a de falhas de provisionamento.
+    Pula (skip) quando o daemon Docker esta indisponivel; falhas de
+    provisionamento com Docker acessivel continuam sendo erro.
     """
-    try:
-        docker.from_env().ping()
-    except Exception as exc:  # noqa: BLE001 - converter em falha explicita
-        pytest.fail(
-            "Docker e obrigatorio para os testes de banco (Testcontainers) e "
-            "nao esta acessivel. Inicie o daemon Docker e rode novamente. "
-            f"Detalhe: {exc}"
-        )
+    _require_docker()
 
     try:
         container = (
@@ -170,10 +178,7 @@ def admin_database_url(pg: PostgresInstance) -> str:
 @pytest.fixture(scope="session")
 def redis_url() -> Iterator[str]:
     """Redis descartavel (mesma imagem do docker-compose) para probes de readiness."""
-    try:
-        docker.from_env().ping()
-    except Exception as exc:  # noqa: BLE001 - falha explicita, sem skip
-        pytest.fail(f"Docker obrigatorio indisponivel para o Redis de teste: {exc}")
+    _require_docker()
 
     container = (
         DockerContainer("redis:7-alpine")

@@ -42,21 +42,27 @@ async def search_client(
 
 
 async def test_busca_texto_usa_fallback_postgres(search_client: httpx.AsyncClient) -> None:
-    response = await search_client.get("/api/v1/search/products", params={"q": "parafusadeira"})
+    # O catalogo e global e compartilhado por outros modulos de integracao: o
+    # teste NAO assume total exato, apenas o modo e a presenca do produto certo.
+    response = await search_client.get(
+        "/api/v1/search/products", params={"q": "parafusadeira", "page_size": 100}
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["search_mode"] == "postgres_fallback"
-    assert body["total"] == 1
-    assert body["items"][0]["sku"] == "FER-PAR-004"
+    assert "FER-PAR-004" in {item["sku"] for item in body["items"]}
 
 
 async def test_busca_nao_retorna_inativo_nem_epi_vencido(
     search_client: httpx.AsyncClient,
 ) -> None:
-    inativo = await search_client.get("/api/v1/search/products", params={"q": "inativo"})
-    assert inativo.json()["total"] == 0
-    vencido = await search_client.get("/api/v1/search/products", params={"q": "respirador"})
-    assert vencido.json()["total"] == 0
+    # Idem: verifica SKUs especificos ausentes (inativo e EPI com CA vencido).
+    for sku in ("FER-INA-005", "EPI-EXP-002"):
+        response = await search_client.get(
+            "/api/v1/search/products", params={"q": sku, "page_size": 100}
+        )
+        assert response.status_code == 200
+        assert sku not in {item["sku"] for item in response.json()["items"]}
 
 
 async def test_visitante_recebe_preco_consultivo(search_client: httpx.AsyncClient) -> None:

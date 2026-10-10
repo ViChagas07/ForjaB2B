@@ -104,6 +104,11 @@ addopts = "-v --tb=short"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
+# Testes de integracao exigem Docker/Testcontainers e sao PULADOS (skip) quando
+# o daemon nao esta acessivel, para que a suite padrao termine sem erros.
+markers = [
+    "integration: testes de integracao que exigem Docker/Testcontainers",
+]
 
 # ------------------------------------------------------------------------------
 # coverage
