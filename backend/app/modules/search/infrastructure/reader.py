@@ -1,0 +1,100 @@
+"""Leitura do catalogo (PostgreSQL) para a sincronizacao do indice de busca.
+
+O catalogo e GLOBAL (sem RLS): a UoW abre sem contexto de tenant e a role de
+runtime tem apenas SELECT. A paginacao usa chave (id crescente), estavel e
+indexada pela PK, adequada a reindexacao em lotes. Nenhuma escrita.
+
+Usa SQL parametrizado (sem importar o mapeador ORM do catalogo) para preservar
+a independencia entre bounded contexts exigida pelo import-linter.
+"""
+
+from __future__ import annotations
+
+import uuid
+from collections.abc import AsyncIterator
+from typing import Any
+
+from sqlalchemy import text
+
+from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.modules.search.application.ports import ProductRow
+
+_NIL_UUID = "00000000-0000-0000-0000-000000000000"
+
+_SELECT_PAGE = text(
+    "SELECT p.id, p.sku, p.name, p.description, p.slug, p.status, p.is_epi, "
+    "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
+    "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
+    "p.attributes, p.created_at, p.updated_at "
+    "FROM products AS p "
+    "JOIN categories AS c ON c.id = p.category_id "
+    "LEFT JOIN brands AS b ON b.id = p.brand_id "
+    "WHERE p.id > CAST(:last_id AS uuid) ORDER BY p.id LIMIT :batch_size"
+)
+
+_SELECT_ONE = text(
+    "SELECT p.id, p.sku, p.name, p.description, p.slug, p.status, p.is_epi, "
+    "p.ca_number, p.ca_valid_until, p.category_id, c.name AS category_name, "
+    "c.slug AS category_slug, p.brand_id, b.name AS brand_name, b.slug AS brand_slug, "
+    "p.attributes, p.created_at, p.updated_at "
+    "FROM products AS p "
+    "JOIN categories AS c ON c.id = p.category_id "
+    "LEFT JOIN brands AS b ON b.id = p.brand_id "
+    "WHERE p.id = CAST(:product_id AS uuid)"
+)
+
+
+def _to_row(row: Any) -> ProductRow:
+    return ProductRow(
+        id=row[0],
+        sku=row[1],
+        name=row[2],
+        description=row[3],
+        slug=row[4],
+        status=row[5],
+        is_epi=row[6],
+        ca_number=row[7],
+        ca_valid_until=row[8],
+        category_id=row[9],
+        category_name=row[10],
+        category_slug=row[11],
+        brand_id=row[12],
+        brand_name=row[13],
+        brand_slug=row[14],
+        attributes=row[15],
+        created_at=row[16],
+        updated_at=row[17],
+    )
+
+
+class SqlAlchemyProductReader:
+    """Implementacao da porta ProductReader (somente leitura, global)."""
+
+    def __init__(self, uow_factory: SqlAlchemyUnitOfWorkFactory) -> None:
+        self._uow_factory = uow_factory
+
+    async def iter_products(self, *, batch_size: int) -> AsyncIterator[list[ProductRow]]:
+        last_id = _NIL_UUID
+        while True:
+            async with self._uow_factory.begin() as uow:
+                rows = (
+                    await uow.session.execute(
+                        _SELECT_PAGE, {"last_id": last_id, "batch_size": batch_size}
+                    )
+                ).all()
+                await uow.commit()
+            if not rows:
+                return
+            batch = [_to_row(row) for row in rows]
+            last_id = str(batch[-1].id)
+            yield batch
+            if len(batch) < batch_size:
+                return
+
+    async def get_product(self, product_id: uuid.UUID) -> ProductRow | None:
+        async with self._uow_factory.begin() as uow:
+            row = (await uow.session.execute(_SELECT_ONE, {"product_id": str(product_id)})).first()
+            await uow.commit()
+        if row is None:
+            return None
+        return _to_row(row)

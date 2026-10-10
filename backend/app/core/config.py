@@ -74,11 +74,17 @@ class Settings(BaseSettings):
     elasticsearch_username: str | None = "elastic"
     elasticsearch_password: str | None = "forja_es_dev_password"  # noqa: S105 - default de dev
     elasticsearch_api_key: str | None = None
-    elasticsearch_index: str = "forja-products"
+    elasticsearch_index: str = "forja_products"
+    elasticsearch_index_version: int = Field(default=1, ge=1)
+    elasticsearch_index_replicas: int = Field(default=0, ge=0)
     elasticsearch_request_timeout_seconds: float = Field(default=5.0, gt=0)
     elasticsearch_bulk_batch_size: int = Field(default=500, ge=1)
     elasticsearch_enabled: bool = True
     elasticsearch_max_retries: int = Field(default=3, ge=0)
+
+    # Sincronizacao do indice de busca (Fase 3): tentativas por evento na
+    # outbox antes de descartar (dead-letter).
+    search_outbox_max_attempts: int = Field(default=5, ge=1)
 
     # Seguranca de aplicacao (Fase 2).
     # `secret_key`: assinatura HMAC dos JWTs de acesso (HS256). Em producao

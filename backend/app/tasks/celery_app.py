@@ -31,6 +31,14 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.notifications.dispatch_outbox",
         "schedule": 10.0,
     },
+    "dispatch-search-outbox": {
+        "task": "app.tasks.search.dispatch_search_outbox",
+        "schedule": 15.0,
+    },
+    "reconcile-search-index": {
+        "task": "app.tasks.search.reconcile_search_index",
+        "schedule": 900.0,
+    },
 }
 
 celery_app.autodiscover_tasks(["app.tasks"])

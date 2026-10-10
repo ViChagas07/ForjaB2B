@@ -2,6 +2,8 @@
 
 `SearchUnavailableError` representa o motor de busca inacessivel (conexao,
 timeout ou 5xx) e e distinto de "sem resultados", que nao e erro.
+`SearchIndexError` representa falha na construcao/reconciliacao do indice
+derivado (nenhum dado comercial e perdido: o PostgreSQL e a fonte de verdade).
 """
 
 from __future__ import annotations
@@ -15,3 +17,7 @@ class SearchUnavailableError(AppError):
     status_code = 503
     title = "Service Unavailable"
     code = "search_unavailable"
+
+
+class SearchIndexError(Exception):
+    """Falha na construcao/reconciliacao do indice de busca."""

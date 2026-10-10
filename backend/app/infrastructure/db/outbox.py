@@ -32,3 +32,35 @@ async def enqueue_notification(
         _INSERT_NOTIFICATION,
         {"company_id": company_id, "event_type": event_type, "aggregate_id": aggregate_id},
     )
+
+
+_INSERT_SEARCH_EVENT = text(
+    "INSERT INTO search_outbox (aggregate_type, aggregate_id, event_type, version, status) "
+    "VALUES (:aggregate_type, :aggregate_id, :event_type, :version, 'PENDING')"
+)
+
+
+async def enqueue_search_event(
+    session: AsyncSession,
+    *,
+    aggregate_id: uuid.UUID,
+    event_type: str,
+    version: int,
+    aggregate_type: str = "product",
+) -> None:
+    """Registra um evento de sincronizacao de busca na transacao corrente.
+
+    Deve ser chamado DENTRO da mesma transacao/UoW que altera o produto (padrao
+    outbox): se a transacao falhar, o evento nao existe; se commitou, o worker
+    aplicara no indice. Ainda nao ha caminho de escrita de catalogo no runtime
+    (Fase 3): este helper e o contrato pronto para o backoffice.
+    """
+    await session.execute(
+        _INSERT_SEARCH_EVENT,
+        {
+            "aggregate_type": aggregate_type,
+            "aggregate_id": aggregate_id,
+            "event_type": event_type,
+            "version": version,
+        },
+    )

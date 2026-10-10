@@ -77,7 +77,7 @@
 | :--- | :--- | :--- |
 | 1 | Auditoria e plano (`docs/search/PLAN.md`) | ✅ |
 | 2 | Elasticsearch e cliente (ES 9.5.5 + `elasticsearch-py` 9.5.1) | ✅ |
-| 3 | Índice e sincronização (outbox + reconciliação) | ⏳ |
+| 3 | Índice e sincronização (outbox + reconciliação) | ✅ |
 | 4 | Busca lexical e fallback (Postgres) | ⏳ |
 | 5 | Busca semântica (PGVector) e fusão por RRF | ⏳ |
 | 6 | Produção, documentação e fechamento | ⏳ |
@@ -107,6 +107,34 @@
   - **Pendência operacional:** adicionar as novas variáveis `ELASTICSEARCH_*` ao `.env` local
     (o arquivo atual, fora do Git, ainda não as tem). Usuário de aplicação com privilégios
     mínimos e TLS em produção ficam para a Fase 6.
+- **Fase 3 (2026-10-10):** dados de demonstração e índice sincronizado.
+  - **Seed:** 46 produtos fictícios de EPIs/máquinas (marcas inventadas, CA `DEMO-CA-*`),
+    idempotente (UUIDs determinísticos + `ON CONFLICT DO NOTHING`) e protegido em produção
+    (`SEED_ALLOW_PRODUCTION`). Inclui acentos/grafias próximas e itens inativos/indisponíveis.
+  - **Índice:** versionado `forja_products_v1` + alias `forja_products`, com mapping explícito
+    (`dynamic: strict`) e analisadores em português (`asciifolding`, stopwords/stemmer pt,
+    `edge_ngram` de autocomplete) em `modules/search/infrastructure/indices/`.
+  - **Sincronização:** outbox transacional `search_outbox` (migration `0011`, global/sem RLS)
+    + helper `enqueue_search_event`; casos de uso **reindex** (lotes, validação de contagem,
+    troca atômica de alias, mantém o índice anterior para rollback), **reconciliação**
+    (faltantes/órfãos/versões) e **dispatch** com retry/registro; tarefas Celery
+    `dispatch_search_outbox` e `reconcile_search_index` no beat; CLI
+    `python -m app.modules.search.interface.cli` (`reindex [--dry-run]`, `reconcile`).
+    Upsert idempotente com versionamento externo (`version = updated_at`); produtos
+    inativos/indisponíveis **não** entram no índice; **nenhum preço é indexado**.
+  - **Validação executada:** `docker compose --env-file .env.example config --quiet` ✅;
+    `ruff check` ✅; `ruff format --check` ✅; `mypy` strict ✅ (311 arquivos);
+    `import-linter` ✅ (4/4 contratos); `pytest tests/unit tests/architecture` → **179 passed**
+    (23 testes novos: documento, arquivos de índice, seed, sincronização).
+  - **Não executado (limitação de ambiente):** seed, migrations (`0011`), criação do índice,
+    reindexação/reconciliação e a suíte de integração — o **daemon Docker não está acessível**
+    nesta máquina. A suíte completa resultou em **181 passed, 220 errors** (todos erros de
+    setup por Docker indisponível; nenhuma falha de teste). Os testes de integração do
+    Elasticsearch (`tests/integration/test_search_index_es.py`) cobrem analisadores, upsert
+    idempotente, remoção e troca de alias sobre ES real (Testcontainers) quando o Docker
+    estiver disponível.
+  - **Pendência operacional:** adicionar `ELASTICSEARCH_INDEX_VERSION`, `ELASTICSEARCH_INDEX_REPLICAS`
+    e `SEARCH_OUTBOX_MAX_ATTEMPTS` ao `.env` local.
 
 ## Próximos passos sugeridos
 

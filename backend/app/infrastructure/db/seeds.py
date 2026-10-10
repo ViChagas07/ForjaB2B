@@ -16,6 +16,8 @@ import hashlib
 import hmac
 import json
 import os
+import re
+import unicodedata
 import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -82,15 +84,15 @@ def cpf_hash(cpf: str, pepper: str) -> str:
 
 async def _seed_global_catalog(conn: AsyncConnection) -> int:
     rows = 0
-    rows += await _insert(conn, "categories", _CATEGORIES)
-    rows += await _insert(conn, "brands", _BRANDS)
+    rows += await _insert(conn, "categories", _ALL_CATEGORIES)
+    rows += await _insert(conn, "brands", _ALL_BRANDS)
     rows += await _insert(
         conn,
         "products",
-        _PRODUCTS,
+        _ALL_PRODUCTS,
         casts={"attributes": "jsonb"},
     )
-    rows += await _insert(conn, "product_price_tiers", _TIERS)
+    rows += await _insert(conn, "product_price_tiers", _ALL_TIERS)
     return rows
 
 
@@ -148,7 +150,19 @@ async def seed_database(admin_url: str, pepper: str = DEFAULT_DEV_PEPPER) -> dic
 
 
 def main() -> None:
-    """Entrypoint CLI: ``python -m app.infrastructure.db.seeds``."""
+    """Entrypoint CLI: ``python -m app.infrastructure.db.seeds``.
+
+    Por padrao so roda em desenvolvimento/teste. Em producao exige a flag
+    explicita ``SEED_ALLOW_PRODUCTION=true`` (os dados sao ficticios e nao
+    devem entrar em ambiente real por acidente).
+    """
+    environment = os.environ.get("ENVIRONMENT", "development")
+    allow_production = os.environ.get("SEED_ALLOW_PRODUCTION", "false").lower() == "true"
+    if environment == "production" and not allow_production:
+        raise SystemExit(
+            "Seed recusado em producao. Defina SEED_ALLOW_PRODUCTION=true para "
+            "executar conscientemente (dados de demonstracao)."
+        )
     admin_url = os.environ.get("DATABASE_ADMIN_URL")
     if not admin_url:
         raise SystemExit("DATABASE_ADMIN_URL ausente: seeds usam a role administrativa.")
@@ -450,6 +464,633 @@ _TIERS = [
         "unit_price": Decimal("849.00"),
     },
 ]
+
+
+# ---------------------------------------------------------------------------
+# Dados de demonstracao da busca (Fase 3) - FICTICIOS
+# ---------------------------------------------------------------------------
+# Categorias/marcas/produtos adicionais para exercitar a busca do catalogo:
+# acentos e grafias proximas ("Óculos"/"Oculos"), singular/plural
+# ("Luva"/"Luvas") e prefixos de autocomplete. As marcas sao INVENTADAS e o CA
+# dos EPIs usa o prefixo "DEMO-CA-" (nunca numeros reais de Certificado de
+# Aprovacao). Ids deterministicos (uuid5) mantem o seed idempotente com
+# ON CONFLICT (id) DO NOTHING: reexecutar nao duplica nem altera nada.
+
+_DEMO_NAMESPACE = uuid.UUID("6d656d6f-0000-4000-8000-0000000000d0")
+
+
+def _demo_id(kind: str, key: str) -> uuid.UUID:
+    """UUID deterministico do catalogo de demonstracao (idempotencia)."""
+    return uuid.uuid5(_DEMO_NAMESPACE, f"{kind}:{key}")
+
+
+def _slugify(value: str) -> str:
+    """Slug ASCII deterministico para os itens de demonstracao."""
+    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "-", folded.lower()).strip("-")
+
+
+# (slug, nome, slug_pai|None)
+_DEMO_CATEGORY_SPECS: list[tuple[str, str, str | None]] = [
+    ("protecao-cabeca", "Proteção da Cabeça", "epis"),
+    ("protecao-visual", "Proteção Visual", "epis"),
+    ("protecao-maos", "Proteção das Mãos", "epis"),
+    ("protecao-respiratoria", "Proteção Respiratória", "epis"),
+    ("protecao-auditiva", "Proteção Auditiva", "epis"),
+    ("protecao-pes", "Proteção dos Pés", "epis"),
+    ("protecao-quedas", "Proteção contra Quedas", "epis"),
+    ("ferramentas-eletricas", "Ferramentas Elétricas", "maquinas-e-ferramentas"),
+    ("maquinas-estacionarias", "Máquinas Estacionárias", "maquinas-e-ferramentas"),
+]
+
+# (slug, nome) - marcas FICTICIAS
+_DEMO_BRAND_SPECS: list[tuple[str, str]] = [
+    ("vulcano", "VULCANO"),
+    ("aegis", "AEGIS"),
+    ("guardian", "GUARDIAN"),
+    ("ferrum", "FERRUM"),
+    ("titan", "TITAN"),
+    ("sentinel", "SENTINEL"),
+]
+
+_CATEGORY_IDS: dict[str, uuid.UUID] = {
+    "epis": CATEGORY_EPI_ID,
+    "maquinas-e-ferramentas": CATEGORY_MAQUINAS_ID,
+    **{slug: _demo_id("category", slug) for slug, _, _ in _DEMO_CATEGORY_SPECS},
+}
+
+_BRAND_IDS: dict[str, uuid.UUID] = {
+    "protec": BRAND_PROTEC_ID,
+    "norton": BRAND_NORTON_ID,
+    **{slug: _demo_id("brand", slug) for slug, _ in _DEMO_BRAND_SPECS},
+}
+
+_DEMO_CATEGORIES: list[dict[str, object]] = [
+    {
+        "id": _CATEGORY_IDS[slug],
+        "name": name,
+        "slug": slug,
+        "parent_id": None if parent is None else _CATEGORY_IDS[parent],
+        "is_active": True,
+    }
+    for slug, name, parent in _DEMO_CATEGORY_SPECS
+]
+
+_DEMO_BRANDS: list[dict[str, object]] = [
+    {"id": _BRAND_IDS[slug], "name": name, "slug": slug} for slug, name in _DEMO_BRAND_SPECS
+]
+
+# ca_mode: "valid" (CA ficticio valido) | "expired" (vencido -> indisponivel)
+#          | "missing" (EPI sem CA -> indisponivel) | "na" (nao EPI).
+_DEMO_CA_EXPIRED = date(2023, 5, 31)
+_DEMO_CA_VALID = date(2029, 12, 31)
+
+# (sku, nome, slug_categoria, slug_marca, preco, ca_mode, status, uom)
+_DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
+    (
+        "CAP-002",
+        "Capacete de Segurança Classe A Aba Frontal",
+        "protecao-cabeca",
+        "protec",
+        "32.90",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "CAP-003",
+        "Capacete de Segurança Classe B com Jugular",
+        "protecao-cabeca",
+        "vulcano",
+        "45.50",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "CAP-004",
+        "Capacetes de Segurança Conjugados",
+        "protecao-cabeca",
+        "protec",
+        "58.00",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "CAP-005",
+        "Capacete de Segurança Descontinuado",
+        "protecao-cabeca",
+        "protec",
+        "20.00",
+        "valid",
+        "INACTIVE",
+        "UN",
+    ),
+    (
+        "OCV-001",
+        "Óculos de Proteção Incolor",
+        "protecao-visual",
+        "aegis",
+        "18.90",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "OCV-002",
+        "Oculos de Proteção Fumê",
+        "protecao-visual",
+        "aegis",
+        "19.50",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "OCV-003",
+        "Óculos de Proteção Ampla Visão",
+        "protecao-visual",
+        "guardian",
+        "27.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "OCV-004",
+        "Óculos de Segurança Antiembaçante",
+        "protecao-visual",
+        "aegis",
+        "24.90",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "OCV-005",
+        "Óculos de Proteção para Sobrepor",
+        "protecao-visual",
+        "guardian",
+        "31.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "OCV-006",
+        "Óculos Infantil Descontinuado",
+        "protecao-visual",
+        "aegis",
+        "15.00",
+        "na",
+        "INACTIVE",
+        "UN",
+    ),
+    (
+        "LUV-003",
+        "Luva de Raspa de Couro",
+        "protecao-maos",
+        "protec",
+        "13.90",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "LUV-004",
+        "Luvas de Raspa Premium",
+        "protecao-maos",
+        "protec",
+        "15.50",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "LUV-005",
+        "Luva Nitrílica Descartável",
+        "protecao-maos",
+        "ferrum",
+        "0.90",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "LUV-006",
+        "Luva de Vaqueta Petroleira",
+        "protecao-maos",
+        "ferrum",
+        "22.40",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "LUV-007",
+        "Luva Anticorte Nível 5",
+        "protecao-maos",
+        "titan",
+        "38.70",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "LUV-008",
+        "Luva de Látex Forrada",
+        "protecao-maos",
+        "protec",
+        "9.80",
+        "missing",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "LUV-009",
+        "Luva de Raspa Fora de Linha",
+        "protecao-maos",
+        "protec",
+        "11.00",
+        "valid",
+        "INACTIVE",
+        "PAR",
+    ),
+    (
+        "RES-004",
+        "Respirador PFF2 Sem Válvula",
+        "protecao-respiratoria",
+        "protec",
+        "3.50",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "RES-005",
+        "Respirador PFF3 com Válvula",
+        "protecao-respiratoria",
+        "protec",
+        "7.90",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "RES-006",
+        "Respirador Semifacial Duplo Filtro",
+        "protecao-respiratoria",
+        "ferrum",
+        "62.00",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "RES-007",
+        "Máscara de Proteção PFF1",
+        "protecao-respiratoria",
+        "protec",
+        "2.20",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "RES-008",
+        "Respirador Panorâmico",
+        "protecao-respiratoria",
+        "ferrum",
+        "89.90",
+        "expired",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "AUD-001",
+        "Protetor Auricular Plug Silicone",
+        "protecao-auditiva",
+        "aegis",
+        "1.90",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "AUD-002",
+        "Protetor Auricular Tipo Concha",
+        "protecao-auditiva",
+        "aegis",
+        "34.50",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "AUD-003",
+        "Abafador de Ruído Acoplado ao Capacete",
+        "protecao-auditiva",
+        "vulcano",
+        "79.00",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "AUD-004",
+        "Protetor Auricular Plug Moldável",
+        "protecao-auditiva",
+        "guardian",
+        "2.40",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "BOT-001",
+        "Botina de Segurança Couro",
+        "protecao-pes",
+        "titan",
+        "99.90",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "BOT-002",
+        "Bota de Segurança Bico Composite",
+        "protecao-pes",
+        "titan",
+        "139.00",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "BOT-003",
+        "Botas de Segurança Impermeáveis",
+        "protecao-pes",
+        "ferrum",
+        "189.00",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "BOT-004",
+        "Botina Eletricista",
+        "protecao-pes",
+        "titan",
+        "159.00",
+        "missing",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "BOT-005",
+        "Sapato de Segurança Sport",
+        "protecao-pes",
+        "ferrum",
+        "119.00",
+        "valid",
+        "ACTIVE",
+        "PAR",
+    ),
+    (
+        "QUE-001",
+        "Cinto Paraquedista 4 Pontos",
+        "protecao-quedas",
+        "vulcano",
+        "210.00",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "QUE-002",
+        "Talabarte Duplo I e Y",
+        "protecao-quedas",
+        "vulcano",
+        "145.00",
+        "expired",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "QUE-003",
+        "Cinturão de Segurança Abdominal",
+        "protecao-quedas",
+        "titan",
+        "89.00",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "QUE-004",
+        "Trava Queda Deslizante",
+        "protecao-quedas",
+        "vulcano",
+        "260.00",
+        "valid",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "FUR-001",
+        "Furadeira de Impacto 850W",
+        "ferramentas-eletricas",
+        "norton",
+        "349.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "FUR-002",
+        "Furadeiras de Bancada 500W",
+        "ferramentas-eletricas",
+        "norton",
+        "899.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "FUR-003",
+        "Esmerilhadeira Angular 115mm",
+        "ferramentas-eletricas",
+        "vulcano",
+        "279.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "FUR-004",
+        "Serra Circular 7 1/4",
+        "ferramentas-eletricas",
+        "norton",
+        "429.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "FUR-005",
+        "Retífica Reta 500W",
+        "ferramentas-eletricas",
+        "vulcano",
+        "319.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "MAQ-005",
+        "Compressor de Ar 100L",
+        "maquinas-estacionarias",
+        "titan",
+        "1899.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "MAQ-006",
+        "Prensa Hidráulica 15T",
+        "maquinas-estacionarias",
+        "titan",
+        "4590.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "MAQ-007",
+        "Politriz de Bancada",
+        "maquinas-estacionarias",
+        "norton",
+        "780.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "MAQ-008",
+        "Serra de Bancada 10",
+        "maquinas-estacionarias",
+        "norton",
+        "1290.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "MAQ-009",
+        "Bomba d'Água Autoaspirante",
+        "maquinas-estacionarias",
+        "vulcano",
+        "960.00",
+        "na",
+        "ACTIVE",
+        "UN",
+    ),
+    (
+        "MAQ-010",
+        "Torno de Bancada Descontinuado",
+        "maquinas-estacionarias",
+        "norton",
+        "1450.00",
+        "na",
+        "INACTIVE",
+        "UN",
+    ),
+]
+
+# Atributos pesquisaveis (JSONB) para alguns itens.
+_DEMO_ATTRIBUTES: dict[str, dict[str, str]] = {
+    "CAP-002": {"cor": "branco", "material": "abs"},
+    "OCV-001": {"cor": "transparente", "tratamento": "antiembacante"},
+    "LUV-004": {"material": "raspa", "tamanho": "G"},
+    "RES-006": {"filtro": "duplo", "classe": "P2"},
+    "BOT-001": {"material": "couro", "bico": "composite"},
+    "MAQ-005": {"potencia": "2cv", "volume": "100l"},
+}
+
+
+def _build_demo_products() -> list[dict[str, object]]:
+    products: list[dict[str, object]] = []
+    for index, spec in enumerate(_DEMO_PRODUCT_SPECS, start=1):
+        sku, name, category_slug, brand_slug, price, ca_mode, status, uom = spec
+        is_epi = ca_mode != "na"
+        row: dict[str, object] = {
+            "id": _demo_id("product", sku),
+            "category_id": _CATEGORY_IDS[category_slug],
+            "brand_id": _BRAND_IDS[brand_slug],
+            "sku": sku,
+            "name": name,
+            "slug": _slugify(name),
+            "description": f"{name} (item de demonstracao).",
+            "status": status,
+            "is_epi": is_epi,
+            "unit_of_measure": uom,
+            "min_order_qty": 1,
+            "base_unit_price": Decimal(price),
+        }
+        if is_epi:
+            row["ca_number"] = f"DEMO-CA-{index:04d}"
+            if ca_mode == "valid":
+                row["ca_valid_until"] = _DEMO_CA_VALID
+            elif ca_mode == "expired":
+                row["ca_valid_until"] = _DEMO_CA_EXPIRED
+        attributes = _DEMO_ATTRIBUTES.get(sku)
+        if attributes is not None:
+            row["attributes"] = json.dumps(attributes)
+        products.append(row)
+    return products
+
+
+_DEMO_PRODUCTS = _build_demo_products()
+
+# (sku, min_quantity, max_quantity|None, unit_price)
+_DEMO_TIER_SPECS: list[tuple[str, int, int | None, str]] = [
+    ("CAP-002", 6, 23, "30.90"),
+    ("CAP-002", 24, None, "27.50"),
+    ("OCV-001", 10, 49, "17.50"),
+    ("OCV-001", 50, None, "15.90"),
+    ("LUV-004", 12, 59, "14.50"),
+    ("LUV-004", 60, None, "12.90"),
+    ("BOT-001", 6, 23, "94.90"),
+    ("BOT-001", 24, None, "89.90"),
+    ("RES-006", 5, None, "58.00"),
+    ("FUR-001", 3, None, "329.00"),
+]
+
+
+def _build_demo_tiers() -> list[dict[str, object]]:
+    tiers: list[dict[str, object]] = []
+    for sku, min_quantity, max_quantity, unit_price in _DEMO_TIER_SPECS:
+        tiers.append(
+            {
+                "id": _demo_id("tier", f"{sku}:{min_quantity}"),
+                "product_id": _demo_id("product", sku),
+                "min_quantity": min_quantity,
+                "max_quantity": max_quantity,
+                "unit_price": Decimal(unit_price),
+            }
+        )
+    return tiers
+
+
+_DEMO_TIERS = _build_demo_tiers()
+
+# Listas efetivamente usadas pelo seed (base + demonstracao).
+_ALL_CATEGORIES: list[dict[str, object]] = [*_CATEGORIES, *_DEMO_CATEGORIES]
+_ALL_BRANDS: list[dict[str, object]] = [*_BRANDS, *_DEMO_BRANDS]
+_ALL_PRODUCTS: list[dict[str, object]] = [*_PRODUCTS, *_DEMO_PRODUCTS]
+_ALL_TIERS: list[dict[str, object]] = [*_TIERS, *_DEMO_TIERS]
 
 
 if __name__ == "__main__":

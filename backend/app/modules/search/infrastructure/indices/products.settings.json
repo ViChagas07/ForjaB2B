@@ -1,0 +1,35 @@
+{
+  "number_of_shards": 1,
+  "number_of_replicas": 0,
+  "analysis": {
+    "filter": {
+      "pt_stop": {"type": "stop", "stopwords": "_portuguese_"},
+      "pt_stemmer": {"type": "stemmer", "language": "portuguese"},
+      "ascii_folding": {"type": "asciifolding", "preserve_original": true},
+      "edge_ngram_2_15": {"type": "edge_ngram", "min_gram": 2, "max_gram": 15}
+    },
+    "normalizer": {
+      "lowercase_normalizer": {
+        "type": "custom",
+        "filter": ["lowercase", "ascii_folding"]
+      }
+    },
+    "analyzer": {
+      "pt_text": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "ascii_folding", "pt_stop", "pt_stemmer"]
+      },
+      "autocomplete_index": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "ascii_folding", "edge_ngram_2_15"]
+      },
+      "autocomplete_search": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase", "ascii_folding"]
+      }
+    }
+  }
+}

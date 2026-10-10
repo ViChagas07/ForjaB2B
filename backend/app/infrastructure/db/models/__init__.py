@@ -21,6 +21,7 @@ from app.infrastructure.db.models.notification import Notification, Notification
 from app.infrastructure.db.models.ordering import Order, OrderItem
 from app.infrastructure.db.models.payment import Payment, PaymentEvent
 from app.infrastructure.db.models.privacy import ConsentRecord
+from app.infrastructure.db.models.search import SearchOutbox
 
 __all__ = [
     "AuditLog",
@@ -43,6 +44,7 @@ __all__ = [
     "PaymentEvent",
     "Product",
     "ProductPriceTier",
+    "SearchOutbox",
     "User",
     "UserExternalIdentity",
 ]

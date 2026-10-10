@@ -1,0 +1,52 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "id": {"type": "keyword"},
+    "sku": {
+      "type": "keyword",
+      "normalizer": "lowercase_normalizer",
+      "fields": {
+        "prefix": {
+          "type": "text",
+          "analyzer": "autocomplete_index",
+          "search_analyzer": "autocomplete_search"
+        }
+      }
+    },
+    "name": {
+      "type": "text",
+      "analyzer": "pt_text",
+      "fields": {
+        "autocomplete": {
+          "type": "text",
+          "analyzer": "autocomplete_index",
+          "search_analyzer": "autocomplete_search"
+        },
+        "sort": {"type": "keyword", "normalizer": "lowercase_normalizer"}
+      }
+    },
+    "description": {"type": "text", "analyzer": "pt_text"},
+    "slug": {"type": "keyword"},
+    "status": {"type": "keyword"},
+    "is_epi": {"type": "boolean"},
+    "is_available": {"type": "boolean"},
+    "ca_number": {"type": "keyword"},
+    "ca_valid_until": {"type": "date", "format": "yyyy-MM-dd"},
+    "category_id": {"type": "keyword"},
+    "category": {
+      "type": "keyword",
+      "fields": {"text": {"type": "text", "analyzer": "pt_text"}}
+    },
+    "category_slug": {"type": "keyword"},
+    "brand_id": {"type": "keyword"},
+    "brand": {
+      "type": "keyword",
+      "fields": {"text": {"type": "text", "analyzer": "pt_text"}}
+    },
+    "brand_slug": {"type": "keyword"},
+    "attributes": {"type": "flattened"},
+    "created_at": {"type": "date"},
+    "updated_at": {"type": "date"},
+    "version": {"type": "long"}
+  }
+}
