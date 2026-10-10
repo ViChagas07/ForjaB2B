@@ -123,6 +123,7 @@ async def test_search_hidrata_e_mascara_preco_para_visitante() -> None:
     use_case = SearchProducts(
         primary=primary,
         fallback=fallback,
+        semantic=None,
         product_reader=_FakeProductReader([a, b]),
         settings=_settings(),
     )
@@ -146,6 +147,7 @@ async def test_search_autenticado_exibe_preco_base() -> None:
     use_case = SearchProducts(
         primary=primary,
         fallback=_FakeSearchReader(),
+        semantic=None,
         product_reader=_FakeProductReader([a]),
         settings=_settings(),
     )
@@ -168,6 +170,7 @@ async def test_search_fallback_quando_es_indisponivel() -> None:
     use_case = SearchProducts(
         primary=primary,
         fallback=fallback,
+        semantic=None,
         product_reader=_FakeProductReader([a]),
         settings=_settings(),
     )
@@ -185,6 +188,7 @@ async def test_search_ambos_motores_indisponiveis_propaga_erro() -> None:
     use_case = SearchProducts(
         primary=_FakeSearchReader(fail=True),
         fallback=_FakeSearchReader(fail=True),
+        semantic=None,
         product_reader=_FakeProductReader([]),
         settings=_settings(),
     )
@@ -203,6 +207,7 @@ async def test_search_descarta_entrada_defasada_do_indice() -> None:
     use_case = SearchProducts(
         primary=primary,
         fallback=_FakeSearchReader(),
+        semantic=None,
         product_reader=_FakeProductReader([a]),
         settings=_settings(),
     )
@@ -219,6 +224,7 @@ async def test_search_valida_paginacao_profunda() -> None:
     use_case = SearchProducts(
         primary=_FakeSearchReader(),
         fallback=_FakeSearchReader(),
+        semantic=None,
         product_reader=_FakeProductReader([]),
         settings=_settings(),
     )
@@ -235,6 +241,7 @@ async def test_search_valida_tamanho_do_texto() -> None:
     use_case = SearchProducts(
         primary=_FakeSearchReader(),
         fallback=_FakeSearchReader(),
+        semantic=None,
         product_reader=_FakeProductReader([]),
         settings=_settings(),
     )
@@ -275,6 +282,7 @@ async def test_search_preserva_ordem_retornada_pelo_motor() -> None:
     use_case = SearchProducts(
         primary=primary,
         fallback=_FakeSearchReader(),
+        semantic=None,
         product_reader=_FakeProductReader([a, b]),
         settings=_settings(),
     )

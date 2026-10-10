@@ -32,8 +32,9 @@ from app.core.config import Settings
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 
-# Mesma imagem fixada no plano congelado e no docker-compose.yml.
-POSTGRES_IMAGE = "postgres:16.4-alpine"
+# Mesma imagem fixada no plano congelado e no docker-compose.yml (Fase 5:
+# pgvector 0.8.7 sobre a mesma major 16, exigida pela migration 0013).
+POSTGRES_IMAGE = "pgvector/pgvector:0.8.7-pg16"
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 POSTGRES_SCRIPTS_DIR = REPO_ROOT / "docker" / "postgres"

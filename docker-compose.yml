@@ -39,7 +39,11 @@ services:
   # PostgreSQL 16 (Relational Database)
   # ----------------------------------------------------------------------------
   postgres:
-    image: postgres:16.4-alpine
+    # Fase 5: mesma major 16, agora com a extensao pgvector 0.8.7 embutida.
+    # O formato fisico do PostgreSQL 16 e estavel entre minors, entao o volume
+    # existente e reaproveitado sem recriacao. Faca um backup logico (pg_dump)
+    # antes de subir esta versao em um ambiente com dados (ver docs/STATUS.md).
+    image: pgvector/pgvector:0.8.7-pg16
     container_name: forja-postgres
     restart: unless-stopped
     environment:

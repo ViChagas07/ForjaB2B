@@ -271,3 +271,70 @@ class SearchOutboxRepository(Protocol):
     async def mark_failed(self, event_id: uuid.UUID, *, error: str) -> None:
         """Incrementa tentativas e registra o erro (retentavel)."""
         ...
+
+
+class EmbeddingProvider(Protocol):
+    """Provedor de embeddings (local). Nenhum detalhe do modelo vaza daqui."""
+
+    @property
+    def model(self) -> str:
+        """Identificador do modelo (ex.: ``intfloat/multilingual-e5-small``)."""
+        ...
+
+    @property
+    def dimension(self) -> int:
+        """Dimensao dos vetores produzidos."""
+        ...
+
+    async def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
+        """Gera vetores (prefixo ``passage:``) para indexacao."""
+        ...
+
+    async def embed_query(self, text: str) -> list[float]:
+        """Gera o vetor de consulta (prefixo ``query:``)."""
+        ...
+
+
+@dataclass(frozen=True, kw_only=True)
+class EmbeddingEntry:
+    """Vetor pronto para persistir (com hash do conteudo embutido)."""
+
+    product_id: uuid.UUID
+    model: str
+    dimension: int
+    embedding: list[float]
+    content_hash: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class VectorHit:
+    """Resultado de uma consulta vetorial (similaridade por cosseno)."""
+
+    product_id: uuid.UUID
+    score: float
+
+
+class VectorStore(Protocol):
+    """Armazenamento vetorial (pgvector) e busca por similaridade."""
+
+    async def upsert_many(self, entries: Sequence[EmbeddingEntry]) -> int:
+        """Grava/atualiza vetores (idempotente por ``product_id``)."""
+        ...
+
+    async def get_hashes(self) -> dict[uuid.UUID, str]:
+        """Mapa ``product_id`` -> ``content_hash`` de todos os vetores."""
+        ...
+
+    async def get_hash(self, product_id: uuid.UUID) -> str | None:
+        """``content_hash`` atual de um produto (``None`` se nao houver vetor)."""
+        ...
+
+    async def search_similar(
+        self, *, embedding: Sequence[float], filters: SearchQuery, limit: int
+    ) -> list[VectorHit]:
+        """Top-N por similaridade de cosseno, restrito a produtos vendaveis."""
+        ...
+
+    async def delete(self, product_ids: Sequence[uuid.UUID]) -> int:
+        """Remove vetores por produto (ausencia nao e erro)."""
+        ...

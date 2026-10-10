@@ -39,6 +39,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.search.reconcile_search_index",
         "schedule": 900.0,
     },
+    "backfill-search-embeddings": {
+        "task": "app.tasks.search.backfill_search_embeddings",
+        "schedule": 3600.0,
+    },
 }
 
 celery_app.autodiscover_tasks(["app.tasks"])

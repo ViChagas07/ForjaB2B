@@ -29,3 +29,10 @@ class InvalidSearchQueryError(AppError):
     status_code = 400
     title = "Bad Request"
     code = "invalid_search_query"
+
+
+class EmbeddingUnavailableError(SearchUnavailableError):
+    """Embeddings indisponiveis (dependencia ausente, modelo nao carregado ou timeout).
+
+    Nao e fatal: o caminho semantico degrada para lexical informando o modo real.
+    """

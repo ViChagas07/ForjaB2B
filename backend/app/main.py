@@ -100,7 +100,10 @@ from app.modules.privacy.application.privacy import (
 from app.modules.privacy.infrastructure.repository import SqlAlchemyPrivacyRepository
 from app.modules.search.application.ports import SearchEngine
 from app.modules.search.application.search import AutocompleteProducts, SearchProducts
+from app.modules.search.application.semantic import SemanticSearch
 from app.modules.search.infrastructure.elasticsearch import build_product_index, build_search_engine
+from app.modules.search.infrastructure.embeddings import build_embedding_provider
+from app.modules.search.infrastructure.pgvector_store import PgVectorStore
 from app.modules.search.infrastructure.postgres_search import PostgresSearchReader
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
 
@@ -120,6 +123,42 @@ async def _log_search_engine_startup(search_engine: SearchEngine) -> None:
         return
     if health.state.value != "ok":
         _logger.warning("search_engine_unavailable", state=health.state.value, detail=health.detail)
+
+
+def _compose_search(app: FastAPI, settings: Settings) -> None:
+    """Monta a busca (Fases 4/5): ES lexical, pgvector semantico e fallback Postgres.
+
+    Mantido fora de ``create_app`` para preservar a complexidade ciclomatica da
+    raiz de composicao. Quando os embeddings estao desabilitados ou indisponiveis,
+    o caminho semantico fica ``None`` e a busca opera em modo lexical/fallback.
+    """
+    product_reader = SqlAlchemyProductReader(app.state.uow_factory)
+    postgres_search_reader = PostgresSearchReader(app.state.uow_factory)
+    product_index = build_product_index(settings)
+    embedding_provider = build_embedding_provider(settings)
+    vector_store = PgVectorStore(app.state.uow_factory) if embedding_provider is not None else None
+    semantic: SemanticSearch | None = None
+    if embedding_provider is not None and vector_store is not None:
+        semantic = SemanticSearch(
+            provider=embedding_provider,
+            store=vector_store,
+            candidate_limit=settings.embedding_candidate_limit,
+            timeout_seconds=settings.embedding_query_timeout_seconds,
+        )
+    app.state.embedding_provider = embedding_provider
+    app.state.vector_store = vector_store
+    app.state.search_products = SearchProducts(
+        primary=product_index,
+        fallback=postgres_search_reader,
+        semantic=semantic,
+        product_reader=product_reader,
+        settings=settings,
+    )
+    app.state.search_autocomplete_products = AutocompleteProducts(
+        primary=product_index,
+        fallback=postgres_search_reader,
+        settings=settings,
+    )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -166,24 +205,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # construcao nao abre conexao; indisponibilidade nao impede o startup.
     app.state.search_engine = build_search_engine(settings)
 
-    # Composicao da busca lexical (Fase 4): leitores ES (primario) e Postgres
-    # (fallback), mais o leitor de catalogo para hidratacao. Quando o ES esta
-    # desabilitado, o proprio Postgres serve como motor unico.
-    product_reader = SqlAlchemyProductReader(app.state.uow_factory)
-    postgres_search_reader = PostgresSearchReader(app.state.uow_factory)
-    product_index = build_product_index(settings)
-    primary_search_reader = product_index or postgres_search_reader
-    app.state.search_products = SearchProducts(
-        primary=primary_search_reader,
-        fallback=postgres_search_reader,
-        product_reader=product_reader,
-        settings=settings,
-    )
-    app.state.search_autocomplete_products = AutocompleteProducts(
-        primary=primary_search_reader,
-        fallback=postgres_search_reader,
-        settings=settings,
-    )
+    # Composicao da busca (Fases 4/5): ES lexical, pgvector semantico e fallback.
+    _compose_search(app, settings)
 
     # Composicao do contexto de identidade (autenticacao). A raiz de composicao
     # liga casos de uso as implementacoes de infraestrutura; os routers apenas

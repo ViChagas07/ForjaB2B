@@ -7,11 +7,13 @@ perdidas: eventos ficam registrados na outbox para reprocessamento.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import date
 
 from app.core.logging import get_logger
 from app.modules.search.application.documents import build_product_document, is_row_sellable
+from app.modules.search.application.embeddings_backfill import EmbeddingSync
 from app.modules.search.application.errors import SearchIndexError
 from app.modules.search.application.ports import (
     ProductIndex,
@@ -191,11 +193,13 @@ class DispatchSearchOutbox:
         reader: ProductReader,
         outbox: SearchOutboxRepository,
         max_attempts: int,
+        embedding_sync: EmbeddingSync | None = None,
     ) -> None:
         self._index = index
         self._reader = reader
         self._outbox = outbox
         self._max_attempts = max_attempts
+        self._embedding_sync = embedding_sync
 
     async def run(self, *, limit: int = 100) -> DispatchReport:
         events = await self._outbox.list_due(limit=limit, max_attempts=self._max_attempts)
@@ -224,10 +228,29 @@ class DispatchSearchOutbox:
         product_id = str(event.aggregate_id)
         if event.event_type == SearchEventType.DELETE.value:
             await self._index.delete_documents(target=self._index.alias, ids=[product_id])
+            await self._delete_embedding(event.aggregate_id)
             return
         row = await self._reader.get_product(event.aggregate_id)
         if row is None or not is_row_sellable(row, today=today):
             await self._index.delete_documents(target=self._index.alias, ids=[product_id])
+            await self._delete_embedding(event.aggregate_id)
             return
         document = build_product_document(row, today=today)
         await self._index.index_documents(target=self._index.alias, documents=[document])
+        await self._upsert_embedding(row)
+
+    async def _delete_embedding(self, product_id: uuid.UUID) -> None:
+        if self._embedding_sync is None:
+            return
+        try:
+            await self._embedding_sync.delete(product_id)
+        except Exception:  # noqa: BLE001 - embedding nunca bloqueia a busca lexical
+            _logger.warning("search_embedding_sync_failed", product_id=str(product_id))
+
+    async def _upsert_embedding(self, row: ProductRow) -> None:
+        if self._embedding_sync is None:
+            return
+        try:
+            await self._embedding_sync.upsert_row(row)
+        except Exception:  # noqa: BLE001 - embedding nunca bloqueia a busca lexical
+            _logger.warning("search_embedding_sync_failed", product_id=str(row.id))

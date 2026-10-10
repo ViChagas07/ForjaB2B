@@ -4,11 +4,13 @@ Comandos:
     python -m app.modules.search.interface.cli reindex [--version N]
         [--batch-size N] [--dry-run]
     python -m app.modules.search.interface.cli reconcile
+    python -m app.modules.search.interface.cli backfill-embeddings
+        [--batch-size N] [--dry-run]
 
 ``reindex`` reconstroi o indice versionado a partir do PostgreSQL, valida a
 contagem e troca o alias de forma atomica (o indice anterior permanece para
-rollback). ``--dry-run`` nao toca no Elasticsearch: apenas conta o que seria
-indexado (util quando o ES esta fora). Toda a execucao roda em um unico loop.
+rollback). ``backfill-embeddings`` gera/atualiza os vetores (idempotente por
+``content_hash``). ``--dry-run`` nao escreve. Toda a execucao roda em um loop.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from app.core.config import Settings, get_settings
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.modules.search.application.embeddings_backfill import BackfillEmbeddings
 from app.modules.search.application.sync import (
     ReconcileReport,
     ReconcileSearchIndex,
@@ -31,6 +34,8 @@ from app.modules.search.application.sync import (
     ReindexReport,
 )
 from app.modules.search.infrastructure.elasticsearch import build_product_index
+from app.modules.search.infrastructure.embeddings import build_embedding_provider
+from app.modules.search.infrastructure.pgvector_store import PgVectorStore
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
 
 
@@ -45,33 +50,54 @@ def _build_parser() -> argparse.ArgumentParser:
 
     reconcile = subparsers.add_parser("reconcile", help="Corrige divergencias Postgres x indice.")
     reconcile.add_argument("--batch-size", type=int, default=500, help="Tamanho do lote.")
+
+    backfill = subparsers.add_parser(
+        "backfill-embeddings", help="Gera/atualiza embeddings vetoriais (idempotente)."
+    )
+    backfill.add_argument("--batch-size", type=int, default=256, help="Tamanho do lote.")
+    backfill.add_argument("--dry-run", action="store_true", help="Somente conta (nao grava).")
     return parser
 
 
 async def _run(settings: Settings, args: argparse.Namespace) -> dict[str, object]:
-    index = build_product_index(settings)
-    if index is None:
-        return {"error": "elasticsearch_disabled"}
     engine = create_engine(settings)
     try:
         uow_factory = SqlAlchemyUnitOfWorkFactory(create_session_factory(engine))
         reader = SqlAlchemyProductReader(uow_factory)
-        report: ReindexReport | ReconcileReport
-        if args.command == "reindex":
-            default_version = settings.elasticsearch_index_version
-            version = args.version if args.version is not None else default_version
-            use_case = ReindexProducts(
-                index=index, reader=reader, replicas=settings.elasticsearch_index_replicas
-            )
-            report = await use_case.run(
-                version=version, batch_size=args.batch_size, dry_run=args.dry_run
-            )
-        else:
-            reconcile = ReconcileSearchIndex(index=index, reader=reader, batch_size=args.batch_size)
-            report = await reconcile.run()
-        return cast("dict[str, object]", asdict(report))
+        if args.command == "backfill-embeddings":
+            provider = build_embedding_provider(settings)
+            if provider is None:
+                return {"error": "embeddings_disabled"}
+            embedding_report = await BackfillEmbeddings(
+                provider=provider,
+                store=PgVectorStore(uow_factory),
+                reader=reader,
+                batch_size=args.batch_size,
+            ).run(dry_run=args.dry_run)
+            return cast("dict[str, object]", asdict(embedding_report))
+        index = build_product_index(settings)
+        if index is None:
+            return {"error": "elasticsearch_disabled"}
+        try:
+            report: ReindexReport | ReconcileReport
+            if args.command == "reindex":
+                default_version = settings.elasticsearch_index_version
+                version = args.version if args.version is not None else default_version
+                use_case = ReindexProducts(
+                    index=index, reader=reader, replicas=settings.elasticsearch_index_replicas
+                )
+                report = await use_case.run(
+                    version=version, batch_size=args.batch_size, dry_run=args.dry_run
+                )
+            else:
+                reconcile = ReconcileSearchIndex(
+                    index=index, reader=reader, batch_size=args.batch_size
+                )
+                report = await reconcile.run()
+            return cast("dict[str, object]", asdict(report))
+        finally:
+            await index.close()
     finally:
-        await index.close()
         await engine.dispose()
 
 

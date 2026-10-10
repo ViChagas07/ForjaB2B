@@ -94,6 +94,22 @@ class Settings(BaseSettings):
     search_autocomplete_min_chars: int = Field(default=2, ge=1)
     search_autocomplete_max_suggestions: int = Field(default=10, ge=1)
 
+    # Busca semantica (Fase 5): pgvector + embeddings locais (ONNX).
+    # Desabilitada por padrao: sem a dependencia de runtime e o modelo baixado,
+    # a aplicacao sobe em modo lexical e o `search_mode` reflete isso. O modelo
+    # e baixado no build da imagem (nunca em tempo de requisicao).
+    embeddings_enabled: bool = False
+    embedding_provider: str = "onnx"
+    embedding_model: str = "intfloat/multilingual-e5-small"
+    embedding_dimension: int = Field(default=384, ge=1)
+    embedding_model_path: str = "/models/multilingual-e5-small"
+    embedding_onnx_filename: str = "model_O4.onnx"
+    embedding_tokenizer_filename: str = "tokenizer.json"
+    embedding_batch_size: int = Field(default=64, ge=1)
+    embedding_candidate_limit: int = Field(default=50, ge=1)
+    embedding_rrf_k: int = Field(default=60, ge=1)
+    embedding_query_timeout_seconds: float = Field(default=2.0, gt=0)
+
     # Seguranca de aplicacao (Fase 2).
     # `secret_key`: assinatura HMAC dos JWTs de acesso (HS256). Em producao
     # DEVE ser forte e injetada via secrets; em desenvolvimento usa o valor

@@ -79,7 +79,7 @@
 | 2 | Elasticsearch e cliente (ES 9.5.5 + `elasticsearch-py` 9.5.1) | ✅ |
 | 3 | Índice e sincronização (outbox + reconciliação) | ✅ |
 | 4 | Busca lexical e fallback (Postgres) | ✅ |
-| 5 | Busca semântica (PGVector) e fusão por RRF | ⏳ |
+| 5 | Busca semântica (PGVector) e fusão por RRF | ✅ (parcial: ver limitações) |
 | 6 | Produção, documentação e fechamento | ⏳ |
 
 - **Fase 1 (2026-10-10):** auditoria somente-leitura e plano completo em `docs/search/PLAN.md`.
@@ -173,6 +173,56 @@
     (endpoint + fallback Postgres real, preço de visitante vs autenticado).
   - **Limitação documentada:** ordenação por preço está **fora de escopo** (o índice não
     contém preço); a ordenação lexical usa relevância do ES, com desempate por nome.
+- **Fase 5 (2026-10-10):** busca semântica com **pgvector** e fusão **RRF**. Estado real:
+  **código completo e testado em unidade; o modelo de embeddings NÃO foi adotado** (porta
+  implementada), então nas consultas reais desta máquina o modo é **somente lexical**.
+  - **PostgreSQL/pgvector:** imagem trocada para `pgvector/pgvector:0.8.7-pg16` (mesma major
+    16) no `docker-compose.yml` e no `conftest` de integração; migration `0013_search_embeddings`
+    (`CREATE EXTENSION vector` + tabela `product_embeddings` com `embedding vector(384)`,
+    `content_hash`, `model`, `dimension` + índice **HNSW** `vector_cosine_ops`). Cadeia Alembic
+    com **head único 0013** confirmada (`alembic heads`).
+  - **Embeddings:** porta `EmbeddingProvider` + adaptador local ONNX (`infrastructure/embeddings.py`,
+    `intfloat/multilingual-e5-small`, prefixos `passage:`/`query:`, pooling médio + L2, inferência
+    em thread) e **import tardio** de `onnxruntime`/`tokenizers`/`numpy`. Texto embutido = nome +
+    marca + categoria + descrição (**sem preço nem dado privado**); `content_hash` evita recálculo.
+  - **Sincronização:** `BackfillEmbeddings` idempotente em lotes (só grava quando o hash muda;
+    remove vetores órfãos/despublicados) + CLI `python -m app.modules.search.interface.cli
+    backfill-embeddings [--dry-run]` + task Celery `backfill_search_embeddings` no beat; a outbox
+    (Fase 3) atualiza o vetor por evento via `EmbeddingSync` (hash-aware), sem bloquear a busca
+    lexical se o embedding falhar.
+  - **Busca híbrida:** `SearchProducts` roda lexical (ES) e semântico (pgvector) **em paralelo**,
+    funde por **RRF** (`k=60`, configurável) e degrada informando o modo real: `hybrid`,
+    `lexical`, `semantic_postgres`, `postgres_fallback`; se tudo falhar, erro (nunca lista vazia).
+    Consultas que parecem SKU dispensam o vetorial (preserva SKU exato no topo); o embed da
+    consulta tem **timeout próprio** (`EMBEDDING_QUERY_TIMEOUT_SECONDS`). Hidratação/preço/tenant
+    seguem idênticos à Fase 4 (**nada de preço vem de índice ou vetor**).
+  - **Validação executada:** `docker compose --env-file .env.example config --quiet` ✅;
+    `ruff check` ✅; `ruff format --check` ✅ (341 arquivos); `mypy` strict ✅ (328 arquivos);
+    `import-linter --config .import-linter` ✅ (4/4); `alembic heads` ✅ (0013 head único);
+    `pytest tests/unit tests/architecture` → **216 passed** (21 novos: texto/hash/pooling,
+    backfill idempotente, `EmbeddingSync`, RRF/SKU e modos de degradação). Suíte completa →
+    **218 passed, 1 skipped, 234 errors** (erros de setup por Docker indisponível; o skipped é o
+    teste lento do modelo real; **nenhuma falha de teste**).
+  - **NÃO executado / NÃO validado (limitação de ambiente — daemon Docker indisponível):**
+    backup lógico (`pg_dump`) **não foi feito**; a troca de imagem e a migration 0013 **não foram
+    aplicadas a um banco real**; não houve consulta real ao pgvector nem consulta `hybrid` real;
+    a qualidade semântica do modelo **não foi medida**. Testes de integração prontos para rodar
+    com Docker: `tests/integration/test_search_semantic_pg.py` (cosseno, idempotência, backfill
+    sobre pgvector real).
+  - **Decisão sobre o modelo (registrada):** o runtime (`onnxruntime` + `tokenizers`) e o download
+    do modelo **não foram adicionados** ao `requirements.txt`/Dockerfile porque não foi possível
+    verificar (neste ambiente) versões exatas, licença, tamanho, memória e latência em CPU sem
+    inventar versões nem baixar ~493 MB sem validação — o repositório exige versões pinadas
+    verificadas. `EMBEDDINGS_ENABLED=false` por padrão; a aplicação sobe em modo lexical e o
+    `search_mode` reflete isso. **Procedimento de habilitação:** (1) verificar no PyPI as versões
+    atuais de `onnxruntime` (CPU) e `tokenizers` e pinar em `requirements.txt`; (2) baixar
+    `intfloat/multilingual-e5-small` (MIT, ~493 MB fp32; `onnx/model_O4.onnx` + `tokenizer.json`)
+    no build da imagem para `EMBEDDING_MODEL_PATH`; (3) definir `EMBEDDINGS_ENABLED=true`;
+    (4) rodar `backfill-embeddings` e medir latência; (5) só então declarar `hybrid`.
+  - **Procedimento seguro para a troca de imagem (preserva dados):** com o stack parado, executar
+    `docker compose exec -T postgres pg_dump -U "$POSTGRES_BOOTSTRAP_USER" -d "$POSTGRES_DB" -Fc
+    > backup_pre_pgvector.dump` (fora do volume), subir a nova imagem (mesma major 16, volume
+    reaproveitado) e rodar `alembic upgrade head`. **Não foi executado** aqui.
 
 ## Próximos passos sugeridos
 

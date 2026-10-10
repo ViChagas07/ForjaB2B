@@ -1,13 +1,16 @@
-"""Casos de uso de busca lexical (Fase 4): pesquisa + autocomplete.
+"""Casos de uso de busca (Fases 4 e 5): lexical + semantica + fallback.
 
-O motor primario e o Elasticsearch; o PostgreSQL e o fallback. Os dados
-comerciais (preco) sao hidratados do PostgreSQL e nunca vem do indice.
+O motor lexical e o Elasticsearch, o semantico e o pgvector e o fallback e o
+PostgreSQL textual. Os dois primeiros rodam em paralelo e sao fundidos por
+Reciprocal Rank Fusion (RRF); os dados comerciais (preco) sao hidratados do
+PostgreSQL e nunca vem de indice ou vetor. O modo real usado e sempre exposto.
 """
 
 from __future__ import annotations
 
+import asyncio
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 
@@ -21,8 +24,11 @@ from app.modules.search.application.ports import (
     ProductRow,
     SearchQuery,
     SearchReader,
+    SearchResult,
     SearchSuggestion,
 )
+from app.modules.search.application.rrf import looks_like_sku, reciprocal_rank_fusion
+from app.modules.search.application.semantic import SemanticSearch
 
 _logger = get_logger(__name__)
 
@@ -52,7 +58,7 @@ class SearchResultItem:
 
 @dataclass(frozen=True, kw_only=True)
 class SearchResultPage:
-    """Pagina de busca lexical com modo real usado (lexical/fallback)."""
+    """Pagina de busca com o modo real (hybrid/lexical/semantic_postgres/fallback)."""
 
     items: list[SearchResultItem]
     total: int
@@ -63,36 +69,34 @@ class SearchResultPage:
 
 
 class SearchProducts:
-    """Busca lexical paginada com fallback para PostgreSQL e hidratacao autoritativa."""
+    """Busca hibrida com degradacao graciosa e hidratacao autoritativa."""
 
     def __init__(
         self,
         *,
-        primary: SearchReader,
+        primary: SearchReader | None,
         fallback: SearchReader,
+        semantic: SemanticSearch | None,
         product_reader: ProductReader,
         settings: Settings,
     ) -> None:
         self._primary = primary
         self._fallback = fallback
+        self._semantic = semantic
         self._product_reader = product_reader
         self._settings = settings
 
     async def run(self, *, query: SearchQuery, auth: AuthContext | None) -> SearchResultPage:
         self._validate(query)
-        try:
-            result = await self._primary.search(query)
-        except SearchUnavailableError:
-            _logger.warning("search_primary_unavailable_switching_to_fallback")
-            result = await self._fallback.search(query)
-
+        ids, total, mode = await self._retrieve(query)
+        page_ids = self._paginate(ids, query=query, mode=mode)
         products = await self._product_reader.get_products_by_ids(
-            [uuid.UUID(pid) for pid in result.ids]
+            [uuid.UUID(pid) for pid in page_ids]
         )
         today = date.today()
         items: list[SearchResultItem] = []
         dropped = 0
-        for pid_str in result.ids:
+        for pid_str in page_ids:
             product = products.get(uuid.UUID(pid_str))
             if product is None:
                 dropped += 1
@@ -115,15 +119,67 @@ class SearchProducts:
         if dropped:
             _logger.info("search_stale_entries_summary", dropped=dropped, returned=len(items))
 
-        pages = (result.total + query.page_size - 1) // query.page_size
+        pages = (total + query.page_size - 1) // query.page_size
         return SearchResultPage(
             items=items,
-            total=result.total,
+            total=total,
             page=query.page,
             page_size=query.page_size,
             pages=pages,
-            search_mode=result.mode,
+            search_mode=mode,
         )
+
+    async def _retrieve(self, query: SearchQuery) -> tuple[list[str], int, str]:
+        """Executa os caminhos disponiveis, funde por RRF e informa o modo real."""
+        use_semantic = self._use_semantic(query)
+        retrieval_query = (
+            replace(query, page=1, page_size=self._settings.embedding_candidate_limit)
+            if use_semantic
+            else query
+        )
+        lexical_outcome, semantic_outcome = await asyncio.gather(
+            self._run_lexical(retrieval_query),
+            self._run_semantic(query, enabled=use_semantic),
+            return_exceptions=True,
+        )
+        lexical_ids, lexical_total = _as_lexical(lexical_outcome)
+        semantic_ids = _as_semantic(semantic_outcome)
+
+        if lexical_ids is not None and semantic_ids is not None:
+            fused = reciprocal_rank_fusion(
+                [lexical_ids, semantic_ids], k=self._settings.embedding_rrf_k
+            )
+            return fused, len(fused), "hybrid"
+        if lexical_ids is not None:
+            return lexical_ids, lexical_total, "lexical"
+        if semantic_ids is not None:
+            return semantic_ids, len(semantic_ids), "semantic_postgres"
+        fallback = await self._fallback.search(query)
+        return fallback.ids, fallback.total, fallback.mode
+
+    def _use_semantic(self, query: SearchQuery) -> bool:
+        text = (query.q or "").strip()
+        return self._semantic is not None and bool(text) and not looks_like_sku(text)
+
+    async def _run_lexical(self, query: SearchQuery) -> SearchResult | None:
+        if self._primary is None:
+            return None
+        return await self._primary.search(query)
+
+    async def _run_semantic(self, query: SearchQuery, *, enabled: bool) -> list[str] | None:
+        semantic = self._semantic
+        if not enabled or semantic is None:
+            return None
+        return await semantic.search_ids(query=query)
+
+    def _paginate(self, ids: list[str], *, query: SearchQuery, mode: str) -> list[str]:
+        # Retrieval limitado por candidatos (RRF/semantico) e paginado aqui;
+        # lexical e fallback textual ja vem paginados pelo proprio motor.
+        bounded = mode != "postgres_fallback" and self._use_semantic(query)
+        if not bounded:
+            return ids
+        start = (query.page - 1) * query.page_size
+        return ids[start : start + query.page_size]
 
     def _validate(self, query: SearchQuery) -> None:
         if query.q is not None and len(query.q) > self._settings.search_max_query_length:
@@ -168,13 +224,29 @@ class SearchProducts:
         )
 
 
+def _as_lexical(outcome: SearchResult | None | BaseException) -> tuple[list[str] | None, int]:
+    if isinstance(outcome, SearchResult):
+        return outcome.ids, outcome.total
+    if isinstance(outcome, BaseException):
+        _logger.warning("lexical_search_unavailable", error=type(outcome).__name__)
+    return None, 0
+
+
+def _as_semantic(outcome: list[str] | None | BaseException) -> list[str] | None:
+    if isinstance(outcome, list):
+        return outcome
+    if isinstance(outcome, BaseException):
+        _logger.warning("semantic_search_unavailable", error=type(outcome).__name__)
+    return None
+
+
 class AutocompleteProducts:
-    """Autocomplete por nome/SKU; usa subcampo ``name.autocomplete`` do ES ou fallback Postgres."""
+    """Autocomplete por nome/SKU; usa o subcampo ``name.autocomplete`` do ES ou fallback."""
 
     def __init__(
         self,
         *,
-        primary: SearchReader,
+        primary: SearchReader | None,
         fallback: SearchReader,
         settings: Settings,
     ) -> None:
@@ -187,8 +259,9 @@ class AutocompleteProducts:
         if len(q) < self._settings.search_autocomplete_min_chars:
             return []
         limit = self._settings.search_autocomplete_max_suggestions
-        try:
-            return await self._primary.autocomplete(q=q, limit=limit)
-        except SearchUnavailableError:
-            _logger.warning("autocomplete_primary_unavailable_switching_to_fallback")
-            return await self._fallback.autocomplete(q=q, limit=limit)
+        if self._primary is not None:
+            try:
+                return await self._primary.autocomplete(q=q, limit=limit)
+            except SearchUnavailableError:
+                _logger.warning("autocomplete_primary_unavailable_switching_to_fallback")
+        return await self._fallback.autocomplete(q=q, limit=limit)
