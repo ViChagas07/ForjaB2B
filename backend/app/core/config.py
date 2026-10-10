@@ -18,7 +18,7 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn
+from pydantic import Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "staging", "production"]
@@ -167,6 +167,25 @@ class Settings(BaseSettings):
     # Admin de plataforma (aprovação de empresas). Em producao deve ser uma
     # chave forte injetada via secrets manager. Ausente, a rota admin 401.
     admin_api_key: str | None = None
+
+    @field_validator(
+        "elasticsearch_api_key",
+        "elasticsearch_username",
+        "elasticsearch_password",
+        "elasticsearch_ca_certs",
+        mode="before",
+    )
+    @classmethod
+    def _blank_credentials_to_none(cls, value: object) -> object:
+        """Trata string vazia (ou so espacos) como ausente.
+
+        Credenciais opcionais do Elasticsearch: um valor vazio em `.env`
+        (ex.: ``ELASTICSEARCH_API_KEY=``) NAO deve contar como credencial
+        definida, sob pena de o cliente ignorar usuario/senha e receber 401.
+        """
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
 
     @property
     def is_production(self) -> bool:

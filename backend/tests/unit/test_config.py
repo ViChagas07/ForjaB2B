@@ -40,3 +40,46 @@ def test_url_de_banco_invalida_falha(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_pool_com_limites_validados() -> None:
     with pytest.raises(ValidationError):
         Settings(db_pool_size=0)
+
+
+_BLANK = "   "
+_ES_SECRET = "segredo-de-teste"  # valor efemero de teste, nunca real
+_ES_KEY = "chave-de-teste"
+
+
+def test_credenciais_vazias_do_es_sao_tratadas_como_ausentes() -> None:
+    settings = Settings(
+        otel_enabled=False,
+        elasticsearch_api_key="",
+        elasticsearch_username="",
+        elasticsearch_password=_BLANK,
+        elasticsearch_ca_certs="",
+    )
+    assert settings.elasticsearch_api_key is None
+    assert settings.elasticsearch_username is None
+    assert settings.elasticsearch_password is None
+    assert settings.elasticsearch_ca_certs is None
+
+
+def test_sem_api_key_usa_basic_auth_mesmo_com_valor_vazio() -> None:
+    from app.modules.search.infrastructure.elasticsearch import _basic_auth
+
+    settings = Settings(
+        otel_enabled=False,
+        elasticsearch_api_key="",
+        elasticsearch_username="elastic",
+        elasticsearch_password=_ES_SECRET,
+    )
+    assert _basic_auth(settings) == ("elastic", _ES_SECRET)
+
+
+def test_api_key_preenchida_desliga_basic_auth() -> None:
+    from app.modules.search.infrastructure.elasticsearch import _basic_auth
+
+    settings = Settings(
+        otel_enabled=False,
+        elasticsearch_api_key=_ES_KEY,
+        elasticsearch_username="elastic",
+        elasticsearch_password=_ES_SECRET,
+    )
+    assert _basic_auth(settings) is None
