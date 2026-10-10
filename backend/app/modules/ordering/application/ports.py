@@ -8,12 +8,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Protocol
 
-from app.domain.pricing import PriceTier
+from app.domain.pricing import CompanyPriceRule, PriceTier
 
 
 @dataclass(frozen=True, kw_only=True)
 class ProductForOrder:
-    """Produto + tiers necessarios para validar e precificar um item."""
+    """Produto + tiers + regras de empresa para validar e precificar um item."""
 
     id: uuid.UUID
     sku: str
@@ -21,10 +21,12 @@ class ProductForOrder:
     status: str
     is_epi: bool
     ca_valid_until: date | None
+    category_id: uuid.UUID
     base_unit_price: Decimal
     min_order_qty: int
     weight_kg: Decimal | None
     tiers: list[PriceTier]
+    company_rules: list[CompanyPriceRule]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -77,8 +79,10 @@ class OrderView:
 class OrderingRepository(Protocol):
     """Persistencia de pedidos (snapshot + credito atomico)."""
 
-    async def get_product_for_order(self, product_id: uuid.UUID) -> ProductForOrder | None:
-        """Le produto + tiers para validacao/precificacao."""
+    async def get_product_for_order(
+        self, company_id: uuid.UUID, product_id: uuid.UUID
+    ) -> ProductForOrder | None:
+        """Le produto + tiers + regras da empresa para validacao/precificacao."""
 
     async def create_order(
         self,

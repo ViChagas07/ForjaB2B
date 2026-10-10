@@ -13,7 +13,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.core.metrics import increment_order_created
-from app.domain.pricing import resolve_unit_price
+from app.domain.pricing import resolve_company_price
 from app.domain.product_availability import is_sellable
 from app.domain.shipping import compute_shipping, compute_total_weight
 from app.modules.ordering.application.errors import (
@@ -57,7 +57,7 @@ class CreateOrder:
         resolved: list[ResolvedItem] = []
         line_weights: list[tuple[int, Decimal | None]] = []
         for item in items:
-            product = await self._repository.get_product_for_order(item.product_id)
+            product = await self._repository.get_product_for_order(company_id, item.product_id)
             if product is None:
                 raise ProductNotFoundError()
             if not is_sellable(
@@ -70,10 +70,12 @@ class CreateOrder:
             if item.quantity < product.min_order_qty:
                 raise QuantityBelowMinimumError()
 
-            price = resolve_unit_price(
+            price = resolve_company_price(
                 base_unit_price=product.base_unit_price,
                 tiers=product.tiers,
                 quantity=item.quantity,
+                category_id=product.category_id,
+                rules=product.company_rules,
             )
             resolved.append(
                 ResolvedItem(

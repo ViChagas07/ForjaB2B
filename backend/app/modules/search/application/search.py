@@ -19,6 +19,7 @@ from app.application.security import AuthContext
 from app.core import metrics
 from app.core.config import Settings
 from app.core.logging import get_logger
+from app.domain.pricing import CompanyPriceRule, resolve_company_price
 from app.domain.product_availability import ca_status, is_sellable
 from app.modules.search.application.errors import InvalidSearchQueryError, SearchUnavailableError
 from app.modules.search.application.ports import (
@@ -100,6 +101,11 @@ class SearchProducts:
             [uuid.UUID(pid) for pid in page_ids]
         )
         today = date.today()
+        rules_by_product: dict[uuid.UUID, list[CompanyPriceRule]] = {}
+        if auth is not None:
+            rules_by_product = await self._product_reader.get_company_price_rules(
+                company_id=auth.company_id, product_ids=list(products.keys())
+            )
         items: list[SearchResultItem] = []
         dropped = 0
         for pid_str in page_ids:
@@ -121,7 +127,7 @@ class SearchProducts:
                     ca_valid_until=str(product.ca_valid_until),
                 )
                 continue
-            items.append(self._to_item(product, auth, today))
+            items.append(self._to_item(product, auth, today, rules_by_product.get(product.id, [])))
         if dropped:
             _logger.info("search_stale_entries_summary", dropped=dropped, returned=len(items))
 
@@ -241,9 +247,27 @@ class SearchProducts:
             raise InvalidSearchQueryError("pagination too deep")
 
     def _to_item(
-        self, product: ProductRow, auth: AuthContext | None, today: date
+        self,
+        product: ProductRow,
+        auth: AuthContext | None,
+        today: date,
+        rules: list[CompanyPriceRule],
     ) -> SearchResultItem:
-        price_on_request = auth is None
+        # Visitante: preco consultivo (nenhum valor). Autenticado: preco de lista
+        # ajustado pelas regras da empresa (negociado > desconto > lista),
+        # resolvido aqui (nunca vem do indice ou do vetor).
+        if auth is None:
+            unit_price: Decimal | None = None
+            price_on_request = True
+        else:
+            unit_price = resolve_company_price(
+                base_unit_price=product.base_unit_price,
+                tiers=[],
+                quantity=1,
+                category_id=product.category_id,
+                rules=rules,
+            ).unit_price
+            price_on_request = False
         return SearchResultItem(
             id=product.id,
             sku=product.sku,
@@ -262,14 +286,14 @@ class SearchProducts:
             brand_id=product.brand_id,
             brand_name=product.brand_name,
             brand_slug=product.brand_slug,
-            base_unit_price=None if price_on_request else product.base_unit_price,
+            base_unit_price=unit_price,
             currency=product.currency,
             min_order_qty=product.min_order_qty,
             price_on_request=price_on_request,
         )
 
 
-def _as_lexical(outcome: SearchResult | None | BaseException) -> tuple[list[str] | None, int]:
+def _as_lexical(outcome: SearchResult | BaseException | None) -> tuple[list[str] | None, int]:
     if isinstance(outcome, SearchResult):
         return outcome.ids, outcome.total
     if isinstance(outcome, BaseException):
@@ -277,7 +301,7 @@ def _as_lexical(outcome: SearchResult | None | BaseException) -> tuple[list[str]
     return None, 0
 
 
-def _as_semantic(outcome: list[str] | None | BaseException) -> list[str] | None:
+def _as_semantic(outcome: list[str] | BaseException | None) -> list[str] | None:
     if isinstance(outcome, list):
         return outcome
     if isinstance(outcome, BaseException):

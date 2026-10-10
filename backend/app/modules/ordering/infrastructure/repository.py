@@ -19,6 +19,7 @@ from sqlalchemy import text
 from app.application.ports.tenant import TenantContext
 from app.domain.ledger import LedgerEntry, exposure
 from app.domain.pricing import PriceTier
+from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.outbox import enqueue_notification
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.ordering.application.errors import (
@@ -41,7 +42,7 @@ _ORDERS_KEY_UNIQUE = "uq_orders_idempotency_key"
 
 _GET_PRODUCT = text(
     "SELECT id, sku, name, status, is_epi, ca_valid_until, base_unit_price, min_order_qty, "
-    "weight_kg FROM products WHERE id = :product_id"
+    "weight_kg, category_id FROM products WHERE id = :product_id"
 )
 _GET_TIERS = text(
     "SELECT id, min_quantity, max_quantity, unit_price FROM product_price_tiers "
@@ -103,10 +104,15 @@ class SqlAlchemyOrderingRepository:
     def __init__(self, uow_factory: SqlAlchemyUnitOfWorkFactory) -> None:
         self._uow_factory = uow_factory
 
-    async def get_product_for_order(self, product_id: uuid.UUID) -> ProductForOrder | None:
-        async with self._uow_factory.begin() as uow:
+    async def get_product_for_order(
+        self, company_id: uuid.UUID, product_id: uuid.UUID
+    ) -> ProductForOrder | None:
+        # UoW com tenant: le produto/tiers (globais) e as regras da empresa (RLS).
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
             product = (await uow.session.execute(_GET_PRODUCT, {"product_id": product_id})).first()
             tiers_rows = (await uow.session.execute(_GET_TIERS, {"product_id": product_id})).all()
+            rules = await load_company_price_rules(uow.session, product_ids=[product_id])
             await uow.commit()
             if product is None:
                 return None
@@ -117,6 +123,7 @@ class SqlAlchemyOrderingRepository:
                 status=product.status,
                 is_epi=product.is_epi,
                 ca_valid_until=product.ca_valid_until,
+                category_id=product.category_id,
                 base_unit_price=product.base_unit_price,
                 min_order_qty=product.min_order_qty,
                 weight_kg=product.weight_kg,
@@ -129,6 +136,7 @@ class SqlAlchemyOrderingRepository:
                     )
                     for r in tiers_rows
                 ],
+                company_rules=rules.get(product_id, []),
             )
 
     async def create_order(

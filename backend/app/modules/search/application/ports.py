@@ -14,6 +14,8 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
 
+from app.domain.pricing import CompanyPriceRule
+
 
 class SearchEngineState(StrEnum):
     """Estado de saude do motor de busca."""
@@ -205,6 +207,16 @@ class ProductReader(Protocol):
         self, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, ProductRow]:
         """Carrega varios produtos de uma vez (hidratacao pos-busca)."""
+        ...
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        """Regras de preco da empresa por produto (RLS; vazio sem tenant).
+
+        Usado apenas para usuario autenticado; visitante nunca recebe valor
+        (preco consultivo). Nada disto vem de indice ou vetor.
+        """
         ...
 
 

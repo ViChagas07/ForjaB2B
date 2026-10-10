@@ -15,7 +15,8 @@ from typing import Any, cast
 from sqlalchemy import bindparam, text
 
 from app.application.ports.tenant import TenantContext
-from app.domain.pricing import PriceTier, resolve_unit_price
+from app.domain.pricing import CompanyPriceRule, PriceTier, resolve_company_price
+from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.cart.application.ports import (
     CartItemView,
@@ -38,7 +39,7 @@ _INSERT_CART = text(
 _SELECT_CART = text("SELECT id FROM carts WHERE company_id = :company_id AND user_id = :user_id")
 _SELECT_ITEMS = text(
     "SELECT ci.product_id, ci.quantity, p.sku, p.name, p.status, p.is_epi, "
-    "       p.ca_valid_until, p.base_unit_price, p.min_order_qty "
+    "       p.ca_valid_until, p.base_unit_price, p.min_order_qty, p.category_id "
     "FROM cart_items ci JOIN products p ON p.id = ci.product_id "
     "WHERE ci.cart_id = :cart_id ORDER BY ci.created_at, ci.id"
 )
@@ -120,7 +121,7 @@ class SqlAlchemyCartRepository:
             item_rows = (await uow.session.execute(_SELECT_ITEMS, {"cart_id": cart_id})).all()
             await uow.commit()
 
-        items = await self._resolve_items_standalone(item_rows)
+        items = await self._resolve_items_standalone(item_rows, company_id)
         subtotal = sum((item.line_total for item in items), Decimal("0.00"))
         return CartView(
             cart_id=cart_id,
@@ -130,15 +131,20 @@ class SqlAlchemyCartRepository:
             subtotal=subtotal,
         )
 
-    async def _resolve_items_standalone(self, item_rows: Sequence[Any]) -> list[CartItemView]:
+    async def _resolve_items_standalone(
+        self, item_rows: Sequence[Any], company_id: uuid.UUID
+    ) -> list[CartItemView]:
         product_ids = [r.product_id for r in item_rows]
         tiers_by_product = await self._tiers_by_products(product_ids)
+        rules_by_product = await self._rules_by_products(company_id, product_ids)
         items: list[CartItemView] = []
         for r in item_rows:
-            resolved = resolve_unit_price(
+            resolved = resolve_company_price(
                 base_unit_price=r.base_unit_price,
                 tiers=tiers_by_product.get(r.product_id, []),
                 quantity=r.quantity,
+                category_id=r.category_id,
+                rules=rules_by_product.get(r.product_id, []),
             )
             items.append(
                 CartItemView(
@@ -152,6 +158,17 @@ class SqlAlchemyCartRepository:
                 )
             )
         return items
+
+    async def _rules_by_products(
+        self, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        if not product_ids:
+            return {}
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            rules = await load_company_price_rules(uow.session, product_ids=product_ids)
+            await uow.commit()
+        return rules
 
     async def _tiers_by_products(
         self, product_ids: list[uuid.UUID]

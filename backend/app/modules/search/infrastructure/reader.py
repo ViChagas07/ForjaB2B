@@ -16,6 +16,9 @@ from typing import Any
 
 from sqlalchemy import text
 
+from app.application.ports.tenant import TenantContext
+from app.domain.pricing import CompanyPriceRule
+from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.search.application.ports import ProductRow
 
@@ -133,3 +136,14 @@ class SqlAlchemyProductReader:
             product = _to_row(row)
             result[product.id] = product
         return result
+
+    async def get_company_price_rules(
+        self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
+        if not product_ids:
+            return {}
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            rules = await load_company_price_rules(uow.session, product_ids=product_ids)
+            await uow.commit()
+        return rules
