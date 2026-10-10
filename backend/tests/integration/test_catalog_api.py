@@ -11,7 +11,6 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator
 from datetime import date
-from decimal import Decimal
 
 import httpx
 import pytest
@@ -268,14 +267,35 @@ async def test_filtrar_por_busca(catalog_client: httpx.AsyncClient) -> None:
 
 
 async def test_ordenar_por_preco(catalog_client: httpx.AsyncClient) -> None:
+    # A ordenacao continua sendo feita no servidor por base_unit_price, mas o
+    # visitante nao ve o valor (preco consultivo); a ordem e verificada por SKU.
     response = await catalog_client.get(
         "/api/v1/catalog/products",
         params={"status": "ACTIVE", "sort": "base_unit_price", "order": "asc"},
     )
     assert response.status_code == 200
-    prices = [Decimal(item["base_unit_price"]) for item in response.json()["items"]]
-    assert prices == sorted(prices)
-    assert prices[0] == Decimal("8.90")  # EPI expirado e o mais barato
+    skus = [item["sku"] for item in response.json()["items"]]
+    assert skus == ["EPI-EXP-002", "EPI-NOCA-003", "EPI-OK-001", "FER-PAR-004"]
+
+
+async def test_visitante_recebe_preco_consultivo_no_catalogo(
+    catalog_client: httpx.AsyncClient,
+) -> None:
+    response = await catalog_client.get("/api/v1/catalog/products", params={"page_size": 100})
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert items
+    for item in items:
+        assert item["price_on_request"] is True
+        assert item["base_unit_price"] is None
+
+    detail = await catalog_client.get(f"/api/v1/catalog/products/{_P_EPI_VALIDO}")
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["price_on_request"] is True
+    assert body["base_unit_price"] is None
+    # Nenhum campo carrega o valor real do produto (24.90) para o visitante.
+    assert "24.9" not in detail.text
 
 
 async def test_consultar_produto_com_ca_valido(catalog_client: httpx.AsyncClient) -> None:
