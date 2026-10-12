@@ -340,6 +340,15 @@
           "unit": "Einheit",
           "selectOption": "Option auswählen",
           "attributesRemovedWarning": "Die folgenden Attribute sind für die neue Kategorie nicht gültig und wurden entfernt: {keys}"
+        },
+        "preview": {
+          "customerView": "Kundenansicht",
+          "previewTitle": "Kundenansicht",
+          "note": "Diese Vorschau zeigt, wie das Produkt im öffentlichen Katalog erscheint. Nur ausgefüllte Felder werden angezeigt.",
+          "noName": "Produktname",
+          "notSet": "Nicht gesetzt",
+          "available": "Verfügbar",
+          "notSellable": "Nicht verkäuflich"
         }
       }
     }

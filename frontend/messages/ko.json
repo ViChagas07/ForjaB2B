@@ -340,6 +340,15 @@
           "unit": "단위",
           "selectOption": "옵션 선택",
           "attributesRemovedWarning": "다음 속성은 새 카테고리에서 유효하지 않아 제거되었습니다: {keys}"
+        },
+        "preview": {
+          "customerView": "고객 미리보기",
+          "previewTitle": "고객 미리보기",
+          "note": "이 미리보기는 제품이 공개 카탈로그에서 어떻게 표시될지 보여줍니다. 입력된 필드만 표시됩니다.",
+          "noName": "제품 이름",
+          "notSet": "설정되지 않음",
+          "available": "구매 가능",
+          "notSellable": "구매 불가"
         }
       }
     }

@@ -340,6 +340,15 @@
           "unit": "单位",
           "selectOption": "选择选项",
           "attributesRemovedWarning": "以下属性对新分类无效，已被移除: {keys}"
+        },
+        "preview": {
+          "customerView": "客户预览",
+          "previewTitle": "客户预览",
+          "note": "此预览显示产品在公开目录中的显示效果。仅显示已填写的字段。",
+          "noName": "产品名称",
+          "notSet": "未设置",
+          "available": "可购买",
+          "notSellable": "不可购买"
         }
       }
     }

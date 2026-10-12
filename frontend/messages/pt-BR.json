@@ -340,6 +340,15 @@
           "unit": "Unidade",
           "selectOption": "Selecione uma opção",
           "attributesRemovedWarning": "Os seguintes atributos não são válidos para a nova categoria e foram removidos: {keys}"
+        },
+        "preview": {
+          "customerView": "Visualizar como cliente",
+          "previewTitle": "Pré-visualização do cliente",
+          "note": "Esta pré-visualização mostra como o produto aparecerá no catálogo público. Apenas campos preenchidos são exibidos.",
+          "noName": "Nome do produto",
+          "notSet": "Não definido",
+          "available": "Disponível",
+          "notSellable": "Indisponível"
         }
       }
     }

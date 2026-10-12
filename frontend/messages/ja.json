@@ -340,6 +340,15 @@
           "unit": "単位",
           "selectOption": "オプションを選択",
           "attributesRemovedWarning": "次の属性は新しいカテゴリで無効なため削除されました: {keys}"
+        },
+        "preview": {
+          "customerView": "顧客視点でプレビュー",
+          "previewTitle": "顧客プレビュー",
+          "note": "このプレビューは、製品が公開カタログでどのように表示されるかを示します。入力済みのフィールドのみ表示されます。",
+          "noName": "製品名",
+          "notSet": "未設定",
+          "available": "購入可能",
+          "notSellable": "購入不可"
         }
       }
     }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, usePathname, useParams } from "next/navigation";
-import { Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, X, ChevronDown, ChevronUp, Eye, Plus } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, X, ChevronDown, ChevronUp, Eye, Plus, LayoutDashboard, Maximize2, Shield } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as z from "zod";
 
@@ -21,6 +21,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Separator } from "@/shared/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { cn } from "@/shared/lib/utils";
+import { formatNumber } from "@/shared/lib/money";
 import { errorMessageKey } from "@/shared/lib/api-error";
 
 import {
@@ -49,6 +50,12 @@ const basicInfoSchema = z.object({
   base_unit_price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Preço inválido"),
   currency: z.string().length(3).default("BRL"),
   min_order_qty: z.coerce.number().int().min(1).default(1),
+  // Optional fields for preview (not required for validation)
+  ca_number: z.string().optional().nullable(),
+  ca_valid_until: z.string().optional().nullable(),
+  unit_of_measure: z.string().optional().nullable(),
+  weight_kg: z.string().optional().nullable(),
+  ncm: z.string().optional().nullable(),
 });
 
 type BasicInfoForm = z.infer<typeof basicInfoSchema>;
@@ -65,6 +72,7 @@ type ImageForm = z.infer<typeof imageSchema>;
 
 export function AdminProductFormClient({ productId }: { productId: string | null }) {
   const t = useTranslations("admin.catalog.products.form");
+  const tCatalog = useTranslations("catalog");
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
@@ -86,6 +94,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     base_unit_price: "0.00",
     currency: "BRL",
     min_order_qty: 1,
+    ca_number: null,
+    ca_valid_until: null,
+    unit_of_measure: null,
+    weight_kg: null,
+    ncm: null,
   });
 
   const [dynamicAttributes, setDynamicAttributes] = useState<Record<string, unknown>>({});
@@ -93,6 +106,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
   const [selectedStaticImage, setSelectedStaticImage] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showCustomerPreview, setShowCustomerPreview] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -165,6 +179,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
         base_unit_price: product.base_unit_price ?? "0.00",
         currency: product.currency,
         min_order_qty: product.min_order_qty,
+        ca_number: product.ca_number ?? null,
+        ca_valid_until: product.ca_valid_until ?? null,
+        unit_of_measure: product.unit_of_measure ?? null,
+        weight_kg: product.weight_kg ?? null,
+        ncm: product.ncm ?? null,
       });
       setDynamicAttributes(product.attributes ?? {});
       if (product.image_url) {
@@ -312,6 +331,32 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       return valid;
     }
     return true;
+  };
+
+  // Helper: determine if product is sellable (mirrors public page logic)
+  const getSellableStatus = () => {
+    const caStatus = basicInfo.ca_number ? (basicInfo.ca_valid_until ? "VALID" : "EXPIRED") : "NOT_APPLICABLE";
+    const hasValidCa = basicInfo.is_epi ? caStatus === "VALID" : true;
+    const isActive = !isEdit || product?.status === "ACTIVE"; // For preview, assume published
+    return isActive && hasValidCa;
+  };
+
+  // Helper: get CA status label
+  const getCaStatusLabel = () => {
+    if (!basicInfo.ca_number) return t("caNotApplicable");
+    if (!basicInfo.ca_valid_until) return t("caExpired");
+    const validUntil = new Date(basicInfo.ca_valid_until);
+    const now = new Date();
+    return validUntil >= now ? t("caValid") : t("caExpired");
+  };
+
+  // Helper: get CA status variant for badge
+  const getCaStatusVariant = () => {
+    if (!basicInfo.ca_number) return "secondary";
+    if (!basicInfo.ca_valid_until) return "destructive";
+    const validUntil = new Date(basicInfo.ca_valid_until);
+    const now = new Date();
+    return validUntil >= now ? "default" : "destructive";
   };
 
   // Mutations
@@ -559,6 +604,10 @@ export function AdminProductFormClient({ productId }: { productId: string | null
               <X className="mr-2 h-4 w-4" />
               {t("cancel")}
             </Link>
+          </Button>
+          <Button variant="outline" onClick={() => setShowCustomerPreview(true)} disabled={createMutation.isPending || updateMutation.isPending}>
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            {t("preview.customerView")}
           </Button>
           <Button variant="outline" onClick={() => handleSubmit("draft")} disabled={createMutation.isPending || updateMutation.isPending}>
             {createMutation.isPending || updateMutation.isPending ? (
@@ -906,20 +955,177 @@ export function AdminProductFormClient({ productId }: { productId: string | null
         </Card>
       </form>
 
-      {/* Preview Dialog */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+      {/* Image Preview Dialog (for image tab) */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="image-preview-title">
         {showPreview && imagePreview && (
           <>
             <div className="fixed inset-0 bg-black/80" onClick={() => setShowPreview(false)} />
             <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] bg-background rounded-lg shadow-xl overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b">
-                <h2 id="preview-title" className="text-lg font-semibold">{t("image.previewTitle")}</h2>
+                <h2 id="image-preview-title" className="text-lg font-semibold">{t("image.previewTitle")}</h2>
                 <Button variant="ghost" size="icon" onClick={() => setShowPreview(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
               <div className="p-4">
                 <img src={imagePreview} alt={t("image.previewAlt")} className="max-h-[70vh] w-auto mx-auto object-contain" />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Customer Preview Dialog - "Como o cliente verá" */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="customer-preview-title">
+        {showCustomerPreview && (
+          <>
+            <div className="fixed inset-0 bg-black/80" onClick={() => setShowCustomerPreview(false)} />
+            <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] bg-background rounded-lg shadow-xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h2 id="customer-preview-title" className="text-lg font-semibold">{t("preview.customerView")}</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{t("preview.note")}</span>
+                  <Button variant="ghost" size="icon" onClick={() => setShowCustomerPreview(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-6 max-w-2xl mx-auto">
+                  {/* Product Card - mirrors public page */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-2xl tracking-tight">{basicInfo.name || t("preview.noName")}</CardTitle>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {/* EPI Badge */}
+                        {basicInfo.is_epi && (
+                          <Badge variant="secondary" className="gap-1">
+                            <Shield className="h-3 w-3" />
+                            {tCatalog("epiYes")}
+                          </Badge>
+                        )}
+                        {/* CA Status Badge */}
+                        <Badge variant={getCaStatusVariant()}>
+                          {getCaStatusLabel()}
+                        </Badge>
+                        {/* Availability Badge */}
+                        <Badge variant={getSellableStatus() ? "default" : "destructive"}>
+                          {getSellableStatus() ? t("preview.available") : t("preview.notSellable")}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Image */}
+                      <div className="overflow-hidden rounded-lg bg-muted">
+                        {imagePreview ? (
+                          <img
+                            src={imagePreview}
+                            alt={basicInfo.name || t("preview.noName")}
+                            className="mx-auto h-72 w-full object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-72 items-center justify-center text-muted-foreground">
+                            <ImageIcon className="h-12 w-12" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="text-3xl font-bold">
+                          {basicInfo.base_unit_price && Number(basicInfo.base_unit_price) > 0 ? (
+                            <>
+                              {formatNumber(Number(basicInfo.base_unit_price), "pt-BR")} {basicInfo.currency}
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">{tCatalog("priceOnRequest")}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      {basicInfo.description ? (
+                        <div>
+                          <h3 className="mb-2 font-medium">{tCatalog("description")}</h3>
+                          <p className="text-sm text-muted-foreground">{basicInfo.description}</p>
+                        </div>
+                      ) : null}
+
+                      {/* Details Grid */}
+                      <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+                        <div>
+                          <dt className="text-muted-foreground">{tCatalog("sku")}</dt>
+                          <dd className="font-mono font-medium">{basicInfo.sku || t("preview.notSet")}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">{tCatalog("category")}</dt>
+                          <dd className="font-medium">
+                            {categories?.flat().find(c => c.id === basicInfo.category_id)?.name || t("preview.notSet")}
+                          </dd>
+                        </div>
+                        {basicInfo.brand_id ? (
+                          <div>
+                            <dt className="text-muted-foreground">{tCatalog("brand")}</dt>
+                            <dd className="font-medium">
+                              {brands?.flat().find(b => b.id === basicInfo.brand_id)?.name || t("preview.notSet")}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {basicInfo.unit_of_measure ? (
+                          <div>
+                            <dt className="text-muted-foreground">{tCatalog("unit")}</dt>
+                            <dd className="font-medium">{basicInfo.unit_of_measure}</dd>
+                          </div>
+                        ) : null}
+                        <div>
+                          <dt className="text-muted-foreground">{tCatalog("minOrderQty")}</dt>
+                          <dd className="font-medium">{basicInfo.min_order_qty}</dd>
+                        </div>
+                        {basicInfo.weight_kg ? (
+                          <div>
+                            <dt className="text-muted-foreground">{tCatalog("weight")}</dt>
+                            <dd className="font-medium">
+                              {formatNumber(Number(basicInfo.weight_kg), "pt-BR")} kg
+                            </dd>
+                          </div>
+                        ) : null}
+                        {basicInfo.ca_number ? (
+                          <div>
+                            <dt className="text-muted-foreground">{tCatalog("caNumber")}</dt>
+                            <dd className="font-medium">{basicInfo.ca_number}</dd>
+                          </div>
+                        ) : null}
+                        {basicInfo.ncm ? (
+                          <div>
+                            <dt className="text-muted-foreground">{tCatalog("ncm")}</dt>
+                            <dd className="font-mono font-medium">{basicInfo.ncm}</dd>
+                          </div>
+                        ) : null}
+                      </dl>
+
+                      {/* Especificações - only filled attributes */}
+                      {attributeDefs && attributeDefs.length > 0 ? (
+                        <div>
+                          <h3 className="mb-3 font-medium">{tCatalog("attributes")}</h3>
+                          <dl className="grid gap-2 sm:grid-cols-2">
+                            {attributeDefs
+                              .filter(def => dynamicAttributes[def.key] && String(dynamicAttributes[def.key]).trim() !== "")
+                              .sort((a, b) => a.display_order - b.display_order)
+                              .map(def => (
+                                <div key={def.key} className="flex flex-col gap-1 text-sm">
+                                  <dt className="text-muted-foreground">{def.label}</dt>
+                                  <dd className="font-medium">
+                                    {String(dynamicAttributes[def.key])}
+                                    {def.unit && <span className="text-muted-foreground ml-1">({def.unit})</span>}
+                                  </dd>
+                                </div>
+                              ))}
+                          </dl>
+                        </div>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           </>

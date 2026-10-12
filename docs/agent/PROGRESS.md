@@ -544,13 +544,25 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
   - Abas: URL (HTTPS com preview automático) ou Imagens do catálogo (grid de `/static/catalog/`)
   - Preview em tempo real em área dedicada
   - Dialog modal para preview em tela cheia
-- **Seção 4 - Publicação**:
+- **Seção 4 - Publicação** ✅:
   - Dois botões: "Salvar rascunho" (DRAFT) e "Salvar e publicar" (ACTIVE)
   - Loading states nos botões
   - Tratamento de erro 409 (version conflict): alerta + recarrega lista
+- **Preview "como o cliente verá" (Passo 5) ✅**:
+  - Botão "Visualizar como cliente" no header abre dialog modal
+  - Renderiza card idêntico à página pública: imagem, nome, badges (EPI, CA, disponibilidade), preço (ou "Sob consulta"), descrição
+  - Grid de detalhes: SKU, categoria, marca, unidade, qtd mínima, peso, CA, NCM
+  - Seção "Especificações" **só renderiza atributos preenchidos** (label, value, unit), ordenados por `display_order`
+  - Usa `tCatalog` para chaves do catálogo público, `t` para chaves do formulário
+- **Validação (Passo 6) ✅**:
+  - Client-side: Zod schema para campos obrigatórios + validação manual por campo (required, tipo, min/max, enum)
+  - Server errors: `getFieldErrors()` extrai erros por campo do RFC 7807; exibe no campo correto
+  - Foco no primeiro erro ao submeter inválido (`element.focus()`)
+  - Contadores de caracteres (Nome 200, Descrição 2000)
+  - Labels acessíveis, `aria-invalid`, `aria-describedby` para erros
+  - Teclado: Enter submete, Tab navega, Escape fecha dialogs
 - **Outros**:
   - Aviso de alterações não salvas ao sair da página (`beforeunload`)
-  - Foco no primeiro erro ao submeter inválido
   - Estados: loading (skeleton), erro (alert), acesso negado (não-admin)
 
 **Componentes UI adicionados:**
