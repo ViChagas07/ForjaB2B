@@ -37,6 +37,17 @@ class BrandRef(BaseModel):
     slug: str
 
 
+class ProductAttributeOut(BaseModel):
+    """Atributo preenchido do produto (apenas os com valor)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    label: str
+    value: str
+    unit: str | None = None
+
+
 class ProductSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -68,7 +79,7 @@ class ProductDetail(ProductSummary):
     ncm: str | None
     unit_of_measure: str | None
     weight_kg: Decimal | None
-    attributes: dict[str, object] | None
+    attributes: list[ProductAttributeOut]
 
 
 class ProductListResponse(BaseModel):

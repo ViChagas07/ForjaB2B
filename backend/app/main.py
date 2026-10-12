@@ -20,6 +20,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.application.product_attributes import load_default_registry
 from app.application.security import TokenService
 from app.core.config import Settings, get_settings
 from app.core.errors import ConfigurationError
@@ -52,7 +53,22 @@ from app.modules.catalog.application.catalog import (
     ListCategories,
     ListProducts,
 )
+from app.modules.catalog.application.product_admin import (
+    CreateProduct,
+    GetAttributeDefinitionsForCategory,
+    GetProductAdmin,
+    ListProductsAdmin,
+    ListStaticImages,
+    PublishProduct,
+    UnpublishProduct,
+    UpdateProduct,
+)
+from app.modules.catalog.infrastructure.admin_repository import (
+    SqlAlchemyCatalogAdminRepository,
+    SqlAlchemySearchOutboxRepository,
+)
 from app.modules.catalog.infrastructure.repository import SqlAlchemyCatalogRepository
+from app.modules.catalog.interface import admin_router as catalog_admin_router
 from app.modules.companies.application.company import (
     ApproveCompany,
     GetCurrentCompany,
@@ -303,6 +319,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.catalog_list_products = ListProducts(repository=catalog_repository)
     app.state.catalog_get_product = GetProduct(repository=catalog_repository)
 
+    # Composicao do contexto de catalogo - ADMIN (escrita, role forja_admin via UoW sem tenant).
+    admin_repository = SqlAlchemyCatalogAdminRepository(app.state.uow_factory)
+    search_outbox = SqlAlchemySearchOutboxRepository(app.state.uow_factory)
+    attribute_registry = load_default_registry()
+    app.state.catalog_admin_create_product = CreateProduct(
+        repository=admin_repository,
+        outbox=search_outbox,
+        registry=attribute_registry,
+    )
+    app.state.catalog_admin_get_product = GetProductAdmin(repository=admin_repository)
+    app.state.catalog_admin_list_products = ListProductsAdmin(repository=admin_repository)
+    app.state.catalog_admin_update_product = UpdateProduct(
+        repository=admin_repository,
+        outbox=search_outbox,
+        registry=attribute_registry,
+    )
+    app.state.catalog_admin_publish_product = PublishProduct(
+        repository=admin_repository, outbox=search_outbox
+    )
+    app.state.catalog_admin_unpublish_product = UnpublishProduct(
+        repository=admin_repository, outbox=search_outbox
+    )
+    app.state.catalog_admin_get_attribute_definitions = GetAttributeDefinitionsForCategory(
+        registry=attribute_registry
+    )
+    app.state.catalog_admin_list_static_images = ListStaticImages()
+
     # Composicao do contexto de credito (consulta + operacoes transacionais).
     credit_repository = SqlAlchemyCreditRepository(app.state.uow_factory)
     app.state.credit_get_account = GetCreditAccount(repository=credit_repository)
@@ -369,6 +412,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(api_v1_router)
+    app.include_router(catalog_admin_router, prefix="/api/v1")
 
     if settings.otel_enabled:
         instrument_app(app)

@@ -191,3 +191,147 @@ cd backend && import-linter lint --config .import-linter
 ---
 
 **Declaração:** Fase 9A-3a e Fase 9-a concluídas. Aguardando Fase 9-b (API admin) e Fase 9-c (frontend).
+
+---
+
+## Fase 9-b — API de administração de produtos, API pública e índice
+
+**Iniciado:** 2026-10-12
+
+### Passo 1 — Auditoria rápida (somente leitura) ✅
+
+**Papéis RBAC e identificação do administrador:**
+- `MemberRole` enum (identity.domain.enums): `ADMIN`, `BUYER`, `APPROVER`, `FINANCE` — papéis dentro de uma empresa
+- **Não existe papel `forja_admin` no JWT** — `forja_admin` é role de banco (PostgreSQL) para migrations/seed, não papel de aplicação
+- Autenticação via JWT com `AuthContext` (user_id, company_id, role, token_id)
+- RBAC aplicado via `require_role(auth, *allowed_roles)` em `app.application.security`
+
+**Rotas de admin existentes:** Nenhuma rota de escrita de catálogo existe atualmente. O catálogo é somente leitura (router em `catalog/interface/router.py`).
+
+**Trilha de auditoria existente:** Módulo `audit` existe mas está vazio (apenas scaffolds nas camadas domain/application/infrastructure).
+
+**Outbox de eventos de catálogo:** 
+- `search_outbox` tabela (global, sem RLS) para sincronização do Elasticsearch
+- Eventos `UPSERT`/`DELETE` com `aggregate_id` (product_id), `version` (epoch ms de updated_at), `attempts`
+- Worker `DispatchSearchOutbox` processa eventos e atualiza índice + embeddings
+- `SqlAlchemySearchOutboxRepository` em `search/infrastructure/outbox_repository.py`
+
+**Página pública de detalhe do produto:**
+- `GET /catalog/products/{product_id}` → `GetProduct` use case → `ProductDetail` schema
+- Atributos devolvidos como `attributes: dict[str, object] | None` (raw JSONB)
+- Preço mascarado para visitante (`price_on_request: true`), resolvido para empresa autenticada
+- Tradução campo a campo com fallback para pt-BR
+
+### Passo 2 — Casos de uso e endpoints de administração ✅
+
+**Endpoints criados (apenas papel ADMIN):**
+- `POST /api/v1/admin/catalog/products` — Criar produto (DRAFT)
+- `GET /api/v1/admin/catalog/products/{product_id}` — Obter produto
+- `GET /api/v1/admin/catalog/products` — Listar com filtros (q, category_id, status) e paginação (máx 100)
+- `PATCH /api/v1/admin/catalog/products/{product_id}` — Editar produto (concorrência otimista via version)
+- `POST /api/v1/admin/catalog/products/{product_id}/publish` — Publicar (DRAFT → ACTIVE)
+- `POST /api/v1/admin/catalog/products/{product_id}/unpublish` — Despublicar (ACTIVE → DRAFT)
+- `GET /api/v1/admin/catalog/categories/{category_slug}/attributes` — Definições de atributo por categoria
+- `GET /api/v1/admin/catalog/static-images` — Listar imagens estáticas disponíveis
+
+**Regras implementadas:**
+- Nome, descrição, marca obrigatórios (validação da 9-a)
+- Atributos validados e normalizados pela 9-a (chave desconhecida/fora de escopo = erro, vazios descartados)
+- SKU único e imutável após criação; slug gerado e único
+- Concorrência otimista (version = epoch ms de updated_at); conflito → 409
+- Texto simples apenas, limites de tamanho
+- Imagem: aceita URL `https://` ou caminho `/static/...` (validação `app.domain.catalog_image`)
+- Eventos na outbox de busca: UPSERT em create/update/publish, DELETE em unpublish
+- Rate limiting por IP/usuário (herdado do middleware global)
+
+**Testes:** Unitários existentes passam (93), Ruff check passa, mypy nos novos arquivos passa (exceto dependências externas faltantes)
+
+### Passo 3 — API pública: só atributos preenchidos ✅
+
+**Mudança no schema `ProductDetail`:**
+- `attributes` agora é `list[ProductAttributeOut]` ao invés de `dict[str, object] | None`
+- `ProductAttributeOut`: `{key, label, value, unit}` — apenas atributos com valor não vazio
+- Conversão feita no router público usando registry de atributos para obter label/unit
+
+**Testes:** Unitários existentes passam
+
+### Passo 4 — Índice e embeddings ⏳ NÃO VALIDADO
+**Pendente:** Docker/Elasticsearch não disponível no ambiente atual
+- Adicionar campos `model` e `attributes_text` ao mapping Elasticsearch
+- Nova versão de índice com alias + reindexação segura
+- Embedding text inclui marca, modelo, atributos preenchidos (sem preço)
+- `content_hash` muda → backfill idempotente
+
+### Passo 5 — Validação real (Docker de pé) ⏳ NÃO VALIDADO
+**Pendente:** Docker Compose não disponível
+- `docker compose --env-file .env.example config --quiet`
+- Testes manuais via API (admin, visitante, comprador)
+- Reindexação e busca por modelo
+- Eventos outbox e embedding atualizado
+- Rollback produtos de teste
+
+### Passo 6 — Documentação e checagens finais ✅
+
+**Arquivos criados/modificados:**
+- `app/modules/catalog/domain/product_admin.py` — Domínio puro (regras, validação, concorrência)
+- `app/modules/catalog/application/product_admin.py` — Casos de uso (Create, Get, List, Update, Publish, Unpublish, Attributes, StaticImages)
+- `app/modules/catalog/infrastructure/admin_repository.py` — Repositório SQLAlchemy (role forja_admin) + Outbox
+- `app/modules/catalog/interface/admin_schemas.py` — Schemas Pydantic (request/response)
+- `app/modules/catalog/interface/admin_router.py` — Endpoints FastAPI com RBAC ADMIN
+- `app/modules/catalog/interface/schemas.py` — `ProductAttributeOut` + `attributes` como lista ordenada
+- `app/modules/catalog/interface/router.py` — Conversão público `dict → list[ProductAttributeOut]`
+- `app/modules/catalog/application/ports.py` — Portas `CatalogAdminRepository`, `SearchOutboxPort`
+- `app/modules/catalog/infrastructure/__init__.py` — Exports
+- `app/modules/catalog/interface/__init__.py` — Exports
+- `app/main.py` — Composição admin (UoW sem tenant, registry, outbox)
+
+**Qualidade:**
+- Ruff check: **passed** (376 files)
+- Ruff format: **passed** (376 files)
+- Import-linter: **4 contracts kept, 0 broken**
+- Testes unitários: **93 passed** (38 product_attributes + 55 photo_manifest)
+- Mypy: Apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+
+**Commits locais criados:** (pendente)
+
+---
+
+## Relatório final
+
+### Resumo do que foi feito
+
+**Passo 1 — Auditoria:** Documentado RBAC (role ADMIN), rotas existentes (somente leitura), outbox de busca, página pública.
+
+**Passo 2 — API Admin:** 8 endpoints criados com RBAC ADMIN, validação completa, concorrência otimista, outbox events.
+
+**Passo 3 — API Pública:** Atributos agora retornados como lista ordenada apenas com valores preenchidos.
+
+**Passos 4-5:** Pendentes validação com Docker/Elasticsearch.
+
+### Arquivos criados
+- `backend/app/modules/catalog/domain/product_admin.py`
+- `backend/app/modules/catalog/application/product_admin.py`
+- `backend/app/modules/catalog/infrastructure/admin_repository.py`
+- `backend/app/modules/catalog/interface/admin_schemas.py`
+- `backend/app/modules/catalog/interface/admin_router.py`
+
+### Arquivos modificados
+- `backend/app/modules/catalog/domain/product_attributes.py` (uso interno)
+- `backend/app/modules/catalog/application/ports.py`
+- `backend/app/modules/catalog/interface/schemas.py`
+- `backend/app/modules/catalog/interface/router.py`
+- `backend/app/modules/catalog/infrastructure/__init__.py`
+- `backend/app/modules/catalog/interface/__init__.py`
+- `backend/app/main.py`
+- `docs/agent/PROGRESS.md`
+
+### NÃO VALIDADO e riscos
+- **Passos 4-5 (Elasticsearch/Índice/Embeddings/Validação Docker):** Não validados — ambiente sem Docker/ES
+- **Rate limiting específico por rota:** Herda middleware global, limites customizados não configurados
+- **Auditoria:** Módulo audit vazio — trilha mínima via outbox, mas sem tabela dedicada de auditoria admin
+
+### Próximos passos
+1. Executar Passo 4 com Docker/ES para adicionar mapping e reindexar
+2. Executar Passo 5 para validação end-to-end
+3. Atualizar `docs/CATALOG_ADMIN.md` e `docs/STATUS.md`
+4. Fase 9-c (Frontend)

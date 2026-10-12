@@ -27,6 +27,7 @@ from app.modules.catalog.interface.schemas import (
     BrandRef,
     CategoryOut,
     CategoryRef,
+    ProductAttributeOut,
     ProductDetail,
     ProductListQuery,
     ProductListResponse,
@@ -160,6 +161,30 @@ async def get_product(
         locale=locale,
     )
     summary = _to_summary(view)
+
+    # Converte attributes dict para lista ordenada apenas com atributos preenchidos
+    attributes_list: list[ProductAttributeOut] = []
+    if view.attributes:
+        from app.application.product_attributes import load_default_registry
+
+        registry = load_default_registry()
+        category_defs = registry.get_for_category(view.category_slug)
+        def_by_key = {d.key: d for d in category_defs}
+
+        for key, value in view.attributes.items():
+            if value is None:
+                continue
+            if isinstance(value, str) and value.strip() == "":
+                continue
+            if isinstance(value, list) and len(value) == 0:
+                continue
+            defn = def_by_key.get(key)
+            label = defn.label if defn else key
+            unit = defn.unit if defn else None
+            attributes_list.append(
+                ProductAttributeOut(key=key, label=label, value=str(value), unit=unit)
+            )
+
     return ProductDetail(
         **summary.model_dump(),
         description=view.description,
@@ -168,5 +193,5 @@ async def get_product(
         ncm=view.ncm,
         unit_of_measure=view.unit_of_measure,
         weight_kg=view.weight_kg,
-        attributes=view.attributes,
+        attributes=attributes_list,
     )

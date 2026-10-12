@@ -3,6 +3,8 @@
 O catalogo e GLOBAL (sem RLS/company_id): a leitura usa a role de runtime
 ``forja_app``, que tem apenas SELECT (escrita revogada nas migrations). Os
 registros devolvidos sao neutros (nao vazam entidades ORM para a interface).
+
+A escrita administrativa usa a role ``forja_admin`` via UoW sem tenant.
 """
 
 from __future__ import annotations
@@ -15,6 +17,11 @@ from typing import Protocol
 
 from app.application.i18n import ProductTextTranslation
 from app.domain.pricing import CompanyPriceRule
+from app.modules.catalog.domain.product_admin import (
+    ProductAdminView,
+    ProductListFilters,
+    ProductPage,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -80,7 +87,7 @@ class ProductFilters:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ProductPage:
+class PublicProductPage:
     items: list[ProductView]
     total: int
     page: int
@@ -103,7 +110,7 @@ class CatalogRepository(Protocol):
     async def get_brand(self, brand_id: uuid.UUID) -> BrandView | None:
         """Consulta uma marca."""
 
-    async def list_products(self, filters: ProductFilters) -> ProductPage:
+    async def list_products(self, filters: ProductFilters) -> PublicProductPage:
         """Lista produtos paginados com filtros/ordenacao."""
 
     async def get_product(self, product_id: uuid.UUID) -> ProductView | None:
@@ -121,3 +128,41 @@ class CatalogRepository(Protocol):
 
     async def get_category_name_map(self, locale: str) -> dict[str, str]:
         """Mapa ``slug -> nome traduzido`` das categorias (fallback na origem)."""
+
+
+class CatalogAdminRepository(Protocol):
+    """Persistência de escrita do catálogo global (role forja_admin)."""
+
+    async def get_all_skus(self) -> set[str]:
+        """Retorna todos os SKUs existentes (para validação de unicidade)."""
+
+    async def get_all_slugs(self) -> set[str]:
+        """Retorna todos os slugs existentes (para validação de unicidade)."""
+
+    async def get_category(self, category_id: uuid.UUID) -> CategoryView | None:
+        """Consulta uma categoria (para validação)."""
+
+    async def get_brand(self, brand_id: uuid.UUID) -> BrandView | None:
+        """Consulta uma marca (para validação)."""
+
+    async def create(self, product: ProductAdminView) -> ProductAdminView:
+        """Cria um novo produto."""
+
+    async def get(self, product_id: uuid.UUID) -> ProductAdminView | None:
+        """Consulta um produto para administração."""
+
+    async def list(self, filters: ProductListFilters) -> ProductPage:
+        """Lista produtos com filtros/paginação para administração."""
+
+    async def update(self, product: ProductAdminView) -> ProductAdminView:
+        """Atualiza um produto (concorrência otimista via version)."""
+
+
+class SearchOutboxPort(Protocol):
+    """Porta para emitir eventos na outbox de busca (global, sem RLS)."""
+
+    async def emit_upsert(self, *, product_id: uuid.UUID, version: int) -> None:
+        """Emite evento UPSERT para produto criado/atualizado/publicado."""
+
+    async def emit_delete(self, *, product_id: uuid.UUID, version: int) -> None:
+        """Emite evento DELETE para produto despublicado/arquivado."""
