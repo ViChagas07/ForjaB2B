@@ -12,14 +12,20 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from dataclasses import replace
 from typing import Any
 
 from sqlalchemy import text
 
+from app.application.i18n import ProductTextTranslation
 from app.application.ports.tenant import TenantContext
+from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.pricing import CompanyPriceRule
 from app.infrastructure.db.company_pricing import load_company_price_rules
+from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.infrastructure.i18n.dictionary import load_category_names
+from app.modules.search.application.documents import SEARCH_TRANSLATION_LOCALES
 from app.modules.search.application.ports import ProductRow
 
 _NIL_UUID = "00000000-0000-0000-0000-000000000000"
@@ -103,10 +109,17 @@ class SqlAlchemyProductReader:
                         _SELECT_PAGE, {"last_id": last_id, "batch_size": batch_size}
                     )
                 ).all()
+                base_batch = [_to_row(row) for row in rows]
+                translations = await self._translations_for(
+                    uow, [product.id for product in base_batch]
+                )
                 await uow.commit()
-            if not rows:
+            if not base_batch:
                 return
-            batch = [_to_row(row) for row in rows]
+            batch = [
+                replace(product, translations=translations.get(product.id, {}))
+                for product in base_batch
+            ]
             last_id = str(batch[-1].id)
             yield batch
             if len(batch) < batch_size:
@@ -115,10 +128,13 @@ class SqlAlchemyProductReader:
     async def get_product(self, product_id: uuid.UUID) -> ProductRow | None:
         async with self._uow_factory.begin() as uow:
             row = (await uow.session.execute(_SELECT_ONE, {"product_id": str(product_id)})).first()
+            if row is None:
+                await uow.commit()
+                return None
+            product = _to_row(row)
+            translations = await self._translations_for(uow, [product.id])
             await uow.commit()
-        if row is None:
-            return None
-        return _to_row(row)
+        return replace(product, translations=translations.get(product.id, {}))
 
     async def get_products_by_ids(
         self, product_ids: list[uuid.UUID]
@@ -131,12 +147,34 @@ class SqlAlchemyProductReader:
                     _SELECT_BY_IDS, {"product_ids": [str(pid) for pid in product_ids]}
                 )
             ).all()
+            products = [_to_row(row) for row in rows]
+            translations = await self._translations_for(uow, [product.id for product in products])
             await uow.commit()
-        result: dict[uuid.UUID, ProductRow] = {}
-        for row in rows:
-            product = _to_row(row)
-            result[product.id] = product
+        return {
+            product.id: replace(product, translations=translations.get(product.id, {}))
+            for product in products
+        }
+
+    async def _translations_for(
+        self, uow: Any, product_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, dict[str, ProductTextTranslation]]:
+        """Traducoes por idioma (en/es/ar) dos produtos informados."""
+        if not product_ids:
+            return {}
+        rows = await load_product_translations(
+            uow.session, product_ids=product_ids, locales=list(SEARCH_TRANSLATION_LOCALES)
+        )
+        result: dict[uuid.UUID, dict[str, ProductTextTranslation]] = {}
+        for (product_id, locale), row in rows.items():
+            result.setdefault(product_id, {})[locale] = ProductTextTranslation(
+                name=row.name, description=row.description, attributes=row.attributes
+            )
         return result
+
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        if locale == DEFAULT_LOCALE:
+            return {}
+        return load_category_names().get(locale, {})
 
     async def get_company_price_rules(
         self, *, company_id: uuid.UUID, product_ids: list[uuid.UUID]

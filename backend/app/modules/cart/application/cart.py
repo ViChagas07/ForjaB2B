@@ -28,9 +28,11 @@ class CartService:
         self._repository = repository
         self._today = today or date.today()
 
-    async def get_cart(self, company_id: uuid.UUID, user_id: uuid.UUID) -> CartView:
+    async def get_cart(
+        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> CartView:
         await self._repository.get_or_create_cart(company_id, user_id)
-        cart = await self._repository.get_cart(company_id, user_id)
+        cart = await self._repository.get_cart(company_id, user_id, locale)
         if cart is None:
             cart_id = await self._repository.get_or_create_cart(company_id, user_id)
             return CartView(
@@ -49,13 +51,14 @@ class CartService:
         user_id: uuid.UUID,
         product_id: uuid.UUID,
         quantity: int,
+        locale: str = "pt-BR",
     ) -> CartView:
         await self._validate_product(product_id, quantity)
         cart_id = await self._repository.get_or_create_cart(company_id, user_id)
         await self._repository.upsert_item(
             cart_id=cart_id, company_id=company_id, product_id=product_id, quantity=quantity
         )
-        return await self._load_cart(company_id, user_id)
+        return await self._load_cart(company_id, user_id, locale)
 
     async def update_quantity(
         self,
@@ -64,30 +67,40 @@ class CartService:
         user_id: uuid.UUID,
         product_id: uuid.UUID,
         quantity: int,
+        locale: str = "pt-BR",
     ) -> CartView:
         await self._validate_product(product_id, quantity)
         cart_id = await self._repository.get_or_create_cart(company_id, user_id)
         await self._repository.set_quantity(
             cart_id=cart_id, company_id=company_id, product_id=product_id, quantity=quantity
         )
-        return await self._load_cart(company_id, user_id)
+        return await self._load_cart(company_id, user_id, locale)
 
     async def remove_item(
-        self, *, company_id: uuid.UUID, user_id: uuid.UUID, product_id: uuid.UUID
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        product_id: uuid.UUID,
+        locale: str = "pt-BR",
     ) -> CartView:
         cart_id = await self._repository.get_or_create_cart(company_id, user_id)
         await self._repository.remove_item(
             cart_id=cart_id, company_id=company_id, product_id=product_id
         )
-        return await self._load_cart(company_id, user_id)
+        return await self._load_cart(company_id, user_id, locale)
 
-    async def clear(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> CartView:
+    async def clear(
+        self, *, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> CartView:
         cart_id = await self._repository.get_or_create_cart(company_id, user_id)
         await self._repository.clear(cart_id=cart_id, company_id=company_id)
-        return await self._load_cart(company_id, user_id)
+        return await self._load_cart(company_id, user_id, locale)
 
-    async def _load_cart(self, company_id: uuid.UUID, user_id: uuid.UUID) -> CartView:
-        cart = await self._repository.get_cart(company_id, user_id)
+    async def _load_cart(
+        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> CartView:
+        cart = await self._repository.get_cart(company_id, user_id, locale)
         if cart is None:
             raise CartNotFoundError()
         return cart

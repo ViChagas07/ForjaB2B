@@ -1,0 +1,41 @@
+{
+  "en": {
+    "epis": "PPE",
+    "maquinas-e-ferramentas": "Machines and Tools",
+    "protecao-cabeca": "Head Protection",
+    "protecao-visual": "Eye Protection",
+    "protecao-maos": "Hand Protection",
+    "protecao-respiratoria": "Respiratory Protection",
+    "protecao-auditiva": "Hearing Protection",
+    "protecao-pes": "Foot Protection",
+    "protecao-quedas": "Fall Protection",
+    "ferramentas-eletricas": "Power Tools",
+    "maquinas-estacionarias": "Stationary Machines"
+  },
+  "es": {
+    "epis": "EPP",
+    "maquinas-e-ferramentas": "Máquinas y Herramientas",
+    "protecao-cabeca": "Protección de la Cabeza",
+    "protecao-visual": "Protección Visual",
+    "protecao-maos": "Protección de las Manos",
+    "protecao-respiratoria": "Protección Respiratoria",
+    "protecao-auditiva": "Protección Auditiva",
+    "protecao-pes": "Protección de los Pies",
+    "protecao-quedas": "Protección contra Caídas",
+    "ferramentas-eletricas": "Herramientas Eléctricas",
+    "maquinas-estacionarias": "Máquinas Estacionarias"
+  },
+  "ar": {
+    "epis": "معدات الحماية الشخصية",
+    "maquinas-e-ferramentas": "الآلات والأدوات",
+    "protecao-cabeca": "حماية الرأس",
+    "protecao-visual": "حماية العين",
+    "protecao-maos": "حماية اليدين",
+    "protecao-respiratoria": "الحماية التنفسية",
+    "protecao-auditiva": "حماية السمع",
+    "protecao-pes": "حماية القدمين",
+    "protecao-quedas": "الحماية من السقوط",
+    "ferramentas-eletricas": "الأدوات الكهربائية",
+    "maquinas-estacionarias": "الآلات الثابتة"
+  }
+}

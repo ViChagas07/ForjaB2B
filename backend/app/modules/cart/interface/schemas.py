@@ -33,6 +33,7 @@ class CartItemResponse(BaseModel):
     tier_min_quantity: int | None
     image_url: str
     image_alt: str
+    content_locale: str
 
 
 class CartResponse(BaseModel):

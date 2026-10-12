@@ -72,6 +72,9 @@ class _FakeProductReader(ProductReader):
     ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         return {pid: self._rules.get(pid, []) for pid in product_ids}
 
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        return {}
+
 
 def _settings() -> Settings:
     return Settings(

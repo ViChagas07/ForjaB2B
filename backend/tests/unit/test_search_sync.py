@@ -184,6 +184,9 @@ class _FakeReader:
     ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         return {}
 
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        return {}
+
 
 class _FakeOutbox:
     def __init__(self, events: list[SearchOutboxEvent]) -> None:

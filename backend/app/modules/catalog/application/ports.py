@@ -13,6 +13,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Protocol
 
+from app.application.i18n import ProductTextTranslation
 from app.domain.pricing import CompanyPriceRule
 
 
@@ -59,6 +60,8 @@ class ProductView:
     image_url: str | None
     image_alt: str
     attributes: dict[str, object] | None
+    content_locale: str
+    fallback: bool
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,3 +113,11 @@ class CatalogRepository(Protocol):
         self, company_id: uuid.UUID, product_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         """Regras de preco da empresa por produto (RLS; vazio sem tenant)."""
+
+    async def get_product_translations(
+        self, product_ids: list[uuid.UUID], locale: str
+    ) -> dict[uuid.UUID, ProductTextTranslation]:
+        """Traducoes armazenadas por produto no idioma pedido (vazio se pt-BR)."""
+
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        """Mapa ``slug -> nome traduzido`` das categorias (fallback na origem)."""

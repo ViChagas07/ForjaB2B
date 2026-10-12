@@ -12,7 +12,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Query, Request
 
 from app.application.security import AuthContext
-from app.interface.deps import get_optional_auth
+from app.interface.deps import get_locale, get_optional_auth
 from app.modules.search.application.ports import SearchQuery
 from app.modules.search.application.search import (
     AutocompleteProducts,
@@ -63,6 +63,7 @@ def _to_product_out(item: SearchResultItem) -> SearchProductOut:
         price_on_request=item.price_on_request,
         image_url=item.image_url,
         image_alt=item.image_alt,
+        content_locale=item.content_locale,
     )
 
 
@@ -71,6 +72,7 @@ async def search_products(
     query: Annotated[SearchQueryParams, Query()],
     use_case: Annotated[SearchProducts, Depends(_search_products)],
     auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
+    locale: Annotated[str, Depends(get_locale)],
 ) -> SearchResponse:
     result = await use_case.run(
         query=SearchQuery(
@@ -80,6 +82,7 @@ async def search_products(
             is_epi=query.is_epi,
             page=query.page,
             page_size=query.page_size,
+            locale=locale,
         ),
         auth=auth,
     )

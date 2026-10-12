@@ -145,6 +145,9 @@ class _FakeReader:
     ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         return {}
 
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        return {}
+
 
 def test_texto_embutido_nao_contem_preco_nem_dado_privado() -> None:
     text = build_embedding_text(_row("A"))

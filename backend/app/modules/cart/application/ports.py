@@ -39,6 +39,7 @@ class CartItemView:
     tier_min_quantity: int | None
     image_url: str
     image_alt: str
+    content_locale: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -61,8 +62,10 @@ class CartRepository(Protocol):
     async def get_or_create_cart(self, company_id: uuid.UUID, user_id: uuid.UUID) -> uuid.UUID:
         """Devolve o carrinho ativo do usuario (cria se ausente)."""
 
-    async def get_cart(self, company_id: uuid.UUID, user_id: uuid.UUID) -> CartView | None:
-        """Le o carrinho com itens e precos resolvidos."""
+    async def get_cart(
+        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> CartView | None:
+        """Le o carrinho com itens, precos e nomes traduzidos resolvidos."""
 
     async def upsert_item(
         self,

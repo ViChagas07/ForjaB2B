@@ -10,7 +10,9 @@ from __future__ import annotations
 import uuid
 from dataclasses import replace
 
+from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
+from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.pricing import CompanyPriceRule, resolve_company_price
 from app.modules.catalog.application.errors import (
     BrandNotFoundError,
@@ -35,6 +37,32 @@ def _with_image(view: ProductView) -> ProductView:
             product_image_url=view.image_url, category_slug=view.category_slug
         ),
         image_alt=resolve_image_alt(view.name),
+    )
+
+
+def _with_translation(
+    view: ProductView,
+    *,
+    translation: ProductTextTranslation | None,
+    category_map: dict[str, str],
+    locale: str,
+) -> ProductView:
+    """Aplica a traducao armazenada (fallback campo a campo para pt-BR)."""
+    resolved = resolve_product_text(
+        source_name=view.name,
+        source_description=view.description,
+        source_attributes=view.attributes,
+        locale=locale,
+        translation=translation,
+    )
+    return replace(
+        view,
+        name=resolved.name.value or view.name,
+        description=resolved.description.value,
+        attributes=resolved.attributes,
+        category_name=category_map.get(view.category_slug, view.category_name),
+        content_locale=resolved.content_locale,
+        fallback=resolved.fallback,
     )
 
 
@@ -103,17 +131,32 @@ class ListProducts:
         self._repository = repository
 
     async def list(
-        self, filters: ProductFilters, *, company_id: uuid.UUID | None = None
+        self,
+        filters: ProductFilters,
+        *,
+        company_id: uuid.UUID | None = None,
+        locale: str = DEFAULT_LOCALE,
     ) -> ProductPage:
         page = await self._repository.list_products(filters)
+        product_ids = [view.id for view in page.items]
         if company_id is None:
             items = [_with_image(_mask_price(view)) for view in page.items]
         else:
-            rules = await self._repository.get_company_price_rules(
-                company_id, [view.id for view in page.items]
-            )
+            rules = await self._repository.get_company_price_rules(company_id, product_ids)
             items = [
                 _with_image(_resolve_price(view, rules.get(view.id, []))) for view in page.items
+            ]
+        if locale != DEFAULT_LOCALE:
+            translations = await self._repository.get_product_translations(product_ids, locale)
+            category_map = await self._repository.get_category_name_map(locale)
+            items = [
+                _with_translation(
+                    view,
+                    translation=translations.get(view.id),
+                    category_map=category_map,
+                    locale=locale,
+                )
+                for view in items
             ]
         return replace(page, items=items)
 
@@ -125,12 +168,27 @@ class GetProduct:
         self._repository = repository
 
     async def get(
-        self, product_id: uuid.UUID, *, company_id: uuid.UUID | None = None
+        self,
+        product_id: uuid.UUID,
+        *,
+        company_id: uuid.UUID | None = None,
+        locale: str = DEFAULT_LOCALE,
     ) -> ProductView:
         product = await self._repository.get_product(product_id)
         if product is None:
             raise ProductNotFoundError()
         if company_id is None:
-            return _with_image(_mask_price(product))
-        rules = await self._repository.get_company_price_rules(company_id, [product_id])
-        return _with_image(_resolve_price(product, rules.get(product_id, [])))
+            view = _with_image(_mask_price(product))
+        else:
+            rules = await self._repository.get_company_price_rules(company_id, [product_id])
+            view = _with_image(_resolve_price(product, rules.get(product_id, [])))
+        if locale == DEFAULT_LOCALE:
+            return view
+        translations = await self._repository.get_product_translations([product_id], locale)
+        category_map = await self._repository.get_category_name_map(locale)
+        return _with_translation(
+            view,
+            translation=translations.get(product_id),
+            category_map=category_map,
+            locale=locale,
+        )

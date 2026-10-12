@@ -14,10 +14,13 @@ from typing import Any, cast
 
 from sqlalchemy import bindparam, text
 
+from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.application.ports.tenant import TenantContext
 from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
+from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.pricing import CompanyPriceRule, PriceTier, resolve_company_price
 from app.infrastructure.db.company_pricing import load_company_price_rules
+from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.cart.application.ports import (
     CartItemView,
@@ -108,7 +111,9 @@ class SqlAlchemyCartRepository:
             await uow.commit()
             return cart_id
 
-    async def get_cart(self, company_id: uuid.UUID, user_id: uuid.UUID) -> CartView | None:
+    async def get_cart(
+        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = DEFAULT_LOCALE
+    ) -> CartView | None:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
             cart_row = (
@@ -124,7 +129,7 @@ class SqlAlchemyCartRepository:
             item_rows = (await uow.session.execute(_SELECT_ITEMS, {"cart_id": cart_id})).all()
             await uow.commit()
 
-        items = await self._resolve_items_standalone(item_rows, company_id)
+        items = await self._resolve_items_standalone(item_rows, company_id, locale)
         subtotal = sum((item.line_total for item in items), Decimal("0.00"))
         return CartView(
             cart_id=cart_id,
@@ -135,11 +140,14 @@ class SqlAlchemyCartRepository:
         )
 
     async def _resolve_items_standalone(
-        self, item_rows: Sequence[Any], company_id: uuid.UUID
+        self, item_rows: Sequence[Any], company_id: uuid.UUID, locale: str
     ) -> list[CartItemView]:
         product_ids = [r.product_id for r in item_rows]
         tiers_by_product = await self._tiers_by_products(product_ids)
         rules_by_product = await self._rules_by_products(company_id, product_ids)
+        translations: dict[uuid.UUID, ProductTextTranslation] = {}
+        if locale != DEFAULT_LOCALE:
+            translations = await self._translations_by_products(product_ids, locale)
         items: list[CartItemView] = []
         for r in item_rows:
             resolved = resolve_company_price(
@@ -149,11 +157,18 @@ class SqlAlchemyCartRepository:
                 category_id=r.category_id,
                 rules=rules_by_product.get(r.product_id, []),
             )
+            text = resolve_product_text(
+                source_name=r.name,
+                source_description=None,
+                source_attributes=None,
+                locale=locale,
+                translation=translations.get(r.product_id),
+            )
             items.append(
                 CartItemView(
                     product_id=r.product_id,
                     sku=r.sku,
-                    name=r.name,
+                    name=text.name.value or r.name,
                     quantity=r.quantity,
                     unit_price=resolved.unit_price,
                     line_total=resolved.unit_price * r.quantity,
@@ -161,10 +176,28 @@ class SqlAlchemyCartRepository:
                     image_url=resolve_product_image_path(
                         product_image_url=r.image_url, category_slug=r.category_slug
                     ),
-                    image_alt=resolve_image_alt(r.name),
+                    image_alt=resolve_image_alt(text.name.value or r.name),
+                    content_locale=text.content_locale,
                 )
             )
         return items
+
+    async def _translations_by_products(
+        self, product_ids: list[uuid.UUID], locale: str
+    ) -> dict[uuid.UUID, ProductTextTranslation]:
+        if not product_ids:
+            return {}
+        async with self._uow_factory.begin() as uow:
+            rows = await load_product_translations(
+                uow.session, product_ids=product_ids, locales=[locale]
+            )
+            await uow.commit()
+        return {
+            product_id: ProductTextTranslation(
+                name=row.name, description=row.description, attributes=row.attributes
+            )
+            for (product_id, _locale), row in rows.items()
+        }
 
     async def _rules_by_products(
         self, company_id: uuid.UUID, product_ids: list[uuid.UUID]

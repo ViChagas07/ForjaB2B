@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
 
+from app.application.i18n import ProductTextTranslation
 from app.domain.pricing import CompanyPriceRule
 
 
@@ -83,6 +84,8 @@ class ProductRow:
     min_order_qty: int
     created_at: datetime
     updated_at: datetime
+    # Traducoes por idioma (indexacao multilingue). Vazio para quem nao carrega.
+    translations: dict[str, ProductTextTranslation] = field(default_factory=dict)
 
     @property
     def version(self) -> int:
@@ -111,6 +114,15 @@ class ProductDocument:
     brand: str | None
     brand_slug: str | None
     attributes: dict[str, object]
+    name_en: str | None
+    name_es: str | None
+    name_ar: str | None
+    description_en: str | None
+    description_es: str | None
+    description_ar: str | None
+    attributes_text_en: str | None
+    attributes_text_es: str | None
+    attributes_text_ar: str | None
     created_at: str
     updated_at: str
     version: int
@@ -135,6 +147,15 @@ class ProductDocument:
             "brand": self.brand,
             "brand_slug": self.brand_slug,
             "attributes": self.attributes,
+            "name_en": self.name_en,
+            "name_es": self.name_es,
+            "name_ar": self.name_ar,
+            "description_en": self.description_en,
+            "description_es": self.description_es,
+            "description_ar": self.description_ar,
+            "attributes_text_en": self.attributes_text_en,
+            "attributes_text_es": self.attributes_text_es,
+            "attributes_text_ar": self.attributes_text_ar,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "version": self.version,
@@ -173,6 +194,7 @@ class SearchQuery:
     is_epi: bool | None
     page: int
     page_size: int
+    locale: str = "pt-BR"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -218,6 +240,10 @@ class ProductReader(Protocol):
         Usado apenas para usuario autenticado; visitante nunca recebe valor
         (preco consultivo). Nada disto vem de indice ou vetor.
         """
+        ...
+
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        """Mapa ``slug -> nome traduzido`` das categorias (fallback na origem)."""
         ...
 
 

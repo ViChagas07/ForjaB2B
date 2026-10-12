@@ -23,10 +23,13 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from pathlib import Path
+from typing import cast
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
+from app.domain.i18n import TranslationStatus, product_source_hash
 from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 
 # PEPPER de desenvolvimento (mesmo valor publicado em .env.example). NUNCA
@@ -86,7 +89,7 @@ def cpf_hash(cpf: str, pepper: str) -> str:
     return hmac.new(pepper.encode("utf-8"), cpf.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
-async def _seed_global_catalog(conn: AsyncConnection) -> int:
+async def _seed_global_catalog(conn: AsyncConnection) -> tuple[int, int]:
     rows = 0
     rows += await _insert(conn, "categories", _ALL_CATEGORIES)
     rows += await _insert(conn, "brands", _ALL_BRANDS)
@@ -101,7 +104,8 @@ async def _seed_global_catalog(conn: AsyncConnection) -> int:
     # INSERT acima e ON CONFLICT DO NOTHING, entao um ajuste de preco so entra
     # por aqui, e apenas quando o valor realmente muda.
     await _refresh_demo_prices(conn)
-    return rows
+    translations = await _seed_product_translations(conn)
+    return rows, translations
 
 
 async def _refresh_demo_prices(conn: AsyncConnection) -> None:
@@ -122,6 +126,66 @@ async def _refresh_demo_prices(conn: AsyncConnection) -> None:
             ),
             {"price": tier["unit_price"], "id": tier["id"]},
         )
+
+
+async def _seed_product_translations(conn: AsyncConnection) -> int:
+    """Carrega as traducoes offline de demonstracao (status=machine, idempotente).
+
+    Le ``seed_data/demo_translations.json`` (origem pt-BR, traduzido offline para
+    en/es/ar) e insere/atualiza ``product_translations`` por (product_id, locale).
+    O ``source_hash`` e calculado do conteudo de origem pt-BR do produto, mantendo
+    o vinculo com a origem: reexecutar o seed mantem os hashes corretos e o status
+    em ``machine`` (sem duplicar). Traducoes revisadas manualmente (``reviewed``)
+    sao SOBRESCREVIDAS de proposito, já que o seed e fonte unica do demo.
+    """
+    products_by_sku = {product["sku"]: product for product in _ALL_PRODUCTS}
+    locales = _DEMO_TRANSLATIONS["locales"]
+    rows = 0
+    for sku, product in products_by_sku.items():
+        trans = _DEMO_TRANSLATIONS["products"].get(sku)
+        if not trans:
+            continue
+        attrs_raw = product.get("attributes")
+        source_attrs = json.loads(cast(str, attrs_raw)) if attrs_raw else None
+        source_hash = product_source_hash(
+            name=cast(str, product["name"]),
+            description=cast("str | None", product.get("description")),
+            attributes=source_attrs,
+        )
+        for locale in locales:
+            entry = trans.get(locale)
+            if not entry:
+                continue
+            await conn.execute(
+                text(
+                    "INSERT INTO product_translations "
+                    "(product_id, locale, name, description, attributes, "
+                    "source_hash, status, translated_at) "
+                    "VALUES (:product_id, :locale, :name, :description, "
+                    "CAST(:attributes AS jsonb), :source_hash, :status, "
+                    ":translated_at) "
+                    "ON CONFLICT (product_id, locale) DO UPDATE SET "
+                    "name = EXCLUDED.name, "
+                    "description = EXCLUDED.description, "
+                    "attributes = EXCLUDED.attributes, "
+                    "source_hash = EXCLUDED.source_hash, "
+                    "status = EXCLUDED.status, "
+                    "translated_at = EXCLUDED.translated_at, "
+                    "updated_at = now()"
+                ),
+                {
+                    "product_id": product["id"],
+                    "locale": locale,
+                    "name": entry["name"],
+                    "description": entry.get("description"),
+                    "attributes": json.dumps(entry.get("attributes") or {}),
+                    "source_hash": source_hash,
+                    "status": TranslationStatus.MACHINE.value,
+                    "translated_at": datetime.now(UTC),
+                },
+            )
+            rows += 1
+    return rows
 
 
 async def _seed_tenant(conn: AsyncConnection, pepper: str, password_hash: str | None) -> int:
@@ -224,13 +288,14 @@ async def seed_database(
     engine = create_async_engine(admin_url)
     try:
         async with engine.begin() as conn:
-            catalog = await _seed_global_catalog(conn)
+            catalog, translations = await _seed_global_catalog(conn)
             tenant = await _seed_tenant(conn, pepper, password_hash)
             demo = await _seed_demo_tenants(conn, pepper, password_hash)
     finally:
         await engine.dispose()
     return {
         "catalog_rows": catalog,
+        "translation_rows": translations,
         "tenant_rows": tenant,
         "demo_tenant_rows": demo,
         "demo_users_seeded": 1 if password_hash is not None else 0,
@@ -1192,6 +1257,13 @@ _ALL_CATEGORIES: list[dict[str, object]] = [*_CATEGORIES, *_DEMO_CATEGORIES]
 _ALL_BRANDS: list[dict[str, object]] = [*_BRANDS, *_DEMO_BRANDS]
 _ALL_PRODUCTS: list[dict[str, object]] = [*_PRODUCTS, *_DEMO_PRODUCTS]
 _ALL_TIERS: list[dict[str, object]] = [*_TIERS, *_DEMO_TIERS]
+
+# Traducoes offline de demonstracao (en/es/ar) - origem pt-BR. Carregadas uma
+# unica vez no import (arquivo versionado ao lado do seed), nunca no request.
+_DEMO_TRANSLATIONS_PATH = (
+    Path(__file__).resolve().parents[3] / "seed_data" / "demo_translations.json"
+)
+_DEMO_TRANSLATIONS = json.loads(_DEMO_TRANSLATIONS_PATH.read_text(encoding="utf-8"))
 
 
 # ---------------------------------------------------------------------------

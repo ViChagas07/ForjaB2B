@@ -12,6 +12,34 @@ from datetime import date
 from app.domain.product_availability import is_sellable
 from app.modules.search.application.ports import ProductDocument, ProductRow
 
+# Idiomas com campos proprios no indice (o idioma de origem pt-BR usa name/description).
+SEARCH_TRANSLATION_LOCALES: tuple[str, ...] = ("en", "es", "ar")
+
+
+def _attributes_text(attributes: dict[str, object] | None) -> str | None:
+    """Concatena os valores de texto dos atributos (para busca). Sem preco."""
+    if not attributes:
+        return None
+    parts = [
+        str(value) for value in attributes.values() if isinstance(value, str) and value.strip()
+    ]
+    return " ".join(parts) if parts else None
+
+
+def _translated_name(row: ProductRow, locale: str) -> str | None:
+    translation = row.translations.get(locale)
+    return translation.name if translation else None
+
+
+def _translated_description(row: ProductRow, locale: str) -> str | None:
+    translation = row.translations.get(locale)
+    return translation.description if translation else None
+
+
+def _translated_attributes_text(row: ProductRow, locale: str) -> str | None:
+    translation = row.translations.get(locale)
+    return _attributes_text(translation.attributes) if translation else None
+
 
 def is_row_sellable(row: ProductRow, *, today: date) -> bool:
     """Produto vendavel (status ACTIVE + CA de EPI valido) => deve estar no indice."""
@@ -40,6 +68,15 @@ def build_product_document(row: ProductRow, *, today: date) -> ProductDocument:
         brand=row.brand_name,
         brand_slug=row.brand_slug,
         attributes=row.attributes or {},
+        name_en=_translated_name(row, "en"),
+        name_es=_translated_name(row, "es"),
+        name_ar=_translated_name(row, "ar"),
+        description_en=_translated_description(row, "en"),
+        description_es=_translated_description(row, "es"),
+        description_ar=_translated_description(row, "ar"),
+        attributes_text_en=_translated_attributes_text(row, "en"),
+        attributes_text_es=_translated_attributes_text(row, "es"),
+        attributes_text_ar=_translated_attributes_text(row, "ar"),
         created_at=row.created_at.isoformat(),
         updated_at=row.updated_at.isoformat(),
         version=row.version,

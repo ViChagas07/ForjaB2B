@@ -55,6 +55,8 @@ class ProductSummary(BaseModel):
     price_on_request: bool
     image_url: str
     image_alt: str
+    content_locale: str
+    fallback: bool
 
 
 class ProductDetail(ProductSummary):

@@ -15,11 +15,13 @@ from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
 
+from app.application.i18n import resolve_product_text
 from app.application.security import AuthContext
 from app.core import metrics
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
+from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.pricing import CompanyPriceRule, resolve_company_price
 from app.domain.product_availability import ca_status, is_sellable
 from app.modules.search.application.errors import InvalidSearchQueryError, SearchUnavailableError
@@ -60,6 +62,7 @@ class SearchResultItem:
     price_on_request: bool
     image_url: str
     image_alt: str
+    content_locale: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -109,6 +112,10 @@ class SearchProducts:
             rules_by_product = await self._product_reader.get_company_price_rules(
                 company_id=auth.company_id, product_ids=list(products.keys())
             )
+        locale = query.locale
+        category_map: dict[str, str] = {}
+        if locale != DEFAULT_LOCALE:
+            category_map = await self._product_reader.get_category_name_map(locale)
         items: list[SearchResultItem] = []
         dropped = 0
         for pid_str in page_ids:
@@ -130,7 +137,16 @@ class SearchProducts:
                     ca_valid_until=str(product.ca_valid_until),
                 )
                 continue
-            items.append(self._to_item(product, auth, today, rules_by_product.get(product.id, [])))
+            items.append(
+                self._to_item(
+                    product,
+                    auth,
+                    today,
+                    rules_by_product.get(product.id, []),
+                    locale=locale,
+                    category_map=category_map,
+                )
+            )
         if dropped:
             _logger.info("search_stale_entries_summary", dropped=dropped, returned=len(items))
 
@@ -255,6 +271,9 @@ class SearchProducts:
         auth: AuthContext | None,
         today: date,
         rules: list[CompanyPriceRule],
+        *,
+        locale: str,
+        category_map: dict[str, str],
     ) -> SearchResultItem:
         # Visitante: preco consultivo (nenhum valor). Autenticado: preco de lista
         # ajustado pelas regras da empresa (negociado > desconto > lista),
@@ -271,10 +290,17 @@ class SearchProducts:
                 rules=rules,
             ).unit_price
             price_on_request = False
+        resolved = resolve_product_text(
+            source_name=product.name,
+            source_description=product.description,
+            source_attributes=product.attributes,
+            locale=locale,
+            translation=product.translations.get(locale) if locale != DEFAULT_LOCALE else None,
+        )
         return SearchResultItem(
             id=product.id,
             sku=product.sku,
-            name=product.name,
+            name=resolved.name.value or product.name,
             slug=product.slug,
             status=product.status,
             is_epi=product.is_epi,
@@ -284,7 +310,7 @@ class SearchProducts:
                 today=today,
             ).value,
             category_id=product.category_id,
-            category_name=product.category_name,
+            category_name=category_map.get(product.category_slug, product.category_name),
             category_slug=product.category_slug,
             brand_id=product.brand_id,
             brand_name=product.brand_name,
@@ -296,7 +322,8 @@ class SearchProducts:
             image_url=resolve_product_image_path(
                 product_image_url=product.image_url, category_slug=product.category_slug
             ),
-            image_alt=resolve_image_alt(product.name),
+            image_alt=resolve_image_alt(resolved.name.value or product.name),
+            content_locale=resolved.content_locale,
         )
 
 

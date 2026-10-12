@@ -12,7 +12,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Request, status
 
 from app.application.security import AuthContext
-from app.interface.deps import get_current_auth
+from app.interface.deps import get_current_auth, get_locale
 from app.modules.cart.application.cart import CartService
 from app.modules.cart.application.ports import CartView
 from app.modules.cart.interface.schemas import (
@@ -45,6 +45,7 @@ def _to_response(view: CartView) -> CartResponse:
                 tier_min_quantity=i.tier_min_quantity,
                 image_url=i.image_url,
                 image_alt=i.image_alt,
+                content_locale=i.content_locale,
             )
             for i in view.items
         ],
@@ -56,8 +57,9 @@ def _to_response(view: CartView) -> CartResponse:
 async def get_cart(
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     service: Annotated[CartService, Depends(_cart_service)],
+    locale: Annotated[str, Depends(get_locale)],
 ) -> CartResponse:
-    view = await service.get_cart(auth.company_id, auth.user_id)
+    view = await service.get_cart(auth.company_id, auth.user_id, locale)
     return _to_response(view)
 
 
@@ -66,12 +68,14 @@ async def add_item(
     payload: AddItemRequest,
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     service: Annotated[CartService, Depends(_cart_service)],
+    locale: Annotated[str, Depends(get_locale)],
 ) -> CartResponse:
     view = await service.add_item(
         company_id=auth.company_id,
         user_id=auth.user_id,
         product_id=payload.product_id,
         quantity=payload.quantity,
+        locale=locale,
     )
     return _to_response(view)
 
@@ -82,12 +86,14 @@ async def update_item(
     payload: UpdateItemRequest,
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     service: Annotated[CartService, Depends(_cart_service)],
+    locale: Annotated[str, Depends(get_locale)],
 ) -> CartResponse:
     view = await service.update_quantity(
         company_id=auth.company_id,
         user_id=auth.user_id,
         product_id=product_id,
         quantity=payload.quantity,
+        locale=locale,
     )
     return _to_response(view)
 
@@ -97,9 +103,13 @@ async def remove_item(
     product_id: uuid.UUID,
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     service: Annotated[CartService, Depends(_cart_service)],
+    locale: Annotated[str, Depends(get_locale)],
 ) -> CartResponse:
     view = await service.remove_item(
-        company_id=auth.company_id, user_id=auth.user_id, product_id=product_id
+        company_id=auth.company_id,
+        user_id=auth.user_id,
+        product_id=product_id,
+        locale=locale,
     )
     return _to_response(view)
 
@@ -108,6 +118,7 @@ async def remove_item(
 async def clear_cart(
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     service: Annotated[CartService, Depends(_cart_service)],
+    locale: Annotated[str, Depends(get_locale)],
 ) -> CartResponse:
-    view = await service.clear(company_id=auth.company_id, user_id=auth.user_id)
+    view = await service.clear(company_id=auth.company_id, user_id=auth.user_id, locale=locale)
     return _to_response(view)

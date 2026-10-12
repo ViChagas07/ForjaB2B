@@ -93,6 +93,9 @@ class _FakeProductReader(ProductReader):
     ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         return {}
 
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        return {}
+
 
 class _FakeProvider:
     @property

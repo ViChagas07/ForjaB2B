@@ -14,18 +14,33 @@ from __future__ import annotations
 from typing import Annotated, cast
 
 import redis.asyncio as redis
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Header, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.application.ports.unit_of_work import UnitOfWorkFactory
 from app.application.security import AuthContext, InvalidTokenError, TokenService
 from app.core.config import Settings
+from app.domain.i18n import negotiate_locale
 
 _BEARER_PREFIX = "Bearer "
 
 
 def get_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
+
+
+def get_locale(request: Request, lang: str | None = Query(default=None)) -> str:
+    """Idioma do conteudo: ``?lang=`` > ``Accept-Language`` > default.
+
+    Valor nao suportado cai no default (pt-BR) sem erro (ver SUPPORTED_LOCALES).
+    """
+    settings: Settings = request.app.state.settings
+    return negotiate_locale(
+        accept_language=request.headers.get("accept-language"),
+        lang_param=lang,
+        supported=settings.supported_locale_list,
+        default=settings.default_locale,
+    )
 
 
 def get_session_factory(request: Request) -> async_sessionmaker[AsyncSession]:

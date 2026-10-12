@@ -44,6 +44,7 @@ class SearchProductOut(BaseModel):
     price_on_request: bool
     image_url: str
     image_alt: str
+    content_locale: str
 
 
 class SearchResponse(BaseModel):

@@ -30,6 +30,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.domain.i18n import TranslationStatus
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.models.common import (
     TimestampMixin,
@@ -175,3 +176,38 @@ class ProductPriceTier(TimestampMixin, Base):
 
     product: Mapped[Product] = relationship(back_populates="price_tiers")
     order_items: Mapped[list[OrderItem]] = relationship(back_populates="price_tier")
+
+
+class ProductTranslation(TimestampMixin, Base):
+    """Traducao armazenada de um produto (global, como o catalogo).
+
+    Uma linha por (produto, idioma). O ``source_hash`` vincula a traducao ao
+    conteudo de origem (pt-BR) que a gerou: quando a origem muda, as traducoes
+    existentes sao marcadas ``stale`` e continuam sendo servidas ate atualizar.
+    A escrita ocorre pelo admin (chave de plataforma); o runtime apenas le.
+    """
+
+    __tablename__ = "product_translations"
+    __table_args__ = (
+        UniqueConstraint("product_id", "locale", name="uq_product_translations_product_locale"),
+        enum_check("status", TranslationStatus),
+        Index("ix_product_translations_product_id", "product_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+    )
+    locale: Mapped[str] = mapped_column(String(10), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text)
+    attributes: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    source_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[TranslationStatus] = mapped_column(
+        Enum(TranslationStatus, native_enum=False, create_constraint=False, length=16),
+        nullable=False,
+        server_default=TranslationStatus.MACHINE.value,
+    )
+    translated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

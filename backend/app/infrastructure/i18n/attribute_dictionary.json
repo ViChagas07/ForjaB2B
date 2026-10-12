@@ -1,0 +1,60 @@
+{
+  "labels": {
+    "en": {
+      "cor": "Color",
+      "material": "Material",
+      "tratamento": "Treatment",
+      "tamanho": "Size",
+      "filtro": "Filter",
+      "classe": "Class",
+      "bico": "Toe cap",
+      "potencia": "Power",
+      "volume": "Volume"
+    },
+    "es": {
+      "cor": "Color",
+      "material": "Material",
+      "tratamento": "Tratamiento",
+      "tamanho": "Talla",
+      "filtro": "Filtro",
+      "classe": "Clase",
+      "bico": "Puntera",
+      "potencia": "Potencia",
+      "volume": "Volumen"
+    },
+    "ar": {
+      "cor": "اللون",
+      "material": "المادة",
+      "tratamento": "المعالجة",
+      "tamanho": "المقاس",
+      "filtro": "المرشح",
+      "classe": "الفئة",
+      "bico": "مقدمة الحذاء",
+      "potencia": "القدرة",
+      "volume": "الحجم"
+    }
+  },
+  "options": {
+    "en": {
+      "cor": {"branco": "white", "transparente": "transparent", "fumê": "smoke", "preto": "black"},
+      "material": {"abs": "ABS", "raspa": "split leather", "couro": "leather"},
+      "tratamento": {"antiembacante": "anti-fog"},
+      "filtro": {"duplo": "dual"},
+      "bico": {"composite": "composite"}
+    },
+    "es": {
+      "cor": {"branco": "blanco", "transparente": "transparente", "fumê": "ahumado", "preto": "negro"},
+      "material": {"abs": "ABS", "raspa": "cuero raspado", "couro": "cuero"},
+      "tratamento": {"antiembacante": "antiempañante"},
+      "filtro": {"duplo": "doble"},
+      "bico": {"composite": "compuesto"}
+    },
+    "ar": {
+      "cor": {"branco": "أبيض", "transparente": "شفاف", "fumê": "دخاني", "preto": "أسود"},
+      "material": {"abs": "ABS", "raspa": "جلد مشقوق", "couro": "جلد"},
+      "tratamento": {"antiembacante": "مضاد للضباب"},
+      "filtro": {"duplo": "مزدوج"},
+      "bico": {"composite": "مركب"}
+    }
+  }
+}

@@ -80,6 +80,9 @@ class _EmptyReader:
     ) -> dict[uuid.UUID, list[CompanyPriceRule]]:
         return {}
 
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        return {}
+
 
 def test_defaults_de_timeout_de_busca_e_indexacao() -> None:
     settings = Settings()

@@ -27,6 +27,7 @@ from elasticsearch.helpers import async_bulk, async_scan
 
 from app.core.config import Settings
 from app.core.logging import get_logger
+from app.modules.search.application.documents import SEARCH_TRANSLATION_LOCALES
 from app.modules.search.application.errors import SearchUnavailableError
 from app.modules.search.application.ports import (
     IndexBulkResult,
@@ -223,7 +224,7 @@ class ElasticsearchProductIndex:
         if q:
             es_query = {
                 "bool": {
-                    "must": self._build_text_query(q),
+                    "must": self._build_text_query(q, query.locale),
                     "filter": self._base_filters(query),
                 }
             }
@@ -297,23 +298,32 @@ class ElasticsearchProductIndex:
             filters.append({"term": {"is_epi": query.is_epi}})
         return filters
 
-    def _build_text_query(self, q: str) -> dict[str, Any]:
-        """Prioridade de campos testavel (SKU exato > prefixo > frase > termos)."""
+    def _build_text_query(self, q: str, locale: str = "pt-BR") -> dict[str, Any]:
+        """Prioridade de campos testavel (SKU exato > prefixo > frase > termos).
+
+        Busca nos campos do idioma do cliente E nos de pt-BR (marcas, SKU e
+        termos em portugues). SKU exato/prefixo permanece com o maior peso.
+        """
         normalized = q.lower()
-        return {
-            "bool": {
-                "should": [
-                    {"term": {"sku": {"value": normalized, "boost": 10}}},
-                    {"prefix": {"sku.prefix": {"value": normalized, "boost": 8}}},
-                    {"match_phrase": {"name": {"query": q, "boost": 6}}},
-                    {"match": {"name": {"query": q, "fuzziness": "AUTO", "boost": 4}}},
-                    {"match": {"category.text": {"query": q, "boost": 2}}},
-                    {"match": {"brand.text": {"query": q, "boost": 2}}},
-                    {"match": {"description": {"query": q, "boost": 1}}},
-                ],
-                "minimum_should_match": 1,
-            }
-        }
+        should: list[dict[str, Any]] = [
+            {"term": {"sku": {"value": normalized, "boost": 10}}},
+            {"prefix": {"sku.prefix": {"value": normalized, "boost": 8}}},
+            {"match_phrase": {"name": {"query": q, "boost": 6}}},
+            {"match": {"name": {"query": q, "fuzziness": "AUTO", "boost": 4}}},
+            {"match": {"category.text": {"query": q, "boost": 2}}},
+            {"match": {"brand.text": {"query": q, "boost": 2}}},
+            {"match": {"description": {"query": q, "boost": 1}}},
+        ]
+        if locale in SEARCH_TRANSLATION_LOCALES:
+            should.extend(
+                [
+                    {"match_phrase": {f"name_{locale}": {"query": q, "boost": 6}}},
+                    {"match": {f"name_{locale}": {"query": q, "fuzziness": "AUTO", "boost": 4}}},
+                    {"match": {f"description_{locale}": {"query": q, "boost": 1}}},
+                    {"match": {f"attributes_text_{locale}": {"query": q, "boost": 1}}},
+                ]
+            )
+        return {"bool": {"should": should, "minimum_should_match": 1}}
 
     async def fetch_versions(self, *, target: str) -> dict[str, int]:
         versions: dict[str, int] = {}

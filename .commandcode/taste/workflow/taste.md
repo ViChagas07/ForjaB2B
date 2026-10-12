@@ -3,14 +3,52 @@
 - Does not rewrite or refactor code that already works; integrates new features on top of existing contracts. Confidence: 0.9
 - When a required backend contract is missing, records the dependency in the report rather than inventing/implementing backend or new endpoints in a frontend task. Confidence: 0.9
 - Runs the project's real quality-gate scripts (test, typecheck, lint, build, format:check, depcruise) and requires them all to pass. Confidence: 0.9
-- Stops at the defined scope instead of continuing into out-of-scope features. Confidence: 0.85
+- Stops at the defined scope and does not invent requirements, business rules, or behaviors beyond the plan/contract. Confidence: 0.85
 - Preserves all existing i18n locales and maintains translation-key parity across them. Confidence: 0.85
 - Adds tests only for the flows actually implemented and avoids chasing artificial coverage. Confidence: 0.85
 - Prefers a short, structured final report covering scope, tests, quality gates, and real blockers/dependencies. Confidence: 0.8
-- For the Python backend, runs pytest, ruff check, ruff format --check, mypy, alembic check, and import-linter and requires them all to pass. Confidence: 0.9
-- Prefers deterministic/fake implementations over real external integrations (carrier, banking, fiscal, GIS) so results are reproducible in tests. Confidence: 0.85
+- For the Python backend, runs pytest, ruff check, ruff format --check, mypy, alembic check/drift, import-linter, architecture tests, and Docker Compose build/start when viable, and requires them all to pass. Confidence: 0.9
+- Prefers deterministic/fake implementations over real external integrations (carrier, banking, fiscal, GIS), avoiding paid services and unnecessary dependencies, so results are reproducible in tests. Confidence: 0.85
 - Ensures every critical business rule has a test, prioritizing business rules and critical paths over artificial coverage. Confidence: 0.85
 - Prefers the smallest safe change (minimum necessary implementation), documenting limitations instead of larger refactors. Confidence: 0.85
 - Works sequentially: implement → test → validate each stage before moving to the next. Confidence: 0.8
 - Does not alter tests merely to make them pass; fixes the real defect and explains its impact. Confidence: 0.85
-- Does not change global environment to mask failures; runs tests in an isolated environment and documents the exact command. Confidence: 0.8
+- Does not change global environment to mask failures, does not claim a check passed or declare work complete unless actually executed/completed, and documents exact commands and limitations; in reports, clearly distinguishes what was actually tested from what was only inspected, and never declares work done while a critical defect or mandatory requirement remains. Confidence: 0.85
+- Finishes the task by pushing all changes with a well-crafted commit message written in English. Confidence: 0.8
+- Does not work around problems with destructive commands (e.g., removing Docker volumes); records the error, the exact command, and the limitation instead. Confidence: 0.85
+- Before implementing, inspects the plan, STATUS/ADRs/docs and treats existing code as the source of truth for what is already implemented, identifying exact scope, dependencies, and acceptance criteria. Confidence: 0.8
+- Proceeds autonomously with a short scope summary and starts executing without waiting for confirmation when there is no real blocker; pauses only for concrete blockers. Confidence: 0.8
+- Updates tests, docs, STATUS, and ADRs only when there are relevant changes or decisions. Confidence: 0.75
+- When the environment leaks variables (e.g., docker-compose/.env) that override config defaults, validates in a clean environment by temporarily removing those variables for the process and restoring them afterward, documenting the exact command. Confidence: 0.8
+- Generates/validates test fixture data (e.g., CNPJ check digits) with quick throwaway scripts instead of hardcoding unverified values. Confidence: 0.6
+- Never assumes something is implemented just because a file, scaffold, or config entry exists; requires auditing the real state with concrete file-path evidence before treating it as done. Confidence: 0.85
+- Verifies library, tool, and Docker image versions and compatibility from official sources (project docs, official image registries) rather than from memory. Confidence: 0.85
+- Structures large features as independent, sequential phases, starting with a read-only audit/planning phase whose only deliverable is a versioned plan document (e.g., under docs/), before any code change. Confidence: 0.8
+- In a phased workflow, commits locally at the end of each phase without pushing, leaving integration/release to the user. Confidence: 0.8
+- Records open questions that require a human decision in the plan instead of deciding them unilaterally. Confidence: 0.7
+- Delegates implementation work to role-specialized subagents as instructed (e.g., architect-planner, devops-sre, backend-specialist). Confidence: 0.7
+- Pins infrastructure image versions to a fixed tag, never `latest`, and gives each service its own isolated named volume. Confidence: 0.7
+- Makes seed/demo data idempotent (deterministic IDs + `ON CONFLICT DO NOTHING`) so re-running never duplicates, and gates production execution behind an explicit opt-in flag. Confidence: 0.7
+- Distinguishes genuinely missing test infrastructure (skip with a clear message) from provisioning failures with the infrastructure actually reachable (fail loudly); never converts a real setup failure into a silent skip. Confidence: 0.75
+- Before infra changes that risk data (e.g., swapping a database image/upgrading a service), takes a logical backup outside the volume and preserves existing data; documents a safe recovery procedure instead of forcing recreation. Confidence: 0.75
+- Prefers to generate/run heavy integrations locally without paid external APIs/services, and only when it can verify license, size, memory, CPU latency, and a pinnable version; otherwise implements just the port behind a disabled-by-default flag and documents the limitation and enablement steps. Confidence: 0.75
+- Marks slow integration tests that need real heavy resources (e.g., a real model) as opt-in/skipped by default, outside the standard test run. Confidence: 0.65
+- Provides idempotent bootstrap/provisioning scripts (creating infra roles/users, initial index) that can be safely re-run and read credentials from the environment, never hardcoded. Confidence: 0.7
+- Delivers a read-only post-deploy smoke test runnable against a configurable base URL that verifies application/external-dependency health and key query paths without writing or deleting data, and reports the observed modes. Confidence: 0.7
+- When a deployment target or environment value is still undecided, implements provider-agnostic configuration and documents every alternative instead of assuming a choice. Confidence: 0.7
+- Backs up the database (logical dump stored outside the Docker volume) before applying any migration, verifies the dump file was actually created and is non-empty, and exercises pending migrations on a throwaway test database first (including downgrade when the project supports it) before touching the development database. Confidence: 0.7
+- Marks tests that require real Docker/services with a dedicated, config-registered marker (e.g., `integration`) and skips them with a clear message when Docker is unavailable, so the standard test run finishes without errors (skips are acceptable) instead of reporting setup errors. Confidence: 0.8
+- Proves idempotency of repeatable operations (bootstrap, seed, reindex, backfill) by running each at least twice and confirming no duplicates or drift. Confidence: 0.7
+- Keeps documentation honest: a capability is described as the current state only if it was actually proven (e.g., only call search "hybrid" once the hybrid path really executed); otherwise documents it as optional/disabled-by-default with enablement steps, and adds a short dated "validation state" section listing what was verified with evidence and what was not. Confidence: 0.8
+- Validates heavy/optional capabilities only in the local validation environment (temporary derived image, compose override, or throwaway host script) and removes that scaffolding afterwards, never committing it; leaves the repository default disabled unless the measured results justify changing it. Confidence: 0.75
+- Upgrades stateful services through the officially required intermediate versions on the same volume (data preserved) instead of deleting/recreating volumes. Confidence: 0.75
+- When the environment finally unblocks previously failing tests, treats the old setup errors as debt: fixes the real causes (fixtures, ports, readiness waits, startup order) and makes the tests robust to shared global state (asserts expected items present/absent instead of exact totals, gives each test its own isolated resource/version). Confidence: 0.7
+- Groups work into one small, focused local commit per logical item (e.g., one per sub-task like A1/A2/A3), with the root cause and the fix described in the commit body; never pushes. Confidence: 0.75
+- When adding new configuration, adds the variable to `.env.example` and documents it, following the repository's existing naming convention (and grouping by use). Confidence: 0.7
+- For a performance/reliability fix, records a real measured baseline first (exact command), applies the change, and measures again against a stated target, reporting both numbers (before/after). Confidence: 0.7
+- Requires demo/seed data to be entirely fictitious and never copied from real businesses (companies, prices, images, personal data), using synthetic-but-valid identifiers and documenting explicitly what is fictional and why. Confidence: 0.65
+- Sources demo/privileged credentials only from environment variables (never hardcoded or versioned); when the required variable is missing, skips the credential-dependent step and reports the reason instead of assuming a default. Confidence: 0.6
+- Never edits the coding agent's own tooling/config files (e.g., a `.commandcode/` or taste directory) as part of a task; only reports what was found there. Confidence: 0.7
+- When a change deliberately corrects behavior that an existing test asserts, updates that test to the new expected behavior while keeping/never dropping coverage, and explains the intentional change in the commit message. Confidence: 0.7
+- Treats empty or whitespace-only environment values for optional settings (e.g., optional credentials) as absent/unset rather than as a defined value, with config tests covering empty, filled, and absent. Confidence: 0.6
+- Treats committed, clean, working code as a stable, inviolable foundation: when a new specification conflicts with an already-committed decision (e.g., a committed frontend i18n choice), documents the deviation as a small opt-in toggle (ideally a single config line) and requires explicit owner confirmation before changing the committed code, rather than silently refactoring it. Confidence: 0.85

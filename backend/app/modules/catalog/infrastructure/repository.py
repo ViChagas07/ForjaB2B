@@ -18,11 +18,15 @@ from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.application.i18n import ProductTextTranslation
 from app.application.ports.tenant import TenantContext
+from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.pricing import CompanyPriceRule
 from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.models.catalog import Brand, Category, Product
+from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.infrastructure.i18n.dictionary import load_category_names
 from app.modules.catalog.application.ports import (
     BrandView,
     CategoryView,
@@ -203,6 +207,8 @@ class SqlAlchemyCatalogRepository:
             image_url=product.image_url,
             image_alt=product.name,
             attributes=product.attributes,
+            content_locale=DEFAULT_LOCALE,
+            fallback=False,
         )
 
     async def get_company_price_rules(
@@ -215,3 +221,25 @@ class SqlAlchemyCatalogRepository:
             rules = await load_company_price_rules(uow.session, product_ids=product_ids)
             await uow.commit()
         return rules
+
+    async def get_product_translations(
+        self, product_ids: list[uuid.UUID], locale: str
+    ) -> dict[uuid.UUID, ProductTextTranslation]:
+        if not product_ids or locale == DEFAULT_LOCALE:
+            return {}
+        async with self._uow_factory.begin() as uow:
+            rows = await load_product_translations(
+                uow.session, product_ids=product_ids, locales=[locale]
+            )
+            await uow.commit()
+        return {
+            product_id: ProductTextTranslation(
+                name=row.name, description=row.description, attributes=row.attributes
+            )
+            for (product_id, _locale), row in rows.items()
+        }
+
+    async def get_category_name_map(self, locale: str) -> dict[str, str]:
+        if locale == DEFAULT_LOCALE:
+            return {}
+        return load_category_names().get(locale, {})

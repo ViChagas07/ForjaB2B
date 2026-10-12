@@ -164,9 +164,24 @@ class Settings(BaseSettings):
     email_smtp_port: int = Field(default=1025, ge=1)
     email_from: str = "no-reply@forja.local"
 
-    # Admin de plataforma (aprovação de empresas). Em producao deve ser uma
-    # chave forte injetada via secrets manager. Ausente, a rota admin 401.
+    # Admin de plataforma (aprovacao de empresas e administracao de traducoes).
+    # Em producao deve ser uma chave forte injetada via secrets. Ausente, 401.
     admin_api_key: str | None = None
+
+    # Internacionalizacao do catalogo (Fase 9B). O idioma de origem e pt-BR;
+    # os idiomas atendidos vem de SUPPORTED_LOCALES (lista separada por virgula).
+    # Idioma arbitrario NAO e suportado (ver docs/I18N.md).
+    supported_locales: str = "pt-BR,en,es,ar"
+    default_locale: str = "pt-BR"
+    # Provedor de traducao automatica: "null" (padrao) = nenhum. Nenhum provedor
+    # externo e adotado nesta fase; a porta existe para decisao futura.
+    translation_provider: str = "null"
+    translation_max_text_length: int = Field(default=4000, ge=1)
+
+    @property
+    def supported_locale_list(self) -> list[str]:
+        """Idiomas suportados (lista limpa), na ordem configurada."""
+        return [code.strip() for code in self.supported_locales.split(",") if code.strip()]
 
     @field_validator(
         "elasticsearch_api_key",

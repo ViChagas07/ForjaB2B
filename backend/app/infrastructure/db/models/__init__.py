@@ -11,7 +11,13 @@ from __future__ import annotations
 
 from app.infrastructure.db.models.audit import AuditLog
 from app.infrastructure.db.models.cart import Cart, CartItem
-from app.infrastructure.db.models.catalog import Brand, Category, Product, ProductPriceTier
+from app.infrastructure.db.models.catalog import (
+    Brand,
+    Category,
+    Product,
+    ProductPriceTier,
+    ProductTranslation,
+)
 from app.infrastructure.db.models.companies import Company, CompanyAddress
 from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
@@ -47,6 +53,7 @@ __all__ = [
     "PaymentEvent",
     "Product",
     "ProductPriceTier",
+    "ProductTranslation",
     "SearchOutbox",
     "User",
     "UserExternalIdentity",
