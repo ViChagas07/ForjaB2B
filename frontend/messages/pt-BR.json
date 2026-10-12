@@ -235,5 +235,113 @@
     "emptyOrder": "O pedido não pode estar vazio.",
     "invalidOrderState": "O pedido não aceita esta operação.",
     "generic": "Algo deu errado. Tente novamente."
+  },
+  "admin": {
+    "catalog": {
+      "products": {
+        "title": "Produtos",
+        "subtitle": "Gerencie os produtos do catálogo",
+        "newProduct": "Novo produto",
+        "searchPlaceholder": "Buscar por nome, SKU…",
+        "allCategories": "Todas as categorias",
+        "allStatuses": "Todos os status",
+        "loadError": "Não foi possível carregar os produtos.",
+        "noResults": "Nenhum produto encontrado.",
+        "accessDenied": "Acesso negado",
+        "adminOnly": "Apenas administradores podem acessar esta página.",
+        "backToDashboard": "Voltar ao painel",
+        "versionConflict": "Este produto foi modificado por outro usuário. Recarregue a página e tente novamente.",
+        "table": {
+          "name": "Nome",
+          "sku": "SKU",
+          "category": "Categoria",
+          "status": "Status",
+          "price": "Preço",
+          "updatedAt": "Atualizado em",
+          "actions": "Ações"
+        },
+        "status": {
+          "draft": "Rascunho",
+          "active": "Publicado",
+          "archived": "Arquivado"
+        },
+        "priceOnRequest": "Sob consulta",
+        "edit": "Editar",
+        "viewPublic": "Ver no catálogo",
+        "publish": "Publicar",
+        "unpublish": "Despublicar",
+        "publishing": "Publicando…",
+        "unpublishing": "Despublicando…",
+        "delete": "Excluir",
+        "deleteConfirmTitle": "Excluir produto",
+        "deleteConfirmDescription": "Tem certeza que deseja excluir \"{name}\"? Esta ação não pode ser desfeita.",
+        "cancel": "Cancelar",
+        "previous": "Anterior",
+        "next": "Próxima",
+        "pageInfo": "Página {page} de {pages} ({total} produtos)",
+        "form": {
+          "newTitle": "Novo produto",
+          "editTitle": "Editar produto: {name}",
+          "subtitle": "Preencha as informações do produto. Campos marcados com * são obrigatórios.",
+          "unsavedChangesWarning": "Você tem alterações não salvas. Tem certeza que deseja sair?",
+          "basicInfo": {
+            "title": "Informações básicas",
+            "sku": "SKU",
+            "skuRequired": "SKU é obrigatório",
+            "skuImmutable": "O SKU não pode ser alterado após a criação",
+            "name": "Nome",
+            "nameRequired": "Nome é obrigatório",
+            "category": "Categoria",
+            "categoryRequired": "Categoria é obrigatória",
+            "categoryPlaceholder": "Selecione uma categoria",
+            "brand": "Marca",
+            "brandRequired": "Marca é obrigatória",
+            "brandPlaceholder": "Selecione uma marca",
+            "description": "Descrição",
+            "descriptionRequired": "Descrição é obrigatória",
+            "price": "Preço unitário",
+            "priceInvalid": "Preço inválido (ex.: 99,90)",
+            "minOrderQty": "Quantidade mínima",
+            "isEpi": "É EPI (Equipamento de Proteção Individual)",
+            "currency": "Moeda"
+          },
+          "details": {
+            "title": "Detalhes do produto",
+            "noAttributes": "Nenhum atributo definido para esta categoria. Atributos aparecerão aqui quando uma categoria for selecionada.",
+            "attributesRemovedWarning": "Os seguintes atributos não são válidos para a nova categoria e foram removidos: {keys}"
+          },
+          "image": {
+            "title": "Imagem do produto",
+            "preview": "Pré-visualização",
+            "previewAlt": "Pré-visualização da imagem do produto",
+            "noPreview": "Nenhuma imagem selecionada",
+            "previewTitle": "Pré-visualização da imagem",
+            "urlTab": "URL da imagem",
+            "staticTab": "Imagens do catálogo",
+            "urlLabel": "URL da imagem (HTTPS)",
+            "urlHint": "Cole uma URL HTTPS válida. A pré-visualização será atualizada automaticamente.",
+            "staticLabel": "Ou escolha uma imagem do catálogo",
+            "noStaticImages": "Nenhuma imagem estática disponível em /static/catalog/",
+            "previewBtn": "Pré-visualizar"
+          },
+          "publish": {
+            "title": "Publicação",
+            "draftLabel": "Salvar como rascunho",
+            "draftDescription": "O produto ficará salvo como rascunho (DRAFT) e não será visível no catálogo público.",
+            "publishLabel": "Salvar e publicar",
+            "publishDescription": "O produto será publicado (ACTIVE) e ficará visível no catálogo público imediatamente.",
+            "saveDraft": "Salvar rascunho",
+            "saveAndPublish": "Salvar e publicar",
+            "saving": "Salvando…",
+            "publishing": "Publicando…"
+          },
+          "fieldRequired": "O campo \"{field}\" é obrigatório",
+          "maxChars": "Máx. caracteres",
+          "unit": "Unidade",
+          "selectOption": "Selecione uma opção",
+          "attributesRemovedWarning": "Os seguintes atributos não são válidos para a nova categoria e foram removidos: {keys}"
+        }
+      }
+    }
   }
 }

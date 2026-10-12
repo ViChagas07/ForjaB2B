@@ -235,5 +235,113 @@
     "reference": "Referência",
     "date": "Data",
     "noAccount": "Nenhuma conta de crédito disponível."
+  },
+  "admin": {
+    "catalog": {
+      "products": {
+        "title": "Products",
+        "subtitle": "Manage catalog products",
+        "newProduct": "New product",
+        "searchPlaceholder": "Search by name, SKU…",
+        "allCategories": "All categories",
+        "allStatuses": "All statuses",
+        "loadError": "Failed to load products.",
+        "noResults": "No products found.",
+        "accessDenied": "Access denied",
+        "adminOnly": "Only administrators can access this page.",
+        "backToDashboard": "Back to dashboard",
+        "versionConflict": "This product was modified by another user. Reload the page and try again.",
+        "table": {
+          "name": "Name",
+          "sku": "SKU",
+          "category": "Category",
+          "status": "Status",
+          "price": "Price",
+          "updatedAt": "Updated at",
+          "actions": "Actions"
+        },
+        "status": {
+          "draft": "Draft",
+          "active": "Active",
+          "archived": "Archived"
+        },
+        "priceOnRequest": "Price on request",
+        "edit": "Edit",
+        "viewPublic": "View in catalog",
+        "publish": "Publish",
+        "unpublish": "Unpublish",
+        "publishing": "Publishing…",
+        "unpublishing": "Unpublishing…",
+        "delete": "Delete",
+        "deleteConfirmTitle": "Delete product",
+        "deleteConfirmDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+        "cancel": "Cancel",
+        "previous": "Previous",
+        "next": "Next",
+        "pageInfo": "Page {page} of {pages} ({total} products)",
+        "form": {
+          "newTitle": "New product",
+          "editTitle": "Edit product: {name}",
+          "subtitle": "Fill in the product information. Fields marked with * are required.",
+          "unsavedChangesWarning": "You have unsaved changes. Are you sure you want to leave?",
+          "basicInfo": {
+            "title": "Basic information",
+            "sku": "SKU",
+            "skuRequired": "SKU is required",
+            "skuImmutable": "SKU cannot be changed after creation",
+            "name": "Name",
+            "nameRequired": "Name is required",
+            "category": "Category",
+            "categoryRequired": "Category is required",
+            "categoryPlaceholder": "Select a category",
+            "brand": "Brand",
+            "brandRequired": "Brand is required",
+            "brandPlaceholder": "Select a brand",
+            "description": "Description",
+            "descriptionRequired": "Description is required",
+            "price": "Unit price",
+            "priceInvalid": "Invalid price (e.g. 99.90)",
+            "minOrderQty": "Minimum order quantity",
+            "isEpi": "Is PPE (Personal Protective Equipment)",
+            "currency": "Currency"
+          },
+          "details": {
+            "title": "Product details",
+            "noAttributes": "No attributes defined for this category. Attributes will appear here when a category is selected.",
+            "attributesRemovedWarning": "The following attributes are not valid for the new category and were removed: {keys}"
+          },
+          "image": {
+            "title": "Product image",
+            "preview": "Preview",
+            "previewAlt": "Product image preview",
+            "noPreview": "No image selected",
+            "previewTitle": "Image preview",
+            "urlTab": "Image URL",
+            "staticTab": "Catalog images",
+            "urlLabel": "Image URL (HTTPS)",
+            "urlHint": "Paste a valid HTTPS URL. Preview will update automatically.",
+            "staticLabel": "Or choose an image from the catalog",
+            "noStaticImages": "No static images available in /static/catalog/",
+            "previewBtn": "Preview"
+          },
+          "publish": {
+            "title": "Publication",
+            "draftLabel": "Save as draft",
+            "draftDescription": "The product will be saved as draft (DRAFT) and will not be visible in the public catalog.",
+            "publishLabel": "Save and publish",
+            "publishDescription": "The product will be published (ACTIVE) and will be visible in the public catalog immediately.",
+            "saveDraft": "Save draft",
+            "saveAndPublish": "Save and publish",
+            "saving": "Saving…",
+            "publishing": "Publishing…"
+          },
+          "fieldRequired": "Field \"{field}\" is required",
+          "maxChars": "Max characters",
+          "unit": "Unit",
+          "selectOption": "Select an option",
+          "attributesRemovedWarning": "The following attributes are not valid for the new category and were removed: {keys}"
+        }
+      }
+    }
   }
 }

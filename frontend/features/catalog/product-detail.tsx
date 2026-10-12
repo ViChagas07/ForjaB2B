@@ -159,14 +159,18 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
             ) : null}
           </dl>
 
-          {product.attributes && Object.keys(product.attributes).length > 0 ? (
+          {/* Especificações - apenas renderiza se houver atributos preenchidos */}
+          {product.attributes && product.attributes.length > 0 ? (
             <div>
-              <h2 className="mb-2 font-medium">{t("catalog.attributes")}</h2>
+              <h2 className="mb-3 font-medium">{t("catalog.attributes")}</h2>
               <dl className="grid gap-2 sm:grid-cols-2">
-                {Object.entries(product.attributes).map(([key, value]) => (
-                  <div key={key} className="flex gap-2 text-sm">
-                    <dt className="text-muted-foreground">{key}:</dt>
-                    <dd className="font-medium">{String(value)}</dd>
+                {product.attributes.map((attr) => (
+                  <div key={attr.key} className="flex flex-col gap-1 text-sm">
+                    <dt className="text-muted-foreground">{attr.label}</dt>
+                    <dd className="font-medium">
+                      {attr.value}
+                      {attr.unit && <span className="text-muted-foreground ml-1">({attr.unit})</span>}
+                    </dd>
                   </div>
                 ))}
               </dl>

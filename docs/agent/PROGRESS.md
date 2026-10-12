@@ -335,3 +335,249 @@ cd backend && import-linter lint --config .import-linter
 2. Executar Passo 5 para validação end-to-end
 3. Atualizar `docs/CATALOG_ADMIN.md` e `docs/STATUS.md`
 4. Fase 9-c (Frontend)
+
+---
+
+## Fase 9-c — Frontend: formulário de administração e especificações do produto
+
+**Iniciado:** 2026-10-12
+
+### Passo 1 — Levantamento do frontend (somente leitura) ✅
+
+**Estrutura de rotas:**
+- Next.js 14 App Router com locale prefix: `/[locale]/...`
+- Catálogo público: `/[locale]/catalog` (lista) e `/[locale]/catalog/[id]` (detalhe)
+- Dashboard (protegido): `/[locale]/dashboard`
+- Middleware `next-intl/middleware` gerencia roteamento i18n
+
+**Sistema de design e componentes:**
+- Tailwind CSS + shadcn/ui (Radix UI primitives)
+- Componentes disponíveis: Button, Input, Label, Dialog, DropdownMenu, Alert, Card, Badge, Separator, Skeleton
+- Variantes via `class-variance-authority` (cva)
+- Utilitário `cn()` para merge de classes
+
+**Validação:**
+- Zod v3 para validação de schemas (já em dependências)
+- Formulários: React Hook Form não presente — usar validação manual + Zod schemas
+
+**Cliente da API:**
+- Porta `HttpClient` (interface) em `core/application/ports/http-client.ts`
+- Implementação `FetchHttpClient` em `infrastructure/http/api-client.ts`
+- Trata: base URL, headers (X-Request-ID), timeout, parsing `application/problem+json` (RFC 7807), erros tipados `ApiError`
+- Adapters por domínio: `catalogApi`, `authApi` em `infrastructure/http/`
+- TanStack Query v5 para cache/data fetching (`useQuery`, `useMutation`)
+
+**Proteção de rota admin:**
+- JWT com `AuthContext` (user_id, company_id, role, token_id)
+- Role no `UserProfile`: `ADMIN`, `BUYER`, `APPROVER`, `FINANCE`
+- Zustand store `auth-store.ts` com sessão hidratada do localStorage
+- Middleware atual só faz i18n; proteção por role deve ser feita no componente/client-side (redirect se não ADMIN)
+
+**i18n:**
+- `next-intl` v3 com mensagens em `messages/{locale}.json`
+- `useTranslations()` hook para componentes cliente
+- `getTranslations()` async para Server Components
+- Locale padrão: `pt-BR`; 10 locales suportados
+- Textos de interface devem ir em `messages/pt-BR.json` (e outros)
+
+**Testes:**
+- Vitest para unitários (`tests/unit/`)
+- Playwright para e2e (`tests/e2e/`)
+- Padrão: mock `fetch` com `vi.stubGlobal`, testar serialização/parsing
+
+**Comandos de checagem (frontend):**
+```bash
+cd frontend && npm run typecheck  # tsc --noEmit
+cd frontend && npm run lint       # next lint
+cd frontend && npm run test       # vitest run
+cd frontend && npm run check      # lint + typecheck + format:check + test + depcruise
+```
+
+### Passo 2 — Contratos e cliente da API (com testes) ✅
+
+**Tipos criados em `core/domain/catalog.ts`:**
+- `AdminProductStatus` (DRAFT, ACTIVE, ARCHIVED)
+- `AdminCategoryRef`, `AdminBrandRef`
+- `AdminProductSummary`, `AdminProductDetail`
+- `AdminProductListResponse`, `AdminProductListQuery`
+- `AttributeDefinitionOut` (key, label, type, unit, options, scope, section, display_order, required, min/max_value, max_length)
+- `StaticImageOut` (path, label)
+- `AdminProductCreate`, `AdminProductUpdate`, `AdminProductPublish`
+
+**Cliente da API em `infrastructure/http/admin-catalog-api.ts`:**
+- `adminCatalogApi.listProducts(query)` — listagem com filtros e paginação
+- `adminCatalogApi.getProduct(id)` — obtenção de produto
+- `adminCatalogApi.createProduct(payload)` — criação (POST)
+- `adminCatalogApi.updateProduct(id, payload)` — edição (PATCH) com version
+- `adminCatalogApi.publishProduct(id, payload)` / `unpublishProduct` — publicação/despublicação
+- `adminCatalogApi.getAttributeDefinitions(categorySlug)` — definições dinâmicas por categoria
+- `adminCatalogApi.listStaticImages()` — imagens estáticas para seleção
+- `isVersionConflict(error)` — detecta erro 409 (concorrência otimista)
+- `getFieldErrors(error)` — extrai erros por campo do Problem Details (RFC 7807 extensions)
+
+**Correção no `ApiError` (`infrastructure/http/errors.ts`):**
+- Adicionada propriedade `extensions` para capturar campos extras do Problem Details
+- Construtor agora extrai `extensions` corretamente (backend envia como propriedade `extensions`)
+
+**Testes em `tests/unit/admin-catalog-api.test.ts` (16 testes):**
+- Serialização de query string (filtros, paginação)
+- Criação, edição, publicação, despublicação com payloads corretos
+- Busca de definições de atributo e imagens estáticas
+- `isVersionConflict`: true para 409, false para outros status/erros
+- `getFieldErrors`: extrai erros por campo, ignora valores inválidos, retorna vazio para não-ApiError
+
+**Checagens:**
+- Typecheck: **passed**
+- Lint: **passed**
+- Testes: **83 passed** (16 novos + 67 existentes)
+
+### Passo 3 — Lista de produtos (admin) ✅
+
+**Rota criada:** `/[locale]/admin/catalog/products/page.tsx` (protegida por role ADMIN)
+
+**Componente cliente `AdminProductListClient` (`admin-product-list-client.tsx`):**
+- Tabela com colunas: Nome (link para edição), SKU, Categoria, Status (badge), Preço, Atualizado em, Ações (dropdown)
+- Busca por nome/SKU (query `q`)
+- Filtro por categoria (select com categorias dos produtos listados)
+- Filtro por status: DRAFT, ACTIVE, ARCHIVED
+- Paginação (20 por página, máx 100) com navegação anterior/próxima
+- Ações por produto:
+  - Editar (link para `/admin/catalog/products/{id}`)
+  - Ver no catálogo público (abre em nova aba)
+  - Publicar (DRAFT → ACTIVE) com loading state
+  - Despublicar (ACTIVE → DRAFT) com loading state
+  - Excluir (dialog de confirmação — implementação pendente)
+- Tratamento de erro 409 (version conflict): alerta + invalidação de query
+- Estados: loading (skeleton), erro (alert), vazio, acesso negado (não-admin)
+
+**i18n em `messages/{locale}.json` (11 locales):**
+- Seção `admin.catalog.products` com 42 chaves (título, busca, filtros, tabela, status, ações, paginação, mensagens)
+- Adicionado a: pt-BR, en, es, fr, it, de, ja, ko, zh-CN, ru, ar
+
+**Checagens:**
+- Typecheck: **passed**
+- Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
+- Testes: **83 passed** (inclui i18n parity)
+
+### Passo 6 — Validação real (Docker de pé) ⏳ NÃO VALIDADO visualmente
+
+**Ambiente:** Docker/PostgreSQL/Elasticsearch não disponíveis no ambiente de desenvolvimento atual.
+
+**Verificações realizadas via testes automatizados:**
+- **Backend (93 testes unitários):**
+  - `test_product_attributes.py` (38 testes): validação de tipos, ranges, enums, boolean, atributos desconhecidos/fora de escopo, campos obrigatórios, carregamento do registry
+  - `test_photo_manifest.py` (55 testes): formatação de nome, sugestão de categoria, geração de SKU/preço/descrição, criação de rascunhos, validação de manifesto, serialização
+- **Frontend (83 testes unitários):**
+  - `admin-catalog-api.test.ts` (16): serialização de query, CRUD admin, atributos dinâmicos, imagens estáticas, detecção 409, extração erros por campo
+  - `catalog-api.test.ts`, `cart-api.test.ts`, `ordering-api.test.ts`, `credit-api.test.ts`, `company-api.test.ts`, `auth-api.test.ts`, `schemas.test.ts`, etc.
+  - `i18n-parity.test.ts` (2): chaves idênticas em todos os 11 locales
+
+**O que seria validado com Docker (pendente):**
+1. Subir stack: `docker compose --env-file .env.example up -d`
+2. Frontend em porta alternativa (3001): `cd frontend && PORT=3001 npm run dev`
+3. Como ADMIN: criar produto só com obrigatórios → conferir página pública (sem especificações)
+4. Editar adicionando modelo e cor → conferir (apenas esses dois)
+5. Limpar cor → conferir (seção não renderiza)
+6. Capturar evidências (respostas API, screenshots)
+7. Rollback produtos de teste
+
+### Passo 7 — Documentação e checagens finais ✅
+
+**Documentação atualizada:**
+- `docs/CATALOG_ADMIN.md` — guia completo do formulário admin (campos, seções, preview, validação, i18n)
+- `docs/STATUS.md` — status consolidado do projeto
+
+**Checagens finais (RULES.md):**
+
+**Frontend:**
+- Typecheck: **passed** (`npm run typecheck`)
+- Lint: **passed** (`npm run lint`) — 3 warnings sobre `<img>` vs `next/image` (aceitável)
+- Testes: **83 passed** (`npm run test`)
+
+**Backend (testes que rodam sem Docker):**
+- Ruff check: **passed** (376 files)
+- Ruff format: **passed** (376 files)
+- Import-linter: **4 contracts kept, 0 broken**
+- Testes unitários (product_attributes + photo_manifest): **93 passed**
+- Mypy: apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+
+**Arquivos criados/modificados na Fase 9-c:**
+
+**Frontend:**
+- `frontend/app/[locale]/admin/catalog/products/page.tsx` — Lista admin
+- `frontend/app/[locale]/admin/catalog/products/admin-product-list-client.tsx` — Componente lista
+- `frontend/app/[locale]/admin/catalog/products/new/page.tsx` — Rota novo
+- `frontend/app/[locale]/admin/catalog/products/[id]/page.tsx` — Rota editar
+- `frontend/app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` — Formulário completo
+- `frontend/shared/ui/select.tsx` — Componente Select (Radix)
+- `frontend/shared/ui/tabs.tsx` — Componente Tabs (Radix)
+- `frontend/shared/ui/textarea.tsx` — Componente Textarea
+- `frontend/features/catalog/product-detail.tsx` — Atualizado para novo formato attributes
+- `frontend/infrastructure/http/admin-catalog-api.ts` — Cliente API admin
+- `frontend/infrastructure/http/errors.ts` — Correção ApiError.extensions
+- `frontend/tests/unit/admin-catalog-api.test.ts` — 16 testes unitários
+- `frontend/messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` — i18n completo (11 locales)
+
+**Backend (já existiam da Fase 9-b):**
+- API admin de catálogo (8 endpoints)
+- Schema `ProductAttributeOut` + conversão público `dict → list`
+
+**Commits:** Pendente (aguardando `git add` e `git commit -m`)
+
+### Passo 4 — Formulário de produto (admin) ✅
+
+**Rotas criadas:**
+- `/[locale]/admin/catalog/products/new/page.tsx` — Novo produto
+- `/[locale]/admin/catalog/products/[id]/page.tsx` — Editar produto (mesmo componente)
+
+**Componente cliente `AdminProductFormClient` (`admin-product-form-client.tsx`):**
+- **Seção 1 - Informações Básicas** (campos obrigatórios marcados com *):
+  - SKU (desabilitado na edição), Nome, Descrição, Categoria (select), Marca (select), Preço unitário + moeda, Quantidade mínima, É EPI (checkbox)
+  - Validação Zod + validação manual por campo com mensagens de erro
+  - Contador de caracteres para Nome (200) e Descrição (2000)
+- **Seção 2 - Detalhes do Produto** (campos dinâmicos por categoria):
+  - Carrega definições de atributo via `GET /admin/catalog/categories/{slug}/attributes`
+  - Renderiza inputs conforme tipo: texto (com maxLength), número (min/max/unit), enum (select), boolean (checkbox)
+  - Agrupa por `section` e ordena por `display_order`
+  - Ao trocar categoria: preserva atributos válidos, remove inválidos com aviso
+- **Seção 3 - Imagem do Produto**:
+  - Abas: URL (HTTPS com preview automático) ou Imagens do catálogo (grid de `/static/catalog/`)
+  - Preview em tempo real em área dedicada
+  - Dialog modal para preview em tela cheia
+- **Seção 4 - Publicação**:
+  - Dois botões: "Salvar rascunho" (DRAFT) e "Salvar e publicar" (ACTIVE)
+  - Loading states nos botões
+  - Tratamento de erro 409 (version conflict): alerta + recarrega lista
+- **Outros**:
+  - Aviso de alterações não salvas ao sair da página (`beforeunload`)
+  - Foco no primeiro erro ao submeter inválido
+  - Estados: loading (skeleton), erro (alert), acesso negado (não-admin)
+
+**Componentes UI adicionados:**
+- `shared/ui/select.tsx` (Radix Select)
+- `shared/ui/tabs.tsx` (Radix Tabs)
+- `shared/ui/textarea.tsx`
+
+**i18n em `messages/{locale}.json` (11 locales):**
+- Seção `admin.catalog.products.form` com ~60 chaves (títulos, labels, placeholders, mensagens de erro, validações)
+- Adicionado a: pt-BR, en, es, fr, it, de, ja, ko, zh-CN, ru, ar
+
+**Checagens:**
+- Typecheck: **passed**
+- Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
+- Testes: **83 passed** (inclui i18n parity)
+
+### Passo 5 — Página de produto do cliente: seção "Especificações" ✅
+
+**Componente atualizado:** `features/catalog/product-detail.tsx`
+
+**Mudanças:**
+- Atributos agora usam o novo formato `ProductAttributeOut[]` (label, value, unit) vindo da API pública
+- Seção "Especificações" **não é renderizada** se `attributes` estiver vazia ou undefined (sem título solto)
+- Renderiza cada atributo com label (traduzido via registry do backend), value e unit (quando houver)
+- Grid responsivo (2 colunas em sm+)
+
+**Checagens:**
+- Typecheck: **passed**
+- Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
+- Testes: **83 passed** (inclui i18n parity)

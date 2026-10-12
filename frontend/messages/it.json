@@ -221,19 +221,127 @@
     "notCancellable": "Este pedido não pode mais ser cancelado."
   },
   "credit": {
-    "title": "Crédito",
-    "available": "Disponível",
+    "title": "Credito",
+    "available": "Disponibile",
     "limit": "Limite",
-    "used": "Utilizado",
-    "accountTitle": "Conta de crédito",
-    "accountLoadError": "Não foi possível carregar a conta de crédito.",
-    "entriesTitle": "Histórico de crédito",
-    "entriesEmpty": "Nenhuma movimentação registrada.",
-    "entriesLoadError": "Não foi possível carregar o histórico.",
-    "amount": "Valor",
+    "used": "Utilizzato",
+    "accountTitle": "Conto di credito",
+    "accountLoadError": "Impossibile caricare il conto di credito.",
+    "entriesTitle": "Storico del credito",
+    "entriesEmpty": "Nessun movimento registrato.",
+    "entriesLoadError": "Impossibile caricare lo storico.",
+    "amount": "Valore",
     "entryType": "Tipo",
-    "reference": "Referência",
+    "reference": "Riferimento",
     "date": "Data",
-    "noAccount": "Nenhuma conta de crédito disponível."
+    "noAccount": "Nessun conto di credito disponibile."
+  },
+  "admin": {
+    "catalog": {
+      "products": {
+        "title": "Prodotti",
+        "subtitle": "Gestisci i prodotti del catalogo",
+        "newProduct": "Nuovo prodotto",
+        "searchPlaceholder": "Cerca per nome, SKU…",
+        "allCategories": "Tutte le categorie",
+        "allStatuses": "Tutti gli stati",
+        "loadError": "Impossibile caricare i prodotti.",
+        "noResults": "Nessun prodotto trovato.",
+        "accessDenied": "Accesso negato",
+        "adminOnly": "Solo gli amministratori possono accedere a questa pagina.",
+        "backToDashboard": "Torna al pannello",
+        "versionConflict": "Questo prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.",
+        "table": {
+          "name": "Nome",
+          "sku": "SKU",
+          "category": "Categoria",
+          "status": "Stato",
+          "price": "Prezzo",
+          "updatedAt": "Aggiornato il",
+          "actions": "Azioni"
+        },
+        "status": {
+          "draft": "Bozza",
+          "active": "Pubblicato",
+          "archived": "Archiviato"
+        },
+        "priceOnRequest": "Prezzo su richiesta",
+        "edit": "Modifica",
+        "viewPublic": "Vedi nel catalogo",
+        "publish": "Pubblica",
+        "unpublish": "Annulla pubblicazione",
+        "publishing": "Pubblicazione…",
+        "unpublishing": "Annulla pubblicazione…",
+        "delete": "Elimina",
+        "deleteConfirmTitle": "Elimina prodotto",
+        "deleteConfirmDescription": "Sei sicuro di voler eliminare \"{name}\"? Questa azione non può essere annullata.",
+        "cancel": "Annulla",
+        "previous": "Precedente",
+        "next": "Successivo",
+        "pageInfo": "Pagina {page} di {pages} ({total} prodotti)",
+        "form": {
+          "newTitle": "Nuovo prodotto",
+          "editTitle": "Modifica prodotto: {name}",
+          "subtitle": "Compila le informazioni del prodotto. I campi contrassegnati con * sono obbligatori.",
+          "unsavedChangesWarning": "Hai modifiche non salvate. Sei sicuro di voler uscire?",
+          "basicInfo": {
+            "title": "Informazioni di base",
+            "sku": "SKU",
+            "skuRequired": "Lo SKU è obbligatorio",
+            "skuImmutable": "Lo SKU non può essere modificato dopo la creazione",
+            "name": "Nome",
+            "nameRequired": "Il nome è obbligatorio",
+            "category": "Categoria",
+            "categoryRequired": "La categoria è obbligatoria",
+            "categoryPlaceholder": "Seleziona una categoria",
+            "brand": "Marca",
+            "brandRequired": "La marca è obbligatoria",
+            "brandPlaceholder": "Seleziona una marca",
+            "description": "Descrizione",
+            "descriptionRequired": "La descrizione è obbligatoria",
+            "price": "Prezzo unitario",
+            "priceInvalid": "Prezzo non valido (es. 99,90)",
+            "minOrderQty": "Quantità minima d'ordine",
+            "isEpi": "È un DPI (Dispositivo di Protezione Individuale)",
+            "currency": "Valuta"
+          },
+          "details": {
+            "title": "Dettagli del prodotto",
+            "noAttributes": "Nessun attributo definito per questa categoria. Gli attributi appariranno qui quando viene selezionata una categoria.",
+            "attributesRemovedWarning": "I seguenti attributi non sono validi per la nuova categoria e sono stati rimossi: {keys}"
+          },
+          "image": {
+            "title": "Immagine del prodotto",
+            "preview": "Anteprima",
+            "previewAlt": "Anteprima dell'immagine del prodotto",
+            "noPreview": "Nessuna immagine selezionata",
+            "previewTitle": "Anteprima dell'immagine",
+            "urlTab": "URL dell'immagine",
+            "staticTab": "Immagini del catalogo",
+            "urlLabel": "URL dell'immagine (HTTPS)",
+            "urlHint": "Incolla un URL HTTPS valido. L'anteprima si aggiornerà automaticamente.",
+            "staticLabel": "O scegli un'immagine dal catalogo",
+            "noStaticImages": "Nessuna immagine statica disponibile in /static/catalog/",
+            "previewBtn": "Anteprima"
+          },
+          "publish": {
+            "title": "Pubblicazione",
+            "draftLabel": "Salva come bozza",
+            "draftDescription": "Il prodotto verrà salvato come bozza (DRAFT) e non sarà visibile nel catalogo pubblico.",
+            "publishLabel": "Salva e pubblica",
+            "publishDescription": "Il prodotto sarà pubblicato (ACTIVE) e sarà visibile nel catalogo pubblico immediatamente.",
+            "saveDraft": "Salva bozza",
+            "saveAndPublish": "Salva e pubblica",
+            "saving": "Salvataggio…",
+            "publishing": "Pubblicazione…"
+          },
+          "fieldRequired": "Il campo \"{field}\" è obbligatorio",
+          "maxChars": "Max. caratteri",
+          "unit": "Unità",
+          "selectOption": "Seleziona un'opzione",
+          "attributesRemovedWarning": "I seguenti attributi non sono validi per la nuova categoria e sono stati rimossi: {keys}"
+        }
+      }
+    }
   }
 }

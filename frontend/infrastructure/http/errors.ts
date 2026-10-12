@@ -6,7 +6,7 @@ import { DomainError } from "@/core/domain/errors";
  * application/problem+json — contrato RFC 7807 do backend Forja B2B.
  *
  * O backend responde erros no formato único abaixo:
- *   { type, title, status, detail?, instance?, trace_id? }
+ *   { type, title, status, detail?, instance?, trace_id?, *extensions? }
  * onde `type` é estável (urn:forja:problem:{code}) e `trace_id` permite
  * correlacionar com logs/traces. A validação é feita com Zod para garantir
  * robustez na fronteira HTTP.
@@ -21,7 +21,7 @@ export const problemDetailsSchema = z.object({
   detail: z.string().optional(),
   instance: z.string().optional(),
   trace_id: z.string().optional(),
-});
+}).passthrough();
 
 export type ProblemDetails = z.infer<typeof problemDetailsSchema>;
 
@@ -39,6 +39,7 @@ export class ApiError extends DomainError {
   readonly title: string;
   readonly instance?: string;
   readonly traceId?: string;
+  readonly extensions: Record<string, unknown>;
 
   constructor(problem: ProblemDetails) {
     super(problem.type, problem.detail ?? problem.title, problem.detail);
@@ -47,6 +48,10 @@ export class ApiError extends DomainError {
     this.title = problem.title;
     this.instance = problem.instance;
     this.traceId = problem.trace_id;
+    // Captura propriedades extras (extensions) do Problem Details
+    const { type, title, status, detail, instance, trace_id, extensions, ...rest } = problem;
+    // Se o backend enviar `extensions` como propriedade (RFC 7807), usa ela; senão usa o resto
+    this.extensions = (extensions as Record<string, unknown>) ?? rest;
   }
 }
 

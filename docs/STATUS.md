@@ -403,3 +403,101 @@ Auditoria completa e decisões em `docs/CATALOG_DEMO.md`. Resumo:
    DANFE/XML etc.) em fases futuras. A busca tem plano próprio em
    `docs/search/PLAN.md` (Fases 2–6, a partir da Fase 2: Elasticsearch e cliente).
 4. Integração com o frontend (fases futuras).
+
+---
+
+## Fase 9-c — Frontend: formulário de administração e especificações do produto
+
+**Iniciado:** 2026-10-12  
+**Concluído:** 2026-10-12 (frontend completo; validação Docker pendente)
+
+### Resumo
+
+Frontend de administração de catálogo no estilo marketplace (OLX, Mercado Livre) e seção "Especificações" na página pública do cliente.
+
+### Implementado
+
+| Componente | Descrição |
+|------------|-----------|
+| **Lista de produtos (admin)** | `/[locale]/admin/catalog/products` — tabela com busca, filtros (categoria, status DRAFT/ACTIVE/ARCHIVED), paginação, ações: editar, ver público, publicar/despublicar, excluir (dialog) |
+| **Formulário de produto** | `/[locale]/admin/catalog/products/new` e `/[id]` — 4 seções: (1) Informações básicas (obrigatórias *), (2) Detalhes dinâmicos por categoria, (3) Imagem (URL HTTPS ou catálogo estático com preview), (4) Publicação (rascunho/publicar) |
+| **Página pública - Especificações** | Seção renderizada apenas se `attributes.length > 0`; usa `ProductAttributeOut[]` (label, value, unit) da API |
+
+### Funcionalidades principais do formulário
+
+- **Validação:** Zod + manual por campo; contadores de caracteres; foco no primeiro erro; labels/teclado acessíveis
+- **Atributos dinâmicos:** Carregados via `GET /admin/catalog/categories/{slug}/attributes`; inputs por tipo (text, number, enum, boolean); agrupados por `section`; troca de categoria preserva válidos e avisa sobre removidos
+- **Imagem:** Duas abas — URL HTTPS (com preview automático) e grid de imagens estáticas `/static/catalog/`; dialog modal para preview tela cheia
+- **Concorrência:** Erro 409 (version conflict) → alerta + recarrega lista
+- **Unsaved changes:** Aviso `beforeunload` ao sair com alterações
+- **i18n:** 11 locales (pt-BR, en, es, fr, it, de, ja, ko, zh-CN, ru, ar) com ~100 chaves na seção `admin.catalog.products.form`
+
+### Componentes UI criados
+
+- `shared/ui/select.tsx` (Radix Select)
+- `shared/ui/tabs.tsx` (Radix Tabs)
+- `shared/ui/textarea.tsx`
+
+### API Client
+
+- `infrastructure/http/admin-catalog-api.ts` — 8 funções (list, get, create, update, publish, unpublish, attribute definitions, static images)
+- `isVersionConflict()` / `getFieldErrors()` — tratamento RFC 7807
+
+### Qualidade
+
+| Verificador | Frontend | Backend (unit) |
+|-------------|----------|----------------|
+| Typecheck | ✅ passed | N/A |
+| Lint | ✅ passed (3 warnings `<img>`) | ✅ Ruff passed |
+| Testes | ✅ 83 passed | ✅ 93 passed |
+| i18n parity | ✅ 11 locales | N/A |
+
+### Pendente (requer Docker/Elasticsearch)
+
+- Validação end-to-end com backend real: criar produto, editar atributos, conferir página pública
+- Evidências visuais (screenshots) e respostas de API
+- Rollback de produtos de teste
+
+### Arquivos criados/modificados
+
+**Frontend (novos):**
+- `app/[locale]/admin/catalog/products/page.tsx`
+- `app/[locale]/admin/catalog/products/admin-product-list-client.tsx`
+- `app/[locale]/admin/catalog/products/new/page.tsx`
+- `app/[locale]/admin/catalog/products/[id]/page.tsx`
+- `app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx`
+- `shared/ui/select.tsx`
+- `shared/ui/tabs.tsx`
+- `shared/ui/textarea.tsx`
+- `infrastructure/http/admin-catalog-api.ts`
+- `infrastructure/http/errors.ts` (correção `ApiError.extensions`)
+- `tests/unit/admin-catalog-api.test.ts` (16 testes)
+- `messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` (i18n completo)
+
+**Frontend (modificados):**
+- `features/catalog/product-detail.tsx` — seção Especificações com `ProductAttributeOut[]`
+- `core/domain/catalog.ts` — tipos admin já existiam da Fase 9-b
+
+**Backend (Fase 9-b, já implementados):**
+- 8 endpoints admin em `app/modules/catalog/interface/admin_router.py`
+- Schema `ProductAttributeOut` + conversão público em `router.py`
+
+### Evidências de testes
+
+- **Frontend:** `npm run typecheck` ✅, `npm run lint` ✅, `npm run test` ✅ (83 passed)
+- **Backend unit:** `python -m pytest tests/unit/test_product_attributes.py tests/unit/test_photo_manifest.py` ✅ (93 passed)
+- **Import-linter:** 4 contracts kept, 0 broken
+- **Mypy (backend):** apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+
+### NÃO VALIDADO e riscos
+
+- **Validação Docker/ES:** Ambiente sem Docker/Elasticsearch — não foi possível subir stack e testar navegação visual, criar produtos reais, conferir página pública
+- **Upload de imagem:** Não implementado (fora de escopo desta fase)
+- **Tradução de textos admin:** Preparada (i18n keys), mas integração com Fase 9B pendente
+- **Exclusão de produto:** Dialog implementado, mas endpoint DELETE não chamado (implementação pendente no backend)
+
+### Próximos passos
+
+1. Disponibilizar Docker/Elasticsearch → executar Passo 6 (validação real)
+2. Implementar endpoint DELETE de produto no backend
+3. Upload de imagem (Fase futura)

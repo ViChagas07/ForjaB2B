@@ -6,6 +6,7 @@ export { getApiBaseUrl, DEFAULT_API_BASE_URL } from "./config";
 export { authApi } from "./auth-api";
 export { companyApi } from "./company-api";
 export { catalogApi } from "./catalog-api";
+export { adminCatalogApi, isVersionConflict, getFieldErrors } from "./admin-catalog-api";
 export { cartApi } from "./cart-api";
 export { orderingApi } from "./ordering-api";
 export { creditApi } from "./credit-api";
