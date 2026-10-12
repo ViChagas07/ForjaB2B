@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "created_at": "2026-10-11T03:27:28.909921+00:00",
+  "updated_at": "2026-10-11T03:27:28.909933+00:00",
+  "entries": [],
+  "_instructions": {
+    "description": "Manifesto de rascunhos de produtos a partir de fotos. Preencha uma entrada por foto.",
+    "fields": {
+      "source_file": "Nome do arquivo original (ex.: 'capacete.jpg')",
+      "sku": "SKU seguindo convenção (ex.: 'EPI-CAP-001')",
+      "name": "Nome do produto em pt-BR (ex.: 'Capacete de Segurança')",
+      "description": "Descrição neutra 1-2 frases, máx 200 chars, sem termos técnicos proibidos",
+      "category_slug": "Slug da categoria existente (ver VALID_CATEGORIES)",
+      "brand": "Slug da marca fictícia existente (ver VALID_BRANDS)",
+      "list_price": "Preço de lista em BRL (Decimal, ex.: 24.90)",
+      "needs_name": "True se nome não pôde ser inferido (padrão Pexels)",
+      "needs_review": "True se categoria/preço/marca precisam revisão humana",
+      "brand_is_placeholder": "True se marca é placeholder do seed",
+      "price_is_demo": "True se preço é de demonstração",
+      "category_confidence": "'alta' ou 'baixa'",
+      "name_source": "'derivado do arquivo' ou 'manual'",
+      "description_source": "'gerada' ou 'manual'",
+      "source_url": "URL de origem da foto (ex.: Pexels)",
+      "author": "Autor da foto",
+      "license": "Licença sugerida (ex.: 'Pexels License')",
+      "license_url": "URL da licença",
+      "downloaded_at": "Data de download (ISO 8601)",
+      "attribution_text": "Texto de atribuição completo",
+      "modifications": "Descrição de modificações feitas na imagem",
+      "inferred_from_filename": "True se créditos foram inferidos do nome do arquivo",
+      "owner_verified": "True APENAS após responsável conferir licença, rostos, logos, nome, descrição, categoria, marca, preço"
+    },
+    "publishable_criteria": "owner_verified=True E needs_name=False E (source_url OU author preenchidos)",
+    "valid_categories": [
+      "epis",
+      "ferramentas-eletricas",
+      "maquinas-e-ferramentas",
+      "maquinas-estacionarias",
+      "protecao-auditiva",
+      "protecao-cabeca",
+      "protecao-maos",
+      "protecao-pes",
+      "protecao-quedas",
+      "protecao-respiratoria",
+      "protecao-visual"
+    ],
+    "valid_brands": [
+      "aegis",
+      "ferrum",
+      "guardian",
+      "norton",
+      "protec",
+      "sentinel",
+      "titan",
+      "vulcano"
+    ],
+    "category_price_ranges": {
+      "epis": [
+        "10.00",
+        "60.00"
+      ],
+      "protecao-cabeca": [
+        "15.00",
+        "60.00"
+      ],
+      "protecao-visual": [
+        "15.00",
+        "31.00"
+      ],
+      "protecao-maos": [
+        "9.00",
+        "39.00"
+      ],
+      "protecao-respiratoria": [
+        "3.00",
+        "120.00"
+      ],
+      "protecao-auditiva": [
+        "3.00",
+        "35.00"
+      ],
+      "protecao-pes": [
+        "100.00",
+        "190.00"
+      ],
+      "protecao-quedas": [
+        "89.00",
+        "260.00"
+      ],
+      "maquinas-e-ferramentas": [
+        "200.00",
+        "1000.00"
+      ],
+      "ferramentas-eletricas": [
+        "279.00",
+        "899.00"
+      ],
+      "maquinas-estacionarias": [
+        "780.00",
+        "4590.00"
+      ]
+    },
+    "forbidden_terms_in_description": [
+      "abnt",
+      "ampere",
+      "bar",
+      "certificacao",
+      "certificado",
+      "certificação",
+      "cm",
+      "cv",
+      "db",
+      "desempenho",
+      "garantia",
+      "garantias",
+      "hp",
+      "hz",
+      "iso",
+      "kg",
+      "l",
+      "materiais",
+      "material",
+      "medida",
+      "medidas",
+      "ml",
+      "mm",
+      "norma",
+      "potencia",
+      "potência",
+      "psi",
+      "rpm",
+      "volt",
+      "watt"
+    ]
+  }
+}

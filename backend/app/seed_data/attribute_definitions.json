@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "key": "modelo",
+      "label": "Modelo",
+      "type": "text",
+      "scope": ["global"],
+      "section": "identificacao",
+      "display_order": 10,
+      "max_length": 100
+    },
+    {
+      "key": "cor",
+      "label": "Cor",
+      "type": "text",
+      "scope": ["global"],
+      "section": "identificacao",
+      "display_order": 20,
+      "max_length": 50
+    },
+    {
+      "key": "tamanho",
+      "label": "Tamanho",
+      "type": "text",
+      "scope": ["global"],
+      "section": "identificacao",
+      "display_order": 30,
+      "max_length": 50
+    },
+    {
+      "key": "material",
+      "label": "Material",
+      "type": "text",
+      "scope": ["global"],
+      "section": "tecnico",
+      "display_order": 10,
+      "max_length": 100
+    },
+    {
+      "key": "peso_kg",
+      "label": "Peso (kg)",
+      "type": "number",
+      "unit": "kg",
+      "scope": ["global"],
+      "section": "tecnico",
+      "display_order": 20,
+      "min_value": 0.001,
+      "max_value": 10000
+    },
+    {
+      "key": "unidade_venda",
+      "label": "Unidade de Venda",
+      "type": "text",
+      "scope": ["global"],
+      "section": "comercial",
+      "display_order": 10,
+      "max_length": 20
+    },
+    {
+      "key": "tamanho_luvas",
+      "label": "Tamanho (Luvas)",
+      "type": "enum",
+      "options": [
+        {"key": "P", "label": "P"},
+        {"key": "M", "label": "M"},
+        {"key": "G", "label": "G"},
+        {"key": "GG", "label": "GG"}
+      ],
+      "scope": ["protecao-maos"],
+      "section": "ajuste",
+      "display_order": 10
+    },
+    {
+      "key": "tamanho_botas",
+      "label": "Tamanho (Botas)",
+      "type": "enum",
+      "options": [
+        {"key": "35", "label": "35"},
+        {"key": "36", "label": "36"},
+        {"key": "37", "label": "37"},
+        {"key": "38", "label": "38"},
+        {"key": "39", "label": "39"},
+        {"key": "40", "label": "40"},
+        {"key": "41", "label": "41"},
+        {"key": "42", "label": "42"},
+        {"key": "43", "label": "43"},
+        {"key": "44", "label": "44"},
+        {"key": "45", "label": "45"},
+        {"key": "46", "label": "46"}
+      ],
+      "scope": ["protecao-pes"],
+      "section": "ajuste",
+      "display_order": 10
+    },
+    {
+      "key": "cor_capacete",
+      "label": "Cor (Capacete)",
+      "type": "enum",
+      "options": [
+        {"key": "branco", "label": "Branco"},
+        {"key": "amarelo", "label": "Amarelo"},
+        {"key": "azul", "label": "Azul"},
+        {"key": "vermelho", "label": "Vermelho"},
+        {"key": "verde", "label": "Verde"},
+        {"key": "laranja", "label": "Laranja"},
+        {"key": "preto", "label": "Preto"}
+      ],
+      "scope": ["protecao-cabeca"],
+      "section": "identificacao",
+      "display_order": 5
+    },
+    {
+      "key": "cor_coleta",
+      "label": "Cor (Colete)",
+      "type": "enum",
+      "options": [
+        {"key": "amarelo", "label": "Amarelo"},
+        {"key": "laranja", "label": "Laranja"},
+        {"key": "verde", "label": "Verde"}
+      ],
+      "scope": ["epis"],
+      "section": "identificacao",
+      "display_order": 5
+    },
+    {
+      "key": "potencia_w",
+      "label": "Potência (W)",
+      "type": "number",
+      "unit": "W",
+      "scope": ["ferramentas-eletricas", "maquinas-estacionarias"],
+      "section": "tecnico",
+      "display_order": 10,
+      "min_value": 10,
+      "max_value": 50000
+    },
+    {
+      "key": "tensao_v",
+      "label": "Tensão (V)",
+      "type": "enum",
+      "options": [
+        {"key": "110", "label": "110V"},
+        {"key": "220", "label": "220V"},
+        {"key": "bivolt", "label": "Bivolt"}
+      ],
+      "scope": ["ferramentas-eletricas", "maquinas-estacionarias"],
+      "section": "tecnico",
+      "display_order": 20
+    },
+    {
+      "key": "ca",
+      "label": "CA (Certificado de Aprovação)",
+      "type": "text",
+      "scope": ["epis"],
+      "section": "conformidade",
+      "display_order": 10,
+      "max_length": 64
+    }
+  ]
+}

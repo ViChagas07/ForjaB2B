@@ -48,6 +48,9 @@ __pycache__/
 # Docker
 .docker/
 
+# Assets source (originais nunca versionados)
+assets-src/
+
 # Misc
 *.pem
 .cache/
