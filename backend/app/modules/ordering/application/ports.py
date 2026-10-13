@@ -59,6 +59,7 @@ class OrderItemView:
     base_unit_price: Decimal | None
     tier_min_quantity: int | None
     line_total: Decimal
+    content_locale: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -74,13 +75,14 @@ class OrderView:
     total: Decimal
     items: list[OrderItemView]
     created_at: datetime
+    content_locale: str
 
 
 class OrderingRepository(Protocol):
     """Persistencia de pedidos (snapshot + credito atomico)."""
 
     async def get_product_for_order(
-        self, company_id: uuid.UUID, product_id: uuid.UUID
+        self, company_id: uuid.UUID, product_id: uuid.UUID, locale: str = "pt-BR"
     ) -> ProductForOrder | None:
         """Le produto + tiers + regras da empresa para validacao/precificacao."""
 
@@ -97,6 +99,7 @@ class OrderingRepository(Protocol):
         subtotal: Decimal,
         shipping_total: Decimal,
         total: Decimal,
+        content_locale: str,
     ) -> OrderView:
         """Cria pedido (snapshot) + reserva credito (boleto) atomicamente."""
 

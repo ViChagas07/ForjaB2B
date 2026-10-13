@@ -26,6 +26,7 @@ class CreateOrderRequest(BaseModel):
     idempotency_key: str = Field(min_length=1, max_length=64)
     po_number: str | None = Field(default=None, max_length=100)
     notes: str | None = None
+    lang: str | None = Field(default=None, max_length=10)
 
 
 class OrderItemResponse(BaseModel):
@@ -38,6 +39,7 @@ class OrderItemResponse(BaseModel):
     base_unit_price: Decimal | None
     tier_min_quantity: int | None
     line_total: Decimal
+    content_locale: str
 
 
 class OrderResponse(BaseModel):
@@ -54,3 +56,4 @@ class OrderResponse(BaseModel):
     total: Decimal
     items: list[OrderItemResponse]
     created_at: datetime
+    content_locale: str

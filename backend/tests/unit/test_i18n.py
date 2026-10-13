@@ -22,6 +22,7 @@ from app.domain.i18n import (
     resolve_text,
     sanitize_translated_text,
 )
+from app.infrastructure.i18n.dictionary import category_name, load_attribute_dictionary
 
 SUPPORTED = ["pt-BR", "en", "es", "ar"]
 
@@ -275,3 +276,71 @@ def test_translation_status_valores() -> None:
         "reviewed",
         "stale",
     }
+
+
+# ---------------------------------------------------------- category names
+
+
+def test_category_name_pt_br_usa_origem() -> None:
+    assert (
+        category_name(
+            slug="protecao-cabeca", locale="pt-BR", default_name="Proteção da Cabeça"
+        )
+        == "Proteção da Cabeça"
+    )
+
+
+def test_category_name_traduzido() -> None:
+    assert (
+        category_name(
+            slug="protecao-cabeca", locale="en", default_name="Proteção da Cabeça"
+        )
+        == "Head Protection"
+    )
+    assert (
+        category_name(slug="protecao-maos", locale="es", default_name="Proteção das Mãos")
+        == "Protección de las Manos"
+    )
+    assert (
+        category_name(
+            slug="protecao-respiratoria", locale="ar", default_name="Proteção Respiratória"
+        )
+        == "الحماية التنفسية"
+    )
+
+
+def test_category_name_slug_desconhecido_fallback() -> None:
+    assert category_name(slug="inexistente", locale="en", default_name="Original") == "Original"
+
+
+def test_category_name_locale_nao_suportado_fallback() -> None:
+    assert (
+        category_name(
+            slug="protecao-cabeca", locale="de", default_name="Proteção da Cabeça"
+        )
+        == "Proteção da Cabeça"
+    )
+
+
+# ---------------------------------------------------------- attribute dictionary
+
+
+def test_attribute_dictionary_labels_carregados() -> None:
+    d = load_attribute_dictionary()
+    assert d["labels"]["en"]["cor"] == "Color"
+    assert d["labels"]["es"]["material"] == "Material"
+    assert d["labels"]["ar"]["tamanho"] == "المقاس"
+
+
+def test_attribute_dictionary_options_carregados() -> None:
+    d = load_attribute_dictionary()
+    assert d["options"]["en"]["cor"]["branco"] == "white"
+    assert d["options"]["es"]["cor"]["preto"] == "negro"
+    assert d["options"]["ar"]["material"]["couro"] == "جلد"
+
+
+def test_attribute_dictionary_chave_ausente_fallback_implicito() -> None:
+    # O dicionario e usado como fallback: chave ausente = usa valor original
+    d = load_attribute_dictionary()
+    assert "chave_inexistente" not in d["labels"]["en"]
+    assert "chave_inexistente" not in d["options"]["en"]

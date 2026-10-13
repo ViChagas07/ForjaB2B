@@ -12,7 +12,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Request, status
 
 from app.application.security import AuthContext
-from app.interface.deps import get_current_auth
+from app.interface.deps import get_current_auth, get_locale
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.application.ports import OrderItemInput, OrderView
 from app.modules.ordering.interface.schemas import (
@@ -48,6 +48,7 @@ def _to_response(view: OrderView) -> OrderResponse:
         tax_total=view.tax_total,
         total=view.total,
         created_at=view.created_at,
+        content_locale=view.content_locale,
         items=[
             OrderItemResponse(
                 sku=i.sku,
@@ -57,6 +58,7 @@ def _to_response(view: OrderView) -> OrderResponse:
                 base_unit_price=i.base_unit_price,
                 tier_min_quantity=i.tier_min_quantity,
                 line_total=i.line_total,
+                content_locale=i.content_locale,
             )
             for i in view.items
         ],
@@ -67,6 +69,7 @@ def _to_response(view: OrderView) -> OrderResponse:
 async def create_order(
     payload: CreateOrderRequest,
     auth: Annotated[AuthContext, Depends(get_current_auth)],
+    locale: Annotated[str, Depends(get_locale)],
     use_case: Annotated[CreateOrder, Depends(_create_order)],
 ) -> OrderResponse:
     view = await use_case.create(
@@ -77,6 +80,7 @@ async def create_order(
         idempotency_key=payload.idempotency_key,
         po_number=payload.po_number,
         notes=payload.notes,
+        locale=locale,
     )
     return _to_response(view)
 

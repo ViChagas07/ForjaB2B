@@ -593,3 +593,36 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - Typecheck: **passed**
 - Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
 - Testes: **83 passed** (inclui i18n parity)
+
+---
+
+## Fase 9B-a — Traduções armazenadas: modelo, resolução, API e seed
+
+**Iniciado:** 2026-10-13
+
+### Passo 1 — Auditoria rápida (somente leitura) ✅
+
+**Onde as respostas montam textos do produto:**
+
+1. **Catálogo público (lista e detalhe)** — `app/modules/catalog/application/catalog.py`:
+   - `ListProducts.list()` e `GetProduct.get()` chamam `_with_translation()` que usa `resolve_product_text()` do domínio
+   - Retorna `ProductView` com `name`, `description`, `attributes`, `content_locale`, `fallback`
+   - Router público (`app/modules/catalog/interface/router.py`) converte `attributes` dict → `list[ProductAttributeOut]` usando registry para labels/units
+
+2. **Busca (Fase 3/9-b)** — usa o mesmo repositório `SqlAlchemyCatalogRepository` e `load_product_translations()`
+
+3. **Carrinho** — `app/modules/cart/infrastructure/repository.py`:
+   - `get_cart()` chama `_resolve_items_standalone()` que usa `resolve_product_text()` apenas para `name` (description/attributes não são resolvidos no carrinho)
+   - Retorna `CartItemView` com `name`, `content_locale`
+
+4. **Pedidos** — `app/modules/ordering/application/order.py`:
+   - `CreateOrder.create()` usa `product.name` direto do repositório (sem tradução)
+   - Order snapshot guarda `name` no momento da criação
+
+**Dicionário de rótulos/opções (Fase 9):**
+- `app/infrastructure/i18n/category_names.json` — nomes de categoria por slug/locale
+- `app/infrastructure/i18n/attribute_dictionary.json` — labels e options de atributos por locale
+- Carregados via `load_category_names()` e `load_attribute_dictionary()` (cache LRU)
+
+**Categorias existentes (11):**
+- `epis` (pai), `protecao-cabeca`, `protecao-visual`, `protecao-maos`, `protecao-respiratoria`, `protecao-auditiva`, `protecao-pes`, `protecao-quedas`, `maquinas-e-ferramentas` (pai), `ferramentas-eletricas`, `maquinas-estacionarias`

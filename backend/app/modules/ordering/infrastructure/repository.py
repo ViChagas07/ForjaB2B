@@ -16,11 +16,14 @@ from typing import Any
 
 from sqlalchemy import text
 
+from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.application.ports.tenant import TenantContext
+from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.ledger import LedgerEntry, exposure
 from app.domain.pricing import PriceTier
 from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.outbox import enqueue_notification
+from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.ordering.application.errors import (
     CreditAccountNotFoundError,
@@ -41,8 +44,10 @@ from app.modules.ordering.domain.order import can_cancel
 _ORDERS_KEY_UNIQUE = "uq_orders_idempotency_key"
 
 _GET_PRODUCT = text(
-    "SELECT id, sku, name, status, is_epi, ca_valid_until, base_unit_price, min_order_qty, "
-    "weight_kg, category_id FROM products WHERE id = :product_id"
+    "SELECT p.id, p.sku, p.name, p.description, p.status, p.is_epi, p.ca_valid_until, "
+    "p.base_unit_price, p.min_order_qty, p.weight_kg, p.category_id, p.image_url, "
+    "p.attributes, c.slug AS category_slug "
+    "FROM products p JOIN categories c ON c.id = p.category_id WHERE p.id = :product_id"
 )
 _GET_TIERS = text(
     "SELECT id, min_quantity, max_quantity, unit_price FROM product_price_tiers "
@@ -57,14 +62,16 @@ _SELECT_ENTRIES = text(
 )
 _INSERT_ORDER = text(
     "INSERT INTO orders (company_id, buyer_user_id, subtotal, shipping_total, total, "
-    "idempotency_key, po_number, notes) VALUES (:company_id, :buyer_user_id, :subtotal, "
-    ":shipping_total, :total, :idempotency_key, :po_number, :notes) RETURNING id"
+    "idempotency_key, po_number, notes, content_locale) VALUES "
+    "(:company_id, :buyer_user_id, :subtotal, :shipping_total, :total, "
+    ":idempotency_key, :po_number, :notes, :content_locale) RETURNING id"
 )
 _INSERT_ITEM = text(
     "INSERT INTO order_items (order_id, company_id, product_id, price_tier_id, sku, "
-    "product_name, quantity, unit_price, base_unit_price, tier_min_quantity, line_total) "
-    "VALUES (:order_id, :company_id, :product_id, :price_tier_id, :sku, :product_name, "
-    ":quantity, :unit_price, :base_unit_price, :tier_min_quantity, :line_total)"
+    "product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
+    "line_total, content_locale) VALUES (:order_id, :company_id, :product_id, "
+    ":price_tier_id, :sku, :product_name, :quantity, :unit_price, "
+    ":base_unit_price, :tier_min_quantity, :line_total, :content_locale)"
 )
 _INSERT_CREDIT = text(
     "INSERT INTO credit_entries (credit_account_id, company_id, entry_type, amount, "
@@ -72,12 +79,13 @@ _INSERT_CREDIT = text(
     "VALUES (:company_id, :company_id, :entry_type, :amount, 'order', :order_id, :key)"
 )
 _SELECT_ORDER = text(
-    "SELECT id, company_id, status, currency, subtotal, discount_total, shipping_total, "
-    "tax_total, total, created_at FROM orders WHERE id = :order_id AND company_id = :company_id"
+    "SELECT id, company_id, status, currency, subtotal, discount_total, "
+    "shipping_total, tax_total, total, created_at, content_locale "
+    "FROM orders WHERE id = :order_id AND company_id = :company_id"
 )
 _SELECT_ORDER_ITEMS = text(
     "SELECT sku, product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
-    "line_total FROM order_items WHERE order_id = :order_id ORDER BY created_at, id"
+    "line_total, content_locale FROM order_items WHERE order_id = :order_id ORDER BY created_at, id"
 )
 _SELECT_RESERVE = text(
     "SELECT COALESCE(SUM(amount), 0) FROM credit_entries "
@@ -105,7 +113,7 @@ class SqlAlchemyOrderingRepository:
         self._uow_factory = uow_factory
 
     async def get_product_for_order(
-        self, company_id: uuid.UUID, product_id: uuid.UUID
+        self, company_id: uuid.UUID, product_id: uuid.UUID, locale: str = DEFAULT_LOCALE
     ) -> ProductForOrder | None:
         # UoW com tenant: le produto/tiers (globais) e as regras da empresa (RLS).
         tenant = TenantContext(company_id=company_id)
@@ -116,10 +124,32 @@ class SqlAlchemyOrderingRepository:
             await uow.commit()
             if product is None:
                 return None
+
+            # Resolve tradução se não for pt-BR
+            name = product.name
+            if locale != DEFAULT_LOCALE:
+                translations = await load_product_translations(
+                    uow.session, product_ids=[product_id], locales=[locale]
+                )
+                trans = translations.get((product_id, locale))
+                if trans:
+                    resolved = resolve_product_text(
+                        source_name=product.name,
+                        source_description=product.description,
+                        source_attributes=product.attributes,
+                        locale=locale,
+                        translation=ProductTextTranslation(
+                            name=trans.name,
+                            description=trans.description,
+                            attributes=trans.attributes,
+                        ),
+                    )
+                    name = resolved.name.value or product.name
+
             return ProductForOrder(
                 id=product.id,
                 sku=product.sku,
-                name=product.name,
+                name=name,
                 status=product.status,
                 is_epi=product.is_epi,
                 ca_valid_until=product.ca_valid_until,
@@ -152,6 +182,7 @@ class SqlAlchemyOrderingRepository:
         subtotal: Decimal,
         shipping_total: Decimal,
         total: Decimal,
+        content_locale: str,
     ) -> OrderView:
         existing_id = await self._find_by_key(company_id, idempotency_key)
         if existing_id is not None:
@@ -168,6 +199,7 @@ class SqlAlchemyOrderingRepository:
                 subtotal=subtotal,
                 shipping_total=shipping_total,
                 total=total,
+                content_locale=content_locale,
             )
         except Exception as exc:
             if _constraint_name(exc) == _ORDERS_KEY_UNIQUE:
@@ -189,6 +221,7 @@ class SqlAlchemyOrderingRepository:
         subtotal: Decimal,
         shipping_total: Decimal,
         total: Decimal,
+        content_locale: str,
     ) -> OrderView:
         tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
         async with self._uow_factory.begin(tenant) as uow:
@@ -207,6 +240,7 @@ class SqlAlchemyOrderingRepository:
                         "idempotency_key": idempotency_key,
                         "po_number": po_number,
                         "notes": notes,
+                        "content_locale": content_locale,
                     },
                 )
             ).scalar_one()
@@ -226,6 +260,7 @@ class SqlAlchemyOrderingRepository:
                         "base_unit_price": item.base_unit_price,
                         "tier_min_quantity": item.tier_min_quantity,
                         "line_total": item.line_total,
+                        "content_locale": content_locale,
                     },
                 )
 
@@ -317,6 +352,7 @@ class SqlAlchemyOrderingRepository:
             tax_total=row.tax_total,
             total=row.total,
             created_at=row.created_at,
+            content_locale=row.content_locale or DEFAULT_LOCALE,
             items=[
                 OrderItemView(
                     sku=r.sku,
@@ -326,6 +362,7 @@ class SqlAlchemyOrderingRepository:
                     base_unit_price=r.base_unit_price,
                     tier_min_quantity=r.tier_min_quantity,
                     line_total=r.line_total,
+                    content_locale=r.content_locale or DEFAULT_LOCALE,
                 )
                 for r in items_rows
             ],

@@ -50,6 +50,7 @@ class CreateOrder:
         idempotency_key: str,
         po_number: str | None = None,
         notes: str | None = None,
+        locale: str = "pt-BR",
     ) -> OrderView:
         if not items:
             raise EmptyOrderError()
@@ -57,7 +58,9 @@ class CreateOrder:
         resolved: list[ResolvedItem] = []
         line_weights: list[tuple[int, Decimal | None]] = []
         for item in items:
-            product = await self._repository.get_product_for_order(company_id, item.product_id)
+            product = await self._repository.get_product_for_order(
+                company_id, item.product_id, locale
+            )
             if product is None:
                 raise ProductNotFoundError()
             if not is_sellable(
@@ -93,8 +96,6 @@ class CreateOrder:
             line_weights.append((item.quantity, product.weight_kg))
 
         subtotal = sum((i.line_total for i in resolved), Decimal("0.00"))
-        # Frete calculado no backend a partir do peso real do catalogo (nunca do
-        # cliente). Impostos sao uma simulacao separada (ver modulo tax).
         shipping_total = compute_shipping(total_weight_kg=compute_total_weight(line_weights))
         total = subtotal + shipping_total
 
@@ -109,6 +110,7 @@ class CreateOrder:
             subtotal=subtotal,
             shipping_total=shipping_total,
             total=total,
+            content_locale=locale,
         )
         increment_order_created(payment_method.value)
 
