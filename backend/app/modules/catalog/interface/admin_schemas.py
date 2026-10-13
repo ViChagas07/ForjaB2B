@@ -109,6 +109,22 @@ class ProductPublish(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Translation Admin Schemas
+# ---------------------------------------------------------------------------
+
+
+class TranslationUpdate(BaseModel):
+    """Payload para editar tradução manualmente."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, min_length=1, max_length=4000)
+    attributes: dict[str, Any] | None = None
+    mark_reviewed: bool = False
+
+
+# ---------------------------------------------------------------------------
 # Schemas de saída (response)
 # ---------------------------------------------------------------------------
 
@@ -215,3 +231,33 @@ class StaticImageOut(BaseModel):
 
     path: str
     label: str
+
+
+# ---------------------------------------------------------------------------
+# Translation Admin Response Schemas
+# ---------------------------------------------------------------------------
+
+
+class TranslationAdminOut(BaseModel):
+    """Visão administrativa de uma tradução de produto."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    product_id: uuid.UUID
+    locale: str
+    name: str | None
+    description: str | None
+    attributes: dict[str, Any] | None
+    status: str
+    source_hash: str
+    translated_at: datetime | None
+    is_stale: bool
+
+
+class ProductTranslationsListResponse(BaseModel):
+    """Lista de traduções de um produto."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    product_id: uuid.UUID
+    translations: list[TranslationAdminOut]

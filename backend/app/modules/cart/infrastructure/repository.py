@@ -29,8 +29,8 @@ from app.modules.cart.application.ports import (
 )
 
 _GET_PRODUCT = text(
-    "SELECT id, sku, name, status, is_epi, ca_valid_until, base_unit_price, min_order_qty "
-    "FROM products WHERE id = :product_id"
+    "SELECT id, sku, name, description, status, is_epi, ca_valid_until, "
+    "base_unit_price, min_order_qty, attributes FROM products WHERE id = :product_id"
 )
 _GET_TIERS = text(
     "SELECT id, min_quantity, max_quantity, unit_price FROM product_price_tiers "
@@ -42,9 +42,9 @@ _INSERT_CART = text(
 )
 _SELECT_CART = text("SELECT id FROM carts WHERE company_id = :company_id AND user_id = :user_id")
 _SELECT_ITEMS = text(
-    "SELECT ci.product_id, ci.quantity, p.sku, p.name, p.status, p.is_epi, "
-    "       p.ca_valid_until, p.base_unit_price, p.min_order_qty, p.category_id, "
-    "       p.image_url, c.slug AS category_slug "
+    "SELECT ci.product_id, ci.quantity, p.sku, p.name, p.description, p.attributes, "
+    "       p.status, p.is_epi, p.ca_valid_until, p.base_unit_price, p.min_order_qty, "
+    "       p.category_id, p.image_url, c.slug AS category_slug "
     "FROM cart_items ci JOIN products p ON p.id = ci.product_id "
     "JOIN categories c ON c.id = p.category_id "
     "WHERE ci.cart_id = :cart_id ORDER BY ci.created_at, ci.id"
@@ -69,22 +69,52 @@ class SqlAlchemyCartRepository:
     def __init__(self, uow_factory: SqlAlchemyUnitOfWorkFactory) -> None:
         self._uow_factory = uow_factory
 
-    async def get_product_for_cart(self, product_id: uuid.UUID) -> ProductForCart | None:
+    async def get_product_for_cart(
+        self, product_id: uuid.UUID, locale: str = DEFAULT_LOCALE
+    ) -> ProductForCart | None:
         async with self._uow_factory.begin() as uow:
             product = (await uow.session.execute(_GET_PRODUCT, {"product_id": product_id})).first()
             tiers_rows = (await uow.session.execute(_GET_TIERS, {"product_id": product_id})).all()
             await uow.commit()
             if product is None:
                 return None
+
+            # Resolve tradução se não for pt-BR
+            name = product.name
+            description = product.description
+            attributes = product.attributes
+            if locale != DEFAULT_LOCALE:
+                translations = await load_product_translations(
+                    uow.session, product_ids=[product_id], locales=[locale]
+                )
+                trans = translations.get((product_id, locale))
+                if trans:
+                    resolved = resolve_product_text(
+                        source_name=product.name,
+                        source_description=product.description,
+                        source_attributes=product.attributes,
+                        locale=locale,
+                        translation=ProductTextTranslation(
+                            name=trans.name,
+                            description=trans.description,
+                            attributes=trans.attributes,
+                        ),
+                    )
+                    name = resolved.name.value or product.name
+                    description = resolved.description.value
+                    attributes = resolved.attributes
+
             return ProductForCart(
                 id=product.id,
                 sku=product.sku,
-                name=product.name,
+                name=name,
+                description=description,
                 status=product.status,
                 is_epi=product.is_epi,
                 ca_valid_until=product.ca_valid_until,
                 base_unit_price=product.base_unit_price,
                 min_order_qty=product.min_order_qty,
+                attributes=attributes,
                 tiers=[
                     PriceTier(
                         tier_id=r.id,
@@ -157,18 +187,21 @@ class SqlAlchemyCartRepository:
                 category_id=r.category_id,
                 rules=rules_by_product.get(r.product_id, []),
             )
+            trans = translations.get(r.product_id)
             text = resolve_product_text(
                 source_name=r.name,
-                source_description=None,
-                source_attributes=None,
+                source_description=r.description,
+                source_attributes=r.attributes,
                 locale=locale,
-                translation=translations.get(r.product_id),
+                translation=trans,
             )
             items.append(
                 CartItemView(
                     product_id=r.product_id,
                     sku=r.sku,
                     name=text.name.value or r.name,
+                    description=text.description.value,
+                    attributes=text.attributes,
                     quantity=r.quantity,
                     unit_price=resolved.unit_price,
                     line_total=resolved.unit_price * r.quantity,

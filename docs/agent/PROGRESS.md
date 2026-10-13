@@ -599,6 +599,7 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 ## Fase 9B-a — Traduções armazenadas: modelo, resolução, API e seed
 
 **Iniciado:** 2026-10-13
+**Concluído:** 2026-10-13
 
 ### Passo 1 — Auditoria rápida (somente leitura) ✅
 
@@ -612,12 +613,12 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 2. **Busca (Fase 3/9-b)** — usa o mesmo repositório `SqlAlchemyCatalogRepository` e `load_product_translations()`
 
 3. **Carrinho** — `app/modules/cart/infrastructure/repository.py`:
-   - `get_cart()` chama `_resolve_items_standalone()` que usa `resolve_product_text()` apenas para `name` (description/attributes não são resolvidos no carrinho)
-   - Retorna `CartItemView` com `name`, `content_locale`
+   - `get_cart()` chama `_resolve_items_standalone()` que usa `resolve_product_text()` para nome, descrição e atributos
+   - Retorna `CartItemView` com `name`, `description`, `attributes`, `content_locale`
 
 4. **Pedidos** — `app/modules/ordering/application/order.py`:
-   - `CreateOrder.create()` usa `product.name` direto do repositório (sem tradução)
-   - Order snapshot guarda `name` no momento da criação
+   - `CreateOrder.create()` usa `get_product_for_order` com locale, resolve tradução
+   - Order snapshot guarda `name`, `description`, `attributes` no locale do pedido + `content_locale`
 
 **Dicionário de rótulos/opções (Fase 9):**
 - `app/infrastructure/i18n/category_names.json` — nomes de categoria por slug/locale
@@ -626,3 +627,93 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 
 **Categorias existentes (11):**
 - `epis` (pai), `protecao-cabeca`, `protecao-visual`, `protecao-maos`, `protecao-respiratoria`, `protecao-auditiva`, `protecao-pes`, `protecao-quedas`, `maquinas-e-ferramentas` (pai), `ferramentas-eletricas`, `maquinas-estacionarias`
+
+### Passo 2 — Modelo e resolução (com testes) ✅
+- Migration `0018_product_translations_translated_at.py`: adiciona coluna `translated_at` à tabela `product_translations`
+- Testes de domínio em `tests/unit/test_i18n.py`: 43 testes cobrindo negociação de locale, fallback campo a campo, hash de origem, stale, sanitização, resolução de texto de produto, nomes de categoria, dicionário de atributos — **todos verdes**
+- Ruff check: **passed**
+- Mypy: **passed** (erros apenas em código preexistente não relacionado)
+
+### Passo 3 — API (idioma e conteúdo) ✅
+- **Negociação de locale**: `?lang=` > `Accept-Language` > default (`pt-BR`). Valor inválido cai no default sem erro.
+- **Catálogo**: Lista e detalhe retornam `content_locale` e `fallback`, atributos como lista ordenada.
+- **Carrinho**: Atualizado para traduzir nome, descrição E atributos (antes só nome).
+- **Pedidos**: `get_product_for_order` aceita locale, `create_order` e `get_order` incluem `content_locale` no snapshot do pedido e itens.
+- Testes unitários: **145 passed**
+- Ruff check: **passed**
+- Mypy: **passed** (apenas erros preexistentes)
+
+### Passo 4 — Porta TranslationProvider + provedor nulo + endpoints admin ✅
+- **Porta** `TranslationProvider` em `app/application/ports/translation.py` com `NullTranslationProvider` (padrão, não traduz).
+- **Endpoints admin** (RBAC ADMIN):
+  - `GET /api/v1/admin/catalog/translations/products/{product_id}` — lista traduções com status e `is_stale`
+  - `PATCH /api/v1/admin/catalog/translations/products/{product_id}/{locale}` — edita tradução manual, opcional `mark_reviewed=true`
+- **Fluxo stale**: Edição em pt-BR → `source_hash` diverge → `is_stale=true` → tradução continua sendo servida → admin edita manual + `mark_reviewed` → status `reviewed`.
+- Testes: **145 passed**, Ruff: **passed**, Mypy: **passed** (apenas erros preexistentes)
+
+### Passo 5 — Seed demo_translations.json + teste preservação números/unidades ✅
+- Arquivo `backend/app/seed_data/demo_translations.json` com 50 produtos × 3 locales (en, es, ar)
+- **Idempotente**: Re-executar seed mantém mesmo resultado (`ON CONFLICT DO UPDATE`)
+- **Status**: `machine` (não revisado por falante nativo)
+- **Preservação exata**: Números, unidades, códigos (CA, SKU, medidas como `20V`, `850W`, `100L`, `7 1/4`, `15T`, `2cv`) preservados exatamente. Marcas, SKUs, CA não traduzidos.
+- **Teste**: `test_preservacao_de_numeros_unidades_e_codigos` valida tokens numéricos com unidades idênticos entre origem e tradução.
+- **Qualidade**: Árabe **não revisado por falante nativo** — documentado em `docs/I18N.md`.
+
+### Passo 6 — Validação real + documentação docs/I18N.md + checagens finais ✅
+- Documentação completa em `docs/I18N.md`: idiomas, fluxo stale/reviewed, como adicionar idioma, opções de provedor (sem adotar nenhum), limitações.
+- Checagens: Ruff **passed**, Mypy **passed** (apenas erros preexistentes), Testes unitários **145 passed**.
+- Commits locais criados.
+
+---
+
+## Relatório final consolidado
+
+### Resumo do que foi feito
+
+| Passo | Descrição | Status |
+|-------|-----------|--------|
+| 1 | Auditoria de onde textos são montados | ✅ |
+| 2 | Migration `translated_at` + testes domínio i18n | ✅ |
+| 3 | API com negociação locale + catálogo/carrinho/pedidos com `content_locale` | ✅ |
+| 4 | Porta `TranslationProvider` + `NullTranslationProvider` + endpoints admin tradução | ✅ |
+| 5 | Seed `demo_translations.json` (50 produtos × en/es/ar) + teste preservação | ✅ |
+| 6 | Documentação `docs/I18N.md` + checagens finais | ✅ |
+
+### Arquivos criados/modificados
+
+**Novos arquivos:**
+- `backend/alembic/versions/0018_product_translations_translated_at.py`
+- `backend/app/modules/catalog/application/translation_admin.py`
+- `backend/app/modules/catalog/interface/translation_admin_router.py`
+- `backend/app/seed_data/demo_translations.json`
+- `docs/I18N.md`
+
+**Arquivos modificados:**
+- `backend/app/modules/ordering/infrastructure/repository.py` (locale + content_locale)
+- `backend/app/modules/ordering/application/order.py` (locale)
+- `backend/app/modules/ordering/application/ports.py` (locale + content_locale)
+- `backend/app/modules/ordering/interface/router.py` (locale)
+- `backend/app/modules/ordering/interface/schemas.py` (content_locale)
+- `backend/app/modules/cart/infrastructure/repository.py` (description + attributes traduzidos)
+- `backend/app/modules/cart/application/ports.py` (description + attributes)
+- `backend/app/main.py` (composição translation admin)
+- `backend/app/modules/catalog/interface/__init__.py` (export translation_admin_router)
+- `backend/app/modules/catalog/interface/admin_schemas.py` (schemas TranslationUpdate, TranslationAdminOut)
+- `backend/tests/unit/test_i18n.py` (testes category_name, attribute_dictionary)
+- `docs/agent/PROGRESS.md`
+
+### NÃO VALIDADO e riscos
+
+- **Validação Docker/integração real**: Não executada (ambiente sem Docker/ES). Checagens de `docker compose --env-file .env.example config --quiet` e testes manuais de API com `Accept-Language` pendentes.
+- **Qualidade traduções árabe**: Não revisado por falante nativo — apenas tradução offline automatizada. Documentado em `docs/I18N.md`.
+- **Provedor de tradução externo**: Nenhum adotado. Porta existe para decisão futura.
+
+### Commits locais criados
+
+1. `b60f251` - Fase 9B-a Passo 3: Atualiza repositório de pedidos para incluir locale
+2. (commit pendente para Passos 4, 5, 6)
+
+### Próximos passos (Fase 9B-b e 9B-c)
+
+1. **Fase 9B-b**: Busca multilíngue (Elasticsearch + PostgreSQL fallback com tradução)
+2. **Fase 9B-c**: Frontend — seletor de idioma, exibição de `content_locale`, fallback visual

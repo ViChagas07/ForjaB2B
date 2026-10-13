@@ -1,0 +1,922 @@
+{
+  "locales": [
+    "en",
+    "es",
+    "ar"
+  ],
+  "products": {
+    "EPI-CAP-001": {
+      "en": {
+        "name": "Pro Safety Helmet",
+        "description": "Class B safety helmet with adjustable suspension.",
+        "attributes": {
+          "cor": "white",
+          "material": "ABS"
+        }
+      },
+      "es": {
+        "name": "Casco de Seguridad Pro",
+        "description": "Casco de seguridad clase B con suspensión ajustable.",
+        "attributes": {
+          "cor": "blanco",
+          "material": "ABS"
+        }
+      },
+      "ar": {
+        "name": "خوذة أمان برو",
+        "description": "خوذة أمان من الفئة ب مع تعليق قابل للتعديل.",
+        "attributes": {
+          "cor": "أبيض",
+          "material": "ABS"
+        }
+      }
+    },
+    "EPI-LUV-002": {
+      "en": {
+        "name": "Premium Split Leather Glove",
+        "description": null,
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante de Raspa Premium",
+        "description": null,
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز جلد مشقوق فاخر",
+        "description": null,
+        "attributes": {}
+      }
+    },
+    "EPI-RES-003": {
+      "en": {
+        "name": "PFF2 Respirator",
+        "description": null,
+        "attributes": {}
+      },
+      "es": {
+        "name": "Respirador PFF2",
+        "description": null,
+        "attributes": {}
+      },
+      "ar": {
+        "name": "جهاز تنفس PFF2",
+        "description": null,
+        "attributes": {}
+      }
+    },
+    "MAQ-PAR-004": {
+      "en": {
+        "name": "20V Impact Driver",
+        "description": null,
+        "attributes": {}
+      },
+      "es": {
+        "name": "Atornillador de Impacto 20V",
+        "description": null,
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مفك براغي صدمي 20 فولت",
+        "description": null,
+        "attributes": {}
+      }
+    },
+    "CAP-002": {
+      "en": {
+        "name": "Class A Front Brim Safety Helmet",
+        "description": "Class A Front Brim Safety Helmet (demo item).",
+        "attributes": {
+          "cor": "white",
+          "material": "ABS"
+        }
+      },
+      "es": {
+        "name": "Casco de Seguridad Clase A Ala Frontal",
+        "description": "Casco de Seguridad Clase A Ala Frontal (artículo de demostración).",
+        "attributes": {
+          "cor": "blanco",
+          "material": "ABS"
+        }
+      },
+      "ar": {
+        "name": "خوذة أمان فئة أ حافة أمامية",
+        "description": "خوذة أمان فئة أ حافة أمامية (عنصر تجريبي).",
+        "attributes": {
+          "cor": "أبيض",
+          "material": "ABS"
+        }
+      }
+    },
+    "CAP-003": {
+      "en": {
+        "name": "Class B Safety Helmet with Chin Strap",
+        "description": "Class B Safety Helmet with Chin Strap (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Casco de Seguridad Clase B con Barbiquejo",
+        "description": "Casco de Seguridad Clase B con Barbiquejo (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "خوذة أمان فئة ب مع حزام ذقن",
+        "description": "خوذة أمان فئة ب مع حزام ذقن (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "CAP-004": {
+      "en": {
+        "name": "Conjugate Safety Helmets",
+        "description": "Conjugate Safety Helmets (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Cascos de Seguridad Conjugados",
+        "description": "Cascos de Seguridad Conjugados (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "خوذات أمان مترابطة",
+        "description": "خوذات أمان مترابطة (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "CAP-005": {
+      "en": {
+        "name": "Discontinued Safety Helmet",
+        "description": "Discontinued Safety Helmet (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Casco de Seguridad Descontinuado",
+        "description": "Casco de Seguridad Descontinuado (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "خوذة أمان متوقفة",
+        "description": "خوذة أمان متوقفة (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "OCV-001": {
+      "en": {
+        "name": "Clear Safety Glasses",
+        "description": "Clear Safety Glasses (demo item).",
+        "attributes": {
+          "cor": "transparent",
+          "tratamento": "anti-fog"
+        }
+      },
+      "es": {
+        "name": "Gafas de Protección Incoloras",
+        "description": "Gafas de Protección Incoloras (artículo de demostración).",
+        "attributes": {
+          "cor": "transparente",
+          "tratamiento": "antiempañante"
+        }
+      },
+      "ar": {
+        "name": "نظارات حماية عديمة اللون",
+        "description": "نظارات حماية عديمة اللون (عنصر تجريبي).",
+        "attributes": {
+          "cor": "شفاف",
+          "tratamento": "مضاد للضباب"
+        }
+      }
+    },
+    "OCV-002": {
+      "en": {
+        "name": "Smoke Safety Glasses",
+        "description": "Smoke Safety Glasses (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Gafas de Protección Ahumadas",
+        "description": "Gafas de Protección Ahumadas (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "نظارات حماية دخانية",
+        "description": "نظارات حماية دخانية (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "OCV-003": {
+      "en": {
+        "name": "Wide Vision Safety Glasses",
+        "description": "Wide Vision Safety Glasses (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Gafas de Protección Amplitud Visual",
+        "description": "Gafas de Protección Amplitud Visual (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "نظارات حماية رؤية واسعة",
+        "description": "نظارات حماية رؤية واسعة (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "OCV-004": {
+      "en": {
+        "name": "Anti-Fog Safety Glasses",
+        "description": "Anti-Fog Safety Glasses (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Gafas de Seguridad Antiempañantes",
+        "description": "Gafas de Seguridad Antiempañantes (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "نظارات أمان مضادة للضباب",
+        "description": "نظارات أمان مضادة للضباب (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "OCV-005": {
+      "en": {
+        "name": "Over-Glasses Safety Glasses",
+        "description": "Over-Glasses Safety Glasses (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Gafas de Protección para Sobreponer",
+        "description": "Gafas de Protección para Sobreponer (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "نظارات حماية للارتداء فوق النظارات",
+        "description": "نظارات حماية للارتداء فوق النظارات (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "OCV-006": {
+      "en": {
+        "name": "Discontinued Children Safety Glasses",
+        "description": "Discontinued Children Safety Glasses (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Gafas Infantiles Descontinuadas",
+        "description": "Gafas Infantiles Descontinuadas (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "نظارات أطفال متوقفة",
+        "description": "نظارات أطفال متوقفة (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "LUV-003": {
+      "en": {
+        "name": "Split Leather Glove",
+        "description": "Split Leather Glove (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante de Raspa de Cuero",
+        "description": "Guante de Raspa de Cuero (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز جلد مشقوق",
+        "description": "قفاز جلد مشقوق (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "LUV-004": {
+      "en": {
+        "name": "Premium Split Leather Gloves",
+        "description": "Premium Split Leather Gloves (demo item).",
+        "attributes": {
+          "material": "split leather",
+          "tamanho": "G"
+        }
+      },
+      "es": {
+        "name": "Guantes de Raspa Premium",
+        "description": "Guantes de Raspa Premium (artículo de demostración).",
+        "attributes": {
+          "material": "cuero raspado",
+          "tamanho": "G"
+        }
+      },
+      "ar": {
+        "name": "قفازات جلد مشقوق فاخرة",
+        "description": "قفازات جلد مشقوق فاخرة (عنصر تجريبي).",
+        "attributes": {
+          "material": "جلد مشقوق",
+          "tamanho": "G"
+        }
+      }
+    },
+    "LUV-005": {
+      "en": {
+        "name": "Disposable Nitrile Glove",
+        "description": "Disposable Nitrile Glove (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante Nítrico Desechable",
+        "description": "Guante Nítrico Desechable (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز نتريل للاستخدام الواحد",
+        "description": "قفاز نتريل للاستخدام الواحد (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "LUV-006": {
+      "en": {
+        "name": "Oil-Resistant Cowhide Glove",
+        "description": "Oil-Resistant Cowhide Glove (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante de Vaqueta Petrolera",
+        "description": "Guante de Vaqueta Petrolera (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز جلد بقر مقاوم للزيت",
+        "description": "قفاز جلد بقر مقاوم للزيت (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "LUV-007": {
+      "en": {
+        "name": "Level 5 Cut-Resistant Glove",
+        "description": "Level 5 Cut-Resistant Glove (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante Anticorte Nivel 5",
+        "description": "Guante Anticorte Nivel 5 (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز مضاد للقطع مستوى 5",
+        "description": "قفاز مضاد للقطع مستوى 5 (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "LUV-008": {
+      "en": {
+        "name": "Lined Latex Glove",
+        "description": "Lined Latex Glove (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante de Látex Forrado",
+        "description": "Guante de Látex Forrado (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز لاتكس مبطن",
+        "description": "قفاز لاتكس مبطن (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "LUV-009": {
+      "en": {
+        "name": "Discontinued Split Leather Glove",
+        "description": "Discontinued Split Leather Glove (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Guante de Raspa Fuera de Línea",
+        "description": "Guante de Raspa Fuera de Línea (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قفاز جلد مشقوق خارج الخط",
+        "description": "قفاز جلد مشقوق خارج الخط (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "RES-004": {
+      "en": {
+        "name": "PFF2 Respirator Without Valve",
+        "description": "PFF2 Respirator Without Valve (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Respirador PFF2 Sin Válvula",
+        "description": "Respirador PFF2 Sin Válvula (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "جهاز تنفس PFF2 بدون صمام",
+        "description": "جهاز تنفس PFF2 بدون صمام (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "RES-005": {
+      "en": {
+        "name": "PFF3 Respirator with Valve",
+        "description": "PFF3 Respirator with Valve (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Respirador PFF3 con Válvula",
+        "description": "Respirador PFF3 con Válvula (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "جهاز تنفس PFF3 بصمام",
+        "description": "جهاز تنفس PFF3 بصمام (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "RES-006": {
+      "en": {
+        "name": "Dual-Filter Half-Mask Respirator",
+        "description": "Dual-Filter Half-Mask Respirator (demo item).",
+        "attributes": {
+          "filtro": "dual",
+          "classe": "P2"
+        }
+      },
+      "es": {
+        "name": "Respirador Semifacial Doble Filtro",
+        "description": "Respirador Semifacial Doble Filtro (artículo de demostración).",
+        "attributes": {
+          "filtro": "doble",
+          "clase": "P2"
+        }
+      },
+      "ar": {
+        "name": "جهاز تنفس نصف وجه بفلتر مزدوج",
+        "description": "جهاز تنفس نصف وجه بفلتر مزدوج (عنصر تجريبي).",
+        "attributes": {
+          "filtro": "مزدوج",
+          "classe": "P2"
+        }
+      }
+    },
+    "RES-007": {
+      "en": {
+        "name": "PFF1 Protective Mask",
+        "description": "PFF1 Protective Mask (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Máscara de Protección PFF1",
+        "description": "Máscara de Protección PFF1 (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "قناع حماية PFF1",
+        "description": "قناع حماية PFF1 (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "RES-008": {
+      "en": {
+        "name": "Panoramic Respirator",
+        "description": "Panoramic Respirator (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Respirador Panorámico",
+        "description": "Respirador Panorámico (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "جهاز تنفس بانورامي",
+        "description": "جهاز تنفس بانورامي (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "AUD-001": {
+      "en": {
+        "name": "Silicone Ear Plug",
+        "description": "Silicone Ear Plug (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Tapón Auditivo de Silicona",
+        "description": "Tapón Auditivo de Silicona (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "سدادات أذن سيليكون",
+        "description": "سدادات أذن سيليكون (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "AUD-002": {
+      "en": {
+        "name": "Earmuff Hearing Protector",
+        "description": "Earmuff Hearing Protector (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Protector Auditivo Tipo Concha",
+        "description": "Protector Auditivo Tipo Concha (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "واقي أذن نوع غطاء",
+        "description": "واقي أذن نوع غطاء (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "AUD-003": {
+      "en": {
+        "name": "Helmet-Mounted Noise Muffler",
+        "description": "Helmet-Mounted Noise Muffler (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Abafador de Ruido Acoplado al Casco",
+        "description": "Abafador de Ruido Acoplado al Casco (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "كاتم ضوضاء مثبت على الخوذة",
+        "description": "كاتم ضوضاء مثبت على الخوذة (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "AUD-004": {
+      "en": {
+        "name": "Moldable Ear Plug",
+        "description": "Moldable Ear Plug (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Tapón Auditivo Moldeable",
+        "description": "Tapón Auditivo Moldeable (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "سدادات أذن قابلة للتشكيل",
+        "description": "سدادات أذن قابلة للتشكيل (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "BOT-001": {
+      "en": {
+        "name": "Leather Safety Shoe",
+        "description": "Leather Safety Shoe (demo item).",
+        "attributes": {
+          "material": "leather",
+          "bico": "composite"
+        }
+      },
+      "es": {
+        "name": "Botina de Seguridad de Cuero",
+        "description": "Botina de Seguridad de Cuero (artículo de demostración).",
+        "attributes": {
+          "material": "cuero",
+          "bico": "composite"
+        }
+      },
+      "ar": {
+        "name": "حذاء أمان من الجلد",
+        "description": "حذاء أمان من الجلد (عنصر تجريبي).",
+        "attributes": {
+          "material": "جلد",
+          "bico": "مركب"
+        }
+      }
+    },
+    "BOT-002": {
+      "en": {
+        "name": "Composite Toe Safety Boot",
+        "description": "Composite Toe Safety Boot (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Bota de Seguridad Puntera Composite",
+        "description": "Bota de Seguridad Puntera Composite (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "بوت أمان بطرف مركب",
+        "description": "بوت أمان بطرف مركب (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "BOT-003": {
+      "en": {
+        "name": "Waterproof Safety Boots",
+        "description": "Waterproof Safety Boots (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Botas de Seguridad Impermeables",
+        "description": "Botas de Seguridad Impermeables (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "أحذية أمان مقاومة للماء",
+        "description": "أحذية أمان مقاومة للماء (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "BOT-004": {
+      "en": {
+        "name": "Electrician Safety Shoe",
+        "description": "Electrician Safety Shoe (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Botina de Electricista",
+        "description": "Botina de Electricista (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "حذاء كهربائي أمان",
+        "description": "حذاء كهربائي أمان (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "BOT-005": {
+      "en": {
+        "name": "Sport Safety Shoe",
+        "description": "Sport Safety Shoe (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Zapato de Seguridad Sport",
+        "description": "Zapato de Seguridad Sport (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "حذاء أمان رياضي",
+        "description": "حذاء أمان رياضي (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "QUE-001": {
+      "en": {
+        "name": "4-Point Parachute Harness",
+        "description": "4-Point Parachute Harness (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Cinturón Paracaidista 4 Puntos",
+        "description": "Cinturón Paracaidista 4 Puntos (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "حزام مظلي 4 نقاط",
+        "description": "حزام مظلي 4 نقاط (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "QUE-002": {
+      "en": {
+        "name": "Double I and Y Lanyard",
+        "description": "Double I and Y Lanyard (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Talabarte Doble I e Y",
+        "description": "Talabarte Doble I e Y (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مربط مزدوج نوع I و Y",
+        "description": "مربط مزدوج نوع I و Y (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "QUE-003": {
+      "en": {
+        "name": "Abdominal Safety Belt",
+        "description": "Abdominal Safety Belt (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Cinturón de Seguridad Abdominal",
+        "description": "Cinturón de Seguridad Abdominal (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "حزام أمان بطني",
+        "description": "حزام أمان بطني (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "QUE-004": {
+      "en": {
+        "name": "Sliding Fall Arrester",
+        "description": "Sliding Fall Arrester (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Trava Queda Deslizante",
+        "description": "Trava Queda Deslizante (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مانع سقوط منزلق",
+        "description": "مانع سقوط منزلق (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "FUR-001": {
+      "en": {
+        "name": "850W Impact Drill",
+        "description": "850W Impact Drill (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Taladro de Impacto 850W",
+        "description": "Taladro de Impacto 850W (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مثقاب صدمي 850 واط",
+        "description": "مثقاب صدمي 850 واط (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "FUR-002": {
+      "en": {
+        "name": "500W Bench Drill Presses",
+        "description": "500W Bench Drill Presses (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Taladros de Bancada 500W",
+        "description": "Taladros de Bancada 500W (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مثاقب Bancada 500 واط",
+        "description": "مثاقب Bancada 500 واط (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "FUR-003": {
+      "en": {
+        "name": "115mm Angle Grinder",
+        "description": "115mm Angle Grinder (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Esmeril Angular 115mm",
+        "description": "Esmeril Angular 115mm (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "طاحونة زاوية 115 مم",
+        "description": "طاحونة زاوية 115 مم (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "FUR-004": {
+      "en": {
+        "name": "7 1/4 Circular Saw",
+        "description": "7 1/4 Circular Saw (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Sierra Circular 7 1/4",
+        "description": "Sierra Circular 7 1/4 (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "منشار دائري 7 1/4",
+        "description": "منشار دائري 7 1/4 (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "FUR-005": {
+      "en": {
+        "name": "500W Straight Grinder",
+        "description": "500W Straight Grinder (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Rectificadora Recta 500W",
+        "description": "Rectificadora Recta 500W (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "طاحونة مستقيمة 500 واط",
+        "description": "طاحونة مستقيمة 500 واط (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "MAQ-005": {
+      "en": {
+        "name": "100L Air Compressor",
+        "description": "100L Air Compressor (demo item).",
+        "attributes": {
+          "potencia": "2cv",
+          "volume": "100l"
+        }
+      },
+      "es": {
+        "name": "Compresor de Aire 100L",
+        "description": "Compresor de Aire 100L (artículo de demostración).",
+        "attributes": {
+          "potencia": "2cv",
+          "volumen": "100l"
+        }
+      },
+      "ar": {
+        "name": "ضاغط هواء 100 لتر",
+        "description": "ضاغط هواء 100 لتر (عنصر تجريبي).",
+        "attributes": {
+          "potencia": "2cv",
+          "volume": "100l"
+        }
+      }
+    },
+    "MAQ-006": {
+      "en": {
+        "name": "15T Hydraulic Press",
+        "description": "15T Hydraulic Press (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Prensa Hidráulica 15T",
+        "description": "Prensa Hidráulica 15T (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مكبس هيدروليكي 15 طن",
+        "description": "مكبس هيدروليكي 15 طن (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "MAQ-007": {
+      "en": {
+        "name": "Bench Polisher",
+        "description": "Bench Polisher (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Pulidora de Bancada",
+        "description": "Pulidora de Bancada (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "ملمعة بنش",
+        "description": "ملمعة بنش (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "MAQ-008": {
+      "en": {
+        "name": "10 Bench Saw",
+        "description": "10 Bench Saw (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Sierra de Bancada 10",
+        "description": "Sierra de Bancada 10 (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "منشار بنش 10",
+        "description": "منشار بنش 10 (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "MAQ-009": {
+      "en": {
+        "name": "Self-Priming Water Pump",
+        "description": "Self-Priming Water Pump (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Bomba de Agua Autoaspirante",
+        "description": "Bomba de Agua Autoaspirante (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مضخة مياه ذاتية التحضير",
+        "description": "مضخة مياه ذاتية التحضير (عنصر تجريبي).",
+        "attributes": {}
+      }
+    },
+    "MAQ-010": {
+      "en": {
+        "name": "Discontinued Bench Lathe",
+        "description": "Discontinued Bench Lathe (demo item).",
+        "attributes": {}
+      },
+      "es": {
+        "name": "Torno de Bancada Descontinuado",
+        "description": "Torno de Bancada Descontinuado (artículo de demostración).",
+        "attributes": {}
+      },
+      "ar": {
+        "name": "مخرطة بنش متوقفة",
+        "description": "مخرطة بنش متوقفة (عنصر تجريبي).",
+        "attributes": {}
+      }
+    }
+  }
+}

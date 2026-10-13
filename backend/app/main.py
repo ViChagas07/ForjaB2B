@@ -20,6 +20,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.application.ports.translation import NullTranslationProvider
 from app.application.product_attributes import load_default_registry
 from app.application.security import TokenService
 from app.core.config import Settings, get_settings
@@ -63,12 +64,18 @@ from app.modules.catalog.application.product_admin import (
     UnpublishProduct,
     UpdateProduct,
 )
+from app.modules.catalog.application.translation_admin import (
+    GetProductTranslations,
+    UpdateTranslation,
+)
 from app.modules.catalog.infrastructure.admin_repository import (
     SqlAlchemyCatalogAdminRepository,
     SqlAlchemySearchOutboxRepository,
+    SqlAlchemyTranslationAdminRepository,
 )
 from app.modules.catalog.infrastructure.repository import SqlAlchemyCatalogRepository
 from app.modules.catalog.interface import admin_router as catalog_admin_router
+from app.modules.catalog.interface import translation_admin_router
 from app.modules.companies.application.company import (
     ApproveCompany,
     GetCurrentCompany,
@@ -346,6 +353,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.catalog_admin_list_static_images = ListStaticImages()
 
+    # Composicao do contexto de catalogo - ADMIN (traduções).
+    translation_repository = SqlAlchemyTranslationAdminRepository(app.state.uow_factory)
+    translation_provider = NullTranslationProvider()
+    app.state.catalog_admin_get_translations = GetProductTranslations(
+        repository=translation_repository,
+        catalog_repository=admin_repository,
+    )
+    app.state.catalog_admin_update_translation = UpdateTranslation(
+        repository=translation_repository,
+        catalog_repository=admin_repository,
+        translation_provider=translation_provider,
+        settings=settings,
+    )
+
     # Composicao do contexto de credito (consulta + operacoes transacionais).
     credit_repository = SqlAlchemyCreditRepository(app.state.uow_factory)
     app.state.credit_get_account = GetCreditAccount(repository=credit_repository)
@@ -413,6 +434,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(api_v1_router)
     app.include_router(catalog_admin_router, prefix="/api/v1")
+    app.include_router(translation_admin_router, prefix="/api/v1")
 
     if settings.otel_enabled:
         instrument_app(app)

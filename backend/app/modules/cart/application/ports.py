@@ -18,11 +18,13 @@ class ProductForCart:
     id: uuid.UUID
     sku: str
     name: str
+    description: str | None
     status: str
     is_epi: bool
     ca_valid_until: date | None
     base_unit_price: Decimal
     min_order_qty: int
+    attributes: dict[str, object] | None
     tiers: list[PriceTier]
 
 
@@ -33,6 +35,8 @@ class CartItemView:
     product_id: uuid.UUID
     sku: str
     name: str
+    description: str | None
+    attributes: dict[str, object] | None
     quantity: int
     unit_price: Decimal
     line_total: Decimal
@@ -44,7 +48,7 @@ class CartItemView:
 
 @dataclass(frozen=True, kw_only=True)
 class CartView:
-    """Carrinho ativo com itens e subtotal calculados."""
+    """Carrinho ativo com itens, precos e nomes traduzidos resolvidos."""
 
     cart_id: uuid.UUID
     company_id: uuid.UUID
@@ -56,7 +60,9 @@ class CartView:
 class CartRepository(Protocol):
     """Persistencia do carrinho (tenant-scoped) + leitura de produto/tiers."""
 
-    async def get_product_for_cart(self, product_id: uuid.UUID) -> ProductForCart | None:
+    async def get_product_for_cart(
+        self, product_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> ProductForCart | None:
         """Le produto + tiers para validacao/precificacao."""
 
     async def get_or_create_cart(self, company_id: uuid.UUID, user_id: uuid.UUID) -> uuid.UUID:
@@ -65,7 +71,7 @@ class CartRepository(Protocol):
     async def get_cart(
         self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
     ) -> CartView | None:
-        """Le o carrinho com itens, precos e nomes traduzidos resolvidos."""
+        """Le o carrinho com itens, precos e nomes/descrições/atributos traduzidos resolvidos."""
 
     async def upsert_item(
         self,
