@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     elasticsearch_password: str | None = "forja_es_dev_password"  # noqa: S105 - default de dev
     elasticsearch_api_key: str | None = None
     elasticsearch_index: str = "forja_products"
-    elasticsearch_index_version: int = Field(default=1, ge=1)
+    elasticsearch_index_version: int = Field(default=2, ge=1)
     elasticsearch_index_replicas: int = Field(default=0, ge=0)
     # Timeouts/retries SEPARADOS por uso (Fase 8A):
     # - busca interativa (consulta/autocomplete): curto e SEM retries, para cair

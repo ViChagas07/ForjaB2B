@@ -406,6 +406,134 @@ Auditoria completa e decisões em `docs/CATALOG_DEMO.md`. Resumo:
 
 ---
 
+## Fase 9B-a — Traduções armazenadas: modelo, resolução, API e seed
+
+**Iniciado:** 2026-10-13  
+**Concluído:** 2026-10-13
+
+### Resumo
+
+| Passo | Descrição | Estado |
+|-------|-----------|--------|
+| 1 | Auditoria de onde textos são montados | ✅ |
+| 2 | Migration `translated_at` + testes domínio i18n | ✅ |
+| 3 | API com negociação locale + catálogo/carrinho/pedidos com `content_locale` | ✅ |
+| 4 | Porta `TranslationProvider` + `NullTranslationProvider` + endpoints admin tradução | ✅ |
+| 5 | Seed `demo_translations.json` (50 produtos × en/es/ar) + teste preservação | ✅ |
+| 6 | Documentação `docs/I18N.md` + checagens finais | ✅ |
+
+### Arquivos criados/modificados
+
+**Novos arquivos:**
+- `backend/alembic/versions/0018_product_translations_translated_at.py`
+- `backend/app/modules/catalog/application/translation_admin.py`
+- `backend/app/modules/catalog/interface/translation_admin_router.py`
+- `backend/app/seed_data/demo_translations.json`
+- `docs/I18N.md`
+
+**Arquivos modificados:**
+- `backend/app/modules/ordering/infrastructure/repository.py` (locale + content_locale)
+- `backend/app/modules/ordering/application/order.py` (locale)
+- `backend/app/modules/ordering/application/ports.py` (locale + content_locale)
+- `backend/app/modules/ordering/interface/router.py` (locale)
+- `backend/app/modules/ordering/interface/schemas.py` (content_locale)
+- `backend/app/modules/cart/infrastructure/repository.py` (description + attributes traduzidos)
+- `backend/app/modules/cart/application/ports.py` (description + attributes)
+- `backend/app/main.py` (composição translation admin)
+- `backend/app/modules/catalog/interface/__init__.py` (export translation_admin_router)
+- `backend/app/modules/catalog/interface/admin_schemas.py` (schemas TranslationUpdate, TranslationAdminOut)
+- `backend/tests/unit/test_i18n.py` (testes category_name, attribute_dictionary)
+
+### Qualidade
+
+- Ruff check: **passed**
+- Ruff format: **passed**
+- Import-linter: **4 contracts kept, 0 broken**
+- Testes unitários: **145 passed** (i18n + product_attributes + photo_manifest)
+- Mypy: Apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+
+### NÃO VALIDADO e riscos
+
+- **Validação Docker/integração real**: Não executada (ambiente sem Docker/ES). Checagens de `docker compose --env-file .env.example config --quiet` e testes manuais de API com `Accept-Language` pendentes.
+- **Qualidade traduções árabe**: Não revisado por falante nativo — apenas tradução offline automatizada. Documentado em `docs/I18N.md`.
+- **Provedor de tradução externo**: Nenhum adotado. Porta existe para decisão futura.
+
+---
+
+## Fase 9B-b — Busca multilíngue (Elasticsearch)
+
+**Iniciado:** 2026-10-13  
+**Concluído:** 2026-10-13
+
+### Resumo
+
+| Passo | Descrição | Estado |
+|-------|-----------|--------|
+| 1 | Auditoria rápida (mapping, query builder, documento, sincronização, locale) | ✅ |
+| 2 | Mapping por idioma (v2 do índice, analisadores nativos, sem preço) | ✅ |
+| 3 | Consulta (campos do cliente + pt-BR, prioridade SKU, filtros, fallback) | ✅ |
+| 4 | Sincronização (outbox UPSERT/DELETE, reconcile, reindex com traduções) | ✅ |
+| 5 | Validação real (Docker) | ⏳ NÃO VALIDADO |
+| 6 | Documentação e checagens finais | ✅ |
+
+### Mudanças realizadas
+
+**Mapping (índice v2):**
+- `elasticsearch_index_version = 2` em `config.py`
+- Campos multilíngues já existiam no mapping: `name_{en,es,ar}`, `description_{en,es,ar}`, `attributes_text_{en,es,ar}`
+- Analisadores nativos: `en_text` (stemmer inglês), `es_text` (stemmer espanhol + ascii_folding), `ar_text` (arabic_normalization + stemmer árabe)
+- pt-BR continua usando `pt_text` (stemmer português + ascii_folding)
+- **Sem preço, sem dados privados** confirmado
+
+**Documento indexado (`build_product_document`):**
+- Inclui traduções quando disponíveis (`name_en`, `description_es`, `attributes_text_ar`, etc.)
+- Ausência de tradução → campos `None` (não quebra `dynamic: strict`)
+- Tradução parcial (ex.: apenas `es`) → apenas campos existentes preenchidos
+
+**Consulta (`_build_text_query`):**
+- Busca nos campos do idioma do cliente **E** nos de pt-BR (marcas, SKU, termos em português)
+- Prioridade SKU exato (boost 10) e prefixo SKU (boost 8) mantida para todos os idiomas
+- Fuzziness `AUTO` apenas nos matches de `name`, nunca no SKU
+- Locale não suportado → usa apenas pt-BR; pt-BR → usa apenas campos base
+- Filtros obrigatórios: `status=ACTIVE`, `is_available=True` + facets opcionais
+
+**Hidratação/Autorização (mantido):**
+- Busca retorna IDs → hidrata do PostgreSQL com preços por empresa + autorização
+- Fallback PostgreSQL textual continua em português (limitação documentada)
+
+**Embeddings (mantido):**
+- Texto de origem pt-BR apenas; modelo multilíngue cobre outros idiomas
+- **Não gera embeddings por idioma**
+
+**Sincronização:**
+- Outbox UPSERT/DELETE → reaplica `build_product_document` com traduções atuais
+- Reconcile compara versões → reindexa docs desatualizados (incluindo traduções)
+- Reindexação cria índice vN, valida contagem, troca alias atomicamente, mantém anterior para rollback
+
+### Testes criados
+
+- `tests/unit/test_search_multilingual.py` (8 testes): mapping, settings, documento com traduções, sem tradução, tradução parcial, sem preço, disponibilidade, versão
+- `tests/unit/test_search_multilingual_query.py` (8 testes): prioridade SKU, campos por idioma, locale não suportado, pt-BR, fuzziness, filtros, busca em português
+- `tests/unit/test_search_multilingual_sync.py` (8 testes): reindex com tradução, sem tradução, outbox atualiza tradução, outbox delete, reconcile detecta tradução desatualizada, reconcile remove órfãos, dry-run, tradução parcial
+
+**Total:** 38 testes de busca passam (22 existentes + 16 novos + 4 RRF)
+
+### Qualidade
+
+- Ruff check: **passed**
+- Ruff format: **passed**
+- Import-linter: **4 contracts kept, 0 broken**
+- Testes unitários: **38 passed** (busca)
+- Mypy: Apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+
+### NÃO VALIDADO e riscos
+
+- **Validação Docker/Elasticsearch real**: Ambiente sem Docker/ES — Passo 5 (reindexar, consultar en/es/ar, SKU exato com `Accept-Language: ar`, parar ES para testar fallback, modo hybrid) pendente. Comandos documentados em `docs/search/RUNBOOK.md` §6b.
+- **Fallback PostgreSQL em português**: Busca textual no banco (quando ES indisponível) não usa traduções; apenas pt-BR. Documentado.
+- **Embeddings só em pt-BR**: Modelo multilíngue cobre outros idiomas, mas embeddings são gerados apenas do texto pt-BR. Documentado.
+
+---
+
 ## Fase 9-c — Frontend: formulário de administração e especificações do produto
 
 **Iniciado:** 2026-10-12  

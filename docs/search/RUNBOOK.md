@@ -1,7 +1,7 @@
 # Forja B2B — Busca do catálogo: guia operacional e de deploy (Fase 6)
 
-> Última atualização: 2026-10-10. Este é o guia de operação, deploy e validação da
-> busca do catálogo (Fases 2–6). O plano e a auditoria estão em `docs/search/PLAN.md`;
+> Última atualização: 2026-10-13. Este é o guia de operação, deploy e validação da
+> busca do catálogo (Fases 2–6, 9B-b). O plano e a auditoria estão em `docs/search/PLAN.md`;
 > o estado real das fases está em `docs/STATUS.md`.
 
 ## 1. Arquitetura em uma página
@@ -9,7 +9,7 @@
 | Componente | Papel | É fonte de verdade? |
 | :--- | :--- | :--- |
 | **PostgreSQL** | Dados comerciais (preço, tiers, CA/estado) + hidratação autoritativa + fallback textual | **Sim** |
-| **Elasticsearch** | Busca lexical (texto, SKU, autocomplete, filtros) | Não |
+| **Elasticsearch** | Busca lexical (texto, SKU, autocomplete, filtros) — **multilíngue a partir da v2** | Não |
 | **pgvector** (extensão do PostgreSQL) | Busca semântica por embeddings (384 dims) | Não |
 | **Aplicação** | Funde lexical + semântico por **RRF** e hidrata da fonte de verdade | — |
 
@@ -22,6 +22,11 @@
   falhar, a API retorna erro (nunca lista vazia silenciosa).
 - Consultas que **parecem SKU** (token curto com dígito) dispensam o vetorial, preservando o
   SKU exato no topo.
+- **Busca multilíngue (Fase 9B-b):** A partir do índice v2, a consulta busca nos campos do
+  idioma do cliente (`name_{locale}`, `description_{locale}`, `attributes_text_{locale}`)
+  **E** nos campos pt-BR (`name`, `category.text`, `brand.text`, `description`). Marca,
+  SKU e termos em português continuam funcionando. Fallback textual do PostgreSQL continua
+  em pt-BR (limitação conhecida).
 
 **Versões (Fase 8A):** servidor `docker.elastic.co/elasticsearch/elasticsearch:9.5.5` ↔ cliente
 `elasticsearch[async]==9.5.1` — **mesma major (9)**, exigência do cliente (major do cliente deve
@@ -51,7 +56,7 @@ Todas as chaves abaixo são lidas de `app/core/config.py` (prefixo do ambiente).
 | `ELASTICSEARCH_VERIFY_CERTS` | verificação de certificado | `true` (ignorado sem TLS) | **`true`** |
 | `ELASTICSEARCH_CA_CERTS` | CA do cluster | vazio | caminho da CA (ex.: `/certs/ca.crt`) |
 | `ELASTICSEARCH_INDEX` | alias estável | `forja_products` | idem |
-| `ELASTICSEARCH_INDEX_VERSION` | versão do índice | `1` | incrementar a cada rebuild |
+| `ELASTICSEARCH_INDEX_VERSION` | versão do índice | `2` | incrementar a cada rebuild |
 | `ELASTICSEARCH_INDEX_REPLICAS` | réplicas | `0` (single-node) | `1`+ (multi-node) |
 | `ELASTICSEARCH_ENABLED` | liga/desliga a busca | `true` | `true` |
 | `ELASTICSEARCH_SEARCH_TIMEOUT_SECONDS` / `_SEARCH_MAX_RETRIES` | busca interativa (curta, **sem retries**) | `2` / `0` | ajustar |
@@ -152,6 +157,35 @@ docker compose start elasticsearch
 
 **Semântico/híbrido:** requer `EMBEDDINGS_ENABLED=true`, o modelo no caminho configurado e o
 pgvector (ver §9). Com ES e vetorial ativos, `search_mode` = `hybrid`.
+
+## 6b. Testar a busca multilíngue (Fase 9B-b)
+
+```bash
+# Busca em inglês (usa Accept-Language ou ?lang=)
+curl -s -H "Accept-Language: en" "http://localhost:8000/api/v1/search/products?q=helmet" | jq .search_mode
+curl -s "http://localhost:8000/api/v1/search/products?q=helmet&lang=en" | jq .search_mode
+
+# Busca em espanhol
+curl -s -H "Accept-Language: es" "http://localhost:8000/api/v1/search/products?q=casco" | jq .search_mode
+curl -s "http://localhost:8000/api/v1/search/products?q=casco&lang=es" | jq .search_mode
+
+# Busca em árabe
+curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=خوذة" | jq .search_mode
+curl -s "http://localhost:8000/api/v1/search/products?q=خوذة&lang=ar" | jq .search_mode
+
+# SKU exato com Accept-Language: ar (deve aparecer no topo)
+curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=CAP-001" | jq .items[0].sku
+
+# Idioma não suportado (ex.: fr) cai para pt-BR sem erro
+curl -s "http://localhost:8000/api/v1/search/products?q=casque&lang=fr" | jq .search_mode
+```
+
+**Verificações esperadas:**
+- Termos em `en`/`es`/`ar` encontram os produtos das traduções de demonstração (`demo_translations.json`).
+- SKU exato continua no topo independentemente do idioma.
+- `search_mode` = `lexical` (ou `hybrid` se embeddings ativos).
+- `content_locale` na resposta reflete o idioma negociado.
+- Fallback pt-BR funciona: se tradução não existe para o campo, usa valor pt-BR.
 
 ## 7. Smoke test pós-deploy (somente leitura)
 

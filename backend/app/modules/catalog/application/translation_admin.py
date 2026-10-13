@@ -106,9 +106,7 @@ class SqlAlchemyTranslationAdminRepository:
         )
         async with self._uow_factory.begin() as uow:
             row = (
-                await uow.session.execute(
-                    stmt, {"product_id": product_id, "locale": locale}
-                )
+                await uow.session.execute(stmt, {"product_id": product_id, "locale": locale})
             ).first()
             await uow.commit()
             if row is None:
@@ -183,9 +181,7 @@ class SqlAlchemyTranslationAdminRepository:
             "FROM product_translations WHERE product_id = :product_id ORDER BY locale"
         )
         async with self._uow_factory.begin() as uow:
-            rows = (
-                await uow.session.execute(stmt, {"product_id": product_id})
-            ).all()
+            rows = (await uow.session.execute(stmt, {"product_id": product_id})).all()
             await uow.commit()
         return [
             (
@@ -263,11 +259,14 @@ class GetProductTranslations:
 
         result: list[TranslationAdminView] = []
         for locale, trans, status, source_hash, translated_at in rows:
-            is_stale = product_source_hash(
-                name=product.name,
-                description=product.description,
-                attributes=product.attributes,
-            ) != source_hash
+            is_stale = (
+                product_source_hash(
+                    name=product.name,
+                    description=product.description,
+                    attributes=product.attributes,
+                )
+                != source_hash
+            )
             result.append(
                 TranslationAdminView(
                     product_id=product_id,
@@ -341,11 +340,14 @@ class UpdateTranslation:
         if self._translation_provider.enabled:
             pass  # Enfileirar retradução via outbox/queue
 
-        is_stale = product_source_hash(
-            name=product.name,
-            description=product.description,
-            attributes=product.attributes,
-        ) != source_hash
+        is_stale = (
+            product_source_hash(
+                name=product.name,
+                description=product.description,
+                attributes=product.attributes,
+            )
+            != source_hash
+        )
 
         return TranslationAdminView(
             product_id=product_id,

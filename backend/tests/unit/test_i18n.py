@@ -283,18 +283,14 @@ def test_translation_status_valores() -> None:
 
 def test_category_name_pt_br_usa_origem() -> None:
     assert (
-        category_name(
-            slug="protecao-cabeca", locale="pt-BR", default_name="Proteção da Cabeça"
-        )
+        category_name(slug="protecao-cabeca", locale="pt-BR", default_name="Proteção da Cabeça")
         == "Proteção da Cabeça"
     )
 
 
 def test_category_name_traduzido() -> None:
     assert (
-        category_name(
-            slug="protecao-cabeca", locale="en", default_name="Proteção da Cabeça"
-        )
+        category_name(slug="protecao-cabeca", locale="en", default_name="Proteção da Cabeça")
         == "Head Protection"
     )
     assert (
@@ -315,9 +311,7 @@ def test_category_name_slug_desconhecido_fallback() -> None:
 
 def test_category_name_locale_nao_suportado_fallback() -> None:
     assert (
-        category_name(
-            slug="protecao-cabeca", locale="de", default_name="Proteção da Cabeça"
-        )
+        category_name(slug="protecao-cabeca", locale="de", default_name="Proteção da Cabeça")
         == "Proteção da Cabeça"
     )
 

@@ -717,3 +717,173 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 
 1. **Fase 9B-b**: Busca multilíngue (Elasticsearch + PostgreSQL fallback com tradução)
 2. **Fase 9B-c**: Frontend — seletor de idioma, exibição de `content_locale`, fallback visual
+
+---
+
+## Fase 9B-b — Busca multilíngue (Elasticsearch)
+
+**Iniciado:** 2026-10-13
+
+### Passo 1 — Auditoria rápida (somente leitura) ✅
+
+**Mapping atual (versão do índice e alias):**
+- Índice: `forja_products` (alias)
+- Versão atual: `1` (`elasticsearch_index_version = 1`)
+- Arquivos de schema: `backend/app/modules/search/infrastructure/indices/products.mappings.json` e `products.settings.json`
+- Mapping é `dynamic: strict` com analisadores `pt_text`, `en_text`, `es_text`, `ar_text`
+- Campos multilíngues já existem no mapping: `name_en`, `name_es`, `name_ar`, `description_en`, `description_es`, `description_ar`, `attributes_text_en`, `attributes_text_es`, `attributes_text_ar` — todos com analisadores nativos
+
+**Construtor de consultas:**
+- `ElasticsearchProductIndex._build_text_query()` em `elasticsearch.py`
+- Prioridade: SKU exato (boost 10) > prefixo SKU (8) > frase no nome PT (6) > termos fuzzy no nome PT (4) > categoria/marca/descrição
+- Para locale em `SEARCH_TRANSLATION_LOCALES` (en, es, ar): adiciona `match_phrase` e `match` nos campos `name_{locale}`, `description_{locale}`, `attributes_text_{locale}` com mesmos boosts
+
+**Como o documento é montado a partir do PostgreSQL:**
+- `build_product_document()` em `documents.py` recebe `ProductRow` com `translations: dict[str, ProductTextTranslation]`
+- Extrai `name`, `description`, `attributes` por locale via `_translated_name()`, `_translated_description()`, `_translated_attributes_text()`
+- `SEARCH_TRANSLATION_LOCALES = ("en", "es", "ar")`
+- Documento NÃO inclui preço nem dados privados
+
+**Sincronizador/reconcile e reindexação:**
+- `ReindexProducts`: cria índice versionado (`forja_products_vN`), indexa em lotes, valida contagem (tolerância configurável), troca alias atomicamente, mantém índice anterior para rollback
+- `ReconcileSearchIndex`: compara versões (PostgreSQL vs índice), upsert docs desatualizados, remove órfãos
+- `DispatchSearchOutbox`: processa eventos UPSERT/DELETE da outbox, reaplica no índice
+
+**Como a consulta recebe o idioma (da 9B-a):**
+- `SearchQuery.locale` (default `pt-BR`) vem da negociação: `?lang=` > `Accept-Language` > default
+- Passado para `_build_text_query(q, locale)` que busca nos campos do idioma do cliente E nos de pt-BR
+
+**Check:** Auditoria documentada. Próximo: Passo 2 — Mapping por idioma.
+
+### Passo 2 — Mapping por idioma ✅
+
+**Mudanças realizadas:**
+- Incrementada versão do índice para `2` (`elasticsearch_index_version = 2` em `config.py`)
+- Mapping já continha campos por idioma (`name_en/es/ar`, `description_en/es/ar`, `attributes_text_en/es/ar`) com analisadores nativos
+- Analisador espanhol (`es_text`) já inclui `ascii_folding` para normalização de acentos
+- Analisador árabe (`ar_text`) usa `arabic_normalization` nativo
+- Documento indexado (`build_product_document`) já inclui traduções quando disponíveis; ausência não quebra indexação
+- **Sem preço, sem dados privados** confirmado nos testes
+
+**Testes criados/atualizados:**
+- `tests/unit/test_search_multilingual.py` (8 testes): mapping, settings, documento com traduções, sem tradução, tradução parcial, sem preço, disponibilidade, versão
+- Todos os testes de busca existentes continuam verdes (22 testes no total)
+
+**Check:** Testes verdes. Próximo: Passo 3 — Consulta.
+
+### Passo 3 — Consulta ✅
+
+**Verificação do construtor de consultas (`_build_text_query`):**
+- Busca nos campos do idioma do cliente (`name_{locale}`, `description_{locale}`, `attributes_text_{locale}`) **E** nos campos pt-BR (`name`, `category.text`, `brand.text`, `description`) — marcas, SKU e termos em português continuam funcionando
+- Prioridade de SKU exato (boost 10) e prefixo SKU (boost 8) mantida para todos os idiomas
+- Fuzziness `AUTO` apenas nos matches de `name` (pt-BR e locale), nunca no SKU
+- Locale não suportado (ex.: `fr`, `de`) usa apenas campos pt-BR; não quebra
+- pt-BR (idioma de origem) usa apenas campos base; não duplica
+- Filtros obrigatórios: `status=ACTIVE`, `is_available=True` + facets opcionais (category_id, brand_id, is_epi)
+- Paginação e limites mantidos (via `SearchQuery.page`, `page_size`, validações em `SearchProducts._validate`)
+
+**Hidratação e autorização (existente, mantido):**
+- `SearchProducts.run()` hidrata do PostgreSQL via `ProductReader.get_products_by_ids()` após busca
+- Preços resolvidos por `resolve_company_price` (visitante = `price_on_request: true`; autenticado = preço por empresa)
+- Autorização via `AuthContext` (tenant do JWT, RBAC)
+- Fallback PostgreSQL textual continua em português (limitação documentada)
+
+**Embeddings (mantido):**
+- `build_embedding_text()` usa apenas texto de origem pt-BR (nome, marca, categoria, descrição)
+- Modelo multilíngue (`intfloat/multilingual-e5-small`) cobre outros idiomas; **não gera embeddings por idioma**
+
+**Testes criados:**
+- `tests/unit/test_search_multilingual_query.py` (8 testes): prioridade SKU, campos por idioma, locale não suportado, pt-BR, fuzziness, filtros, busca em português
+
+**Check:** Testes verdes (30 testes de busca no total). Próximo: Passo 4 — Sincronização.
+
+### Passo 5 — Validação real (Docker de pé) ⏳ NÃO VALIDADO
+
+**Ambiente sem Docker/Elasticsearch:** Não foi possível executar a validação real com a stack Docker.
+Os comandos documentados em `docs/search/RUNBOOK.md` §6b estão prontos para execução quando o ambiente estiver disponível:
+
+```bash
+# 1. Validar Compose
+docker compose --env-file .env.example config --quiet
+
+# 2. Backup do banco (se houver migration)
+docker compose exec -T postgres pg_dump ... > backup.dump
+
+# 3. Reindexar para a nova versão (v2)
+docker compose exec backend python -m app.modules.search.interface.cli reindex --version 2
+
+# 4. Consultar em inglês, espanhol, árabe
+curl -s -H "Accept-Language: en" "http://localhost:8000/api/v1/search/products?q=helmet"
+curl -s -H "Accept-Language: es" "http://localhost:8000/api/v1/search/products?q=casco"
+curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=خوذة"
+
+# 5. SKU exato com Accept-Language: ar
+curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=CAP-001"
+
+# 6. Fallback PostgreSQL (parar ES)
+docker compose stop elasticsearch
+curl -s "http://localhost:8000/api/v1/search/products?q=luva"
+docker compose start elasticsearch
+
+# 7. Modo hybrid (se embeddings habilitados)
+# NÃO VALIDADO localmente
+```
+
+### Passo 6 — Documentação e checagens finais ✅
+
+**Arquivos atualizados:**
+- `docs/I18N.md`: Adicionada seção "Busca Multilíngue (Fase 9B-b)" com mapping, consulta, sincronização, limitações
+- `docs/search/RUNBOOK.md`: Atualizado `ELASTICSEARCH_INDEX_VERSION=2`, adicionada seção §6b "Testar a busca multilíngue"
+- `docs/STATUS.md`: Adicionada Fase 9B-b completa com resumo, mudanças, testes, qualidade, NÃO VALIDADO
+
+**Checagens de qualidade (RULES.md):**
+- Ruff check: **passed**
+- Ruff format: **passed** (382 files)
+- Import-linter: **4 contracts kept, 0 broken**
+- Testes unitários: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
+- Mypy: Apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes
+
+**Commits locais criados:** (pendente)
+
+---
+
+## Relatório final consolidado
+
+### Resumo do que foi feito
+
+| Passo | Descrição | Estado |
+|-------|-----------|--------|
+| 1 | Auditoria rápida (mapping v1, query builder, documento, sincronização, locale da 9B-a) | ✅ |
+| 2 | Mapping por idioma (índice v2, analisadores nativos en/es/ar, sem preço) | ✅ |
+| 3 | Consulta (campos do cliente + pt-BR, prioridade SKU, filtros, fallback PG) | ✅ |
+| 4 | Sincronização (outbox UPSERT/DELETE, reconcile, reindex com traduções) | ✅ |
+| 5 | Validação real (Docker) | ⏳ NÃO VALIDADO |
+| 6 | Documentação e checagens finais | ✅ |
+
+### Arquivos criados/modificados
+
+**Novos arquivos (testes):**
+- `backend/tests/unit/test_search_multilingual.py` (8 testes: mapping, settings, documento, sem tradução, tradução parcial, sem preço, disponibilidade, versão)
+- `backend/tests/unit/test_search_multilingual_query.py` (8 testes: prioridade SKU, campos por idioma, locale não suportado, pt-BR, fuzziness, filtros, busca em português)
+- `backend/tests/unit/test_search_multilingual_sync.py` (8 testes: reindex com tradução, sem tradução, outbox atualiza tradução, outbox delete, reconcile detecta tradução desatualizada, reconcile remove órfãos, dry-run, tradução parcial)
+
+**Arquivos modificados:**
+- `backend/app/core/config.py`: `elasticsearch_index_version = 2`
+- `docs/I18N.md`: Seção "Busca Multilíngue (Fase 9B-b)" completa
+- `docs/search/RUNBOOK.md`: `ELASTICSEARCH_INDEX_VERSION=2`, seção §6b "Testar a busca multilíngue"
+- `docs/STATUS.md`: Fase 9B-b completa documentada
+
+### NÃO VALIDADO e riscos
+
+- **Validação Docker/Elasticsearch real**: Ambiente sem Docker/ES — Passo 5 pendente. Comandos documentados em `docs/search/RUNBOOK.md` §6b.
+- **Fallback PostgreSQL em português**: Busca textual no banco (quando ES indisponível) não usa traduções; apenas pt-BR. Documentado em `docs/I18N.md` e `docs/STATUS.md`.
+- **Embeddings só em pt-BR**: Modelo multilíngue cobre outros idiomas, mas embeddings são gerados apenas do texto pt-BR. Documentado.
+
+### Próximos passos
+
+1. **Fase 9B-c**: Frontend — seletor de idioma, exibição de `content_locale`, fallback visual
+2. Disponibilizar Docker/Elasticsearch → executar Passo 5 (validação real)
+
+---
+
+## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÍDA (exceto validação Docker)
