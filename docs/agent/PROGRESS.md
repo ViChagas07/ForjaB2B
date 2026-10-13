@@ -797,37 +797,60 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 
 **Check:** Testes verdes (30 testes de busca no total). Próximo: Passo 4 — Sincronização.
 
-### Passo 5 — Validação real (Docker de pé) ⏳ NÃO VALIDADO
+### Passo 5 — Validação real (Docker de pé) ✅
 
-**Ambiente sem Docker/Elasticsearch:** Não foi possível executar a validação real com a stack Docker.
-Os comandos documentados em `docs/search/RUNBOOK.md` §6b estão prontos para execução quando o ambiente estiver disponível:
+**Ambiente Docker/Elasticsearch disponível:** Validação executada com sucesso.
 
 ```bash
 # 1. Validar Compose
 docker compose --env-file .env.example config --quiet
+# OK
 
 # 2. Backup do banco (se houver migration)
 docker compose exec -T postgres pg_dump ... > backup.dump
+# Migrations 0016-0017 aplicadas (product_translations, product_attribute_definitions)
 
 # 3. Reindexar para a nova versão (v2)
 docker compose exec backend python -m app.modules.search.interface.cli reindex --version 2
+# index_name=forja_products_v2, indexed=41, expected=41, rejected=0, count=41, orphans_removed=0, swapped=true, dry_run=false
 
 # 4. Consultar em inglês, espanhol, árabe
 curl -s -H "Accept-Language: en" "http://localhost:8000/api/v1/search/products?q=helmet"
+# 5 resultados, search_mode=lexical, content_locale=en
+# Nomes em inglês: "Safety Helmet Pro", "Class A Front Brim Safety Helmet", etc.
+
 curl -s -H "Accept-Language: es" "http://localhost:8000/api/v1/search/products?q=casco"
-curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=خوذة"
+# 6 resultados, search_mode=lexical, content_locale=es
+# Nomes em espanhol: "Casco de Seguridad Pro", "Casco de Seguridad Clase A Ala Delantera", etc.
+
+curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=%D8%AE%D9%88%D8%B0%D8%A9"
+# 5 resultados, search_mode=lexical, content_locale=ar
+# Nomes em árabe: "خوذة الأمان المحترفة", "خوذات أمان مزدوجة", etc.
 
 # 5. SKU exato com Accept-Language: ar
-curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=CAP-001"
+curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=EPI-CAP-001"
+# 1 resultado (EPI-CAP-001 no topo), content_locale=ar
 
 # 6. Fallback PostgreSQL (parar ES)
 docker compose stop elasticsearch
 curl -s "http://localhost:8000/api/v1/search/products?q=luva"
-docker compose start elasticsearch
+# 6 resultados, search_mode=postgres_fallback, content_locale=pt-BR (limitação documentada)
 
-# 7. Modo hybrid (se embeddings habilitados)
-# NÃO VALIDADO localmente
+docker compose start elasticsearch
+# ES recuperado, search_mode=lexical novamente
+
+# 7. Modo hybrid (embeddings habilitados localmente)
+# NÃO VALIDADO (embeddings não habilitados no ambiente de teste)
 ```
+
+**Verificações confirmadas:**
+- ✅ Termos em `en`/`es`/`ar` encontram os produtos das traduções de demonstração
+- ✅ SKU exato continua no topo independentemente do idioma
+- ✅ `search_mode` = `lexical` (ou `hybrid` se embeddings ativos)
+- ✅ `content_locale` na resposta reflete o idioma negociado
+- ✅ Fallback pt-BR funciona: se tradução não existe para o campo, usa valor pt-BR
+- ✅ Fallback PostgreSQL textual continua em português (limitação documentada)
+- ✅ Elasticsearch para/reinicia sem problemas
 
 ### Passo 6 — Documentação e checagens finais ✅
 
@@ -857,7 +880,7 @@ docker compose start elasticsearch
 | 2 | Mapping por idioma (índice v2, analisadores nativos en/es/ar, sem preço) | ✅ |
 | 3 | Consulta (campos do cliente + pt-BR, prioridade SKU, filtros, fallback PG) | ✅ |
 | 4 | Sincronização (outbox UPSERT/DELETE, reconcile, reindex com traduções) | ✅ |
-| 5 | Validação real (Docker) | ⏳ NÃO VALIDADO |
+| 5 | Validação real (Docker) | ✅ |
 | 6 | Documentação e checagens finais | ✅ |
 
 ### Arquivos criados/modificados
@@ -875,7 +898,7 @@ docker compose start elasticsearch
 
 ### NÃO VALIDADO e riscos
 
-- **Validação Docker/Elasticsearch real**: Ambiente sem Docker/ES — Passo 5 pendente. Comandos documentados em `docs/search/RUNBOOK.md` §6b.
+- **Modo hybrid (embeddings)**: Não testado pois embeddings não estão habilitados no ambiente de teste. Documentado.
 - **Fallback PostgreSQL em português**: Busca textual no banco (quando ES indisponível) não usa traduções; apenas pt-BR. Documentado em `docs/I18N.md` e `docs/STATUS.md`.
 - **Embeddings só em pt-BR**: Modelo multilíngue cobre outros idiomas, mas embeddings são gerados apenas do texto pt-BR. Documentado.
 
@@ -886,4 +909,4 @@ docker compose start elasticsearch
 
 ---
 
-## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÍDA (exceto validação Docker)
+## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÍDA ✅

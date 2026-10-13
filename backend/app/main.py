@@ -66,12 +66,12 @@ from app.modules.catalog.application.product_admin import (
 )
 from app.modules.catalog.application.translation_admin import (
     GetProductTranslations,
+    SqlAlchemyTranslationAdminRepository,
     UpdateTranslation,
 )
 from app.modules.catalog.infrastructure.admin_repository import (
     SqlAlchemyCatalogAdminRepository,
     SqlAlchemySearchOutboxRepository,
-    SqlAlchemyTranslationAdminRepository,
 )
 from app.modules.catalog.infrastructure.repository import SqlAlchemyCatalogRepository
 from app.modules.catalog.interface import admin_router as catalog_admin_router

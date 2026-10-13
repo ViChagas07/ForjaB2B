@@ -473,7 +473,7 @@ Auditoria completa e decisões em `docs/CATALOG_DEMO.md`. Resumo:
 | 2 | Mapping por idioma (v2 do índice, analisadores nativos, sem preço) | ✅ |
 | 3 | Consulta (campos do cliente + pt-BR, prioridade SKU, filtros, fallback) | ✅ |
 | 4 | Sincronização (outbox UPSERT/DELETE, reconcile, reindex com traduções) | ✅ |
-| 5 | Validação real (Docker) | ⏳ NÃO VALIDADO |
+| 5 | Validação real (Docker) | ✅ |
 | 6 | Documentação e checagens finais | ✅ |
 
 ### Mudanças realizadas
@@ -528,7 +528,7 @@ Auditoria completa e decisões em `docs/CATALOG_DEMO.md`. Resumo:
 
 ### NÃO VALIDADO e riscos
 
-- **Validação Docker/Elasticsearch real**: Ambiente sem Docker/ES — Passo 5 (reindexar, consultar en/es/ar, SKU exato com `Accept-Language: ar`, parar ES para testar fallback, modo hybrid) pendente. Comandos documentados em `docs/search/RUNBOOK.md` §6b.
+- **Modo hybrid (embeddings)**: Não testado pois embeddings não estão habilitados no ambiente de teste. Documentado.
 - **Fallback PostgreSQL em português**: Busca textual no banco (quando ES indisponível) não usa traduções; apenas pt-BR. Documentado.
 - **Embeddings só em pt-BR**: Modelo multilíngue cobre outros idiomas, mas embeddings são gerados apenas do texto pt-BR. Documentado.
 
