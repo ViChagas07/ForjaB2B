@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Globe, ShoppingCart } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/shared/lib/money";
@@ -70,7 +70,25 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl tracking-tight">{product.name}</CardTitle>
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-2xl tracking-tight">{product.name}</CardTitle>
+            {product.content_locale && product.content_locale !== locale ? (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground" title={t("catalog.translationFallback", { locale: product.content_locale })}>
+                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="font-mono">{product.content_locale}</span>
+              </div>
+            ) : product.content_locale ? (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground" title={t("catalog.translationExact", { locale: product.content_locale })}>
+                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="font-mono">{product.content_locale}</span>
+              </div>
+            ) : null}
+          </div>
+          {product.content_locale && product.content_locale !== locale ? (
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("catalog.contentDisplayedIn", { locale: product.content_locale })}
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-1.5">
             <EpiBadge isEpi={product.is_epi} />
             <CaStatusBadge status={product.ca_status} />
@@ -169,7 +187,7 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
                     <dt className="text-muted-foreground">{attr.label}</dt>
                     <dd className="font-medium">
                       {attr.value}
-                      {attr.unit && <span className="text-muted-foreground ml-1">({attr.unit})</span>}
+                      {attr.unit && <span className="text-muted-foreground ms-1">({attr.unit})</span>}
                     </dd>
                   </div>
                 ))}

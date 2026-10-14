@@ -156,7 +156,11 @@
     "description": "Descrição",
     "caNumber": "Número do CA",
     "ncm": "NCM",
-    "attributes": "Especificações"
+    "attributes": "Especificações",
+    "translationFallback": "مترجم إلى {locale} (مع الرجوع للبرتغالية)",
+    "translationExact": "مترجم إلى {locale}",
+    "fallback": "رجوع",
+    "contentDisplayedIn": "المحتوى معروض بـ {locale}"
   },
   "cart": {
     "title": "Carrinho",
@@ -349,6 +353,27 @@
           "notSet": "غير محدد",
           "available": "متاح",
           "notSellable": "غير قابل للبيع"
+        },
+        "translations": {
+          "title": "الترجمات",
+          "description": "إدارة ترجمات المنتج للغات أخرى. لوحة الإدارة تبقى بالبرتغالية.",
+          "stateAusente": "غائب",
+          "stateMachine": "آلية",
+          "stateReviewed": "مراجعة",
+          "stateStale": "قديمة",
+          "staleBadge": "قديمة",
+          "lastUpdated": "تم التحديث في {date}",
+          "edit": "تعديل",
+          "markReviewed": "تمييز كمراجع",
+          "retranslate": "إعادة الترجمة تلقائيًا",
+          "cancel": "إلغاء",
+          "save": "حفظ",
+          "name": "الاسم",
+          "namePlaceholder": "اسم المنتج بهذه اللغة",
+          "description": "الوصف",
+          "descriptionPlaceholder": "وصف المنتج بهذه اللغة",
+          "attributes": "السمات",
+          "providerNotConfigured": "موفر الترجمة غير مُكوّن"
         }
       }
     }

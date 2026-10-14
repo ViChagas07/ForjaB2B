@@ -156,7 +156,11 @@
     "description": "Descrição",
     "caNumber": "Número do CA",
     "ncm": "NCM",
-    "attributes": "Especificações"
+    "attributes": "Especificações",
+    "translationFallback": "Tradotto in {locale} (con fallback al portoghese)",
+    "translationExact": "Tradotto in {locale}",
+    "fallback": "Fallback",
+    "contentDisplayedIn": "Contenuto visualizzato in {locale}"
   },
   "cart": {
     "title": "Carrinho",
@@ -349,6 +353,27 @@
           "notSet": "Non definito",
           "available": "Disponibile",
           "notSellable": "Non vendibile"
+        },
+        "translations": {
+          "title": "Traduzioni",
+          "description": "Gestisci le traduzioni del prodotto per altre lingue. Il pannello di amministrazione rimane in portoghese.",
+          "stateAusente": "Assente",
+          "stateMachine": "Automatica",
+          "stateReviewed": "Revisionata",
+          "stateStale": "Obsoleta",
+          "staleBadge": "Obsoleta",
+          "lastUpdated": "Aggiornato il {date}",
+          "edit": "Modifica",
+          "markReviewed": "Segna come revisionata",
+          "retranslate": "Retradurre automaticamente",
+          "cancel": "Annulla",
+          "save": "Salva",
+          "name": "Nome",
+          "namePlaceholder": "Nome del prodotto in questa lingua",
+          "description": "Descrizione",
+          "descriptionPlaceholder": "Descrizione del prodotto in questa lingua",
+          "attributes": "Attributi",
+          "providerNotConfigured": "Fornitore di traduzione non configurato"
         }
       }
     }

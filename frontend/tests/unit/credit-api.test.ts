@@ -27,7 +27,7 @@ describe("creditApi", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(account));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await creditApi.getAccount(TOKEN);
+    const result = await creditApi.getAccount(TOKEN, "pt-BR");
 
     expect(result.available).toBe("800.00");
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
@@ -40,7 +40,7 @@ describe("creditApi", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse([]));
     vi.stubGlobal("fetch", fetchMock);
 
-    await creditApi.listEntries(TOKEN);
+    await creditApi.listEntries(TOKEN, "pt-BR");
 
     const [url] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/credit/entries");

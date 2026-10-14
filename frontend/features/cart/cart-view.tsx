@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Globe, Minus, Plus, Trash2 } from "lucide-react";
 
 import { Link, useRouter } from "@/i18n/navigation";
 import type { CartItem } from "@/core/domain/cart";
@@ -163,7 +163,7 @@ export function CartView() {
                 </Button>
               </div>
 
-              <div className="w-28 text-right font-semibold">
+              <div className="w-28 text-end font-semibold">
                 {formatMoney(item.line_total, DEFAULT_CURRENCY, locale)}
               </div>
 

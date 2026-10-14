@@ -8,6 +8,8 @@ import type {
   AdminProductPublish,
   AttributeDefinitionOut,
   StaticImageOut,
+  ProductTranslationAdmin,
+  TranslationUpdate,
 } from "@/core/domain/catalog";
 
 import { apiClient } from "./client";
@@ -91,6 +93,24 @@ export const adminCatalogApi = {
     const response = await apiClient.request<StaticImageOut[]>({
       method: "GET",
       path: "/api/v1/admin/catalog/static-images",
+    });
+    return response.body;
+  },
+
+  // Translation admin endpoints
+  async listProductTranslations(productId: string): Promise<ProductTranslationAdmin[]> {
+    const response = await apiClient.request<ProductTranslationAdmin[]>({
+      method: "GET",
+      path: `/api/v1/admin/catalog/translations/products/${productId}`,
+    });
+    return response.body;
+  },
+
+  async updateProductTranslation(productId: string, locale: string, payload: TranslationUpdate): Promise<ProductTranslationAdmin> {
+    const response = await apiClient.request<ProductTranslationAdmin>({
+      method: "PATCH",
+      path: `/api/v1/admin/catalog/translations/products/${productId}/${locale}`,
+      body: payload,
     });
     return response.body;
   },

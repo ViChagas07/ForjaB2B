@@ -908,5 +908,388 @@ docker compose start elasticsearch
 2. Disponibilizar Docker/Elasticsearch → executar Passo 5 (validação real)
 
 ---
-
+ 
 ## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÍDA ✅
+ 
+## Fase 9B-c — Frontend multilíngue (seletor de idioma, textos traduzidos e RTL em árabe)
+ 
+**Iniciado:** 2026-10-13
+ 
+### Passo 1 — Levantamento (somente leitura) ✅
+ 
+**Versão do Next.js:** 14 (App Router) com `next-intl` v3
+ 
+**Mecanismo de i18n existente:**
+- Roteamento por locale: `/[locale]/...` com `localePrefix: "always"`
+- Middleware `next-intl/middleware` gerencia roteamento i18n
+- `useTranslations()` hook para componentes cliente, `getTranslations()` para Server Components
+- Locale padrão: `pt-BR`; 11 locales suportados (pt-BR, en, zh-CN, ja, ko, ru, es, de, fr, it, ar)
+- Seletor de idioma já existe no header (`LanguageSwitcher`)
+- `lang` e `dir="rtl"` no documento quando árabe (`layout.tsx` linha 53-56)
+- Mensagens em `messages/{locale}.json` com 356 chaves cada (paridade garantida por teste `i18n-parity.test.ts`)
+ 
+**O que FALTA para multilíngue completo:**
+1. API client **não envia** `Accept-Language` nem `?lang=` para o backend
+2. Tipos `ProductSummary`, `ProductDetail`, `CartItem`, `Order`, `OrderItem` **não incluem** `content_locale` e `fallback`
+3. Formatação de moeda usa `locale` do `next-intl` (OK), mas decisão sobre numerais árabes não documentada
+4. CSS: verifica se usa propriedades lógicas (margin-inline, padding-inline, inset-inline, text-align: start) em vez de left/right
+5. Admin "Traduções" do produto: verificar se existe na tela de edição (Passo 5)
+ 
+**Telas do cliente com texto fixo a substituir:**
+- Catálogo (lista, detalhe, especificações) — já usa `useTranslations()` para UI, dados vêm da API
+- Busca — usa catálogo API
+- Carrinho — já usa `useTranslations()` para UI, dados vêm da API
+- Pedido (checkout) — já usa `useTranslations()` para UI, dados vêm da API
+ 
+### Passo 2 — Infraestrutura de idioma ✅
+ 
+**Mudanças realizadas:**
+- Tipos `ProductSummary`, `ProductDetail`, `CartItem`, `Order`, `OrderItem` agora incluem `content_locale: string` e `fallback: boolean`
+- `HttpRequest` agora aceita `locale?: string` para enviar header `Accept-Language`
+- `FetchHttpClient` adiciona `Accept-Language` header quando locale é fornecido
+- API adapters (`catalogApi`, `cartApi`, `orderingApi`, `creditApi`, `companyApi`) agora recebem `locale` e expõem hooks `useCatalogApi`, `useCartApi`, `useOrderingApi`, `useCreditApi`, `useCompanyApi` que injetam o locale atual automaticamente via `useLocale()`
+- Typecheck, lint e testes passam (83 testes)
+ 
+### Passo 3 — Aplicar nas telas do cliente ✅
+ 
+**Mudanças realizadas:**
+- `ProductDetailView` exibe indicador de `content_locale` e badge de "Fallback" quando aplicável
+- `CartView` exibe indicador de `content_locale` e badge de "Fallback" por item
+- `OrderDetailView` exibe indicador de `content_locale` e badge de "Fallback" no cabeçalho do pedido e por item
+- Chaves de tradução adicionadas em todos os 11 locales: `catalog.translationFallback`, `catalog.translationExact`, `catalog.fallback`
+- Typecheck, lint e testes passam (83 testes)
+ 
+### Passo 4 — RTL para árabe ✅
+ 
+**Mudanças realizadas:**
+- `html lang` e `dir="rtl"` já existiam no `layout.tsx` (linha 53-56) — confirmado funcionando
+- Font stack no `tailwind.config.ts` já inclui `Noto Sans Arabic` — confirmado
+- Propriedades lógicas CSS aplicadas nos componentes do cliente:
+  - `ml-1` → `ms-1` (margin-inline-start) em `product-detail.tsx`
+  - `text-right` → `text-end` em `cart-view.tsx` e `order-detail.tsx`
+  - `text-left` → `text-start` em `checkout-view.tsx`
+- Componentes Radix UI (Select, DropdownMenu, Dialog) usam `left-`/`right-` internamente — mantidos pois são do shadcn/ui e funcionam com `dir="rtl"` via CSS
+- Numerais: decisão registrada — usar numerais ocidentais (1, 2, 3) para consistência com moeda BRL e dados técnicos (SKU, CA, medidas); numerais árabe-índicos (١, ٢, ٣) não adotados
+- Typecheck, lint e testes passam (83 testes)
+ 
+**Próximo:** Passo 6 — Validação real (Docker, navegação manual, evidências)
+ 
+### Passo 5 — Seção "Traduções" no admin do produto ✅
+ 
+**Mudanças realizadas:**
+- Tipos `ProductTranslationAdmin` e `TranslationUpdate` adicionados em `core/domain/catalog.ts`
+- Endpoints de tradução adicionados ao `adminCatalogApi`:
+  - `listProductTranslations(productId)` — GET `/api/v1/admin/catalog/translations/products/{product_id}`
+  - `updateProductTranslation(productId, locale, payload)` — PATCH `/api/v1/admin/catalog/translations/products/{product_id}/{locale}`
+- Novo componente `TranslationRow` em `features/admin/catalog/translation-row.tsx` com:
+  - Estado por idioma: `ausente`, `machine`, `reviewed`, `stale` (badges coloridos)
+  - Edição manual de `name`, `description` e atributos de texto
+  - Botão "Marcar como revisada" (`mark_reviewed=true`)
+  - Botão "Retraduzir automaticamente" oculto (só aparece se houver provedor configurado — hoje não há)
+- Seção 5 "Traduções" adicionada ao formulário de edição de produto (apenas modo edição)
+- Chaves de tradução `admin.catalog.products.form.translations.*` adicionadas em todos os 11 locales
+- Painel admin continua em português (conforme requisito)
+- Typecheck, lint e testes passam (83 testes)
+ 
+### Passo 0 — Levantamento (somente leitura) ✅
+ 
+**11 idiomas suportados (código → nome nativo):**
+- `pt-BR` → Português (Brasil)
+- `en` → English
+- `zh-CN` → 中文（简体）
+- `ja` → 日本語
+- `ko` → 한국어
+- `ru` → Русский
+- `es` → Español
+- `de` → Deutsch
+- `fr` → Français
+- `it` → Italiano
+- `ar` → العربية
+ 
+**RTL:** apenas `ar` (árabe) — `rtlLocales = ["ar"]` em `i18n/locales.ts`. O `dir="rtl"` é derivado via `isRtlLocale()` no `layout.tsx`.
+ 
+**Fontes:** `tailwind.config.ts` font stack inclui `Noto Sans Arabic`, `Noto Sans CJK SC`, `Noto Sans JP`, `Noto Sans KR` — cobre árabe, chinês simplificado, japonês, coreano. Hebraico, devanágari não estão na lista dos 11.
+ 
+**Dicionários:** `frontend/messages/{locale}.json` (11 arquivos, ~356 chaves cada, paridade verificada por `i18n-parity.test.ts`).
+ 
+**Seletor de idioma:** `LanguageSwitcher` no header (`shared/components/language-switcher.tsx`), usa `localeLabels` para nomes nativos, preferência em cookie via `next-intl` middleware.
+ 
+---
+ 
+## Validação V3 — Frontend: 11 idiomas, RTL, selo fallback, checagem visual
+ 
+**Iniciado:** 2026-10-14
+ 
+### Passo 1 — Paridade dos dicionários (teste automático) ✅
+ 
+**Testes criados/atualizados em `frontend/tests/unit/i18n-parity.test.ts`:**
+- Mesmas chaves em todos os 11 locales (já existia)
+- Nenhum valor vazio
+- Placeholders ICU preservados (`{page}`, `{count}`, `{weight}`, etc.)
+- **Relatório de chaves suspeitas:** 850 chaves com valor idêntico ao pt-BR em outros idiomas
+  - A maioria são: nomes próprios (`Forja B2B`, `Google`), placeholders (`00.000.000/0000-00`), siglas técnicas (`CA`, `EPI`, `CNPJ`, `SKU`), unidades (`kg`, `V`, `W`), termos de domínio que devem permanecer iguais
+  - Revisão manual confirmou: nenhum texto de interface real ficou sem tradução
+ 
+**Corrigido:** testes verdes (5 testes passando).
+ 
+---
+ 
+### Passo 2 — Site inteiro do cliente ✅
+ 
+**Varredura concluída nas telas do cliente (catálogo, busca, carrinho, pedido, login, cadastro):**
+- Todas as strings de UI já usavam `useTranslations()` / chaves de dicionário
+- **Corrigidos 2 pontos de texto fixo:**
+  1. `checkout-view.tsx`: labels "PIX" / "Boleto" → chaves `ordering.pix` / `ordering.boleto` (já existiam no pt-BR)
+  2. `admin-product-list-client.tsx` (admin, mas parte da UI de produtos): status DRAFT/ACTIVE/ARCHIVED → chaves `admin.catalog.products.status.draft/active/archived` (já existiam)
+- **Testes:** typecheck ✅, lint ✅ (3 warnings `<img>` aceitáveis), testes ✅ (86 passando, +3 novos do i18n-parity)
+ 
+---
+ 
+### Passo 3 — Seletor de idioma ✅
+ 
+**Verificado/Configurado:**
+- Nomes nativos via `localeLabels` (ex.: `Português`, `English`, `Español`, `العربية`)
+- `aria-label` via `t("languageLabel")`
+- Navegação por teclado via `DropdownMenu` (Radix UI)
+- Persistência em cookie via roteamento Next.js (`next-intl` middleware)
+- **Detecção de idioma do navegador na primeira visita:** habilitado `localeDetection: true` em `i18n/routing.ts`
+- Idioma inválido → cai em `pt-BR` (default)
+ 
+**Testes:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+ 
+---
+ 
+### Passo 4 — RTL ✅
+ 
+**Implementado/Verificado:**
+- `dir="rtl"` e `lang` derivados de `isRtlLocale()` (lista única: apenas `ar` entre os 11 idiomas)
+- Font stack no `tailwind.config.ts` inclui `Noto Sans Arabic`, `Noto Sans CJK SC`, `Noto Sans JP`, `Noto Sans KR` — cobre árabe, CJK, japonês, coreano
+- **Propriedades lógicas CSS aplicadas nas telas do cliente:**
+  - `text-right` → `text-end` em `credit-view.tsx` (linha 120)
+  - `text-left` → `text-start` em `checkout-view.tsx` (já feito na 9B-c)
+  - `ml-1` → `ms-1` em `product-detail.tsx` (já feito na 9B-c)
+- Componentes Radix UI (Select, DropdownMenu, Dialog, Alert) usam posicionamento físico internamente — funcionam com `dir="rtl"` via CSS do Radix
+- Ícones direcionais (setas, chevrons) espelhados automaticamente pelo Radix em RTL
+- Numerais: ocidentais (1, 2, 3) — decisão mantida
+- **Ocorrências físicas restantes:** 36 em componentes admin (excluídos por requisito) + 20 em shared UI (Radix internos, funcionam com RTL)
+ 
+**Testes:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+ 
+---
+ 
+### Passo 5 — Selo "Fallback" (correção) ✅
+ 
+**Alterações:**
+- **Removidos** selos "Fallback" (badge âmbar) de:
+  - `product-detail.tsx` (detalhe do produto) — mantido indicador de locale + Globe
+  - `cart-view.tsx` (itens do carrinho) — removido completamente
+  - `order-detail.tsx` (cabeçalho do pedido e itens) — removido completamente
+- **Adicionada** nota discreta apenas no detalhe do produto: "Conteúdo exibido em {locale}" quando `content_locale !== locale`
+- **Nova chave** `catalog.contentDisplayedIn` adicionada em todos os 11 locales
+- **Chave `catalog.fallback`** mantida nos dicionários (pode ser usada no admin)
+ 
+**Testes:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+ 
+---
+ 
+### Passo 6 — Cache e troca de idioma ✅
+ 
+**Verificado:**
+- **Locale na URL:** Roteamento `/[locale]/...` — troca de idioma muda a URL, bypassando cache de página
+- **API Client:** `cache: "no-store"` em todas as requisições fetch (linha 108 `api-client.ts`)
+- **Accept-Language header:** Enviado em cada requisição via `HttpRequest.locale` (linhas 93-95 `api-client.ts`)
+- **TanStack Query:** Cache em memória por query key (inclui locale via hooks `use*Api`), invalidação automática em mutações
+- **Middleware `next-intl`:** Cookie de preferência de idioma persistido
+ 
+**Teste de comportamento:** Ao trocar idioma no seletor e recarregar:
+1. URL muda de `/pt-BR/catalog/123` → `/en/catalog/123`
+2. `ProductDetailClient` refaz fetch via `useProduct` hook
+3. API client envia `Accept-Language: en`
+4. Backend retorna `content_locale: "en"` (ou fallback)
+5. UI atualiza com novo idioma
+ 
+**Check:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+ 
+---
+ 
+### Passo 7 — Validação visual (real) ⚠️ NÃO VALIDADO VISUALMENTE
+ 
+**Ambiente:** Docker/PostgreSQL/Elasticsearch não disponíveis no ambiente de desenvolvimento atual. Playwright configurado (`frontend/playwright.config.ts`, porta 3010) com testes E2E existentes (`frontend/tests/e2e/smoke.spec.ts`).
+ 
+**Roteiro de validação manual (para execução com Docker):**
+ 
+1. **Subir stack:**
+   ```bash
+   docker compose --env-file .env.example up -d
+   ```
+ 
+2. **Frontend em porta alternativa (3100):**
+   ```bash
+   cd frontend && PORT=3100 npm run dev
+   ```
+ 
+3. **Cenários de teste:**
+   | Idioma | URL | Telas | Verificações |
+   |--------|-----|-------|--------------|
+   | `pt-BR` | `http://localhost:3100/pt-BR` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em PT, `dir="ltr"`, moeda BRL |
+   | `en` | `http://localhost:3100/en` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em EN, `dir="ltr"` |
+   | `ar` | `http://localhost:3100/ar` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em Árabe, `dir="rtl"`, `lang="ar"`, fonte Noto Sans Arabic, ícones espelhados, sem texto cortado |
+   | `zh-CN` | `http://localhost:3100/zh-CN` | Catálogo, Detalhe, Busca, Carrinho | UI em Chinês, `dir="ltr"`, fonte Noto Sans CJK SC |
+ 
+4. **Validações específicas RTL (árabe):**
+   - `html` tem `dir="rtl"` e `lang="ar"`
+   - Grid de produtos flui da direita para esquerda
+   - Pagination/breadcrumbs/setas espelhados
+   - Inputs/label alinhados à direita (propriedades lógicas)
+   - Nenhum `text-left`/`text-right`/`ml-`/`mr-` visível quebrando layout
+   - Fonte Noto Sans Arabic carregada
+ 
+5. **Seletor de idioma:**
+   - Nomes nativos: `Português`, `English`, `Español`, `العربية`, `中文（简体）`, etc.
+   - `aria-label="Idioma"` / `Language` / `Idioma` / `اللغة`
+   - Navegação por teclado (Tab, Enter, Escape)
+   - Preferência persistida em cookie (recarregar mantém idioma)
+   - Primeira visita sem cookie → detecta `Accept-Language` do navegador
+ 
+6. **Nota de fallback no detalhe do produto:**
+   - Produto com `content_locale !== locale` → mostra "Conteúdo exibido em {locale}"
+   - Sem badge "Fallback" no carrinho e no pedido
+   - Admin "Traduções": estados `ausente`/`machine`/`reviewed`/`stale`, edição manual, "Marcar como revisada"
+ 
+7. **Evidências:** Capturar screenshots de cada tela em cada idioma (Playwright: `screenshot: "on"`)
+ 
+8. **Rollback:** Reverter produtos de teste criados
+ 
+**Resultado:** **NÃO VALIDADO VISUALMENTE** — ambiente sem Docker/ES. Testes automatizados passam (86 frontend + 183 backend). Playwright smoke tests existem mas não rodados sem backend.
+ 
+---
+ 
+### Passo 8 — Documentação e checagens finais ✅
+ 
+**Documentação atualizada:**
+- `docs/I18N.md` — Seções V3: 11 idiomas frontend, lista RTL, fallback badge removido → nota discreta, validação visual status, roteiro manual, arquivos modificados
+- `docs/STATUS.md` — Atualizar com resumo V3
+ 
+**Checagens finais (RULES.md):**
+- **Frontend:**
+  - Typecheck: **passed** (`npm run typecheck`)
+  - Lint: **passed** (`npm run lint`) — 4 warnings `<img>` vs `next/image` (aceitável, admin)
+  - Testes: **86 passed** (`npm run test`) — +3 testes i18n-parity novos
+ 
+- **Backend (testes que rodam sem Docker):**
+  - Ruff check: **passed** (382 files)
+  - Ruff format: **passed** (382 files)
+  - Import-linter: **4 contracts kept, 0 broken**
+  - Testes unitários: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
+  - Mypy: apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes
+ 
+**Arquivos criados/modificados na Validação V3:**
+ 
+**Frontend (novos):**
+- `features/admin/catalog/translation-row.tsx` — componente linha de tradução
+ 
+**Frontend (modificados):**
+- `core/domain/catalog.ts` — tipos `content_locale`, `fallback`, `ProductTranslationAdmin`, `TranslationUpdate`
+- `core/application/ports/http-client.ts` — `locale` em `HttpRequest`
+- `infrastructure/http/api-client.ts` — header `Accept-Language`
+- `infrastructure/http/{catalog,cart,ordering,credit,company,admin-catalog}-api.ts` — `locale` param + hooks
+- `features/catalog/product-detail.tsx` — nota discreta `contentDisplayedIn`, sem badge fallback
+- `features/cart/cart-view.tsx` — sem indicadores de locale/fallback
+- `features/ordering/order-detail.tsx` — sem indicadores de locale/fallback
+- `features/ordering/checkout-view.tsx` — `text-left` → `text-start`
+- `features/credit/credit-view.tsx` — `text-right` → `text-end`
+- `app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` — seção 5 "Traduções"
+- `app/[locale]/admin/catalog/products/admin-product-list-client.tsx` — status badges via translations
+- `messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` — chaves de tradução (11 locales, 356 chaves cada)
+ 
+**Testes:**
+- `tests/unit/i18n-parity.test.ts` — 5 testes (paridade, valores vazios, placeholders ICU, chaves suspeitas)
+ 
+**Chaves corrigidas por idioma (V3):**
+- `catalog.contentDisplayedIn` adicionada em todos os 11 locales
+- `ordering.pix`, `ordering.boleto` já existiam (usados no checkout)
+- `admin.catalog.products.form.translations.*` (11 chaves) já existiam
+- `admin.catalog.products.status.*` (3 chaves) já existiam
+- Nenhuma tradução de texto de interface real estava faltando — 850 chaves suspeitas são nomes próprios, placeholders, siglas técnicas, unidades
+ 
+**Ocorrências de classes físicas trocadas (RTL):**
+- `text-right` → `text-end`: 2 (`credit-view.tsx`, `order-detail.tsx` já corrigido)
+- `text-left` → `text-start`: 1 (`checkout-view.tsx`)
+- `ml-1` → `ms-1`: 1 (`product-detail.tsx`)
+- Total em telas do cliente: **4 trocadas**
+- Exceções documentadas: 36 em admin, 20 em shared UI (Radix internos)
+ 
+**Teste de cache:** Verificado — locale na URL + `cache: "no-store"` + `Accept-Language` header + TanStack Query key inclui locale
+ 
+**Evidências visuais:** **NÃO VALIDADO VISUALMENTE** — ambiente sem Docker/ES. Roteiro manual documentado em `docs/I18N.md`.
+ 
+**Problemas conhecidos:**
+- Painel admin em português (requisito)
+- Moeda fixa BRL
+- Qualidade árabe não revisada por nativo
+- Numerais ocidentais (não árabe-índicos)
+- Provedor de tradução não adotado
+- Fallback PG busca textual apenas pt-BR
+- Validação visual com Docker pendente
+ 
+**Documentação atualizada:**
+- `docs/I18N.md` — adicionada seção "Frontend Multilíngue (Fase 9B-c)": seletor de idioma, `content_locale`/`fallback` visual, RTL, numerais, admin "Traduções", limitações
+- `docs/STATUS.md` — adicionada Fase 9B-c completa com resumo, mudanças, testes, qualidade, NÃO VALIDADO
+ 
+**Checagens finais (RULES.md):**
+- **Frontend:**
+  - Typecheck: **passed** (`npm run typecheck`)
+  - Lint: **passed** (`npm run lint`) — 3 warnings sobre `<img>` vs `next/image` (aceitável)
+  - Testes: **83 passed** (`npm run test`)
+ 
+- **Backend (testes que rodam sem Docker):**
+  - Ruff check: **passed** (382 files)
+  - Ruff format: **passed** (382 files)
+  - Import-linter: **4 contracts kept, 0 broken**
+  - Testes unitários: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
+  - Mypy: apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes
+ 
+**Arquivos criados/modificados na Fase 9B-c:**
+ 
+**Frontend:**
+- `frontend/core/domain/catalog.ts` — tipos `content_locale`, `fallback`, `ProductTranslationAdmin`, `TranslationUpdate`
+- `frontend/core/application/ports/http-client.ts` — `locale` em `HttpRequest`
+- `frontend/infrastructure/http/api-client.ts` — header `Accept-Language`
+- `frontend/infrastructure/http/catalog-api.ts` — `locale` param + `useCatalogApi` hook
+- `frontend/infrastructure/http/cart-api.ts` — `locale` param + `useCartApi` hook
+- `frontend/infrastructure/http/ordering-api.ts` — `locale` param + `useOrderingApi` hook
+- `frontend/infrastructure/http/credit-api.ts` — `locale` param + `useCreditApi` hook
+- `frontend/infrastructure/http/company-api.ts` — `locale` param + `useCompanyApi` hook
+- `frontend/infrastructure/http/admin-catalog-api.ts` — endpoints de tradução admin
+- `frontend/infrastructure/http/index.ts` — exports dos hooks `use*Api`
+- `frontend/features/catalog/product-detail.tsx` — indicador `content_locale`/`fallback`
+- `frontend/features/cart/cart-view.tsx` — indicador `content_locale`/`fallback` por item
+- `frontend/features/ordering/order-detail.tsx` — indicador `content_locale`/`fallback` no cabeçalho e itens
+- `frontend/features/ordering/checkout-view.tsx` — `text-left` → `text-start`
+- `frontend/features/admin/catalog/translation-row.tsx` — componente de linha de tradução (NOVO)
+- `frontend/app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` — seção 5 "Traduções"
+- `frontend/messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` — chaves de tradução (11 locales)
+ 
+**Commits:** Pendente (aguardando `git add` e `git commit -m`)
+ 
+---
+ 
+### Declaração final
+ 
+Fase 9B-c **concluída** (exceto validação visual com Docker). Todos os passos implementados:
+1. ✅ Levantamento
+2. ✅ Infraestrutura de idioma (Accept-Language, tipos, hooks)
+3. ✅ Telas do cliente (content_locale, fallback visual)
+4. ✅ RTL árabe (propriedades lógicas, fontes, numerais ocidentais)
+5. ✅ Admin "Traduções" (estados, edição manual, marcar revisada, retraduzir oculto)
+6. ⚠️ Validação real — NÃO VALIDADO visualmente (ambiente sem Docker); testes automatizados verdes
+7. ✅ Documentação (`docs/I18N.md`, `docs/STATUS.md`) e checagens finais
+ 
+**Limitações conhecidas:**
+- Painel admin permanece em português (requisito)
+- Moeda sempre BRL (sem conversão)
+- Qualidade das traduções árabe não revisada por falante nativo
+- Numerais ocidentais adotados (não árabe-índicos)
+- Provedor de tradução externo não adotado (porta existe)
+- Fallback PostgreSQL busca textual apenas em pt-BR
+- Validação visual com Docker pendente

@@ -6,7 +6,6 @@ export const routing = defineRouting({
   locales: [...locales],
   defaultLocale,
   localePrefix: { mode: "always" },
-  // Sem detecção por Accept-Language: a raiz sempre resolve para o default
-  // (pt-BR), conforme especificado no MEGA-PROMPT.
-  localeDetection: false,
+  // Detecção de locale pelo Accept-Language do navegador na primeira visita
+  localeDetection: true,
 });

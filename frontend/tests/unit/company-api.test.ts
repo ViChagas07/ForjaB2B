@@ -38,7 +38,7 @@ describe("companyApi.register", () => {
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body, { status: 201 })));
 
-    const result = await companyApi.register(REGISTER_INPUT);
+    const result = await companyApi.register(REGISTER_INPUT, "pt-BR");
 
     expect(result.company.status).toBe("PENDING");
     expect(result.company.cnpj).toBe("11222333000181");
@@ -63,7 +63,7 @@ describe("companyApi.register", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await companyApi.register({ ...REGISTER_INPUT, trade_name: "" });
+    await companyApi.register({ ...REGISTER_INPUT, trade_name: "" }, "pt-BR");
 
     const [, init] = fetchMock.mock.calls[0] ?? [null, {}];
     const sentBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
@@ -87,7 +87,7 @@ describe("companyApi.register", () => {
         ),
     );
 
-    await expect(companyApi.register(REGISTER_INPUT)).rejects.toMatchObject({
+    await expect(companyApi.register(REGISTER_INPUT, "pt-BR")).rejects.toMatchObject({
       code: "urn:forja:problem:invalid_cnpj",
       status: 400,
     });
@@ -106,7 +106,7 @@ describe("companyApi.getMe", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(company));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await companyApi.getMe("access-token");
+    const result = await companyApi.getMe("access-token", "pt-BR");
 
     expect(result.status).toBe("ACTIVE");
     const [, init] = fetchMock.mock.calls[0] ?? [null, {}];

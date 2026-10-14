@@ -117,7 +117,7 @@ export function CreditEntriesList() {
                 <p className="text-muted-foreground">{entry.description}</p>
               ) : null}
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <p className="font-semibold">{formatMoney(entry.amount, DEFAULT_CURRENCY, locale)}</p>
               <p className="text-xs text-muted-foreground">
                 {formatDate(entry.created_at, locale)}

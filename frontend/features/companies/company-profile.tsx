@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
-import { companyApi, problemCode } from "@/infrastructure/http";
+import { companyApi, useCompanyApi, problemCode } from "@/infrastructure/http";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { refreshSession } from "@/shared/stores/auth-actions";
 import { useAuthStore } from "@/shared/stores/auth-store";
@@ -28,8 +28,10 @@ function statusLabelKey(status: string): string {
 
 export function CompanyProfile() {
   const t = useTranslations();
+  const locale = useLocale();
   const session = useAuthStore((s) => s.session);
   const status = useAuthStore((s) => s.status);
+  const { getMe } = useCompanyApi();
 
   const query = useQuery({
     queryKey: ["company", "me"],
@@ -40,7 +42,7 @@ export function CompanyProfile() {
         throw new Error("unauthenticated");
       }
       try {
-        return await companyApi.getMe(token);
+        return await getMe(token);
       } catch (error) {
         // Access token expirado/inválido: rotaciona via refresh (atualiza a
         // store) e repete a consulta com o token novo. Se o refresh falhar,
@@ -50,7 +52,7 @@ export function CompanyProfile() {
           await refreshSession();
           const newToken = useAuthStore.getState().session?.access_token;
           if (newToken) {
-            return companyApi.getMe(newToken);
+            return getMe(newToken);
           }
         }
         throw error;

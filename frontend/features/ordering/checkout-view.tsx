@@ -160,7 +160,7 @@ export function CheckoutView({
         <CardContent className="space-y-3">
           {PAYMENT_METHODS.map((method) => {
             const selected = paymentMethod === method;
-            const label = method === "PIX" ? "PIX" : "Boleto";
+            const label = method === "PIX" ? t("ordering.pix") : t("ordering.boleto");
             const description =
               method === "PIX" ? t("ordering.pixDescription") : t("ordering.boletoDescription");
             return (
@@ -170,7 +170,7 @@ export function CheckoutView({
                 role="radio"
                 aria-checked={selected}
                 onClick={() => setPaymentMethod(method)}
-                className={`flex w-full items-start gap-3 rounded-md border p-3 text-left ${
+                className={`flex w-full items-start gap-3 rounded-md border p-3 text-start ${
                   selected ? "border-primary ring-1 ring-ring" : "border-input"
                 }`}
               >

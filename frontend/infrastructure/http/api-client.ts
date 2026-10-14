@@ -70,7 +70,7 @@ async function toApiError(response: Response, contentType: string): Promise<ApiE
 /**
  * Implementação da porta `HttpClient` baseada em fetch.
  *
- * Trata: base URL, headers (incl. correlation `X-Request-ID`), timeout via
+ * Trata: base URL, headers (incl. correlation `X-Request-ID`, `Accept-Language`), timeout via
  * AbortController, parsing de `application/problem+json` (RFC 7807) e erros
  * tipados (`ApiError`). Nenhum `fetch()` deve ser chamado diretamente em
  * componentes; use esta classe (via `apiClient`).
@@ -88,6 +88,10 @@ export class FetchHttpClient implements HttpClient {
     };
     if (request.body !== undefined) {
       headers["Content-Type"] = "application/json";
+    }
+    // Adiciona Accept-Language se locale for fornecido
+    if (request.locale) {
+      headers["Accept-Language"] = request.locale;
     }
 
     const controller = new AbortController();

@@ -30,7 +30,7 @@ describe("cartApi", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(emptyCart()));
     vi.stubGlobal("fetch", fetchMock);
 
-    await cartApi.addItem(TOKEN, { product_id: "p-1", quantity: 2 });
+    await cartApi.addItem(TOKEN, { product_id: "p-1", quantity: 2 }, "pt-BR");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/cart/items");
@@ -44,7 +44,7 @@ describe("cartApi", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(emptyCart()));
     vi.stubGlobal("fetch", fetchMock);
 
-    await cartApi.updateItem(TOKEN, "p-1", { quantity: 5 });
+    await cartApi.updateItem(TOKEN, "p-1", { quantity: 5 }, "pt-BR");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/cart/items/p-1");
@@ -56,7 +56,7 @@ describe("cartApi", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(emptyCart()));
     vi.stubGlobal("fetch", fetchMock);
 
-    await cartApi.removeItem(TOKEN, "p-1");
+    await cartApi.removeItem(TOKEN, "p-1", "pt-BR");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/cart/items/p-1");
@@ -67,7 +67,7 @@ describe("cartApi", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(emptyCart()));
     vi.stubGlobal("fetch", fetchMock);
 
-    await cartApi.clear(TOKEN);
+    await cartApi.clear(TOKEN, "pt-BR");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/cart");

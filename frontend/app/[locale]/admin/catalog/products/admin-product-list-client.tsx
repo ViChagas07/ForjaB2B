@@ -22,22 +22,22 @@ import { errorMessageKey } from "@/shared/lib/api-error";
 import { adminCatalogApi, isVersionConflict, getFieldErrors } from "@/infrastructure/http";
 import type { AdminProductListQuery, AdminProductSummary, AdminProductStatus } from "@/core/domain/catalog";
 
-const STATUS_LABELS: Record<AdminProductStatus, string> = {
-  DRAFT: "Rascunho",
-  ACTIVE: "Publicado",
-  ARCHIVED: "Arquivado",
-};
+function StatusBadge({ status, t }: { status: AdminProductStatus; t: ReturnType<typeof useTranslations> }) {
+  const statusLabels: Record<AdminProductStatus, string> = {
+    DRAFT: t("status.draft"),
+    ACTIVE: t("status.active"),
+    ARCHIVED: t("status.archived"),
+  };
 
-const STATUS_VARIANTS: Record<AdminProductStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  DRAFT: "secondary",
-  ACTIVE: "default",
-  ARCHIVED: "outline",
-};
+  const statusVariants: Record<AdminProductStatus, "default" | "secondary" | "destructive" | "outline"> = {
+    DRAFT: "secondary",
+    ACTIVE: "default",
+    ARCHIVED: "outline",
+  };
 
-function StatusBadge({ status }: { status: AdminProductStatus }) {
   return (
-    <Badge variant={STATUS_VARIANTS[status]}>
-      {STATUS_LABELS[status]}
+    <Badge variant={statusVariants[status]}>
+      {statusLabels[status]}
     </Badge>
   );
 }
@@ -309,7 +309,7 @@ export function AdminProductListClient() {
                       <td className="p-4 font-mono text-sm">{product.sku}</td>
                       <td className="p-4">{product.category.name}</td>
                       <td className="p-4">
-                        <StatusBadge status={product.status} />
+                        <StatusBadge status={product.status} t={t} />
                       </td>
                       <td className="p-4">
                         {product.base_unit_price ? (

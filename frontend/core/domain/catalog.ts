@@ -52,6 +52,8 @@ export interface ProductSummary {
   price_on_request: boolean;
   image_url: string;
   image_alt: string;
+  content_locale: string;
+  fallback: boolean;
 }
 
 export interface ProductAttributeOut {
@@ -211,4 +213,27 @@ export interface AdminProductUpdate {
 
 export interface AdminProductPublish {
   version: number;
+}
+
+// --- Translation admin types ---
+
+export type TranslationState = "ausente" | "machine" | "reviewed" | "stale";
+
+export interface ProductTranslationAdmin {
+  locale: string;
+  locale_label: string;
+  state: TranslationState;
+  is_stale: boolean;
+  name: string | null;
+  description: string | null;
+  attributes: Record<string, unknown> | null;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+export interface TranslationUpdate {
+  name?: string | null;
+  description?: string | null;
+  attributes?: Record<string, unknown> | null;
+  mark_reviewed?: boolean;
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { normalizeCnpj, normalizeCpf } from "@/core/domain";
 import type { RegisterCompanyInput } from "@/core/domain/company";
-import { companyApi } from "@/infrastructure/http";
+import { companyApi, useCompanyApi } from "@/infrastructure/http";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
@@ -43,6 +43,8 @@ function toInput(values: typeof INITIAL_VALUES): RegisterCompanyInput {
 
 export function RegisterCompanyForm() {
   const t = useTranslations();
+  const locale = useLocale();
+  const { register } = useCompanyApi();
   const [values, setValues] = React.useState(INITIAL_VALUES);
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -73,7 +75,7 @@ export function RegisterCompanyForm() {
     setFieldErrors({});
     setIsLoading(true);
     try {
-      await companyApi.register(toInput(values));
+      await register(toInput(values));
       setSubmitted(true);
     } catch (error) {
       setFormError(t(errorMessageKey(error)));

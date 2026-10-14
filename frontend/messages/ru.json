@@ -156,7 +156,11 @@
     "description": "Descrição",
     "caNumber": "Número do CA",
     "ncm": "NCM",
-    "attributes": "Especificações"
+    "attributes": "Especificações",
+    "translationFallback": "Переведено на {locale} (с резервом на португальский)",
+    "translationExact": "Переведено на {locale}",
+    "fallback": "Резерв",
+    "contentDisplayedIn": "Контент отображен на {locale}"
   },
   "cart": {
     "title": "Carrinho",
@@ -349,6 +353,27 @@
           "notSet": "Не задано",
           "available": "Доступен",
           "notSellable": "Недоступен"
+        },
+        "translations": {
+          "title": "Переводы",
+          "description": "Управление переводами продукта на другие языки. Панель администратора остается на португальском.",
+          "stateAusente": "Отсутствует",
+          "stateMachine": "Автоматический",
+          "stateReviewed": "Проверен",
+          "stateStale": "Устарел",
+          "staleBadge": "Устарел",
+          "lastUpdated": "Обновлено {date}",
+          "edit": "Редактировать",
+          "markReviewed": "Отметить как проверенный",
+          "retranslate": "Автоматически перевести заново",
+          "cancel": "Отмена",
+          "save": "Сохранить",
+          "name": "Название",
+          "namePlaceholder": "Название продукта на этом языке",
+          "description": "Описание",
+          "descriptionPlaceholder": "Описание продукта на этом языке",
+          "attributes": "Атрибуты",
+          "providerNotConfigured": "Провайдер переводов не настроен"
         }
       }
     }

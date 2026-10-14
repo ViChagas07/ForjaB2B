@@ -156,7 +156,11 @@
     "description": "Descrição",
     "caNumber": "Número do CA",
     "ncm": "NCM",
-    "attributes": "Especificações"
+    "attributes": "Especificações",
+    "translationFallback": "{locale}に翻訳済み (ポルトガル語にフォールバック)",
+    "translationExact": "{locale}に翻訳済み",
+    "fallback": "フォールバック",
+    "contentDisplayedIn": "{locale}でコンテンツを表示"
   },
   "cart": {
     "title": "Carrinho",
@@ -349,6 +353,27 @@
           "notSet": "未設定",
           "available": "購入可能",
           "notSellable": "購入不可"
+        },
+        "translations": {
+          "title": "翻訳",
+          "description": "他言語への製品翻訳を管理。管理パネルはポルトガル語のまま。",
+          "stateAusente": "なし",
+          "stateMachine": "自動",
+          "stateReviewed": "レビュー済み",
+          "stateStale": "古い",
+          "staleBadge": "古い",
+          "lastUpdated": "更新日 {date}",
+          "edit": "編集",
+          "markReviewed": "レビュー済みにする",
+          "retranslate": "自動再翻訳",
+          "cancel": "キャンセル",
+          "save": "保存",
+          "name": "名前",
+          "namePlaceholder": "この言語での製品名",
+          "description": "説明",
+          "descriptionPlaceholder": "この言語での製品説明",
+          "attributes": "属性",
+          "providerNotConfigured": "翻訳プロバイダ未設定"
         }
       }
     }

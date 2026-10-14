@@ -42,7 +42,7 @@ describe("orderingApi.create", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(order, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await orderingApi.create(TOKEN, CREATE_INPUT);
+    const result = await orderingApi.create(TOKEN, CREATE_INPUT, "pt-BR");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/orders");
@@ -60,7 +60,7 @@ describe("orderingApi.cancel", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(order));
     vi.stubGlobal("fetch", fetchMock);
 
-    await orderingApi.cancel(TOKEN, "o-1");
+    await orderingApi.cancel(TOKEN, "o-1", "pt-BR");
 
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/orders/o-1/cancel");
@@ -74,7 +74,7 @@ describe("orderingApi.get", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(order));
     vi.stubGlobal("fetch", fetchMock);
 
-    await orderingApi.get(TOKEN, "o-1");
+    await orderingApi.get(TOKEN, "o-1", "pt-BR");
 
     const [url] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/orders/o-1");

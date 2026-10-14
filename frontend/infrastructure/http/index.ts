@@ -4,9 +4,9 @@ export { ApiError, isProblemDetails, PROBLEM_JSON_MEDIA_TYPE, problemCode } from
 export type { ProblemDetails } from "./errors";
 export { getApiBaseUrl, DEFAULT_API_BASE_URL } from "./config";
 export { authApi } from "./auth-api";
-export { companyApi } from "./company-api";
-export { catalogApi } from "./catalog-api";
+export { companyApi, useCompanyApi } from "./company-api";
+export { catalogApi, useCatalogApi } from "./catalog-api";
 export { adminCatalogApi, isVersionConflict, getFieldErrors } from "./admin-catalog-api";
-export { cartApi } from "./cart-api";
-export { orderingApi } from "./ordering-api";
-export { creditApi } from "./credit-api";
+export { cartApi, useCartApi } from "./cart-api";
+export { orderingApi, useOrderingApi } from "./ordering-api";
+export { creditApi, useCreditApi } from "./credit-api";

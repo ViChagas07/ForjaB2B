@@ -17,6 +17,8 @@ export interface HttpRequest {
   headers?: Record<string, string>;
   /** Timeout em milissegundos. */
   timeoutMs?: number;
+  /** Locale para enviar no header Accept-Language (ex.: "pt-BR", "en", "es", "ar"). */
+  locale?: string;
 }
 
 export interface HttpResponse<T> {

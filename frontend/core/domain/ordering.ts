@@ -40,6 +40,8 @@ export interface OrderItem {
   base_unit_price: string | null;
   tier_min_quantity: number | null;
   line_total: string;
+  content_locale: string;
+  fallback: boolean;
 }
 
 export interface Order {
@@ -54,4 +56,6 @@ export interface Order {
   total: string;
   items: OrderItem[];
   created_at: string;
+  content_locale: string;
+  fallback: boolean;
 }

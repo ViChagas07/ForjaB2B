@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { AddCartItemInput, UpdateCartItemInput } from "@/core/domain/cart";
-import { cartApi } from "@/infrastructure/http";
+import { cartApi, useCartApi } from "@/infrastructure/http";
 import { withAuth } from "@/shared/lib/with-auth";
 import { useAuthStore } from "@/shared/stores/auth-store";
 
@@ -19,17 +19,19 @@ const CART_QUERY_KEY = ["cart"] as const;
 
 export function useCart() {
   const status = useAuthStore((s) => s.status);
+  const { get } = useCartApi();
   return useQuery({
     queryKey: CART_QUERY_KEY,
-    queryFn: () => withAuth((token) => cartApi.get(token)),
+    queryFn: () => withAuth((token) => get(token)),
     enabled: status === "authenticated",
   });
 }
 
 export function useAddCartItem() {
   const queryClient = useQueryClient();
+  const { addItem } = useCartApi();
   return useMutation({
-    mutationFn: (input: AddCartItemInput) => withAuth((token) => cartApi.addItem(token, input)),
+    mutationFn: (input: AddCartItemInput) => withAuth((token) => addItem(token, input)),
     onSuccess: (cart) => {
       queryClient.setQueryData(CART_QUERY_KEY, cart);
     },
@@ -38,9 +40,10 @@ export function useAddCartItem() {
 
 export function useUpdateCartItem() {
   const queryClient = useQueryClient();
+  const { updateItem } = useCartApi();
   return useMutation({
     mutationFn: ({ productId, input }: { productId: string; input: UpdateCartItemInput }) =>
-      withAuth((token) => cartApi.updateItem(token, productId, input)),
+      withAuth((token) => updateItem(token, productId, input)),
     onSuccess: (cart) => {
       queryClient.setQueryData(CART_QUERY_KEY, cart);
     },
@@ -49,8 +52,9 @@ export function useUpdateCartItem() {
 
 export function useRemoveCartItem() {
   const queryClient = useQueryClient();
+  const { removeItem } = useCartApi();
   return useMutation({
-    mutationFn: (productId: string) => withAuth((token) => cartApi.removeItem(token, productId)),
+    mutationFn: (productId: string) => withAuth((token) => removeItem(token, productId)),
     onSuccess: (cart) => {
       queryClient.setQueryData(CART_QUERY_KEY, cart);
     },
@@ -59,8 +63,9 @@ export function useRemoveCartItem() {
 
 export function useClearCart() {
   const queryClient = useQueryClient();
+  const { clear } = useCartApi();
   return useMutation({
-    mutationFn: () => withAuth((token) => cartApi.clear(token)),
+    mutationFn: () => withAuth((token) => clear(token)),
     onSuccess: (cart) => {
       queryClient.setQueryData(CART_QUERY_KEY, cart);
     },

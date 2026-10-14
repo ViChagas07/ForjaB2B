@@ -1,4 +1,5 @@
 import type { Company, RegisterCompanyInput, RegisterCompanyResult } from "@/core/domain/company";
+import { useLocale } from "next-intl";
 
 import { apiClient } from "./client";
 
@@ -10,7 +11,7 @@ import { apiClient } from "./client";
  * NUNCA envia um `company_id` arbitrário para selecionar o tenant.
  */
 export const companyApi = {
-  async register(input: RegisterCompanyInput): Promise<RegisterCompanyResult> {
+  async register(input: RegisterCompanyInput, locale: string): Promise<RegisterCompanyResult> {
     const response = await apiClient.request<RegisterCompanyResult>({
       method: "POST",
       path: "/api/v1/companies",
@@ -23,16 +24,27 @@ export const companyApi = {
         admin_cpf: input.admin_cpf,
         password: input.password,
       },
+      locale,
     });
     return response.body;
   },
 
-  async getMe(accessToken: string): Promise<Company> {
+  async getMe(accessToken: string, locale: string): Promise<Company> {
     const response = await apiClient.request<Company>({
       method: "GET",
       path: "/api/v1/companies/me",
       headers: { Authorization: `Bearer ${accessToken}` },
+      locale,
     });
     return response.body;
   },
 };
+
+/** Hook para obter as funções da API com o locale atual automaticamente. */
+export function useCompanyApi() {
+  const locale = useLocale();
+  return {
+    register: (input: RegisterCompanyInput) => companyApi.register(input, locale),
+    getMe: (token: string) => companyApi.getMe(token, locale),
+  };
+}

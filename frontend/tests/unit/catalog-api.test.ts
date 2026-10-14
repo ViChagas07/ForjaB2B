@@ -25,15 +25,18 @@ describe("catalogApi.listProducts", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(page));
     vi.stubGlobal("fetch", fetchMock);
 
-    await catalogApi.listProducts({
-      q: "luva",
-      category_id: "cat-1",
-      brand_id: "brand-1",
-      sort: "base_unit_price",
-      order: "desc",
-      page: 2,
-      page_size: 10,
-    });
+    await catalogApi.listProducts(
+      {
+        q: "luva",
+        category_id: "cat-1",
+        brand_id: "brand-1",
+        sort: "base_unit_price",
+        order: "desc",
+        page: 2,
+        page_size: 10,
+      },
+      "pt-BR",
+    );
 
     const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain("/api/v1/catalog/products");
@@ -51,7 +54,7 @@ describe("catalogApi.listProducts", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(page));
     vi.stubGlobal("fetch", fetchMock);
 
-    await catalogApi.listProducts({});
+    await catalogApi.listProducts({}, "pt-BR");
 
     const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).not.toContain("q=");
@@ -65,7 +68,7 @@ describe("catalogApi.getProduct", () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(product));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await catalogApi.getProduct("p-1");
+    const result = await catalogApi.getProduct("p-1", "pt-BR");
 
     expect(result.id).toBe("p-1");
     const url = String(fetchMock.mock.calls[0]?.[0]);

@@ -156,7 +156,11 @@
     "description": "Descrição",
     "caNumber": "Número do CA",
     "ncm": "NCM",
-    "attributes": "Especificações"
+    "attributes": "Especificações",
+    "translationFallback": "已翻译为 {locale} (回退到葡萄牙语)",
+    "translationExact": "已翻译为 {locale}",
+    "fallback": "回退",
+    "contentDisplayedIn": "内容以 {locale} 显示"
   },
   "cart": {
     "title": "Carrinho",
@@ -349,6 +353,27 @@
           "notSet": "未设置",
           "available": "可购买",
           "notSellable": "不可购买"
+        },
+        "translations": {
+          "title": "翻译",
+          "description": "管理产品的其他语言翻译。管理面板保持葡萄牙语。",
+          "stateAusente": "缺失",
+          "stateMachine": "自动",
+          "stateReviewed": "已审核",
+          "stateStale": "过时",
+          "staleBadge": "过时",
+          "lastUpdated": "更新于 {date}",
+          "edit": "编辑",
+          "markReviewed": "标记为已审核",
+          "retranslate": "自动重新翻译",
+          "cancel": "取消",
+          "save": "保存",
+          "name": "名称",
+          "namePlaceholder": "此语言的产品名称",
+          "description": "描述",
+          "descriptionPlaceholder": "此语言的产品描述",
+          "attributes": "属性",
+          "providerNotConfigured": "翻译提供商未配置"
         }
       }
     }

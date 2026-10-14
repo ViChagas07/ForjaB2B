@@ -15,6 +15,8 @@ export interface CartItem {
   tier_min_quantity: number | null;
   image_url: string;
   image_alt: string;
+  content_locale: string;
+  fallback: boolean;
 }
 
 export interface Cart {

@@ -24,6 +24,7 @@ import { cn } from "@/shared/lib/utils";
 import { formatNumber } from "@/shared/lib/money";
 import { errorMessageKey } from "@/shared/lib/api-error";
 
+import { localeLabels, type Locale } from "@/i18n/locales";
 import {
   adminCatalogApi,
   isVersionConflict,
@@ -37,7 +38,10 @@ import type {
   AttributeDefinitionOut,
   StaticImageOut,
   AdminProductStatus,
+  ProductTranslationAdmin,
+  TranslationUpdate,
 } from "@/core/domain/catalog";
+import { TranslationRow } from "@/features/admin/catalog/translation-row";
 
 // Zod schemas for validation
 const basicInfoSchema = z.object({
@@ -151,8 +155,18 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     staleTime: 5 * 60_000,
   });
 
-  // Load product if editing
+  // productIdForQuery for use in queries
   const productIdForQuery = Array.isArray(currentProductId) ? currentProductId[0] : currentProductId;
+
+  // Load product translations
+  const { data: translations, refetch: refetchTranslations } = useQuery({
+    queryKey: ["admin", "catalog", "translations", productIdForQuery],
+    queryFn: () => adminCatalogApi.listProductTranslations(productIdForQuery!),
+    enabled: isEdit && Boolean(productIdForQuery),
+    staleTime: 5 * 60_000,
+  });
+
+  // Load product if editing
   const { data: product, isLoading: loadingProduct } = useQuery({
     queryKey: ["admin", "catalog", "product", productIdForQuery],
     queryFn: () => adminCatalogApi.getProduct(productIdForQuery!),
@@ -391,6 +405,24 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       } else {
         const fieldErrors = getFieldErrors(err);
         setErrors(fieldErrors);
+      }
+    },
+  });
+
+  // Translation update mutation
+  const updateTranslationMutation = useMutation({
+    mutationFn: ({ locale, payload }: { locale: string; payload: TranslationUpdate }) =>
+      adminCatalogApi.updateProductTranslation(productIdForQuery!, locale, payload),
+    onSuccess: () => {
+      refetchTranslations();
+    },
+    onError: (err) => {
+      const fieldErrors = getFieldErrors(err);
+      if (Object.keys(fieldErrors).length > 0) {
+        // Show field errors in translation form
+        alert(Object.values(fieldErrors).join("\n"));
+      } else if (err instanceof Error) {
+        alert(err.message);
       }
     },
   });
@@ -953,6 +985,31 @@ export function AdminProductFormClient({ productId }: { productId: string | null
             </div>
           </CardContent>
         </Card>
+
+        {/* Section 5: Traduções (only in edit mode) */}
+        {isEdit && translations && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-lg">5</span>
+                {t("translations.title")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">{t("translations.description")}</p>
+              <div className="space-y-3">
+                {translations.map((tr) => (
+                  <TranslationRow
+                    key={tr.locale}
+                    translation={tr}
+                    onUpdate={({ locale, payload }) => updateTranslationMutation.mutate({ locale, payload })}
+                    isPending={updateTranslationMutation.isPending}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </form>
 
       {/* Image Preview Dialog (for image tab) */}
