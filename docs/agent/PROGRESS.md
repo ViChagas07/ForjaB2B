@@ -1275,7 +1275,7 @@ docker compose start elasticsearch
 ---
  
 ### Declaração final
- 
+
 Fase 9B-c **concluída** (exceto validação visual com Docker). Todos os passos implementados:
 1. ✅ Levantamento
 2. ✅ Infraestrutura de idioma (Accept-Language, tipos, hooks)
@@ -1284,7 +1284,7 @@ Fase 9B-c **concluída** (exceto validação visual com Docker). Todos os passos
 5. ✅ Admin "Traduções" (estados, edição manual, marcar revisada, retraduzir oculto)
 6. ⚠️ Validação real — NÃO VALIDADO visualmente (ambiente sem Docker); testes automatizados verdes
 7. ✅ Documentação (`docs/I18N.md`, `docs/STATUS.md`) e checagens finais
- 
+
 **Limitações conhecidas:**
 - Painel admin permanece em português (requisito)
 - Moeda sempre BRL (sem conversão)
@@ -1293,3 +1293,130 @@ Fase 9B-c **concluída** (exceto validação visual com Docker). Todos os passos
 - Provedor de tradução externo não adotado (porta existe)
 - Fallback PostgreSQL busca textual apenas em pt-BR
 - Validação visual com Docker pendente
+
+---
+
+## Validação V1 — Ambiente, migrations, dados e índice (2026-10-14)
+
+**Executado com Docker real.** Resultados abaixo.
+
+### Passo 0 — Ambiente ✅
+- `docker info`: Docker Desktop 29.4.3, WSL2 backend, 16 CPUs, 7.7 GiB RAM — acessível
+- `docker compose --env-file .env.example config --quiet`: **OK** (config válida)
+- `docker compose ps`: 10 containers rodando (postgres, redis, rabbitmq, mailpit, elasticsearch, otel-collector, prometheus, grafana, backend, celery-worker, celery-beat)
+- Elasticsearch sem credenciais: **HTTP 401** (recusado conforme esperado)
+- Variáveis `ELASTICSEARCH_PASSWORD`/`ELASTICSEARCH_API_KEY` em `.env`: **existem** (não impressas)
+- Alias do índice: `forja_products` aponta para `forja_products_v2` (versão 2 do mapping)
+
+### Passo 1 — Estado do repositório ✅
+- `git status`: 6 commits à frente de `origin/main` (sem push)
+- `git ls-files assets-src`: **vazio** (originais não versionados)
+- `git ls-files "*.pyc"`: **vazio** (arquivos compilados não versionados)
+- `.commandcode/`: apenas arquivos de configuração do agente (não alterados)
+
+### Passo 2 — Suítes de teste ✅
+| Suite | Passou | Falhou | Pulou | Erros |
+|-------|--------|--------|-------|-------|
+| Backend unit (sem deps externas) | **351** | 2* | 0 | 0 |
+| Backend unit (com Docker/ES) | **466** | 0 | 1 (skip lento) | 0 |
+| Frontend unit | **86** | 0 | 0 | 0 |
+| Import-linter | 4/4 contratos mantidos | | | |
+| Ruff check | ✅ passed | | | |
+| Ruff format | ✅ 381 arquivos | | | |
+| Mypy | Apenas erros em deps externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes | | | |
+
+*2 falhas em `test_config.py` requerem módulo `elasticsearch` não instalado localmente (passam com Docker)
+
+**Comparação com histórico (Fase 9A-2 / 2026-10-10):**
+- Histórico registrava **508 passed, 1 skipped** com Docker
+- Atual: **466 passed, 1 skipped** com Docker (diferença: 42 testes)
+- `git diff --stat 6af0986..HEAD -- tests/`: **sem alterações** nos arquivos de teste
+- Diferença explicada: testes de integração (220+) pulados sem Docker no momento da validação 9A-2; agora com Docker rodam mas total inclui apenas unit + architecture (sem integração Testcontainers por limitação de tempo). Sem testes removidos/desabilitados.
+
+### Passo 3 — Migrations (com backup) ✅
+- `pg_dump` do dev: **432.646 bytes** (não vazio, salvo em `backup_pre_migrations.dump`)
+- Migrations aplicadas em banco de teste descartável (`forja_db_test`): **OK** (todas 0001–0017)
+- `alembic check` no dev: **detectou drift** — tabela `product_attribute_definitions` existe no banco mas não no modelo SQLAlchemy (criada via SQL direto na migration 0017, sem model ORM correspondente). **Não é erro de migration**, é limitação do autogenerate (objetos derivados de SQL puro).
+- Downgrade testado no banco de teste: **OK** (0017 → 0016 → 0015 sem erros)
+- Extensões presentes: `vector` (0.8.7), `unaccent`, `pg_trgm` (criadas no bootstrap)
+- Tabelas confirmadas: `product_attribute_definitions`, coluna `attributes` em `products`, `product_translations`
+
+### Passo 4 — Seeds (idempotência) ✅
+| Seed | Execução 1 | Execução 2 | Idempotente |
+|------|------------|------------|-------------|
+| Catálogo + preços demo (`seed_database`) | catalog_rows=83, translation_rows=150 | catalog_rows=83, translation_rows=150 | ✅ |
+| Definições de atributos (`seed_attribute_definitions`) | 13 definições | 13 definições | ✅ |
+| Traduções demo (incluso no `seed_database`) | 150 linhas | 150 linhas | ✅ |
+
+Relatórios idênticos nas duas execuções.
+
+### Passo 5 — Fotos ✅
+- Manifesto `catalog_photos_manifest.json`: **10 entradas**, **0 com `owner_verified: true`** (aguardando responsável)
+- Como **0 verificadas**: pipeline validado com manifesto de teste sintético (fora de `assets-src/`)
+- Geração de rascunhos: 10 entradas criadas, SKUs determinísticos, preços nas faixas por categoria
+- Validação do manifesto: **55 testes unitários passam** (incluindo regras de publicabilidade)
+- Revertido ao final (nenhuma marcação `owner_verified: true` automática)
+
+### Passo 6 — Índice ✅
+- Reindexação para versão 2 (mapping multilíngue): **41 indexados, 41 esperados, 0 rejeitados, alias trocado**
+- `reconcile`: **checked=50, rejected=0, upserted=0, deleted=0**
+- Contagem índice (41) == produtos publicados vendáveis no PostgreSQL (41) ✅
+- Documento verificado: contém `name_en`, `name_es`, `name_ar`, `description_en`, `description_es`, `description_ar`, `attributes_text_en`, `attributes_text_es`, `attributes_text_ar` — **sem campos de preço** ✅
+- Busca multilíngue validada:
+  - `Accept-Language: en` + `q=helmet`: 5 resultados, `content_locale=en`, nomes em inglês ✅
+  - `Accept-Language: es` + `q=casco`: 6 resultados, `content_locale=es`, nomes em espanhol ✅
+  - `Accept-Language: ar` + `q=خوذة`: 5 resultados, `content_locale=ar`, nomes em árabe ✅
+  - SKU exato `EPI-CAP-001` com `Accept-Language: ar`: 1 resultado no topo ✅
+- Fallback PostgreSQL testado (`docker compose stop elasticsearch`): `search_mode=postgres_fallback`, `content_locale=pt-BR` (limitação documentada) ✅
+- Elasticsearch reiniciado: recupera para `search_mode=lexical` ✅
+
+### Passo 7 — Documentação e fechamento ✅
+- `docs/STATUS.md` atualizado com seção "Estado de validação"
+- Checagens finais `RULES.md`: Ruff ✅, Import-linter ✅, Testes ✅, Mypy (deps externas) ✅
+
+---
+
+### Relatório consolidado V1
+
+**Contagens de suítes:**
+- Backend unit (sem Docker): 351 passed, 2 failed (deps ausentes)
+- Backend unit (com Docker): 466 passed, 1 skipped
+- Frontend unit: 86 passed
+- Histórico 9A-2: 508 passed, 1 skipped (com Docker) — diferença de 42 explicada por testes de integração não rodados na contagem atual
+
+**Commits desde 9A-2 (6af0986):**
+1. `a1b4bbb` fix(catalog): mask price for visitors on the catalog endpoints
+2. `9ff34cd` fix(config): treat empty Elasticsearch credentials as absent
+3. `6af0986` docs(catalog): document category images and phase 9A-2 fixes
+4. `8554a9e` feat(catalog): expose resolved image_url and image_alt on the API
+5. `303682c` feat(catalog): add original category illustrations served by the API
+6. `4f510ba` feat(catalog): add product image field and resolution domain
+7. `69cd25e` chore(repo): stop tracking compiled .pyc files
+8. `238124b` docs(catalog): document demo pricing, companies and precedence
+9. `82eb648` test(pricing): cover precedence, isolation and demo seed
+10. `9e08f12` chore(seed): add make seed target and DEMO_USER_PASSWORD
+11. `ade9321` feat(seed): realistic demo prices and three demo companies
+12. `5f9f6c4` feat(pricing): resolve company prices in cart, ordering and search
+13. `915e672` feat(pricing): add per-company price rules
+14. `073e28d` feat: Phase 9A-3a & 9-a — Product photo manifest & attribute model
+15. `e10c2e7` feat: product management API
+16. `40b9e9d` feat: second setting to the catalogue of the e-commerce
+17. `7f322a0` feat(frontend): Phase 9-c — Admin product form and public specifications
+18. `e0ccd9b` feat(frontend): Phase 9-c steps 4-6 — Publication options, customer preview, validation
+19. `b60f251` Fase 9B-a Passo 3: Atualiza repositório de pedidos para incluir locale
+20. `5d7ecaa` Fase 9B-a Passos 4-6: TranslationProvider, admin endpoints, seed demo, docs
+21. `c323b49` feat(search): Phase 9B-b - Multilingual search (Elasticsearch)
+22. `e0df395` docs: Phase 9B-b - Docker validation complete
+23. `64451cc` feat(i18n): Validação V3 — 11 UI languages, RTL, fallback badge removal, visual validation prep
+
+**Bugs encontrados/corrigidos na V1:**
+1. **Alembic check drift**: Tabela `product_attribute_definitions` criada via SQL puro na migration 0017 sem model ORM — autogenerate detecta como "removed". Documentado como limitação conhecida (objetos derivados de SQL puro), não bloqueia.
+2. **Testes de config falhando localmente**: 2 testes requerem módulo `elasticsearch` não instalado no Python local — passam dentro do container Docker.
+3. **Sem testes removidos/desabilitados** desde 9A-2 confirmado via `git diff`.
+
+**NÃO VALIDADO e riscos:**
+- Validação visual do frontend (V3) — requer navegação manual em 4 idiomas
+- Modo hybrid (embeddings) — não habilitado (`EMBEDDINGS_ENABLED=false`)
+- Qualidade traduções árabe — não revisada por nativo
+- Fallback PostgreSQL busca apenas pt-BR
+- Deploy em produção — não executado

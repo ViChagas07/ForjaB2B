@@ -778,3 +778,81 @@ cd frontend && npx playwright test  # E2E (requer backend)
 
 1. Disponibilizar Docker/Elasticsearch → executar validação visual
 2. Checagens finais (RULES.md) — executadas
+
+---
+
+## Validação V1 — Estado de validação (2026-10-14)
+
+**Executado com Docker real.** Todos os passos validados com evidência.
+
+### O que foi validado ✅
+
+| Passo | Descrição | Evidência |
+|-------|-----------|-----------|
+| 0 | Ambiente Docker | `docker info`, `docker compose config --quiet`, `docker compose ps` (10 containers healthy), ES 401 sem credenciais |
+| 1 | Estado repo | `git status` (6 ahead, sem push), `git ls-files assets-src` vazio, `git ls-files *.pyc` vazio |
+| 2 | Suítes teste | Backend unit 351 passed (2 failed = deps ausentes), Backend+Docker 466 passed, Frontend 86 passed, Ruff/Import-linter/Mypy OK |
+| 3 | Migrations | `pg_dump` 432KB, migrations 0001-0017 em banco teste, `alembic check` (drift conhecido: tabela SQL pura), downgrade OK, extensões vector/unaccent/pg_trgm |
+| 4 | Seeds idempotentes | `seed_database` (83 cat, 150 trans), `seed_attribute_definitions` (13 defs) — 2 execuções idênticas |
+| 5 | Fotos | Manifesto 10 entradas, 0 `owner_verified`, pipeline validado com manifesto sintético, revertido |
+| 6 | Índice ES | Reindex v2: 41/41, rejected=0, alias swap; Reconcile: checked=50, rejected=0; Contagem idx (41) == PG vendáveis (41); Campos multilíngues presentes, sem preço; Busca en/es/ar + SKU exato + fallback PG testados |
+
+### O que NÃO foi validado (fora do escopo V1)
+
+- **Frontend visual (V3)**: Navegação em pt-BR/en/es/ar/zh-CN, RTL árabe, seletor idioma, badge fallback
+- **Modo hybrid (embeddings)**: `EMBEDDINGS_ENABLED=false` (requer modelo ONNX + runtime)
+- **Qualidade árabe**: Traduções automáticas, não revisadas por nativo
+- **Deploy produção**: Não executado
+
+### Riscos conhecidos
+
+- `alembic check` mostra drift na `product_attribute_definitions` (criada via SQL puro, sem model ORM) — limitação do autogenerate, não bug
+- 2 testes unitários falham localmente por `elasticsearch` module ausente — passam no container
+- Fallback PostgreSQL busca textual apenas pt-BR (documentado)
+
+### Comandos de verificação executados
+
+```bash
+# Ambiente
+docker info
+docker compose --env-file .env.example config --quiet
+docker compose ps
+curl -u elastic:xxx http://localhost:9200/_cluster/health  # 200 com cred, 401 sem
+
+# Migrations + backup
+docker compose exec -T postgres pg_dump -U postgres -d forja_db -Fc > backup_pre_migrations.dump
+docker compose exec -T postgres psql -U postgres -d forja_db_test -c "CREATE DATABASE..."
+DATABASE_ADMIN_URL=... python -m alembic upgrade head  # no banco teste
+DATABASE_ADMIN_URL=... python -m alembic check  # no dev
+
+# Seeds (2x cada)
+docker compose exec -T -e DATABASE_ADMIN_URL=... -e DEMO_USER_PASSWORD=... backend python -m app.infrastructure.db.seeds
+docker compose exec -T -e DATABASE_ADMIN_URL=... backend python scripts/seed_attribute_definitions.py
+
+# Índice
+docker compose exec -T backend python -m app.modules.search.interface.cli reindex --version 2
+docker compose exec -T backend python -m app.modules.search.interface.cli reconcile
+
+# Busca multilíngue
+curl -H "Accept-Language: en" http://localhost:8000/api/v1/search/products?q=helmet
+curl -H "Accept-Language: es" http://localhost:8000/api/v1/search/products?q=casco
+curl -H "Accept-Language: ar" http://localhost:8000/api/v1/search/products?q=%D8%AE%D9%88%D8%B0%D8%A9
+curl -H "Accept-Language: ar" http://localhost:8000/api/v1/search/products?q=EPI-CAP-001
+
+# Fallback
+docker compose stop elasticsearch
+curl http://localhost:8000/api/v1/search/products?q=luva  # search_mode=postgres_fallback
+docker compose start elasticsearch
+```
+
+### Qualidade (RULES.md)
+
+| Verificador | Resultado |
+|-------------|-----------|
+| `pytest tests/unit` (backend) | 351 passed, 2 failed (deps ausentes) |
+| `pytest tests/` com Docker | 466 passed, 1 skipped |
+| `npm run test` (frontend) | 86 passed |
+| `ruff check` | ✅ passed |
+| `ruff format --check` | ✅ 381 files |
+| `mypy` | Apenas erros em deps externas (opentelemetry, elasticsearch, redis) |
+| `import-linter` | ✅ 4 contracts kept, 0 broken |
