@@ -55,19 +55,77 @@ function extractPlaceholders(value: string): string[] {
   return matches ? matches.sort() : [];
 }
 
-function isLikelyProperNounOrNumber(value: string): boolean {
-  // Proper nouns (capitalized words), acronyms (all caps), numbers, units, codes
-  // SKU-like: EPI-XXX, numbers with units (20V, 850W, 100L, 7 1/4, 15T, 2cv)
-  // URLs, email-like
-  if (/^[A-Z]{2,}$/.test(value)) return true; // Acronyms
-  if (/^[A-Z][a-z]+([ ][A-Z][a-z]+)*$/.test(value)) return true; // Proper nouns
-  if (/^\d+(\.\d+)?\s*[A-Za-zª°%]+$/.test(value)) return true; // Numbers with units
-  if (/^\d+(\.\d+)?$/.test(value)) return true; // Pure numbers
-  if (/^https?:\/\//.test(value)) return true; // URLs
-  if (/^[^@]+@[^@]+\.[^@]+$/.test(value)) return true; // Emails
-  if (/^[A-Z]{2,}-\d+$/.test(value)) return true; // SKU-like
-  if (/^\d+(\s+\d+\/\d+)?[A-Za-z]+$/.test(value)) return true; // Complex numbers like 7 1/4
-  return false;
+/** Chaves que podem ser idênticas ao pt-BR em qualquer idioma. */
+const ALLOWED_IDENTICAL_KEYS = new Set([
+  "appName",
+  "homeTitle",
+  "onboarding.cnpjPlaceholder",
+  "onboarding.adminCpfPlaceholder",
+  "catalog.weightKg", // "{weight} kg" é numérico + unidade
+  // Siglas, códigos e nomes de meios de pagamento (não se traduzem)
+  "catalog.sku",
+  "catalog.sortSku",
+  "catalog.ncm",
+  "catalog.epi",
+  "catalog.epiYes",
+  "company.cnpj",
+  "onboarding.cnpjLabel",
+  "ordering.pix",
+  "ordering.boleto",
+  // Termos/cognatos idênticos em pelo menos um dos idiomas
+  "catalog.fallback",
+  "catalog.brand",
+  "catalog.filterBrand",
+  "catalog.category",
+  "catalog.filterCategory",
+  "catalog.previous",
+  "catalog.weight",
+  "catalog.sortName",
+  "catalog.sortAsc",
+  "catalog.sortDesc",
+  "cart.subtotal",
+  "company.status",
+  "credit.limit",
+  "credit.entryType",
+  "credit.used",
+  "credit.date",
+  "languageLabel",
+  "ordering.cancel",
+  "ordering.status",
+  "ordering.statusCancelled",
+  "ordering.subtotal",
+  "ordering.total",
+]);
+
+/** Valores legítimos que coincidem com o pt-BR em um idioma específico. */
+const ALLOWED_IDENTICAL_VALUES: Record<string, Set<string>> = {
+  es: new Set([
+    "Catálogo",
+    "Ordenar por",
+    "Página {page} de {pages}",
+    "{count} resultados",
+    "CA válido",
+    "CA ausente",
+    "Mínimo de {qty}",
+    "Finalizar pedido",
+    "Confirmar pedido",
+    "Confirmando…",
+    "Crédito insuficiente",
+    "Pedido realizado",
+    "Ver pedido",
+    "Cancelar pedido",
+    "Pedido cancelado.",
+    "Crédito",
+  ]),
+  fr: new Set(["E-mail", "ou"]),
+  it: new Set(["E-mail", "Nome completo"]),
+};
+
+function isAllowedIdentical(locale: string, key: string, value: string): boolean {
+  // O painel de administracao permanece em portugues por decisao do projeto.
+  if (key.startsWith("admin.")) return true;
+  if (ALLOWED_IDENTICAL_KEYS.has(key)) return true;
+  return ALLOWED_IDENTICAL_VALUES[locale]?.has(value) ?? false;
 }
 
 describe("i18n message parity", () => {
@@ -83,11 +141,8 @@ describe("i18n message parity", () => {
       .filter((f) => f.endsWith(".json"))
       .sort();
 
-    const referenceFile = files[0];
-    expect(referenceFile).toBeDefined();
-    if (!referenceFile) {
-      throw new Error("nenhum arquivo de mensagem encontrado");
-    }
+    const referenceFile = `${BASE_LOCALE}.json`;
+    expect(files).toContain(referenceFile);
 
     const referenceKeys = readKeys(referenceFile);
     expect(referenceKeys.length).toBeGreaterThan(0);
@@ -126,31 +181,33 @@ describe("i18n message parity", () => {
     }
   });
 
-  it("reporta chaves suspeitas: valor idêntico ao pt-BR em outro idioma (exceto nomes próprios, siglas, números)", () => {
+  it("não mantém texto do pt-BR sem tradução em outros idiomas", () => {
     const baseValues = readValues(`${BASE_LOCALE}.json`);
     const suspectReport: Array<{ file: string; key: string; value: string }> = [];
 
     for (const file of EXPECTED_FILES) {
       if (file === `${BASE_LOCALE}.json`) continue;
+      const locale = file.replace(/\.json$/, "");
       const values = readValues(file);
       for (const [key, baseValue] of Object.entries(baseValues)) {
         const localizedValue = values[key];
-        if (localizedValue === baseValue && !isLikelyProperNounOrNumber(baseValue)) {
+        if (
+          localizedValue === baseValue &&
+          !isAllowedIdentical(locale, key, baseValue)
+        ) {
           suspectReport.push({ file, key, value: baseValue });
         }
       }
     }
 
-    // Log the report for manual review
     if (suspectReport.length > 0) {
-      console.log("\n=== CHAVES SUSPEITAS (idênticas ao pt-BR, exceto nomes próprios/siglas/números) ===");
+      console.log("\n=== CHAVES SEM TRADUÇÃO (idênticas ao pt-BR) ===");
       for (const entry of suspectReport) {
         console.log(`${entry.file} | ${entry.key} = "${entry.value}"`);
       }
-      console.log(`Total: ${suspectReport.length} chaves suspeitas\n`);
+      console.log(`Total: ${suspectReport.length} chaves\n`);
     }
 
-    // This test passes but logs the report; we don't fail on suspects
-    expect(true).toBe(true);
+    expect(suspectReport, `chaves sem tradução: ${suspectReport.map((e) => `${e.file}:${e.key}`).join(", ")}`).toEqual([]);
   });
 });

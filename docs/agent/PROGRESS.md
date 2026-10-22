@@ -1484,3 +1484,27 @@ Relatórios idênticos nas duas execuções.
 - Fallback PostgreSQL busca apenas pt-BR.
 - `DATABASE_ADMIN_URL` e obrigatoria para o backoffice.
 - Extensao de content locales exige traducoes + analisadores por idioma.
+
+---
+
+## Validacao V3 — Frontend: 11 idiomas, RTL, selo de fallback e checagem visual
+
+### Passo 0 — Levantamento (2026-10-22)
+
+- 11 idiomas (`frontend/i18n/locales.ts`): pt-BR (Portugues (Brasil)), en (English),
+  zh-CN (中文（简体）), ja (日本語), ko (한국어), ru (Русский), es (Español), de (Deutsch),
+  fr (Français), it (Italiano), ar (العربية). Dicionarios em `frontend/messages/*.json`.
+- `dir`/`lang` vem de `isRtlLocale()` sobre a lista unica `rtlLocales` (`["ar"]`); `lang={locale}`.
+  Nao ha he/fa/ur na lista, entao `ar` e o unico RTL.
+- Fontes (`tailwind.config.ts`): Noto Sans (latina/cirilica), Noto Sans CJK SC/JP/KR,
+  Noto Sans Arabic. Nao ha hebraico nem devanagari porque essas escritas nao estao nos 11.
+- Paridade existente cobria chaves/placeholders/vazios, mas comparava contra `ar.json`
+  (primeiro arquivo ordenado) e o relatorio de suspeitos nao falhava.
+
+### Passo 1 — Paridade dos dicionarios
+
+- Teste corrigido para comparar sempre contra `pt-BR.json` e para **falhar** em chaves
+  identicas ao pt-BR (allowlist explicita para siglas, cognatos e painel admin).
+- Traduzidas **1037 chaves** (catalogo, carrinho, pedido, credito, erros, auth parcial):
+  ar 106, de 105, en 116, es 83, fr 105, it 98, ja 106, ko 106, ru 106, zh-CN 106.
+- Checagem: `npx vitest run tests/unit/i18n-parity.test.ts` -> 5 passed.
