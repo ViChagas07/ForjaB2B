@@ -99,6 +99,18 @@ migration-rollback: ## Reverte a última migração do Alembic (role admin, one-
 seed: ## Aplica os dados de demonstração (idempotente; admin, one-off). Usa DEMO_USER_PASSWORD do .env.
 	docker compose run --rm --no-deps --env-file .env backend python -m app.infrastructure.db.seeds
 
+.PHONY: db-backup
+db-backup: ## Gera backup lógico (pg_dump custom) em backups/ com rotação
+	python scripts/backup_db.py
+
+.PHONY: migration-drill
+migration-drill: ## Testa upgrade/seed/downgrade/upgrade em banco descartável
+	python scripts/migration_drill.py
+
+.PHONY: restore-drill
+restore-drill: ## Restaura o último backup em banco descartável e valida
+	python scripts/restore_drill.py
+
 # ------------------------------------------------------------------------------
 # Qualidade, Linting e Testes (Backend)
 # ------------------------------------------------------------------------------

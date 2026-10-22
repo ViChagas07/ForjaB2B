@@ -54,6 +54,7 @@ assets-src/
 # Backups locais de banco (nunca versionar)
 *.dump
 *.dump.*
+backups/
 
 # Misc
 *.pem
