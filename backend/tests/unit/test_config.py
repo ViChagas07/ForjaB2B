@@ -37,6 +37,32 @@ def test_url_de_banco_invalida_falha(monkeypatch: pytest.MonkeyPatch) -> None:
         Settings()
 
 
+def test_url_libpq_do_provedor_e_normalizada_para_asyncpg(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Render injeta `postgresql://`; o SQLAlchemy tentaria psycopg2 no boot."""
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql://forja_app:secret@dpg-host.oregon-postgres.render.com:5432/"
+        "forja_db?sslmode=require",
+    )
+    monkeypatch.setenv(
+        "DATABASE_ADMIN_URL",
+        "postgres://forja_admin:secret@dpg-host.oregon-postgres.render.com:5432/forja_db",
+    )
+    settings = Settings(otel_enabled=False)
+    assert str(settings.database_url).startswith("postgresql+asyncpg://")
+    assert "sslmode" not in str(settings.database_url)
+    assert "ssl=require" in str(settings.database_url)
+    assert str(settings.database_admin_url).startswith("postgresql+asyncpg://")
+
+
+def test_url_ja_asyncpg_e_preservada(monkeypatch: pytest.MonkeyPatch) -> None:
+    url = "postgresql+asyncpg://forja_app:secret@db.internal:5432/forja_db"
+    monkeypatch.setenv("DATABASE_URL", url)
+    assert str(Settings(otel_enabled=False).database_url) == url
+
+
 def test_pool_com_limites_validados() -> None:
     with pytest.raises(ValidationError):
         Settings(db_pool_size=0)

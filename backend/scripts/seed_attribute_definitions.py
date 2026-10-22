@@ -19,6 +19,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.application.product_attributes import load_registry_from_json  # noqa: E402
+from app.core.config import normalize_async_database_url  # noqa: E402
 from app.domain.product_attributes import AttributeDefinition  # noqa: E402
 
 JSON_PATH = BACKEND_DIR / "app" / "seed_data" / "attribute_definitions.json"
@@ -31,7 +32,7 @@ async def seed_attribute_definitions(admin_url: str) -> int:
     """
     registry = load_registry_from_json(str(JSON_PATH))
 
-    engine = create_async_engine(admin_url)
+    engine = create_async_engine(normalize_async_database_url(admin_url))
     try:
         async with engine.begin() as conn:
             count = 0
