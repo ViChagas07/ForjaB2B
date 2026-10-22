@@ -198,8 +198,36 @@ class Settings(BaseSettings):
     frontend_base_url: str = "http://localhost:3000"
 
     # CORS: origens do frontend autorizadas a chamar a API pelo navegador.
-    # Em producao, defina CORS_ORIGINS com o dominio real do site.
+    # Em producao, defina CORS_ORIGINS com o dominio real do site. A lista e
+    # SEMPRE explicita: `*` e rejeitado (com ou sem credenciais), porque o
+    # projeto usa Bearer token e nao precisa de origem curinga.
     cors_origins: str = "http://localhost:3000,http://localhost:3010,https://forja-b2b.vercel.app"
+    cors_allow_credentials: bool = False
+    cors_max_age_seconds: int = Field(default=600, ge=1)
+
+    # Rate limiting (Redis + fallback local). Limites de token bucket por
+    # classe: capacidade (burst) e taxa de reposicao por minuto.
+    rate_limit_enabled: bool = True
+    rate_limit_auth_capacity: int = Field(default=5, ge=1)
+    rate_limit_auth_refill_per_minute: float = Field(default=10.0, gt=0)
+    rate_limit_registration_capacity: int = Field(default=3, ge=1)
+    rate_limit_registration_refill_per_minute: float = Field(default=5.0, gt=0)
+    rate_limit_search_capacity: int = Field(default=30, ge=1)
+    rate_limit_search_refill_per_minute: float = Field(default=120.0, gt=0)
+    rate_limit_admin_write_capacity: int = Field(default=20, ge=1)
+    rate_limit_admin_write_refill_per_minute: float = Field(default=60.0, gt=0)
+    rate_limit_authenticated_capacity: int = Field(default=60, ge=1)
+    rate_limit_authenticated_refill_per_minute: float = Field(default=240.0, gt=0)
+    rate_limit_public_read_capacity: int = Field(default=120, ge=1)
+    rate_limit_public_read_refill_per_minute: float = Field(default=600.0, gt=0)
+    # Quantidade de proxies confiaveis entre a internet e a aplicacao. Render
+    # usa 1. Com 0 (default local), X-Forwarded-For e ignorado.
+    trusted_proxy_count: int = Field(default=0, ge=0, le=10)
+
+    # Cabecalhos de seguranca.
+    security_hsts_enabled: bool = True
+    security_hsts_max_age_seconds: int = Field(default=31536000, ge=0)
+    security_hsts_include_subdomains: bool = True
 
     # Celery (worker assincrono de notificacoes/outbox). Defaults de dev.
     celery_broker_url: str = "amqp://guest:guest@localhost:5672//"
@@ -261,6 +289,22 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @field_validator("cors_origins")
+    @classmethod
+    def _validate_cors_origins(cls, value: str) -> str:
+        """Rejeita curinga e origens malformadas (lista sempre explicita)."""
+        origins = [origin.strip() for origin in value.split(",") if origin.strip()]
+        if not origins:
+            raise ValueError("CORS_ORIGINS deve conter ao menos uma origem explicita")
+        for origin in origins:
+            if origin == "*":
+                raise ValueError("CORS_ORIGINS nao aceita '*'; liste as origens explicitas")
+            if not (origin.startswith("http://") or origin.startswith("https://")):
+                raise ValueError(f"Origem CORS invalida (sem esquema http/https): {origin}")
+            if origin.endswith("/") or "/" in origin.split("://", 1)[1]:
+                raise ValueError(f"Origem CORS invalida (nao deve conter caminho): {origin}")
+        return value
 
     @field_validator(
         "elasticsearch_api_key",

@@ -486,11 +486,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
-        allow_credentials=False,
+        allow_credentials=settings.cors_allow_credentials,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Accept-Language", "X-Request-ID"],
-        expose_headers=["X-Request-ID", "Vary"],
-        max_age=600,
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept-Language",
+            "X-Request-ID",
+            "X-Admin-Key",
+        ],
+        expose_headers=["X-Request-ID", "RateLimit-Limit", "RateLimit-Remaining", "Retry-After"],
+        max_age=settings.cors_max_age_seconds,
     )
     register_exception_handlers(app)
 
