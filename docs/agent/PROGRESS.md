@@ -1686,16 +1686,16 @@ RelatÃ³rios idÃªnticos nas duas execuÃ§Ãµes.
 
 ---
 
-## Prompt 01 — Auditoria de lacunas (2026-10-22)
+## Prompt 01 - Auditoria de lacunas (2026-10-22)
 
 - **Snapshot:** HEAD `c3f28da`; 29 itens auditados: **7 EXISTE, 16 PARCIAL, 6 AUSENTE**.
-  `docs/readiness/GAP_AUDIT.md` reescrito com prova por arquivo/linha, backlog e correções
-  das afirmações anteriores.
+  `docs/readiness/GAP_AUDIT.md` reescrito com prova por arquivo/linha, backlog e correcoes
+  das afirmacoes anteriores.
 - **Testes:** coleta no HEAD 710 (449 unit, 257 integration, 4 arch); com Docker (snapshot de
   704) **702 passed, 1 failed, 1 skipped**; sem Docker (710) **455 passed, 255 skipped**.
-  Falha reproduzível: `test_search_prioriza_sku_exato_e_ignora_acento` (ES/Testcontainers,
+  Falha reproduzivel: `test_search_prioriza_sku_exato_e_ignora_acento` (ES/Testcontainers,
   `ConnectionTimeout`). Marcador `integration` marca todos os itens (`conftest.py:68`).
 - **Qualidade:** `mypy app --strict` tem 1 erro no HEAD (`request_context.py:23`); WIP de
-  rate limiting adiciona 2 e ainda não está commitado. `mypy .` continua vermelho no CI.
-- **Remoto:** 15 commits locais não enviados; 14 commits desde 9A-2 já estão em
+  rate limiting adiciona 2 e ainda nao esta commitado. `mypy .` continua vermelho no CI.
+- **Remoto:** 15 commits locais nao enviados; 14 commits desde 9A-2 ja estao em
   `origin/main` (`df34400`). Auditoria somente leitura, exceto este arquivo e o GAP_AUDIT.
