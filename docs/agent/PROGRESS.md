@@ -1566,3 +1566,27 @@ Relatórios idênticos nas duas execuções.
   QueryClient e que `["cart"]`/`["orders"]` continuam invalidando.
 - Recarregar a pagina sempre refaz o fetch (cache em memoria) e envia o novo `Accept-Language`.
 - Checagem: typecheck OK, lint OK, 102 testes.
+
+### Passo 7 — Validação visual
+
+- Playwright (sem dependencia nova) com Chromium; frontend em `:3010`, backend real.
+- 16 capturas em `docs/validation/v3/` (pt-BR, en, ar, zh-CN × catalogo, busca, detalhe,
+  carrinho); spec `tests/e2e/visual-i18n.spec.ts` -> 5 passed (4 locais + SKU).
+- Verificado: lang/dir, RTL espelhado, seta de voltar invertida em ar, nota de conteudo so
+  em zh-CN (conteudo em ingles), ausencia de nota em en/ar/pt-BR, fontes CJK/arabe.
+- Problema de layout corrigido: rotulo "Ordenar por" duplicado -> chave `catalog.sortDirection`.
+- Carrinho de teste limpo (0 itens). CORS: bloqueado para navegador real (backend sem
+  cabecalhos); capturas usaram `--disable-web-security` apenas para evidencia visual.
+- **BLOQUEADO**: rotulo de atributo em en (`Cor` em vez de `Color`) — exige backend.
+
+### Passo 8 — Docs e checagens finais
+
+- `docs/I18N.md` e `docs/STATUS.md` atualizados (11 idiomas, RTL, nota, cache, limites e
+  bloqueios). PROGRESS com resultados.
+- Frontend: typecheck OK, lint OK (warnings `<img>`), **102 testes** (antes 86; +16),
+  Playwright visual 5 passed.
+- Backend: unit+arch 425 passed; ruff/format OK; mypy strict 0 erros; import-linter 4;
+  compose OK; integracao 251 passed, 1 skipped, 1 falha isolada
+  (`test_analisador_pt_ignora_acento`, ConnectionTimeout no ES de Testcontainers) —
+  repetida 3x, registrada como BLOQUEADO de ambiente, sem relacao com a V3.
+- `prettier --check` limpo nos arquivos da V3; 3 arquivos nao tocados seguem fora do padrao.

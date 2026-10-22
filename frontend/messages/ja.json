@@ -159,7 +159,8 @@
     "caNumber": "CA 番号",
     "ncm": "NCM",
     "attributes": "仕様",
-    "contentDisplayedIn": "{locale}でコンテンツを表示"
+    "contentDisplayedIn": "{locale}でコンテンツを表示",
+    "sortDirection": "順序"
   },
   "cart": {
     "title": "カート",

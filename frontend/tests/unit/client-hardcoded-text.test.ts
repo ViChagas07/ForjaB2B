@@ -11,8 +11,8 @@ const IGNORED_LINE_PARTS = [
   "className=",
   "aria-hidden",
   "viewBox=",
-  " d=\"",
-  "fill=\"",
+  ' d="',
+  'fill="',
   "xmlns",
   "suppressHydrationWarning",
   "import ",
@@ -24,7 +24,18 @@ const IGNORED_LINE_PARTS = [
   "HTMLAttributes",
 ];
 
-const ALLOWED_LITERAL_VALUES = new Set(["−", "+", "BRL", "USD", "EUR", "PIX", "SKU", "CA", "CNPJ", "CPF"]);
+const ALLOWED_LITERAL_VALUES = new Set([
+  "−",
+  "+",
+  "BRL",
+  "USD",
+  "EUR",
+  "PIX",
+  "SKU",
+  "CA",
+  "CNPJ",
+  "CPF",
+]);
 
 function walk(dir: string): string[] {
   const out: string[] = [];

@@ -176,7 +176,10 @@ describe("i18n message parity", () => {
         expect(localizedValue, `chave ${key} ausente em ${file}`).toBeDefined();
         if (!localizedValue) continue;
         const localizedPlaceholders = extractPlaceholders(localizedValue);
-        expect(localizedPlaceholders, `placeholders divergentes em ${file} para chave ${key}: esperado ${placeholders.join(", ")}, encontrado ${localizedPlaceholders.join(", ")}`).toEqual(placeholders);
+        expect(
+          localizedPlaceholders,
+          `placeholders divergentes em ${file} para chave ${key}: esperado ${placeholders.join(", ")}, encontrado ${localizedPlaceholders.join(", ")}`,
+        ).toEqual(placeholders);
       }
     }
   });
@@ -191,10 +194,7 @@ describe("i18n message parity", () => {
       const values = readValues(file);
       for (const [key, baseValue] of Object.entries(baseValues)) {
         const localizedValue = values[key];
-        if (
-          localizedValue === baseValue &&
-          !isAllowedIdentical(locale, key, baseValue)
-        ) {
+        if (localizedValue === baseValue && !isAllowedIdentical(locale, key, baseValue)) {
           suspectReport.push({ file, key, value: baseValue });
         }
       }
@@ -208,6 +208,9 @@ describe("i18n message parity", () => {
       console.log(`Total: ${suspectReport.length} chaves\n`);
     }
 
-    expect(suspectReport, `chaves sem tradução: ${suspectReport.map((e) => `${e.file}:${e.key}`).join(", ")}`).toEqual([]);
+    expect(
+      suspectReport,
+      `chaves sem tradução: ${suspectReport.map((e) => `${e.file}:${e.key}`).join(", ")}`,
+    ).toEqual([]);
   });
 });

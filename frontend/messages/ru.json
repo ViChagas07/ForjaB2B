@@ -159,7 +159,8 @@
     "caNumber": "Номер CA",
     "ncm": "NCM",
     "attributes": "Характеристики",
-    "contentDisplayedIn": "Контент отображен на {locale}"
+    "contentDisplayedIn": "Контент отображен на {locale}",
+    "sortDirection": "Порядок"
   },
   "cart": {
     "title": "Корзина",

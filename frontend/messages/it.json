@@ -159,7 +159,8 @@
     "caNumber": "Numero CA",
     "ncm": "NCM",
     "attributes": "Specifiche",
-    "contentDisplayedIn": "Contenuto visualizzato in {locale}"
+    "contentDisplayedIn": "Contenuto visualizzato in {locale}",
+    "sortDirection": "Ordine"
   },
   "cart": {
     "title": "Carrello",

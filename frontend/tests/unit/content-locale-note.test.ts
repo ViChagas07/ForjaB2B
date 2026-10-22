@@ -30,9 +30,7 @@ describe("nota de idioma do conteúdo", () => {
   });
 
   it("tem a chave nos 11 dicionários e removeu os selos antigos", () => {
-    const files = [
-      "ar", "de", "en", "es", "fr", "it", "ja", "ko", "pt-BR", "ru", "zh-CN",
-    ];
+    const files = ["ar", "de", "en", "es", "fr", "it", "ja", "ko", "pt-BR", "ru", "zh-CN"];
     for (const locale of files) {
       const messages = JSON.parse(source(`messages/${locale}.json`)) as {
         catalog: Record<string, string>;

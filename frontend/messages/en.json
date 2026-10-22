@@ -159,7 +159,8 @@
     "caNumber": "CA number",
     "ncm": "NCM",
     "attributes": "Specifications",
-    "contentDisplayedIn": "Content displayed in {locale}"
+    "contentDisplayedIn": "Content displayed in {locale}",
+    "sortDirection": "Order"
   },
   "cart": {
     "title": "Cart",

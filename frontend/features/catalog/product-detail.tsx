@@ -183,7 +183,9 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
                     <dt className="text-muted-foreground">{attr.label}</dt>
                     <dd className="font-medium">
                       {attr.value}
-                      {attr.unit && <span className="text-muted-foreground ms-1">({attr.unit})</span>}
+                      {attr.unit && (
+                        <span className="text-muted-foreground ms-1">({attr.unit})</span>
+                      )}
                     </dd>
                   </div>
                 ))}

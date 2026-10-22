@@ -137,7 +137,8 @@
     "caNumber": "Número do CA",
     "ncm": "NCM",
     "attributes": "Especificações",
-    "contentDisplayedIn": "Conteúdo exibido em {locale}"
+    "contentDisplayedIn": "Conteúdo exibido em {locale}",
+    "sortDirection": "Direção"
   },
   "cart": {
     "title": "Carrinho",

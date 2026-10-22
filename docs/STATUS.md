@@ -978,3 +978,97 @@ Preços/`price_on_request`/status idênticos em `pt-BR`, `en`, `es`, `ar` e `fr`
 - **Fallback PostgreSQL** busca apenas `pt-BR` (não usa `en`/`es`/`ar`).
 - **`DATABASE_ADMIN_URL` obrigatória**: sem ela o backoffice não opera (catálogo global).
 - **Novos idiomas de conteúdo** exigem traduções e analisadores próprios (não é só configuração).
+
+---
+
+## Validação V3 — Frontend: 11 idiomas, RTL, nota de fallback e checagem visual
+
+**Iniciado/Concluído:** 2026-10-22
+**Ambiente:** backend Docker real + frontend Next.js em `:3010` (Playwright/Chromium), dados de demonstração.
+
+### Resumo por passo
+
+| Passo | Descrição | Estado |
+|-------|-----------|--------|
+| 0 | 11 códigos/nomes nativos, RTL único (`ar`), fontes (Noto Sans, CJK, árabe), dicionários | ✅ |
+| 1 | Paridade obrigatória + tradução de 1037 valores | ✅ |
+| 2 | Textos fixos do cliente migrados (callback Google, `closeLabel`) + teste de regressão | ✅ |
+| 3 | Seletor nativo com cookie, teclado, primeira visita por navegador | ✅ |
+| 4 | RTL derivado de lista única, 18 classes físicas trocadas, 3 ícones espelhados | ✅ |
+| 5 | Selos removidos; nota discreta só no detalhe | ✅ |
+| 6 | Locale nas chaves de cache do catálogo/carrinho/pedido | ✅ |
+| 7 | Capturas reais em 4 locais × 4 telas | ✅ |
+| 8 | Docs e checagens finais | ✅ |
+
+### Traduções e paridade (Passo 1)
+
+- `frontend/messages/*.json`: **337 chaves** em cada um dos 11 idiomas.
+- **1037 valores** que ainda estavam em português foram traduzidos:
+  `ar 106`, `de 105`, `en 116`, `es 83`, `fr 105`, `it 98`, `ja 106`, `ko 106`,
+  `ru 106`, `zh-CN 106`.
+- O teste de paridade passou a comparar sempre contra `pt-BR.json` (antes comparava contra
+  `ar.json`) e a **falhar** em valores idênticos ao pt-BR, com allowlist para siglas
+  (`SKU`, `NCM`, `EPI`, `CNPJ`, `PIX`, `Boleto`), máscaras e cognatos legítimos.
+- 4 chaves novas: `closeLabel`, `auth.googleCallbackLoading`, `auth.googleCallbackError`,
+  `catalog.sortDirection`.
+
+### Interface e cache
+
+- Texto fixo encontrado e migrado: callback do Google (2 mensagens) e `sr-only` "Close" do diálogo.
+  Teste `client-hardcoded-text.test.ts` reprova novos textos/atributos literais no cliente.
+- Seletor: nomes nativos, `lang`/`dir` por item, `aria-current`, `aria-label` com idioma atual;
+  cookie `NEXT_LOCALE`; `fr-CA` → `fr`, `xx-YY` → `pt-BR` (teste do middleware real).
+- Cache: `catalogKeys`, `cartKey(locale)` e `orderKey(orderId, locale)` — trocar idioma cria
+  entradas separadas; recarregar sempre refaz o fetch. Invalidação por prefixo preservada.
+
+### RTL
+
+- `dir`/`lang` vêm de `directionForLocale()` sobre `rtlLocales = ["ar"]`.
+- **18 classes físicas** substituídas por lógicas em `shared/ui` (alert 2, dropdown-menu 11,
+  select 5). Exceção documentada: `left-[50%]` (centralização do diálogo). Zero ocorrências
+  nas telas de cliente em `features/`.
+- Ícones espelhados em RTL: `ArrowLeft` (voltar no detalhe e no pedido) e `ChevronRight`
+  (submenu), via `rtl:-scale-x-100`.
+- Fontes: Noto Sans (latina/cirílica), Noto Sans CJK SC/JP/KR, Noto Sans Arabic.
+
+### Validação visual (Passo 7)
+
+- Playwright (já no repositório) com Chromium; `tests/e2e/visual-i18n.spec.ts` — **5 passed**.
+- 16 capturas em `docs/validation/v3/`: `pt-BR`, `en`, `ar`, `zh-CN` ×
+  catálogo, busca, detalhe, carrinho.
+- Verificado: `lang`/`dir`, layout RTL (grid/header/paginação espelhados), seta de voltar
+  invertida em `ar`, nota "Conteúdo exibido em English" apenas em `zh-CN`, ausência de nota
+  em `en`/`ar`/`pt-BR`, fontes CJK/árabe sem corte, carrinho e pedido sem selo.
+- Problema de layout corrigido: **rótulo "Ordenar por" duplicado** no filtro; criado
+  `catalog.sortDirection` ("Direção"/"Order") nos 11 idiomas.
+- Carrinho de teste revertido (0 itens).
+
+### Checagens finais
+
+| Verificação | Resultado |
+|-------------|-----------|
+| Frontend `typecheck` | ✅ |
+| Frontend `lint` | ✅ (warnings `<img>` pré-existentes) |
+| Frontend `test` | ✅ **102 passed** (antes: 86; +16) |
+| Playwright visual | ✅ 5 passed |
+| Backend unit + architecture | ✅ 425 passed |
+| Backend integration (Testcontainers) | ⚠️ 251 passed, 1 skipped, **1 failed** (`test_analisador_pt_ignora_acento`, `ConnectionTimeout` no ES) |
+| Backend `ruff` / `format` | ✅ |
+| Backend `mypy --strict` | ✅ 285 arquivos |
+| `import-linter` | ✅ 4 contracts kept |
+| `docker compose config --quiet` | ✅ |
+| `prettier --check` (arquivos V3) | ✅; 3 arquivos não tocados seguem fora do padrão (pré-existente) |
+
+### BLOQUEADO / problemas conhecidos
+
+1. **CORS ausente no backend (bloqueia uso real no navegador)**: não há `Access-Control-Allow-Origin`;
+   as capturas usaram Chromium `--disable-web-security` **somente para a validação visual**.
+   Correção exige mudança de backend (fora do escopo V3).
+2. **Rótulo de atributo em inglês**: API devolve `label: "Cor"` com `content_locale=en`
+   (dicionário tem `en.cor = "Color"`); valor vem traduzido, rótulo não. Backend.
+3. **Preço consultivo no catálogo autenticado**: cards não enviam `Authorization`; comprador
+   logado vê "Preço sob consulta" na listagem. Carrinho/pedido mostram o preço da empresa.
+   Pré-existente, fora do escopo V3.
+4. **Qualidade das traduções**: interface e conteúdo não revisados por falante nativo.
+5. **Painel admin**: permanece em português (decisão do projeto).
+6. **Moeda**: sempre BRL, sem conversão.

@@ -110,8 +110,9 @@ export function CatalogFilters({
       </div>
 
       <div className="space-y-2">
-        <Label>{t("catalog.sortLabel")}</Label>
+        <Label htmlFor="catalog-order">{t("catalog.sortDirection")}</Label>
         <button
+          id="catalog-order"
           type="button"
           className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm shadow-sm"
           onClick={onOrderToggle}

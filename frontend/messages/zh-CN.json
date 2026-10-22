@@ -159,7 +159,8 @@
     "caNumber": "CA 编号",
     "ncm": "NCM",
     "attributes": "规格",
-    "contentDisplayedIn": "内容以 {locale} 显示"
+    "contentDisplayedIn": "内容以 {locale} 显示",
+    "sortDirection": "顺序"
   },
   "cart": {
     "title": "购物车",

@@ -159,7 +159,8 @@
     "caNumber": "CA 번호",
     "ncm": "NCM",
     "attributes": "사양",
-    "contentDisplayedIn": "{locale}로 콘텐츠 표시"
+    "contentDisplayedIn": "{locale}로 콘텐츠 표시",
+    "sortDirection": "정렬 방향"
   },
   "cart": {
     "title": "장바구니",

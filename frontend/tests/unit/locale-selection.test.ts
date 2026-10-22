@@ -34,9 +34,15 @@ describe("seleção de idioma", () => {
   });
 
   it("usa o idioma do navegador na primeira visita (match pelo idioma base)", () => {
-    expect(location(middleware(request("/", { acceptLanguage: "fr-CA,fr;q=0.9" })))).toContain("/fr");
-    expect(location(middleware(request("/", { acceptLanguage: "en-US,en;q=0.9" })))).toContain("/en");
-    expect(location(middleware(request("/", { acceptLanguage: "ar-EG,ar;q=0.9" })))).toContain("/ar");
+    expect(location(middleware(request("/", { acceptLanguage: "fr-CA,fr;q=0.9" })))).toContain(
+      "/fr",
+    );
+    expect(location(middleware(request("/", { acceptLanguage: "en-US,en;q=0.9" })))).toContain(
+      "/en",
+    );
+    expect(location(middleware(request("/", { acceptLanguage: "ar-EG,ar;q=0.9" })))).toContain(
+      "/ar",
+    );
   });
 
   it("idioma desconhecido cai em pt-BR", () => {
