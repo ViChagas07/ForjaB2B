@@ -32,11 +32,14 @@ def _correlation_id() -> str | None:
     return current_trace_id() or get_request_id()
 
 
-def _problem_response(problem: ProblemDetails) -> JSONResponse:
+def _problem_response(
+    problem: ProblemDetails, headers: dict[str, str] | None = None
+) -> JSONResponse:
     return JSONResponse(
         status_code=problem.status,
         content=problem.model_dump(exclude_none=True),
         media_type=PROBLEM_JSON_MEDIA_TYPE,
+        headers=headers,
     )
 
 
@@ -72,7 +75,7 @@ async def app_error_handler(request: Request, exc: Exception) -> JSONResponse:
         detail=error.detail,
         request=request,
     )
-    return _problem_response(problem)
+    return _problem_response(problem, headers=error.headers)
 
 
 async def domain_error_handler(request: Request, exc: Exception) -> JSONResponse:

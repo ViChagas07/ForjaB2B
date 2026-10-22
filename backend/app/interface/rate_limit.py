@@ -1,0 +1,189 @@
+"""Middleware ASGI de rate limiting por classe de rota.
+
+A classificacao usa o path normalizado (nunca o path cru com IDs) e a
+identidade vem do JWT verificado (usuario) ou do IP real (visitante). Rotas
+publicas de autenticacao usam IP; o bloqueio por conta+IP de login e aplicado
+no endpoint, depois do parse do e-mail. Health e metricas ficam de fora.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Callable, MutableMapping
+from typing import Any
+
+from app.application.rate_limit import RateLimitClass, RateLimiter
+from app.application.security import TokenService
+from app.core.config import Settings
+from app.core.correlation import get_request_id
+from app.core.request_context import client_ip
+from app.interface.schemas import ProblemDetails
+
+_EXCLUDED_PREFIXES = (
+    "/health",
+    "/metrics",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/static",
+    "/favicon",
+)
+
+_WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def _classify_auth(path: str) -> RateLimitClass | None:
+    if path in {"/api/v1/auth", "/api/v1/auth/login"}:
+        return RateLimitClass.AUTH
+    if path.startswith("/api/v1/auth/"):
+        return RateLimitClass.AUTH
+    return None
+
+
+def _classify_registration(path: str, method: str) -> RateLimitClass | None:
+    if path == "/api/v1/companies" and method == "POST":
+        return RateLimitClass.REGISTRATION
+    return None
+
+
+def _classify_admin_write(path: str, method: str) -> RateLimitClass | None:
+    if path.startswith("/api/v1/admin") and method in _WRITE_METHODS:
+        return RateLimitClass.ADMIN_WRITE
+    if path.startswith("/api/v1/companies/") and path.endswith("/approve"):
+        return RateLimitClass.ADMIN_WRITE
+    return None
+
+
+def _classify_data(path: str, method: str) -> RateLimitClass | None:
+    if path.startswith("/api/v1/search"):
+        return RateLimitClass.SEARCH
+    if path.startswith("/api/v1/catalog"):
+        if method == "GET":
+            return RateLimitClass.PUBLIC_READ
+        return RateLimitClass.AUTHENTICATED
+    if path.startswith("/api/v1/"):
+        return RateLimitClass.AUTHENTICATED
+    return None
+
+
+def classify_request(path: str, method: str) -> RateLimitClass | None:
+    """Mapeia path/metodo para uma classe de limite (None = isento)."""
+    if method == "OPTIONS" or any(path.startswith(prefix) for prefix in _EXCLUDED_PREFIXES):
+        return None
+    rate_class = _classify_auth(path)
+    if rate_class is None:
+        rate_class = _classify_registration(path, method)
+    if rate_class is None:
+        rate_class = _classify_admin_write(path, method)
+    if rate_class is None:
+        rate_class = _classify_data(path, method)
+    return rate_class
+
+
+def _bearer(scope: MutableMapping[str, Any]) -> str | None:
+    for name, value in scope.get("headers") or []:
+        if name.lower() == b"authorization":
+            raw = value.decode("latin-1").strip()
+            if raw.startswith("Bearer "):
+                return raw[len("Bearer ") :].strip() or None
+    return None
+
+
+def request_identity(scope: MutableMapping[str, Any], token_service: TokenService, ip: str) -> str:
+    """Identidade do limite: usuario verificado ou IP real."""
+    token = _bearer(scope)
+    if token is not None:
+        try:
+            auth = token_service.decode_access_token(token)
+        except Exception:  # noqa: BLE001 - token invalido cai no IP
+            auth = None
+        if auth is not None:
+            return f"user:{auth.user_id}"
+    return f"ip:{ip}"
+
+
+def _problem_body(*, status: int, detail: str, path: str) -> bytes:
+    problem = ProblemDetails(
+        type="urn:forja:problem:rate_limit_exceeded",
+        title="Too Many Requests",
+        status=status,
+        detail=detail,
+        instance=path,
+        trace_id=get_request_id(),
+    )
+    return json.dumps(problem.model_dump(exclude_none=True)).encode("utf-8")
+
+
+class RateLimitMiddleware:
+    """Middleware ASGI puro: 429 padronizado e cabecalhos RateLimit-*."""
+
+    def __init__(
+        self,
+        app: Callable[..., Any],
+        *,
+        limiter: RateLimiter,
+        settings: Settings,
+        token_service: TokenService,
+    ) -> None:
+        self._app = app
+        self._limiter = limiter
+        self._settings = settings
+        self._token_service = token_service
+
+    async def __call__(
+        self,
+        scope: MutableMapping[str, Any],
+        receive: Callable[..., Any],
+        send: Callable[..., Any],
+    ) -> None:
+        if scope["type"] != "http" or not self._settings.rate_limit_enabled:
+            await self._app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        method = scope.get("method", "GET")
+        rate_class = classify_request(path, method)
+        if rate_class is None:
+            await self._app(scope, receive, send)
+            return
+
+        ip = client_ip(scope, self._settings.trusted_proxy_count)
+        if rate_class in {RateLimitClass.AUTH, RateLimitClass.REGISTRATION}:
+            identity = f"ip:{ip}"
+        else:
+            identity = request_identity(scope, self._token_service, ip)
+
+        decision = await self._limiter.check(rate_class=rate_class, identity=identity)
+        headers = [
+            (b"ratelimit-limit", str(decision.limit).encode()),
+            (b"ratelimit-remaining", str(decision.remaining).encode()),
+            (b"ratelimit-reset", str(decision.reset_after_seconds).encode()),
+        ]
+        if not decision.allowed:
+            retry = str(decision.retry_after_seconds)
+            headers.append((b"retry-after", retry.encode()))
+            body = _problem_body(
+                status=429,
+                detail="Muitas requisicoes. Tente novamente mais tarde.",
+                path=path,
+            )
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 429,
+                    "headers": [
+                        (b"content-type", b"application/problem+json"),
+                        (b"content-length", str(len(body)).encode()),
+                        *headers,
+                    ],
+                }
+            )
+            await send({"type": "http.response.body", "body": body})
+            return
+
+        async def send_with_rate_headers(message: MutableMapping[str, Any]) -> None:
+            if message.get("type") == "http.response.start":
+                message.setdefault("headers", []).extend(headers)
+            await send(message)
+
+        await self._app(scope, receive, send_with_rate_headers)

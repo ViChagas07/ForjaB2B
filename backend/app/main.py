@@ -20,10 +20,19 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.application.ports.translation import NullTranslationProvider
 from app.application.product_attributes import load_default_registry
+from app.application.rate_limit import (
+    InMemoryBucketStore,
+    InMemoryFailureStore,
+    LoginThrottle,
+    RateLimitClass,
+    RateLimiter,
+    RateLimitPolicy,
+)
 from app.application.security import TokenService
 from app.core.config import Settings, get_settings
 from app.core.errors import ConfigurationError
@@ -40,11 +49,13 @@ from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.probe import ping_database
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.infrastructure.rate_limit import RedisBucketStore, RedisFailureStore
 from app.interface.errors import register_exception_handlers
 from app.interface.health import ReadinessProbe
 from app.interface.health import router as health_router
 from app.interface.metrics import PrometheusMiddleware
 from app.interface.middleware import CorrelationIdMiddleware
+from app.interface.rate_limit import RateLimitMiddleware
 from app.interface.security_headers import SecurityHeadersMiddleware
 from app.interface.v1.router import api_v1_router
 from app.modules.cart.application.cart import CartService
@@ -206,6 +217,62 @@ async def _dispose_engine(engine: AsyncEngine | None) -> None:
         await engine.dispose()
 
 
+def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPolicy]:
+    """Politicas por classe, configuradas por ambiente."""
+    return {
+        RateLimitClass.AUTH: RateLimitPolicy(
+            capacity=settings.rate_limit_auth_capacity,
+            refill_per_minute=settings.rate_limit_auth_refill_per_minute,
+        ),
+        RateLimitClass.REGISTRATION: RateLimitPolicy(
+            capacity=settings.rate_limit_registration_capacity,
+            refill_per_minute=settings.rate_limit_registration_refill_per_minute,
+        ),
+        RateLimitClass.SEARCH: RateLimitPolicy(
+            capacity=settings.rate_limit_search_capacity,
+            refill_per_minute=settings.rate_limit_search_refill_per_minute,
+        ),
+        RateLimitClass.ADMIN_WRITE: RateLimitPolicy(
+            capacity=settings.rate_limit_admin_write_capacity,
+            refill_per_minute=settings.rate_limit_admin_write_refill_per_minute,
+        ),
+        RateLimitClass.AUTHENTICATED: RateLimitPolicy(
+            capacity=settings.rate_limit_authenticated_capacity,
+            refill_per_minute=settings.rate_limit_authenticated_refill_per_minute,
+        ),
+        RateLimitClass.PUBLIC_READ: RateLimitPolicy(
+            capacity=settings.rate_limit_public_read_capacity,
+            refill_per_minute=settings.rate_limit_public_read_refill_per_minute,
+        ),
+        RateLimitClass.LOGIN_ACCOUNT: RateLimitPolicy(
+            capacity=settings.rate_limit_auth_capacity,
+            refill_per_minute=settings.rate_limit_auth_refill_per_minute,
+        ),
+    }
+
+
+def _build_rate_limiter(settings: Settings, redis_client: Redis[str]) -> RateLimiter:
+    """Limiter distribuido com fallback local (fail-open)."""
+    return RateLimiter(
+        store=RedisBucketStore(redis_client),
+        policies=_rate_limit_policies(settings),
+        fallback_store=InMemoryBucketStore(),
+    )
+
+
+def _build_login_throttle(settings: Settings, redis_client: Redis[str]) -> LoginThrottle:
+    """Bloqueio progressivo de login (Redis + fallback local)."""
+    return LoginThrottle(
+        store=RedisFailureStore(redis_client),
+        fallback_store=InMemoryFailureStore(),
+        secret=settings.secret_key,
+        ttl_seconds=settings.login_failure_window_seconds,
+        threshold=settings.login_failure_threshold,
+        base_backoff_seconds=settings.login_failure_base_backoff_seconds,
+        max_backoff_seconds=settings.login_failure_max_backoff_seconds,
+    )
+
+
 def _build_admin_factories(
     settings: Settings,
 ) -> tuple[
@@ -263,6 +330,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.db_engine = engine
     app.state.redis_client = redis_client
+    app.state.rate_limiter = _build_rate_limiter(settings, redis_client)
+    app.state.login_throttle = _build_login_throttle(settings, redis_client)
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)
     # Admin factories (forja_admin role, bypasses RLS on catalog tables)
@@ -480,6 +549,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     }
     app.state.readiness_probes = readiness_probes
 
+    # Ordem de execucao (de fora para dentro): CORS -> SecurityHeaders ->
+    # Prometheus -> Correlation -> RateLimit -> app. O 429 atravessa os
+    # headers de seguranca e o request id.
+    app.add_middleware(
+        RateLimitMiddleware,
+        limiter=app.state.rate_limiter,
+        settings=settings,
+        token_service=token_service,
+    )
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(PrometheusMiddleware)
     app.add_middleware(SecurityHeadersMiddleware, settings=settings)

@@ -223,6 +223,11 @@ class Settings(BaseSettings):
     # Quantidade de proxies confiaveis entre a internet e a aplicacao. Render
     # usa 1. Com 0 (default local), X-Forwarded-For e ignorado.
     trusted_proxy_count: int = Field(default=0, ge=0, le=10)
+    # Bloqueio progressivo de login por conta+IP (sem revelar se a conta existe).
+    login_failure_threshold: int = Field(default=3, ge=1)
+    login_failure_window_seconds: int = Field(default=900, ge=1)
+    login_failure_base_backoff_seconds: int = Field(default=30, ge=1)
+    login_failure_max_backoff_seconds: int = Field(default=900, ge=1)
 
     # Cabecalhos de seguranca.
     security_hsts_enabled: bool = True

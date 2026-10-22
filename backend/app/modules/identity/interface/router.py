@@ -15,11 +15,21 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import RedirectResponse
 
+from app.application.rate_limit import (
+    LoginThrottle,
+    RateLimitClass,
+    RateLimiter,
+    pseudonymous_key,
+)
+from app.core.errors import RateLimitExceededError
+from app.core.request_context import client_ip
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
 from app.modules.identity.application.errors import (
+    InvalidCredentialsError,
     OAuthCodeError,
     OAuthConfigurationError,
     OAuthStateError,
+    UserInactiveError,
 )
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
@@ -43,6 +53,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _authenticate_usecase(request: Request) -> AuthenticateUser:
     return cast(AuthenticateUser, request.app.state.identity_authenticate)
+
+
+def _rate_limiter(request: Request) -> RateLimiter:
+    return cast(RateLimiter, request.app.state.rate_limiter)
+
+
+def _login_throttle(request: Request) -> LoginThrottle:
+    return cast(LoginThrottle, request.app.state.login_throttle)
 
 
 def _refresh_usecase(request: Request) -> RefreshSession:
@@ -104,9 +122,50 @@ def _to_exchange_response(exchange: OAuthExchange) -> OAuthExchangeResponse:
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login(
     payload: LoginRequest,
+    request: Request,
     use_case: Annotated[AuthenticateUser, Depends(_authenticate_usecase)],
+    limiter: Annotated[RateLimiter, Depends(_rate_limiter)],
+    throttle: Annotated[LoginThrottle, Depends(_login_throttle)],
 ) -> LoginResponse:
-    result = await use_case.login(payload.email, payload.password)
+    settings = request.app.state.settings
+    ip = client_ip(request.scope, settings.trusted_proxy_count)
+
+    # Limite por conta (independente do IP) contra brute force distribuido.
+    account_identity = pseudonymous_key(settings.secret_key, payload.email)
+    account_decision = await limiter.check(
+        rate_class=RateLimitClass.LOGIN_ACCOUNT,
+        identity=f"account:{account_identity}",
+    )
+    if not account_decision.allowed:
+        raise RateLimitExceededError(
+            retry_after_seconds=account_decision.retry_after_seconds,
+            limit=account_decision.limit,
+            remaining=account_decision.remaining,
+            reset_after_seconds=account_decision.reset_after_seconds,
+        )
+
+    # Bloqueio progressivo por conta+IP apos falhas repetidas.
+    blocked = await throttle.blocked_for(email=payload.email, client_ip=ip)
+    if blocked > 0:
+        raise RateLimitExceededError(
+            retry_after_seconds=blocked,
+            limit=settings.rate_limit_auth_capacity,
+            reset_after_seconds=blocked,
+        )
+
+    try:
+        result = await use_case.login(payload.email, payload.password)
+    except (InvalidCredentialsError, UserInactiveError):
+        blocked = await throttle.record_failure(email=payload.email, client_ip=ip)
+        if blocked > 0:
+            raise RateLimitExceededError(
+                retry_after_seconds=blocked,
+                limit=settings.rate_limit_auth_capacity,
+                reset_after_seconds=blocked,
+            ) from None
+        raise
+
+    await throttle.clear(email=payload.email, client_ip=ip)
     return LoginResponse(
         access_token=result.access_token,
         refresh_token=result.refresh_token,

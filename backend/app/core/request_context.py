@@ -20,7 +20,8 @@ _UNKNOWN_IP = "unknown"
 def _header(scope: MutableMapping[str, Any], name: bytes) -> str | None:
     for key, value in scope.get("headers") or []:
         if key.lower() == name:
-            return value.decode("latin-1").strip()
+            raw = str(value.decode("latin-1") if isinstance(value, (bytes, bytearray)) else value)
+            return raw.strip()
     return None
 
 

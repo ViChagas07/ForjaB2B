@@ -54,6 +54,17 @@ search_fallback_total = Counter(
     ["mode"],
 )
 
+rate_limit_rejections_total = Counter(
+    "forja_rate_limit_rejections_total",
+    "Requisicoes rejeitadas pelo rate limiter por classe",
+    ["rate_class"],
+)
+rate_limit_backend_failures_total = Counter(
+    "forja_rate_limit_backend_failures_total",
+    "Falhas do backend distribuido do rate limiter (fail-open local)",
+    ["rate_class"],
+)
+
 _DEGRADED_SEARCH_MODES = frozenset({"semantic_postgres", "postgres_fallback"})
 
 
@@ -83,6 +94,14 @@ def observe_search(*, mode: str, duration: float) -> None:
     search_duration_seconds.labels(mode=mode).observe(duration)
     if mode in _DEGRADED_SEARCH_MODES:
         search_fallback_total.labels(mode=mode).inc()
+
+
+def increment_rate_limit_rejection(*, rate_class: str) -> None:
+    rate_limit_rejections_total.labels(rate_class=rate_class).inc()
+
+
+def increment_rate_limit_backend_failure(*, rate_class: str) -> None:
+    rate_limit_backend_failures_total.labels(rate_class=rate_class).inc()
 
 
 def prometheus_metrics() -> bytes:

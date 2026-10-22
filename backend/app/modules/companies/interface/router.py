@@ -16,7 +16,9 @@ from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 
+from app.application.rate_limit import RateLimitClass, RateLimiter, pseudonymous_key
 from app.application.security import AuthContext
+from app.core.errors import RateLimitExceededError
 from app.interface.deps import get_current_auth
 from app.modules.companies.application.company import (
     ApproveCompany,
@@ -46,11 +48,31 @@ def _approve_usecase(request: Request) -> ApproveCompany:
     return cast(ApproveCompany, request.app.state.companies_approve)
 
 
+def _rate_limiter(request: Request) -> RateLimiter:
+    return cast(RateLimiter, request.app.state.rate_limiter)
+
+
 @router.post("", response_model=RegisterCompanyResponse, status_code=status.HTTP_201_CREATED)
 async def register_company(
     payload: RegisterCompanyRequest,
+    request: Request,
     use_case: Annotated[RegisterCompany, Depends(_register_usecase)],
+    limiter: Annotated[RateLimiter, Depends(_rate_limiter)],
 ) -> RegisterCompanyResponse:
+    settings = request.app.state.settings
+    account_identity = pseudonymous_key(settings.secret_key, payload.admin_email)
+    decision = await limiter.check(
+        rate_class=RateLimitClass.REGISTRATION,
+        identity=f"account:{account_identity}",
+    )
+    if not decision.allowed:
+        raise RateLimitExceededError(
+            retry_after_seconds=decision.retry_after_seconds,
+            limit=decision.limit,
+            remaining=decision.remaining,
+            reset_after_seconds=decision.reset_after_seconds,
+        )
+
     result = await use_case.register(
         RegisterCompanyCommand(
             cnpj=payload.cnpj,

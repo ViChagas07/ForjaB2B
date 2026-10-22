@@ -1699,3 +1699,9 @@ Relatórios idênticos nas duas execuções.
   rate limiting adiciona 2 e ainda nao esta commitado. `mypy .` continua vermelho no CI.
 - **Remoto:** 15 commits locais nao enviados; 14 commits desde 9A-2 ja estao em
   `origin/main` (`df34400`). Auditoria somente leitura, exceto este arquivo e o GAP_AUDIT.
+
+### Passo 3 � Rate limiting
+- Token bucket atomico em Redis (Lua) por classe: auth, cadastro, busca, escrita admin, autenticados e leitura publica; health/metricas isentos.
+- 429 RFC 7807 com Retry-After e RateLimit-*, IP real via TRUSTED_PROXY_COUNT, fail-open com limitador local + circuit breaker curto, metricas de rejeicao/falha.
+- Login: limite por conta (HMAC), bloqueio progressivo por conta+IP sem revelar existencia; cadastro tambem limita por conta.
+- Testes: 8 unitarios + 4 de integracao com Redis real; Ruff/mypy OK. Validacao Docker de 429/fail-open fica no passo 8.

@@ -20,10 +20,38 @@ class AppError(Exception):
     status_code: int = 500
     title: str = "Internal Server Error"
     code: str = "internal_error"
+    headers: dict[str, str] | None = None
 
     def __init__(self, detail: str | None = None) -> None:
         super().__init__(detail or self.title)
         self.detail = detail or self.title
+
+
+class RateLimitExceededError(AppError):
+    """Limite de requisicoes excedido (429 com Retry-After)."""
+
+    status_code = 429
+    title = "Too Many Requests"
+    code = "rate_limit_exceeded"
+
+    def __init__(
+        self,
+        *,
+        retry_after_seconds: int,
+        limit: int | None = None,
+        remaining: int = 0,
+        reset_after_seconds: int | None = None,
+    ) -> None:
+        retry = max(1, retry_after_seconds)
+        super().__init__("Muitas requisicoes. Tente novamente mais tarde.")
+        self.retry_after_seconds = retry
+        self.headers = {"Retry-After": str(retry)}
+        if limit is not None:
+            self.headers["RateLimit-Limit"] = str(limit)
+            self.headers["RateLimit-Remaining"] = str(max(0, remaining))
+            self.headers["RateLimit-Reset"] = str(
+                max(1, reset_after_seconds if reset_after_seconds is not None else retry)
+            )
 
 
 class ServiceUnavailableError(AppError):
