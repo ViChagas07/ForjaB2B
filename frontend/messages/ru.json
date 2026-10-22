@@ -34,7 +34,9 @@
     "logoutLoading": "Выполняется выход…",
     "signedInAs": "Вы вошли как",
     "loginOr": "или",
-    "continueWithGoogle": "Продолжить с Google"
+    "continueWithGoogle": "Продолжить с Google",
+    "googleCallbackLoading": "Завершение входа…",
+    "googleCallbackError": "Не удалось завершить вход через Google."
   },
   "onboarding": {
     "title": "Зарегистрируйте компанию",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "Закрыть"
 }

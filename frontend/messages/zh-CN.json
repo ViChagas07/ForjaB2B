@@ -34,7 +34,9 @@
     "logoutLoading": "退出中…",
     "signedInAs": "当前登录为",
     "loginOr": "或",
-    "continueWithGoogle": "使用 Google 继续"
+    "continueWithGoogle": "使用 Google 继续",
+    "googleCallbackLoading": "正在完成登录…",
+    "googleCallbackError": "无法完成 Google 登录。"
   },
   "onboarding": {
     "title": "注册您的公司",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "关闭"
 }

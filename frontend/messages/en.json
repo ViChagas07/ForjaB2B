@@ -34,7 +34,9 @@
     "logoutLoading": "Signing out…",
     "signedInAs": "Signed in as",
     "loginOr": "or",
-    "continueWithGoogle": "Continue with Google"
+    "continueWithGoogle": "Continue with Google",
+    "googleCallbackLoading": "Completing sign-in…",
+    "googleCallbackError": "Could not complete Google sign-in."
   },
   "onboarding": {
     "title": "Register your company",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "Close"
 }

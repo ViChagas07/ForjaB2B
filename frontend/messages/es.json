@@ -34,7 +34,9 @@
     "logoutLoading": "Cerrando sesión…",
     "signedInAs": "Sesión iniciada como",
     "loginOr": "o",
-    "continueWithGoogle": "Continuar con Google"
+    "continueWithGoogle": "Continuar con Google",
+    "googleCallbackLoading": "Completando el inicio de sesión…",
+    "googleCallbackError": "No se pudo completar el inicio de sesión con Google."
   },
   "onboarding": {
     "title": "Registra tu empresa",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "Cerrar"
 }

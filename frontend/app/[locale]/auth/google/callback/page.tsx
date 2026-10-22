@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { exchangeGoogleOAuthCode } from "@/shared/stores/auth-actions";
@@ -14,6 +15,7 @@ import { exchangeGoogleOAuthCode } from "@/shared/stores/auth-actions";
  */
 export default function GoogleOAuthCallbackPage() {
   const router = useRouter();
+  const t = useTranslations();
   const [failed, setFailed] = React.useState(false);
 
   React.useEffect(() => {
@@ -50,10 +52,10 @@ export default function GoogleOAuthCallbackPage() {
     <main id="main" className="container flex flex-1 items-center justify-center py-12">
       {failed ? (
         <p role="alert" className="text-sm text-destructive">
-          Falha ao concluir o login com Google.
+          {t("auth.googleCallbackError")}
         </p>
       ) : (
-        <p className="text-sm text-muted-foreground">Concluindo autenticação…</p>
+        <p className="text-sm text-muted-foreground">{t("auth.googleCallbackLoading")}</p>
       )}
     </main>
   );

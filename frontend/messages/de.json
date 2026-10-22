@@ -34,7 +34,9 @@
     "logoutLoading": "Abmeldung läuft…",
     "signedInAs": "Angemeldet als",
     "loginOr": "oder",
-    "continueWithGoogle": "Weiter mit Google"
+    "continueWithGoogle": "Weiter mit Google",
+    "googleCallbackLoading": "Anmeldung wird abgeschlossen…",
+    "googleCallbackError": "Google-Anmeldung konnte nicht abgeschlossen werden."
   },
   "onboarding": {
     "title": "Unternehmen registrieren",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "Schließen"
 }

@@ -34,7 +34,9 @@
     "logoutLoading": "Déconnexion…",
     "signedInAs": "Connecté en tant que",
     "loginOr": "ou",
-    "continueWithGoogle": "Continuer avec Google"
+    "continueWithGoogle": "Continuer avec Google",
+    "googleCallbackLoading": "Finalisation de la connexion…",
+    "googleCallbackError": "Impossible de finaliser la connexion avec Google."
   },
   "onboarding": {
     "title": "Enregistrer votre entreprise",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "Fermer"
 }

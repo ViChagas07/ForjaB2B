@@ -34,7 +34,9 @@
     "continueWithGoogle": "Continuar com Google",
     "logout": "Sair",
     "logoutLoading": "Saindo…",
-    "signedInAs": "Conectado como"
+    "signedInAs": "Conectado como",
+    "googleCallbackLoading": "Concluindo autenticação…",
+    "googleCallbackError": "Falha ao concluir o login com Google."
   },
   "onboarding": {
     "title": "Cadastre sua empresa",
@@ -356,7 +358,7 @@
         },
         "translations": {
           "title": "Traduções",
-          "description": "Gerencie as traduções do produto para outros idiomas. O painel de administração permanece em português.",
+          "description": "Descrição",
           "stateAusente": "Ausente",
           "stateMachine": "Automática",
           "stateReviewed": "Revisada",
@@ -370,12 +372,12 @@
           "save": "Salvar",
           "name": "Nome",
           "namePlaceholder": "Nome do produto neste idioma",
-          "description": "Descrição",
           "descriptionPlaceholder": "Descrição do produto neste idioma",
           "attributes": "Atributos",
           "providerNotConfigured": "Provedor de tradução não configurado"
         }
       }
     }
-  }
+  },
+  "closeLabel": "Fechar"
 }

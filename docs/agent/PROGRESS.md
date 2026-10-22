@@ -1508,3 +1508,14 @@ Relatórios idênticos nas duas execuções.
 - Traduzidas **1037 chaves** (catalogo, carrinho, pedido, credito, erros, auth parcial):
   ar 106, de 105, en 116, es 83, fr 105, it 98, ja 106, ko 106, ru 106, zh-CN 106.
 - Checagem: `npx vitest run tests/unit/i18n-parity.test.ts` -> 5 passed.
+
+### Passo 2 — Textos do cliente
+
+- Varredura de `app/[locale]` (sem admin), `features` (sem admin) e `shared`: unicos textos
+  fixos encontrados eram o callback do Google ("Concluindo autenticacao…" / falha) e o
+  `sr-only` "Close" do dialogo.
+- Novas chaves nos 11 dicionarios: `closeLabel`, `auth.googleCallbackLoading`,
+  `auth.googleCallbackError`; componentes passaram a usar `t()`.
+- Novo teste `tests/unit/client-hardcoded-text.test.ts` falha se voltar texto fixo/atributo
+  literal nas telas do cliente (admin excluido).
+- Checagem: typecheck OK, lint OK (warnings `<img>`), `npm run test` -> 87 passed.

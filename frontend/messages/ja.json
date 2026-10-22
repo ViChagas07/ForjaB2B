@@ -34,7 +34,9 @@
     "logoutLoading": "ログアウト中…",
     "signedInAs": "ログイン中：",
     "loginOr": "または",
-    "continueWithGoogle": "Google で続行"
+    "continueWithGoogle": "Google で続行",
+    "googleCallbackLoading": "サインインを完了しています…",
+    "googleCallbackError": "Google でのサインインを完了できませんでした。"
   },
   "onboarding": {
     "title": "会社を登録",
@@ -376,5 +378,6 @@
         }
       }
     }
-  }
+  },
+  "closeLabel": "閉じる"
 }
