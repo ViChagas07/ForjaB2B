@@ -261,14 +261,14 @@ cd backend && import-linter lint --config .import-linter
 
 **Testes:** Unitários existentes passam
 
-### Passo 4 — Ýndice e embeddings ❳ NÃO VALIDADO
+### Passo 4 — Índice e embeddings ⏳ NÃO VALIDADO
 **Pendente:** Docker/Elasticsearch não disponível no ambiente atual
 - Adicionar campos `model` e `attributes_text` ao mapping Elasticsearch
 - Nova versão de índice com alias + reindexação segura
 - Embedding text inclui marca, modelo, atributos preenchidos (sem preço)
 - `content_hash` muda → backfill idempotente
 
-### Passo 5 — Validação real (Docker de pé) ❳ NÃO VALIDADO
+### Passo 5 — Validação real (Docker de pé) ⏳ NÃO VALIDADO
 **Pendente:** Docker Compose não disponível
 - `docker compose --env-file .env.example config --quiet`
 - Testes manuais via API (admin, visitante, comprador)
@@ -332,7 +332,7 @@ cd backend && import-linter lint --config .import-linter
 - `docs/agent/PROGRESS.md`
 
 ### NÃO VALIDADO e riscos
-- **Passos 4-5 (Elasticsearch/Ýndice/Embeddings/Validação Docker):** Não validados — ambiente sem Docker/ES
+- **Passos 4-5 (Elasticsearch/Índice/Embeddings/Validação Docker):** Não validados — ambiente sem Docker/ES
 - **Rate limiting específico por rota:** Herda middleware global, limites customizados não configurados
 - **Auditoria:** Módulo audit vazio — trilha mínima via outbox, mas sem tabela dedicada de auditoria admin
 
@@ -465,7 +465,7 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
 - Testes: **83 passed** (inclui i18n parity)
 
-### Passo 6 — Validação real (Docker de pé) ❳ NÃO VALIDADO visualmente
+### Passo 6 — Validação real (Docker de pé) ⏳ NÃO VALIDADO visualmente
 
 **Ambiente:** Docker/PostgreSQL/Elasticsearch não disponíveis no ambiente de desenvolvimento atual.
 
@@ -663,7 +663,7 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - **Status**: `machine` (não revisado por falante nativo)
 - **Preservação exata**: Números, unidades, códigos (CA, SKU, medidas como `20V`, `850W`, `100L`, `7 1/4`, `15T`, `2cv`) preservados exatamente. Marcas, SKUs, CA não traduzidos.
 - **Teste**: `test_preservacao_de_numeros_unidades_e_codigos` valida tokens numéricos com unidades idênticos entre origem e tradução.
-- **Qualidade**: Ýrabe **não revisado por falante nativo** — documentado em `docs/I18N.md`.
+- **Qualidade**: Árabe **não revisado por falante nativo** — documentado em `docs/I18N.md`.
 
 ### Passo 6 — Validação real + documentação docs/I18N.md + checagens finais ✅
 - Documentação completa em `docs/I18N.md`: idiomas, fluxo stale/reviewed, como adicionar idioma, opções de provedor (sem adotar nenhum), limitações.
@@ -733,7 +733,7 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 ### Passo 1 — Auditoria rápida (somente leitura) ✅
 
 **Mapping atual (versão do índice e alias):**
-- Ýndice: `forja_products` (alias)
+- Índice: `forja_products` (alias)
 - Versão atual: `1` (`elasticsearch_index_version = 1`)
 - Arquivos de schema: `backend/app/modules/search/infrastructure/indices/products.mappings.json` e `products.settings.json`
 - Mapping é `dynamic: strict` com analisadores `pt_text`, `en_text`, `es_text`, `ar_text`
@@ -831,7 +831,7 @@ curl -s -H "Accept-Language: es" "http://localhost:8000/api/v1/search/products?q
 
 curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=%D8%AE%D9%88%D8%B0%D8%A9"
 # 5 resultados, search_mode=lexical, content_locale=ar
-# Nomes em árabe: "خوذة الأمان المحترٝة", "خوذات أمان مزدوجة", etc.
+# Nomes em árabe: "خوذة الأمان المحترفة", "خوذات أمان مزدوجة", etc.
 
 # 5. SKU exato com Accept-Language: ar
 curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=EPI-CAP-001"
@@ -915,7 +915,7 @@ docker compose start elasticsearch
 
 ---
  
-## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÝDA ✅
+## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÍDA ✅
  
 ## Fase 9B-c — Frontend multilíngue (seletor de idioma, textos traduzidos e RTL em árabe)
  
@@ -1005,7 +1005,7 @@ docker compose start elasticsearch
 - `zh-CN` → 中文（简体）
 - `ja` → 日本語
 - `ko` → 한국어
-- `ru` → Руѝѝкий
+- `ru` → Русский
 - `es` → Español
 - `de` → Deutsch
 - `fr` → Français
@@ -1075,7 +1075,7 @@ docker compose start elasticsearch
   - `text-left` → `text-start` em `checkout-view.tsx` (já feito na 9B-c)
   - `ml-1` → `ms-1` em `product-detail.tsx` (já feito na 9B-c)
 - Componentes Radix UI (Select, DropdownMenu, Dialog, Alert) usam posicionamento físico internamente — funcionam com `dir="rtl"` via CSS do Radix
-- Ýcones direcionais (setas, chevrons) espelhados automaticamente pelo Radix em RTL
+- Ícones direcionais (setas, chevrons) espelhados automaticamente pelo Radix em RTL
 - Numerais: ocidentais (1, 2, 3) — decisão mantida
 - **Ocorrências físicas restantes:** 36 em componentes admin (excluídos por requisito) + 20 em shared UI (Radix internos, funcionam com RTL)
  
@@ -1118,7 +1118,7 @@ docker compose start elasticsearch
  
 ---
  
-### Passo 7 — Validação visual (real) ⚠︝ NÃO VALIDADO VISUALMENTE
+### Passo 7 — Validação visual (real) ⚠️ NÃO VALIDADO VISUALMENTE
  
 **Ambiente:** Docker/PostgreSQL/Elasticsearch não disponíveis no ambiente de desenvolvimento atual. Playwright configurado (`frontend/playwright.config.ts`, porta 3010) com testes E2E existentes (`frontend/tests/e2e/smoke.spec.ts`).
  
@@ -1139,7 +1139,7 @@ docker compose start elasticsearch
    |--------|-----|-------|--------------|
    | `pt-BR` | `http://localhost:3100/pt-BR` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em PT, `dir="ltr"`, moeda BRL |
    | `en` | `http://localhost:3100/en` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em EN, `dir="ltr"` |
-   | `ar` | `http://localhost:3100/ar` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em Ýrabe, `dir="rtl"`, `lang="ar"`, fonte Noto Sans Arabic, ícones espelhados, sem texto cortado |
+   | `ar` | `http://localhost:3100/ar` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em Árabe, `dir="rtl"`, `lang="ar"`, fonte Noto Sans Arabic, ícones espelhados, sem texto cortado |
    | `zh-CN` | `http://localhost:3100/zh-CN` | Catálogo, Detalhe, Busca, Carrinho | UI em Chinês, `dir="ltr"`, fonte Noto Sans CJK SC |
  
 4. **Validações específicas RTL (árabe):**
@@ -1288,7 +1288,7 @@ Fase 9B-c **concluída** (exceto validação visual com Docker). Todos os passos
 3. ✅ Telas do cliente (content_locale, fallback visual)
 4. ✅ RTL árabe (propriedades lógicas, fontes, numerais ocidentais)
 5. ✅ Admin "Traduções" (estados, edição manual, marcar revisada, retraduzir oculto)
-6. ⚠︝ Validação real — NÃO VALIDADO visualmente (ambiente sem Docker); testes automatizados verdes
+6. ⚠️ Validação real — NÃO VALIDADO visualmente (ambiente sem Docker); testes automatizados verdes
 7. ✅ Documentação (`docs/I18N.md`, `docs/STATUS.md`) e checagens finais
 
 **Limitações conhecidas:**
@@ -1363,7 +1363,7 @@ Relatórios idênticos nas duas execuções.
 - Validação do manifesto: **55 testes unitários passam** (incluindo regras de publicabilidade)
 - Revertido ao final (nenhuma marcação `owner_verified: true` automática)
 
-### Passo 6 — Ýndice ✅
+### Passo 6 — Índice ✅
 - Reindexação para versão 2 (mapping multilíngue): **41 indexados, 41 esperados, 0 rejeitados, alias trocado**
 - `reconcile`: **checked=50, rejected=0, upserted=0, deleted=0**
 - Contagem índice (41) == produtos publicados vendáveis no PostgreSQL (41) ✅
@@ -1498,7 +1498,7 @@ Relatórios idênticos nas duas execuções.
 ### Passo 0 — Levantamento (2026-10-22)
 
 - 11 idiomas (`frontend/i18n/locales.ts`): pt-BR (Portugues (Brasil)), en (English),
-  zh-CN (中文（简体）), ja (日本語), ko (한국어), ru (Руѝѝкий), es (Español), de (Deutsch),
+  zh-CN (中文（简体）), ja (日本語), ko (한국어), ru (Русский), es (Español), de (Deutsch),
   fr (Français), it (Italiano), ar (العربية). Dicionarios em `frontend/messages/*.json`.
 - `dir`/`lang` vem de `isRtlLocale()` sobre a lista unica `rtlLocales` (`["ar"]`); `lang={locale}`.
   Nao ha he/fa/ur na lista, entao `ar` e o unico RTL.
@@ -1672,14 +1672,14 @@ Relatórios idênticos nas duas execuções.
 - Rebuild da imagem do backend validado com PIX real: sessao `cs_test_...`, webhook
   `async_payment_succeeded` -> `PAID`, pedido `PAID`.
 
-## Prompt 03 � Seguranca, privacidade e endurecimento (2026-10-22)
+## Prompt 03 — Seguranca, privacidade e endurecimento (2026-10-22)
 
-### Passo 1 � CORS
+### Passo 1 — CORS
 - Origens explicitas validadas (sem '*', sem caminho), credenciais e max_age configuraveis; RateLimit-*/Retry-After expostos.
 - Testes: 5 passed (preflight permitido/bloqueado, credenciais, config invalida); Ruff OK.
 - Pendente: validacao curl no Docker (passo 8).
 
-### Passo 2 � Cabecalhos de seguranca
+### Passo 2 — Cabecalhos de seguranca
 - Backend: middleware com nosniff, Referrer-Policy, Permissions-Policy, no-store em rotas sensiveis/autenticadas, HSTS condicional a producao+HTTPS e remocao de Server/X-Powered-By.
 - Frontend: CSP por requisicao com nonce + strict-dynamic, frame-ancestors none, object-src none, base-uri self, connect/img restritos a API; headers em next.config.
 - Testes: 6 backend + 4 CSP frontend; typecheck/lint OK. Validacao visual da CSP fica para o passo 8.
