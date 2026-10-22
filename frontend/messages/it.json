@@ -113,7 +113,8 @@
     "emptyOrder": "L'ordine non può essere vuoto.",
     "invalidOrderState": "L'ordine non accetta questa operazione.",
     "stripeUnavailable": "Il pagamento con carta non è disponibile al momento.",
-    "paymentProvider": "Impossibile avviare il pagamento. Riprova."
+    "paymentProvider": "Impossibile avviare il pagamento. Riprova.",
+    "paymentAmountTooLow": "Importo inferiore al minimo del fornitore (R$ 0,50)."
   },
   "catalog": {
     "title": "Catalogo",
@@ -232,7 +233,8 @@
     "paymentCancelTitle": "Pagamento annullato",
     "paymentCancelDescription": "Nessun addebito è stato completato. Puoi tornare al carrello e riprovare.",
     "backToOrders": "Vedi ordini",
-    "backToCart": "Torna al carrello"
+    "backToCart": "Torna al carrello",
+    "statusPaid": "Pagato"
   },
   "credit": {
     "title": "Credito",

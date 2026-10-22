@@ -113,7 +113,8 @@
     "emptyOrder": "订单不能为空。",
     "invalidOrderState": "订单不接受此操作。",
     "stripeUnavailable": "银行卡支付目前不可用。",
-    "paymentProvider": "无法发起支付，请重试。"
+    "paymentProvider": "无法发起支付，请重试。",
+    "paymentAmountTooLow": "金额低于提供商最低限额（R$ 0.50）。"
   },
   "catalog": {
     "title": "目录",
@@ -232,7 +233,8 @@
     "paymentCancelTitle": "支付已取消",
     "paymentCancelDescription": "未完成任何扣款。您可以返回购物车重试。",
     "backToOrders": "查看订单",
-    "backToCart": "返回购物车"
+    "backToCart": "返回购物车",
+    "statusPaid": "已支付"
   },
   "credit": {
     "title": "信贷",

@@ -113,7 +113,8 @@
     "emptyOrder": "注文を空にすることはできません。",
     "invalidOrderState": "この注文ではこの操作を実行できません。",
     "stripeUnavailable": "現在カード決済は利用できません。",
-    "paymentProvider": "支払いを開始できませんでした。もう一度お試しください。"
+    "paymentProvider": "支払いを開始できませんでした。もう一度お試しください。",
+    "paymentAmountTooLow": "プロバイダーの最低金額（R$ 0.50）未満です。"
   },
   "catalog": {
     "title": "カタログ",
@@ -232,7 +233,8 @@
     "paymentCancelTitle": "支払いがキャンセルされました",
     "paymentCancelDescription": "請求は完了していません。カートに戻って再試行できます。",
     "backToOrders": "注文を見る",
-    "backToCart": "カートに戻る"
+    "backToCart": "カートに戻る",
+    "statusPaid": "支払い済み"
   },
   "credit": {
     "title": "クレジット",

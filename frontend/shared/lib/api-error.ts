@@ -54,6 +54,8 @@ export function errorMessageKey(error: unknown): string {
       return "error.stripeUnavailable";
     case "payment_provider_error":
       return "error.paymentProvider";
+    case "payment_amount_too_low":
+      return "error.paymentAmountTooLow";
     default:
       return "error.generic";
   }

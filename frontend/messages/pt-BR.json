@@ -208,7 +208,8 @@
     "paymentCancelTitle": "Pagamento cancelado",
     "paymentCancelDescription": "Nenhuma cobrança foi concluída. Você pode voltar ao carrinho e tentar novamente.",
     "backToOrders": "Ver pedidos",
-    "backToCart": "Voltar ao carrinho"
+    "backToCart": "Voltar ao carrinho",
+    "statusPaid": "Pago"
   },
   "credit": {
     "title": "Crédito",
@@ -248,7 +249,8 @@
     "invalidOrderState": "O pedido não aceita esta operação.",
     "generic": "Algo deu errado. Tente novamente.",
     "stripeUnavailable": "Pagamento com cartão indisponível no momento.",
-    "paymentProvider": "Falha ao iniciar o pagamento. Tente novamente."
+    "paymentProvider": "Falha ao iniciar o pagamento. Tente novamente.",
+    "paymentAmountTooLow": "Valor abaixo do mínimo aceito pelo provedor (R$ 0,50)."
   },
   "admin": {
     "catalog": {

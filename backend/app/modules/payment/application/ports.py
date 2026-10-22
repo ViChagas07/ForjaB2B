@@ -111,6 +111,24 @@ class PaymentRepository(Protocol):
     ) -> PaymentResult:
         """Aplica um evento de webhook (idempotente, com maquina de estados)."""
 
+    async def list_pending_stripe(
+        self, company_id: uuid.UUID, limit: int
+    ) -> list[tuple[uuid.UUID, str]]:
+        """Lista pagamentos Stripe PENDING (id, provider_reference) do tenant."""
+
+    async def refund_payment(self, company_id: uuid.UUID, payment_id: uuid.UUID) -> PaymentView:
+        """Marca um pagamento PAID como REFUNDED (com lock e validacao de estado)."""
+
+
+class PaymentRefundGateway(Protocol):
+    """Operacoes do provedor necessarias para estorno e conciliacao."""
+
+    async def refund(self, *, provider_reference: str) -> None:
+        """Estorna integralmente a cobranca no provedor."""
+
+    async def retrieve_status(self, *, provider_reference: str) -> str:
+        """Retorna o status remoto da sessao (paid/unpaid/expired/...)."""
+
 
 class PaymentGateway(Protocol):
     """Porta do provedor de pagamento (Fake/local ou Stripe Checkout)."""

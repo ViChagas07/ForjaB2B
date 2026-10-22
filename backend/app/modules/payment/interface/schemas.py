@@ -67,6 +67,16 @@ class StripeWebhookResponse(BaseModel):
     outcome: str | None = None
 
 
+class StripeReconcileResponse(BaseModel):
+    """Resumo da conciliacao de sessoes Stripe PENDING."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    checked: int
+    applied: int
+    skipped: int
+
+
 class WebhookEventRequest(BaseModel):
     """Evento do provedor de pagamento (payload assinado por HMAC)."""
 

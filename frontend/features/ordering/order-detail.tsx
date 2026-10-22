@@ -24,6 +24,8 @@ function statusLabelKey(status: string): string {
       return "ordering.statusReceived";
     case "CREDIT_REVIEW":
       return "ordering.statusCreditReview";
+    case "PAID":
+      return "ordering.statusPaid";
     case "INVOICED":
       return "ordering.statusInvoiced";
     case "IN_TRANSIT":

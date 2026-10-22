@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -20,10 +20,12 @@ from app.modules.payment.application.errors import (
     OrderNotFoundError,
     OrderNotPayableError,
     PaymentNotFoundError,
+    PaymentNotRefundableError,
 )
 from app.modules.payment.application.ports import (
     GatewayInstruction,
     PaymentGateway,
+    PaymentRefundGateway,
     PaymentRepository,
     PaymentResult,
     PaymentView,
@@ -141,3 +143,71 @@ class GetPayment:
         if payment is None:
             raise PaymentNotFoundError()
         return payment
+
+
+class RefundPayment:
+    """Estorna integralmente um pagamento Stripe PAID."""
+
+    def __init__(self, *, repository: PaymentRepository, gateway: PaymentRefundGateway) -> None:
+        self._repository = repository
+        self._gateway = gateway
+
+    async def refund(self, company_id: uuid.UUID, payment_id: uuid.UUID) -> PaymentView:
+        payment = await self._repository.get_payment(company_id, payment_id)
+        if payment is None:
+            raise PaymentNotFoundError()
+        if payment.status != PaymentStatus.PAID.value or payment.provider != "STRIPE":
+            raise PaymentNotRefundableError()
+
+        await self._gateway.refund(provider_reference=payment.provider_reference)
+        return await self._repository.refund_payment(company_id, payment_id)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ReconcileReport:
+    """Resumo da conciliacao de sessoes Stripe PENDING."""
+
+    checked: int
+    applied: int
+    skipped: int
+
+
+class ReconcileStripePayments:
+    """Reconcilia pagamentos Stripe PENDING consultando a sessao no provedor.
+
+    Cobre webhooks perdidos: se a sessao remota esta paga, confirma; se expirou,
+    cancela. Usa o mesmo ``ConfirmPayment`` (idempotencia e transicoes atomicas).
+    """
+
+    def __init__(self, *, repository: PaymentRepository, gateway: PaymentRefundGateway) -> None:
+        self._repository = repository
+        self._gateway = gateway
+        self._confirm = ConfirmPayment(repository=repository)
+
+    async def run(self, company_id: uuid.UUID, limit: int = 50) -> ReconcileReport:
+        pending = await self._repository.list_pending_stripe(company_id, limit)
+        applied = 0
+        skipped = 0
+        for _payment_id, provider_reference in pending:
+            remote = await self._gateway.retrieve_status(provider_reference=provider_reference)
+            if remote == "paid":
+                target = PaymentStatus.PAID
+            elif remote == "expired":
+                target = PaymentStatus.CANCELLED
+            else:
+                skipped += 1
+                continue
+
+            result = await self._confirm.confirm(
+                company_id=company_id,
+                provider_reference=provider_reference,
+                provider="STRIPE",
+                event_id=f"reconcile:{provider_reference}:{target.value}",
+                target_status=target,
+            )
+            if result.outcome == "APPLIED":
+                applied += 1
+            else:
+                skipped += 1
+
+        return ReconcileReport(checked=len(pending), applied=applied, skipped=skipped)

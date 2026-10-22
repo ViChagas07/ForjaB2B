@@ -12,6 +12,7 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const ORDER_STATUSES = [
   "RECEIVED",
   "CREDIT_REVIEW",
+  "PAID",
   "INVOICED",
   "IN_TRANSIT",
   "DELIVERED",

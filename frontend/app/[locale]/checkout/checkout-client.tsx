@@ -44,12 +44,13 @@ export function CheckoutClient() {
       },
       {
         onSuccess: (order) => {
-          if (paymentMethod !== "CARD") {
+          if (paymentMethod === "BOLETO") {
+            // Boleto faturado: fatura/credito sao tratados no fluxo do pedido.
             router.push(`/orders/${order.id}`);
             router.refresh();
             return;
           }
-          // Cartao: cria a Checkout Session e envia o navegador ao Stripe.
+          // Cartao/PIX: cria a sessao no Stripe e envia o navegador ao checkout.
           initiatePaymentMutation.mutate(
             {
               order_id: order.id,

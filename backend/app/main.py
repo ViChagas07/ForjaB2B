@@ -115,7 +115,13 @@ from app.modules.notification.application.notification import ListNotifications,
 from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.infrastructure.repository import SqlAlchemyOrderingRepository
-from app.modules.payment.application.payment import ConfirmPayment, GetPayment, InitiatePayment
+from app.modules.payment.application.payment import (
+    ConfirmPayment,
+    GetPayment,
+    InitiatePayment,
+    ReconcileStripePayments,
+    RefundPayment,
+)
 from app.modules.payment.infrastructure.gateway import (
     FakePaymentGateway,
     PaymentGatewayRouter,
@@ -441,13 +447,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if stripe_api_key is not None
         else None
     )
+    payment_gateway = PaymentGatewayRouter(fake=FakePaymentGateway(), stripe=stripe_gateway)
     app.state.payment_initiate = InitiatePayment(
         repository=payment_repository,
-        gateway=PaymentGatewayRouter(fake=FakePaymentGateway(), stripe=stripe_gateway),
+        gateway=payment_gateway,
         pix_discount_rate=settings.pix_discount_rate,
     )
     app.state.payment_confirm = ConfirmPayment(repository=payment_repository)
     app.state.payment_get = GetPayment(repository=payment_repository)
+    app.state.payment_refund = RefundPayment(repository=payment_repository, gateway=payment_gateway)
+    app.state.payment_reconcile = ReconcileStripePayments(
+        repository=payment_repository, gateway=payment_gateway
+    )
 
     # Composicao do contexto de notificacao (administracao: consulta/reenvio).
     notification_repository = SqlAlchemyNotificationRepository(app.state.uow_factory)

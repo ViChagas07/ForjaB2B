@@ -113,7 +113,8 @@
     "emptyOrder": "Заказ не может быть пустым.",
     "invalidOrderState": "Заказ не поддерживает эту операцию.",
     "stripeUnavailable": "Оплата картой сейчас недоступна.",
-    "paymentProvider": "Не удалось начать платеж. Попробуйте снова."
+    "paymentProvider": "Не удалось начать платеж. Попробуйте снова.",
+    "paymentAmountTooLow": "Сумма ниже минимума провайдера (R$ 0,50)."
   },
   "catalog": {
     "title": "Каталог",
@@ -232,7 +233,8 @@
     "paymentCancelTitle": "Платеж отменен",
     "paymentCancelDescription": "Платеж не был завершен. Вернитесь в корзину и попробуйте снова.",
     "backToOrders": "Мои заказы",
-    "backToCart": "Вернуться в корзину"
+    "backToCart": "Вернуться в корзину",
+    "statusPaid": "Оплачен"
   },
   "credit": {
     "title": "Кредит",

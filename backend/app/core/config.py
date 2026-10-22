@@ -17,12 +17,43 @@ from __future__ import annotations
 from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "staging", "production"]
 LogFormat = Literal["json", "console"]
+
+_ASYNC_POSTGRES_SCHEME = "postgresql+asyncpg"
+_LIBPQ_POSTGRES_SCHEMES = frozenset({"postgres", "postgresql"})
+
+
+def normalize_async_database_url(url: str) -> str:
+    """Normaliza uma URL PostgreSQL para o driver asyncpg.
+
+    Provedores gerenciados (Render, Heroku, etc.) costumam injetar a URL no
+    formato libpq (``postgresql://``), que o SQLAlchemy resolve para o driver
+    sincrono psycopg2. Como a aplicacao usa ``create_async_engine``, o boot
+    falharia com ``ModuleNotFoundError: No module named 'psycopg2'``. A URL e
+    reescrita para ``postgresql+asyncpg://``.
+
+    O parametro libpq ``sslmode`` tambem e traduzido para ``ssl``, que e o
+    nome aceito pelo asyncpg (o SQLAlchemy repassa os query params ao driver).
+    URLs com outro driver (ou nao PostgreSQL) sao devolvidas sem alteracao.
+    """
+    parts = urlsplit(url)
+    scheme = parts.scheme.lower()
+    if scheme in _LIBPQ_POSTGRES_SCHEMES:
+        scheme = _ASYNC_POSTGRES_SCHEME
+    if scheme != _ASYNC_POSTGRES_SCHEME:
+        return url
+
+    query = [
+        ("ssl" if key == "sslmode" else key, value)
+        for key, value in parse_qsl(parts.query, keep_blank_values=True)
+    ]
+    return urlunsplit((scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 class Settings(BaseSettings):
@@ -251,6 +282,19 @@ class Settings(BaseSettings):
         if isinstance(value, str) and value.strip() == "":
             return None
         return value
+
+    @field_validator("database_url", "database_admin_url", mode="after")
+    @classmethod
+    def _normalize_database_urls(cls, value: PostgresDsn | None) -> PostgresDsn | None:
+        """Garante o driver asyncpg mesmo quando o provedor usa URL libpq.
+
+        Render injeta ``postgresql://...``; sem esta normalizacao o
+        ``create_async_engine`` tentaria importar psycopg2 e o processo
+        morreria no boot.
+        """
+        if value is None:
+            return None
+        return PostgresDsn(normalize_async_database_url(str(value)))
 
     @property
     def is_production(self) -> bool:

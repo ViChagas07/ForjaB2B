@@ -29,6 +29,7 @@ from typing import cast
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
+from app.core.config import normalize_async_database_url
 from app.domain.i18n import TranslationStatus, product_source_hash
 from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 
@@ -285,7 +286,7 @@ async def seed_database(
     usuarios NAO sao criados (somente empresas, regras e catalogo).
     """
     password_hash = Argon2PasswordHasher().hash(demo_user_password) if demo_user_password else None
-    engine = create_async_engine(admin_url)
+    engine = create_async_engine(normalize_async_database_url(admin_url))
     try:
         async with engine.begin() as conn:
             catalog, translations = await _seed_global_catalog(conn)

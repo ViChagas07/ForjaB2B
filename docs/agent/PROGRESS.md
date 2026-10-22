@@ -1651,3 +1651,23 @@ Relatórios idênticos nas duas execuções.
 - **Pendente de seguranca**: a `sk_test` foi exposta em conversa; rotacionar no Stripe e
   atualizar o Render. O webhook real exige o `whsec_...` do endpoint cadastrado.
 - PIX/Boleto seguem simulados; sem estorno/conciliacao.
+
+### Fechamento das pendencias do Stripe (2026-10-22)
+
+- **Pedido pago**: `OrderStatus.PAID` + migration 0020; `ConfirmPayment` move
+  `RECEIVED`/`CREDIT_REVIEW` -> `PAID` para cartao/PIX (boleto faturado fica `INVOICED`).
+  Frontend: `PAID` nos contratos, rotulo e chave `ordering.statusPaid` nos 11 idiomas.
+- **PIX real**: Stripe Checkout aceita `pix` quando configurado; sem Stripe, PIX continua
+  no gateway fake. Frontend inicia pagamento para CARD e PIX e redireciona quando ha
+  `checkout_url`; BOLETO segue o fluxo interno de fatura/credito.
+- **Estorno**: `POST /api/v1/payments/{id}/refund` (ADMIN) -> Stripe Refund
+  (session -> payment_intent) e status `REFUNDED`.
+- **Conciliacao**: `POST /api/v1/payments/stripe/reconcile` (ADMIN, por empresa) consulta
+  sessoes PENDING, confirma pagas e cancela expiradas (webhooks perdidos).
+- **Valor minimo**: R$ 0,50 validado antes de criar a sessao (`422 payment_amount_too_low`).
+- **Migration 0020**: downgrade desabilita RLS temporariamente para normalizar `PAID`
+  antes de recriar a constraint antiga (roundtrip verde).
+- Testes: unit+arch 440; payment API 12; frontend 102; Playwright 6. Integracao completa
+  com 251 passed e falhas isoladas de ES por timeout do Testcontainers (ambiente).
+- Rebuild da imagem do backend validado com PIX real: sessao `cs_test_...`, webhook
+  `async_payment_succeeded` -> `PAID`, pedido `PAID`.

@@ -113,7 +113,8 @@
     "emptyOrder": "The order cannot be empty.",
     "invalidOrderState": "The order does not accept this operation.",
     "stripeUnavailable": "Card payment is currently unavailable.",
-    "paymentProvider": "Could not start the payment. Try again."
+    "paymentProvider": "Could not start the payment. Try again.",
+    "paymentAmountTooLow": "Amount below the provider minimum (R$ 0.50)."
   },
   "catalog": {
     "title": "Catalog",
@@ -232,7 +233,8 @@
     "paymentCancelTitle": "Payment cancelled",
     "paymentCancelDescription": "No charge was completed. You can return to the cart and try again.",
     "backToOrders": "View orders",
-    "backToCart": "Back to cart"
+    "backToCart": "Back to cart",
+    "statusPaid": "Paid"
   },
   "credit": {
     "title": "Credit",

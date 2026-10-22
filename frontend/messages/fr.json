@@ -113,7 +113,8 @@
     "emptyOrder": "La commande ne peut pas être vide.",
     "invalidOrderState": "La commande n'accepte pas cette opération.",
     "stripeUnavailable": "Le paiement par carte est indisponible pour le moment.",
-    "paymentProvider": "Impossible de démarrer le paiement. Réessayez."
+    "paymentProvider": "Impossible de démarrer le paiement. Réessayez.",
+    "paymentAmountTooLow": "Montant inférieur au minimum du fournisseur (R$ 0,50)."
   },
   "catalog": {
     "title": "Catalogue",
@@ -232,7 +233,8 @@
     "paymentCancelTitle": "Paiement annulé",
     "paymentCancelDescription": "Aucun paiement n'a été effectué. Vous pouvez revenir au panier et réessayer.",
     "backToOrders": "Voir les commandes",
-    "backToCart": "Retour au panier"
+    "backToCart": "Retour au panier",
+    "statusPaid": "Payé"
   },
   "credit": {
     "title": "Crédit",

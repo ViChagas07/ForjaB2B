@@ -95,8 +95,8 @@
 5. **Idempotência no corpo** (`idempotency_key`), não no header `Idempotency-Key`.
 6. **Embeddings desligados**; `hybrid` não é padrão; fallback PG só `pt-BR`.
 7. **Traduções não revisadas por nativos**; árabe é demonstração.
-8. **Pagamento**: PIX/Boleto simulados; cartão via Stripe Checkout real quando
-   `STRIPE_SECRET_KEY` está configurada.
+8. **Pagamento**: cartão e PIX via Stripe Checkout quando configurado; Boleto faturado
+   continua interno (crédito), sem usar o Boleto do Stripe.
 9. **Deploy e carga não executados**; sem URL pública nem números de produção.
 10. **Licença ausente**; todos os direitos reservados por padrão.
 11. **3 produtos do seed** com descrição nula (`EPI-LUV-002`, `EPI-RES-003`,
@@ -126,8 +126,17 @@
 - Dependência `stripe==16.0.0`.
 - `StripeCheckoutGateway` cria **Checkout Session hospedada** (`mode=payment`, cartão,
   `unit_amount` em centavos, moeda do pedido, `metadata` com `order_id`/`company_id`).
-- `PaymentGatewayRouter`: cartão usa Stripe quando `STRIPE_SECRET_KEY` está configurada;
-  PIX/Boleto continuam no gateway fake. Cartão sem Stripe → `503 stripe_not_configured`.
+- `PaymentGatewayRouter`: cartão e PIX usam Stripe quando `STRIPE_SECRET_KEY` está
+  configurada; sem Stripe, o cartão responde `503 stripe_not_configured` e o PIX usa o
+  gateway fake local. Boleto (faturado) continua no fluxo interno de fatura/crédito.
+- Pedido passa de `RECEIVED`/`CREDIT_REVIEW` para **`PAID`** quando o pagamento de
+  cartão/PIX é confirmado (webhook ou conciliação). Boleto faturado permanece `INVOICED`.
+  Migration `0020` adiciona `PAID` à constraint de status do pedido.
+- `POST /api/v1/payments/{id}/refund` (ADMIN): estorna no Stripe (sessão →
+  PaymentIntent → Refund) e marca o pagamento como `REFUNDED`.
+- `POST /api/v1/payments/stripe/reconcile` (ADMIN, por empresa): consulta sessões
+  Stripe `PENDING`, confirma as pagas e cancela as expiradas (webhooks perdidos).
+- Valor mínimo do Stripe (R$ 0,50) validado no backend (`422 payment_amount_too_low`).
 - `POST /api/v1/payments` responde `checkout_url` (novo campo) para o redirect.
 - `GET /api/v1/payments/methods` (público) informa `{methods, stripe_enabled}`.
 - `POST /api/v1/payments/stripe/webhook`: valida `Stripe-Signature` sobre o **corpo bruto**
@@ -152,11 +161,15 @@
 - Sessão real criada com o `sk_test` informado:
   `cs_test_a190xjabWyoEeRZnaJV5gKHiHiaPQn9TamxPn9plTNmxKSCxGpb9sDIcdy`
   (valor `32.90 BRL`, provider `STRIPE`, `checkout_url` do Stripe).
-- Webhook assinado localmente com `whsec_v3_local_test`: `200 {"received":true,"outcome":"APPLIED"}`
+- Webhook assinado com o `whsec` configurado: `200 {"received":true,"outcome":"APPLIED"}`
   e pagamento `PAID` com `paid_at` preenchido.
+- PIX real via Stripe: sessão `cs_test_...` criada, webhook `async_payment_succeeded`
+  aplicado, pagamento `PAID` e pedido transitado para **`PAID`**.
 - Playwright: checkout com cartão visível, selecionado e redirect real para
   `checkout.stripe.com` (`tests/e2e/stripe-checkout.spec.ts`); captura em
   `docs/validation/v4/pt-BR-checkout-card.jpg`.
+- Estorno: `POST /payments/{id}/refund` (ADMIN) marca `REFUNDED`; conciliação:
+  `POST /payments/stripe/reconcile` confirma sessoes pagas e cancela expiradas.
 - Visual V3 reexecutado **sem** `--disable-web-security`, comprovando CORS funcionando
   (`6 passed`).
 - Dados de teste revertidos (pedidos, pagamentos, eventos, notificações e carrinho).
@@ -165,8 +178,8 @@
 
 | Verificação | Resultado |
 |-------------|-----------|
-| Backend unit + architecture | ✅ 434 passed (430 unit + 4 arch) |
-| Backend integração | ✅ 255 passed, 1 skipped |
+| Backend unit + architecture | ✅ 440 passed (436 unit + 4 arch) |
+| Backend integração | ⚠️ 251 passed, 1 skipped; 5 falhas isoladas do ES (`ConnectionTimeout` no Testcontainers, ambiente) |
 | `ruff` / `mypy --strict` | ✅ / ✅ 286 arquivos |
 | Frontend typecheck/lint/test | ✅ / ✅ / 102 passed |
 | Playwright (visual + Stripe) | ✅ 6 passed |
@@ -182,7 +195,10 @@
 ### Segurança / pendências
 
 - A `sk_test` foi exposta em conversa; **rotacionar** no dashboard e atualizar o Render.
-- PIX/Boleto continuam simulados; apenas cartão usa adquirente real.
-- Sem reembolso/estorno automático, sem conciliação e sem teste com cartão real.
+- **PIX e cartão** usam Stripe Checkout quando configurado; Boleto é faturado interno
+  (crédito), não o Boleto avulso do Stripe.
+- Estorno disponível via endpoint admin; conciliação de sessões PENDING via endpoint admin.
+- Disputas/chargebacks abertos no Stripe Dashboard ainda não são refletidos localmente.
+- Sem teste com cartão real (somente test mode) nem conciliação financeira automática.
 - Produção exige `FRONTEND_BASE_URL=https://forja-b2b.vercel.app` e
   `CORS_ORIGINS=https://forja-b2b.vercel.app`.

@@ -242,6 +242,10 @@ async def test_webhook_confirmacao_idempotente_e_fora_de_ordem(
     assert paid.json()["outcome"] == "APPLIED"
     assert paid.json()["status"] == "PAID"
 
+    order_after = await payment_client.get(f"/api/v1/orders/{order['id']}")
+    assert order_after.status_code == 200
+    assert order_after.json()["status"] == "PAID"
+
     duplicate = await _post_webhook(
         payment_client,
         provider_reference=payment["provider_reference"],
@@ -325,6 +329,18 @@ async def test_webhook_sem_assinatura_401(payment_client: httpx.AsyncClient) -> 
         headers={"content-type": "application/json"},
     )
     assert response.status_code == 401
+
+
+async def test_refund_e_reconcile_exigem_admin(payment_client: httpx.AsyncClient) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-pix-role")
+    payment = await _initiate(payment_client, order["id"], "PIX", "pay-pix-role-init")
+
+    refund = await payment_client.post(f"/api/v1/payments/{payment['id']}/refund")
+    assert refund.status_code == 403
+    assert refund.json()["type"] == "urn:forja:problem:payment_forbidden"
+
+    reconcile = await payment_client.post("/api/v1/payments/stripe/reconcile")
+    assert reconcile.status_code == 403
 
 
 async def test_webhook_concorrente_idempotente(payment_client: httpx.AsyncClient) -> None:

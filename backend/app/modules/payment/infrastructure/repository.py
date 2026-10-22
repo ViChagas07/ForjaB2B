@@ -26,6 +26,7 @@ from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.payment.application.errors import (
     IdempotencyConflictError,
     PaymentNotFoundError,
+    PaymentNotRefundableError,
 )
 from app.modules.payment.application.ports import (
     InvoiceForPayment,
@@ -79,6 +80,23 @@ _UPDATE_PAYMENT_STATUS = text(
 _UPDATE_INVOICE_PAID = text(
     "UPDATE invoices SET status = 'PAID', paid_at = :paid_at, updated_at = now() "
     "WHERE id = :invoice_id AND company_id = :company_id"
+)
+_UPDATE_ORDER_PAID = text(
+    "UPDATE orders SET status = 'PAID', updated_at = now() "
+    "WHERE id = :order_id AND company_id = :company_id "
+    "AND status IN ('RECEIVED', 'CREDIT_REVIEW')"
+)
+_SELECT_PENDING_STRIPE = text(
+    "SELECT id, provider_reference FROM payments "
+    "WHERE company_id = :company_id AND provider = 'STRIPE' AND status = 'PENDING' "
+    "ORDER BY created_at LIMIT :limit"
+)
+_LOCK_PAYMENT_BY_ID = text(
+    "SELECT id, status FROM payments WHERE id = :payment_id AND company_id = :company_id FOR UPDATE"
+)
+_UPDATE_PAYMENT_REFUNDED = text(
+    "UPDATE payments SET status = 'REFUNDED', updated_at = now() "
+    "WHERE id = :payment_id AND company_id = :company_id"
 )
 _INSERT_CREDIT = text(
     "INSERT INTO credit_entries (credit_account_id, company_id, entry_type, amount, "
@@ -306,6 +324,13 @@ class SqlAlchemyPaymentRepository:
                 },
             )
 
+            # Pedido pago por cartao/PIX passa para PAID (boleto faturado continua INVOICED).
+            if target_status == PaymentStatus.PAID and payment.method != PaymentMethod.BOLETO.value:
+                await uow.session.execute(
+                    _UPDATE_ORDER_PAID,
+                    {"order_id": payment.order_id, "company_id": company_id},
+                )
+
             # Boleto pago quita a fatura e reduz a exposicao no ledger (PAYMENT).
             if payment.method == PaymentMethod.BOLETO.value and target_status == PaymentStatus.PAID:
                 await uow.session.execute(
@@ -353,6 +378,43 @@ class SqlAlchemyPaymentRepository:
         if result is None:  # pragma: no cover - pagamento acabou de ser atualizado
             raise PaymentNotFoundError()
         return PaymentResult(payment=result, outcome=PaymentEventOutcome.APPLIED.value)
+
+    async def list_pending_stripe(
+        self, company_id: uuid.UUID, limit: int
+    ) -> list[tuple[uuid.UUID, str]]:
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            rows = (
+                await uow.session.execute(
+                    _SELECT_PENDING_STRIPE, {"company_id": company_id, "limit": limit}
+                )
+            ).all()
+            await uow.commit()
+        return [(row.id, row.provider_reference) for row in rows]
+
+    async def refund_payment(self, company_id: uuid.UUID, payment_id: uuid.UUID) -> PaymentView:
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            row = (
+                await uow.session.execute(
+                    _LOCK_PAYMENT_BY_ID,
+                    {"payment_id": payment_id, "company_id": company_id},
+                )
+            ).first()
+            if row is None:
+                raise PaymentNotFoundError()
+            if row.status != PaymentStatus.PAID.value:
+                raise PaymentNotRefundableError()
+            await uow.session.execute(
+                _UPDATE_PAYMENT_REFUNDED,
+                {"payment_id": payment_id, "company_id": company_id},
+            )
+            await uow.commit()
+
+        result = await self.get_payment(company_id, payment_id)
+        if result is None:  # pragma: no cover - pagamento acabou de ser atualizado
+            raise PaymentNotFoundError()
+        return result
 
     async def _find_by_key(self, company_id: uuid.UUID, idempotency_key: str) -> uuid.UUID | None:
         tenant = TenantContext(company_id=company_id)

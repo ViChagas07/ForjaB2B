@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # nao enxergaria as tabelas da Fase 1.
 import app.infrastructure.db.models  # noqa: F401
 from alembic import context
+from app.core.config import normalize_async_database_url
 from app.infrastructure.db.base import Base
 
 config = context.config
@@ -48,7 +49,7 @@ class MigrationCredentialError(RuntimeError):
 def _migration_url() -> str:
     url = os.environ.get("DATABASE_ADMIN_URL")
     if url:
-        return url
+        return normalize_async_database_url(url)
     raise MigrationCredentialError(
         "DATABASE_ADMIN_URL ausente: migrations exigem a role administrativa "
         "restrita (forja_admin). O runtime (DATABASE_URL, forja_app) nao "

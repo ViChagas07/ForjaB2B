@@ -75,3 +75,27 @@ class PaymentProviderError(AppError):
     status_code = 502
     title = "Bad Gateway"
     code = "payment_provider_error"
+
+
+class PaymentAmountTooLowError(AppError):
+    """Valor abaixo do minimo aceito pelo provedor (ex.: BRL 0,50 no Stripe)."""
+
+    status_code = 422
+    title = "Unprocessable Entity"
+    code = "payment_amount_too_low"
+
+
+class PaymentNotRefundableError(AppError):
+    """Pagamento nao esta em estado estornavel (precisa estar PAID)."""
+
+    status_code = 409
+    title = "Conflict"
+    code = "payment_not_refundable"
+
+
+class PaymentForbiddenError(AppError):
+    """Operacao administrativa de pagamento sem papel ADMIN."""
+
+    status_code = 403
+    title = "Forbidden"
+    code = "payment_forbidden"

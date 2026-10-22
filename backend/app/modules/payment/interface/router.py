@@ -19,10 +19,17 @@ from app.core.metrics import increment_payment_confirmed
 from app.interface.deps import LocaleInfo, get_current_auth, get_locale_info
 from app.modules.payment.application.errors import (
     InvalidWebhookEventError,
+    PaymentForbiddenError,
     StripeWebhookNotConfiguredError,
     WebhookSignatureError,
 )
-from app.modules.payment.application.payment import ConfirmPayment, GetPayment, InitiatePayment
+from app.modules.payment.application.payment import (
+    ConfirmPayment,
+    GetPayment,
+    InitiatePayment,
+    ReconcileStripePayments,
+    RefundPayment,
+)
 from app.modules.payment.application.ports import PaymentResult, PaymentView
 from app.modules.payment.application.stripe_events import map_stripe_checkout_event
 from app.modules.payment.domain.enums import PaymentStatus
@@ -30,6 +37,7 @@ from app.modules.payment.interface.schemas import (
     InitiatePaymentRequest,
     PaymentMethodsResponse,
     PaymentResponse,
+    StripeReconcileResponse,
     StripeWebhookResponse,
     WebhookEventRequest,
     WebhookEventType,
@@ -55,6 +63,19 @@ def _confirm(request: Request) -> ConfirmPayment:
 
 def _get(request: Request) -> GetPayment:
     return cast(GetPayment, request.app.state.payment_get)
+
+
+def _refund(request: Request) -> RefundPayment:
+    return cast(RefundPayment, request.app.state.payment_refund)
+
+
+def _reconcile(request: Request) -> ReconcileStripePayments:
+    return cast(ReconcileStripePayments, request.app.state.payment_reconcile)
+
+
+def _require_admin(auth: AuthContext) -> None:
+    if auth.role != "ADMIN":
+        raise PaymentForbiddenError()
 
 
 def _to_response(view: PaymentView) -> PaymentResponse:
@@ -108,6 +129,39 @@ async def initiate_payment(
         idempotency_key=payload.idempotency_key,
         locale=locale_info.ui_locale,
     )
+    return _to_response(view)
+
+
+@router.post(
+    "/stripe/reconcile",
+    response_model=StripeReconcileResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def reconcile_stripe_payments(
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[ReconcileStripePayments, Depends(_reconcile)],
+) -> StripeReconcileResponse:
+    """Concilia sessoes Stripe PENDING do tenant (webhooks perdidos)."""
+    _require_admin(auth)
+    report = await use_case.run(auth.company_id)
+    return StripeReconcileResponse(
+        checked=report.checked, applied=report.applied, skipped=report.skipped
+    )
+
+
+@router.post(
+    "/{payment_id}/refund",
+    response_model=PaymentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def refund_payment(
+    payment_id: uuid.UUID,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[RefundPayment, Depends(_refund)],
+) -> PaymentResponse:
+    """Estorna integralmente um pagamento Stripe PAID (somente ADMIN)."""
+    _require_admin(auth)
+    view = await use_case.refund(auth.company_id, payment_id)
     return _to_response(view)
 
 
