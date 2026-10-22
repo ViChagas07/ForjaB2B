@@ -1,9 +1,10 @@
 # ADR-0004: Busca híbrida (Elasticsearch + pgvector) com fusão por RRF
 
-- **Status:** aceito; implementado e **validado localmente em 2026-10-10** (Fase 7). Em produção,
-  o padrão do repositório é **lexical + fallback PostgreSQL**; o modo **`hybrid`** foi comprovado
-  localmente com o modelo de embeddings habilitado (ver `docs/STATUS.md`).
-- **Data:** 2026-10-10
+- **Status:** aceito; **semântica opcional, desligada por padrão**. O padrão do repositório é
+  **lexical + fallback PostgreSQL** (`EMBEDDINGS_ENABLED=false`). O modo **`hybrid`** foi
+  comprovado localmente na Fase 7 (2026-10-10), com o modelo habilitado, mas **não** é o
+  estado de produção nem foi validado em provedor/ambiente gerenciado.
+- **Data:** 2026-10-10 · **Revisão de estado:** 2026-10-22
 
 ## Contexto
 
@@ -46,6 +47,32 @@ busca lexical (SKU no topo, acento, autocomplete, filtros) e **fallback real** c
 (`postgres_fallback`); com o modelo local habilitado, o `search_mode` foi **`hybrid`** em consultas
 reais (ES + pgvector + RRF) e degradou para `lexical` sem o provedor. Medições (modelo 448 MB,
 +172 MB de imagem, ~7 ms/embed) em `docs/search/RUNBOOK.md` §9.
+
+## Estado real (2026-10-22)
+
+- `EMBEDDINGS_ENABLED=false` no `.env.example` e no padrão de `Settings`. Com isso, o
+  caminho semântico não é construído e a resposta é `lexical` ou `postgres_fallback`.
+- O Elasticsearch está na versão 9.5.5 e o cliente Python em 9.5.1 (major 9). O índice
+  versionado atual do mapping é **v2** (`ELASTICSEARCH_INDEX_VERSION=2`).
+- A busca multilíngue (Fase 9B-b) consulta campos `en`/`es`/`ar` além do `pt-BR`. O
+  fallback PostgreSQL continua textual em **português** — é uma limitação conhecida.
+- Timeout de busca de 2 s, sem retries; circuit breaker de 3 falhas/15 s (ADR-0012).
+- A validação de fallback com o Elasticsearch parado foi executada na V2
+  (ver `docs/agent/PROGRESS.md`): `search_mode=postgres_fallback`, recuperação após
+  `start` + `reconcile`, latências registradas. Não foi reexecutada em 2026-10-22.
+- **Não validado:** `hybrid` no estado padrão, em produção, com múltiplas réplicas ou com
+  catálogo grande. Não há teste de carga.
+
+## Em produção real, seria diferente
+
+- O modo semântico só entraria com avaliação de qualidade (precision/recall) e custo
+  (memória do modelo, CPU, latência) contra o corpus real; não por ser “mais moderno”.
+- O circuit breaker seria compartilhado entre réplicas, com backoff e métricas por tenant.
+- O fallback PostgreSQL seria avaliado para os idiomas de conteúdo (`en`/`es`/`ar`) ou
+  substituído por uma busca lexical degradada no próprio ES secundário.
+- Haveria SLOs, alertas por `search_mode` e teste de carga; hoje só há medições pontuais.
+- O índice teria ILM/rollover, snapshots e réplicas; o alias continuaria sendo o ponto de
+  troca atômica.
 
 ## Alternativas consideradas
 
