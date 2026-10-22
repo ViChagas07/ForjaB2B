@@ -33,7 +33,7 @@
   backup automatizado** (`make db-backup` é documentado, mas o target não existe) e **não há
   limpeza de índices antigos do Elasticsearch**.
 - No snapshot, `origin/main` estava **15 commits atrás** do HEAD local; os 15 commits
-  locais **não foram enviados**. Após os 3 commits desta auditoria, o total local é 18.
+  locais **não foram enviados**. Os commits desta auditoria também não foram enviados.
   Outros 14 commits desde a Fase 9A-2 já estavam no remoto.
 
 ## 1. Estado real das validações
@@ -94,7 +94,7 @@ d2426b9 feat(security): endurece CORS com origens explicitas
 c3f28da feat(security): adiciona cabecalhos de seguranca e CSP com nonce
 ```
 
-**Conclusão:** não houve push dos 15 commits locais do snapshot (nem dos 3 commits de
+**Conclusão:** não houve push dos 15 commits locais do snapshot (nem dos commits de
 documentação desta auditoria). A afirmação “nada foi enviado” é verdadeira para o trabalho
 desde `df34400`, mas **não** para todo o intervalo desde 9A-2: 14 commits já estão no
 remoto. O `git status` no início da auditoria estava limpo; o WIP de rate limiting apareceu
