@@ -111,7 +111,9 @@
     "idempotencyConflict": "Questo ordine è già stato elaborato.",
     "orderNotFound": "Ordine non trovato.",
     "emptyOrder": "L'ordine non può essere vuoto.",
-    "invalidOrderState": "L'ordine non accetta questa operazione."
+    "invalidOrderState": "L'ordine non accetta questa operazione.",
+    "stripeUnavailable": "Il pagamento con carta non è disponibile al momento.",
+    "paymentProvider": "Impossibile avviare il pagamento. Riprova."
   },
   "catalog": {
     "title": "Catalogo",
@@ -222,7 +224,15 @@
     "unitPrice": "Prezzo unitario",
     "lineTotal": "Totale riga",
     "orderNotFound": "Ordine non trovato.",
-    "notCancellable": "Questo ordine non può più essere annullato."
+    "notCancellable": "Questo ordine non può più essere annullato.",
+    "card": "Carta (Stripe)",
+    "cardDescription": "Pagamento sicuro su Stripe Checkout (reindirizzamento).",
+    "paymentSuccessTitle": "Pagamento completato",
+    "paymentSuccessDescription": "Abbiamo ricevuto il pagamento. L'ordine sarà aggiornato quando Stripe confermerà l'evento.",
+    "paymentCancelTitle": "Pagamento annullato",
+    "paymentCancelDescription": "Nessun addebito è stato completato. Puoi tornare al carrello e riprovare.",
+    "backToOrders": "Vedi ordini",
+    "backToCart": "Torna al carrello"
   },
   "credit": {
     "title": "Credito",

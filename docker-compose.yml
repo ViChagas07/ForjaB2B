@@ -299,6 +299,10 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (see .env.example)}
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-dev_payment_webhook_secret_change_in_production}
       PIX_DISCOUNT_RATE: ${PIX_DISCOUNT_RATE:-0.05}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3010}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-dev_admin_api_key_change_in_production}
     ports:
       - "8000:8000"

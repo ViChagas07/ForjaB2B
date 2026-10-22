@@ -155,6 +155,21 @@ class Settings(BaseSettings):
     pix_discount_rate: Decimal = Field(default=Decimal("0.05"), ge=0, le=1)
     payment_webhook_secret: str = "dev_payment_webhook_secret_change_in_production"  # noqa: S105 - default de dev, nunca em producao
 
+    # Stripe Checkout (cartao). `stripe_secret_key` cria a Checkout Session;
+    # `stripe_webhook_secret` (whsec_...) valida a assinatura Stripe-Signature.
+    # Compatibilidade: se apenas `stripe_webhook_secret` estiver preenchido com
+    # uma chave `sk_...`, ela e usada como chave secreta (ver propriedades).
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_checkout_success_path: str = "/checkout/success"
+    stripe_checkout_cancel_path: str = "/checkout/cancel"
+    # URL publica do frontend (sem barra final), usada nos redirects do Stripe.
+    frontend_base_url: str = "http://localhost:3000"
+
+    # CORS: origens do frontend autorizadas a chamar a API pelo navegador.
+    # Em producao, defina CORS_ORIGINS com o dominio real do site.
+    cors_origins: str = "http://localhost:3000,http://localhost:3010,https://forja-b2b.vercel.app"
+
     # Celery (worker assincrono de notificacoes/outbox). Defaults de dev.
     celery_broker_url: str = "amqp://guest:guest@localhost:5672//"
     celery_result_backend: str = "redis://localhost:6379/2"
@@ -190,11 +205,39 @@ class Settings(BaseSettings):
         """Idiomas da interface suportados (UI_LOCALES), na ordem configurada."""
         return [code.strip() for code in self.ui_locales.split(",") if code.strip()]
 
+    @property
+    def effective_stripe_secret_key(self) -> str | None:
+        """Chave secreta do Stripe (aceita o alias historico ``STRIPE_WEBHOOK_SECRET``)."""
+        if self.stripe_secret_key:
+            return self.stripe_secret_key
+        legacy = self.stripe_webhook_secret
+        if legacy is not None and legacy.strip().startswith("sk_"):
+            return legacy.strip()
+        return None
+
+    @property
+    def effective_stripe_webhook_secret(self) -> str | None:
+        """Segredo de assinatura do webhook (somente valores ``whsec_...``)."""
+        value = self.stripe_webhook_secret
+        if value is not None and value.strip().startswith("whsec_"):
+            return value.strip()
+        return None
+
+    @property
+    def stripe_enabled(self) -> bool:
+        return self.effective_stripe_secret_key is not None
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
     @field_validator(
         "elasticsearch_api_key",
         "elasticsearch_username",
         "elasticsearch_password",
         "elasticsearch_ca_certs",
+        "stripe_secret_key",
+        "stripe_webhook_secret",
         mode="before",
     )
     @classmethod

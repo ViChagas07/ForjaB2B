@@ -18,6 +18,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
@@ -115,7 +116,11 @@ from app.modules.notification.infrastructure.repository import SqlAlchemyNotific
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.infrastructure.repository import SqlAlchemyOrderingRepository
 from app.modules.payment.application.payment import ConfirmPayment, GetPayment, InitiatePayment
-from app.modules.payment.infrastructure.gateway import FakePaymentGateway
+from app.modules.payment.infrastructure.gateway import (
+    FakePaymentGateway,
+    PaymentGatewayRouter,
+    StripeCheckoutGateway,
+)
 from app.modules.payment.infrastructure.repository import SqlAlchemyPaymentRepository
 from app.modules.privacy.application.privacy import (
     DeletePersonalData,
@@ -425,9 +430,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Composicao do contexto de pagamento (checkout PIX/cartao + webhook).
     payment_repository = SqlAlchemyPaymentRepository(app.state.uow_factory)
+    stripe_api_key = settings.effective_stripe_secret_key
+    stripe_gateway = (
+        StripeCheckoutGateway(
+            api_key=stripe_api_key,
+            frontend_base_url=settings.frontend_base_url,
+            success_path=settings.stripe_checkout_success_path,
+            cancel_path=settings.stripe_checkout_cancel_path,
+        )
+        if stripe_api_key is not None
+        else None
+    )
     app.state.payment_initiate = InitiatePayment(
         repository=payment_repository,
-        gateway=FakePaymentGateway(),
+        gateway=PaymentGatewayRouter(fake=FakePaymentGateway(), stripe=stripe_gateway),
         pix_discount_rate=settings.pix_discount_rate,
     )
     app.state.payment_confirm = ConfirmPayment(repository=payment_repository)
@@ -454,6 +470,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(PrometheusMiddleware)
+    # CORS por ultimo = camada mais externa, garantindo cabecalhos tambem em
+    # respostas de erro produzidas pelos middlewares internos.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept-Language", "X-Request-ID"],
+        expose_headers=["X-Request-ID", "Vary"],
+        max_age=600,
+    )
     register_exception_handlers(app)
 
     # Ilustracoes originais do catalogo (SVG), versionadas em app/static e

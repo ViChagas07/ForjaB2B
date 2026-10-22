@@ -37,12 +37,6 @@ let productSku = "";
 test.skip(!PASSWORD, "DEMO_USER_PASSWORD não definido");
 test.describe.configure({ mode: "serial" });
 
-// O backend ainda nao envia cabecalhos CORS (lacuna registrada na V3), entao o
-// navegador bloquearia as chamadas a :8000 a partir de :3010. Para a validacao
-// VISUAL usamos um Chromium sem a checagem de CORS; isso nao altera o backend
-// nem esconde a lacuna, que fica documentada em docs/STATUS.md.
-test.use({ launchOptions: { args: ["--disable-web-security"] } });
-
 test.beforeAll(async ({ request }) => {
   if (!PASSWORD) return;
   const login = await request.post(`${API}/api/v1/auth/login`, {

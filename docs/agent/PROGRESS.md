@@ -1616,3 +1616,38 @@ Relatórios idênticos nas duas execuções.
   histórico). Nenhum push; commits locais de documentação.
 - **NÃO VALIDADO:** deploy Render, teste de carga, rate limiting (não implementado), CORS,
   modo hybrid no estado padrão, revisão nativa das traduções.
+
+---
+
+## Integracao Stripe Checkout (2026-10-22)
+
+### Implementado
+
+- Backend: `stripe==16.0.0`, `StripeCheckoutGateway` (Checkout Session hospedada, cartao,
+  centavos, metadata order/company), `PaymentGatewayRouter` (CARD -> Stripe; PIX/BOLETO fake),
+  `checkout_url` em `PaymentView`/`PaymentResponse`, `GET /payments/methods`,
+  `POST /payments/stripe/webhook` com `Stripe-Signature` + mapeamento de eventos
+  (`checkout.session.completed/async_payment_succeeded/async_payment_failed`),
+  CORS configuravel (`CORS_ORIGINS`) e `FRONTEND_BASE_URL` nos redirects.
+- Config: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (whsec_), aliases com validacao de
+  prefixo (`sk_`/`whsec_`), `.env.example` e docker-compose atualizados.
+- Frontend: `CARD` no checkout (visivel somente com `stripe_enabled`), criacao do pedido +
+  pagamento + redirect para o Stripe, paginas `checkout/success` e `checkout/cancel`,
+  `payment-api`/hooks, chaves novas nos 11 dicionarios (paridade ok).
+
+### Evidencias
+
+- Checkout Session real criada: `cs_test_...` (32.90 BRL), `checkout_url` do Stripe.
+- Webhook assinado com `whsec_v3_local_test`: 200 `APPLIED`, pagamento `PAID`.
+- Playwright: opcao "Cartao (Stripe)" visivel e redirect real para `checkout.stripe.com`;
+  visual V3 reexecutado **sem** `--disable-web-security` (CORS ok). 6 passed.
+- Dados de teste (pedidos/pagamentos/eventos/notificacoes/carrinho) revertidos.
+
+### Checagens
+
+- Backend unit 430 + architecture 4; integracao 255 passed, 1 skipped.
+- ruff/format/mypy strict OK (286 arquivos); compose OK.
+- Frontend typecheck/lint OK; 102 testes; Playwright 6.
+- **Pendente de seguranca**: a `sk_test` foi exposta em conversa; rotacionar no Stripe e
+  atualizar o Render. O webhook real exige o `whsec_...` do endpoint cadastrado.
+- PIX/Boleto seguem simulados; sem estorno/conciliacao.

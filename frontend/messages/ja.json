@@ -111,7 +111,9 @@
     "idempotencyConflict": "この注文はすでに処理されています。",
     "orderNotFound": "注文が見つかりません。",
     "emptyOrder": "注文を空にすることはできません。",
-    "invalidOrderState": "この注文ではこの操作を実行できません。"
+    "invalidOrderState": "この注文ではこの操作を実行できません。",
+    "stripeUnavailable": "現在カード決済は利用できません。",
+    "paymentProvider": "支払いを開始できませんでした。もう一度お試しください。"
   },
   "catalog": {
     "title": "カタログ",
@@ -222,7 +224,15 @@
     "unitPrice": "単価",
     "lineTotal": "行合計",
     "orderNotFound": "注文が見つかりません。",
-    "notCancellable": "この注文はキャンセルできません。"
+    "notCancellable": "この注文はキャンセルできません。",
+    "card": "カード (Stripe)",
+    "cardDescription": "Stripe Checkout で安全に支払います（リダイレクト）。",
+    "paymentSuccessTitle": "支払いが完了しました",
+    "paymentSuccessDescription": "お支払いを受け付けました。Stripe がイベントを確認すると注文が更新されます。",
+    "paymentCancelTitle": "支払いがキャンセルされました",
+    "paymentCancelDescription": "請求は完了していません。カートに戻って再試行できます。",
+    "backToOrders": "注文を見る",
+    "backToCart": "カートに戻る"
   },
   "credit": {
     "title": "クレジット",

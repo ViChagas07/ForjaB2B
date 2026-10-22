@@ -50,6 +50,10 @@ export function errorMessageKey(error: unknown): string {
       return "error.emptyOrder";
     case "invalid_order_state":
       return "error.invalidOrderState";
+    case "stripe_not_configured":
+      return "error.stripeUnavailable";
+    case "payment_provider_error":
+      return "error.paymentProvider";
     default:
       return "error.generic";
   }

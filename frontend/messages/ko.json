@@ -111,7 +111,9 @@
     "idempotencyConflict": "이 주문은 이미 처리되었습니다.",
     "orderNotFound": "주문을 찾을 수 없습니다.",
     "emptyOrder": "주문은 비어 있을 수 없습니다.",
-    "invalidOrderState": "이 주문에서는 이 작업을 수행할 수 없습니다."
+    "invalidOrderState": "이 주문에서는 이 작업을 수행할 수 없습니다.",
+    "stripeUnavailable": "현재 카드 결제를 사용할 수 없습니다.",
+    "paymentProvider": "결제를 시작하지 못했습니다. 다시 시도해 주세요."
   },
   "catalog": {
     "title": "카탈로그",
@@ -222,7 +224,15 @@
     "unitPrice": "단가",
     "lineTotal": "라인 합계",
     "orderNotFound": "주문을 찾을 수 없습니다.",
-    "notCancellable": "이 주문은 더 이상 취소할 수 없습니다."
+    "notCancellable": "이 주문은 더 이상 취소할 수 없습니다.",
+    "card": "카드 (Stripe)",
+    "cardDescription": "Stripe Checkout에서 안전하게 결제합니다(리디렉션).",
+    "paymentSuccessTitle": "결제 완료",
+    "paymentSuccessDescription": "결제를 받았습니다. Stripe가 이벤트를 확인하면 주문이 업데이트됩니다.",
+    "paymentCancelTitle": "결제 취소됨",
+    "paymentCancelDescription": "결제가 완료되지 않았습니다. 장바구니로 돌아가 다시 시도할 수 있습니다.",
+    "backToOrders": "주문 보기",
+    "backToCart": "장바구니로 돌아가기"
   },
   "credit": {
     "title": "크레딧",

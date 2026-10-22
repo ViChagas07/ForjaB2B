@@ -19,6 +19,7 @@ class OrderForPayment:
     company_id: uuid.UUID
     status: str
     total: Decimal
+    currency: str = "BRL"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -33,10 +34,11 @@ class InvoiceForPayment:
 
 @dataclass(frozen=True, kw_only=True)
 class GatewayInstruction:
-    """Instrucao devolvida pelo gateway (Fake) para o pagador."""
+    """Instrucao devolvida pelo gateway para o pagador."""
 
     provider: str
     provider_reference: str
+    checkout_url: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -55,6 +57,7 @@ class PaymentView:
     provider_reference: str
     created_at: datetime
     paid_at: datetime | None
+    checkout_url: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,9 +113,16 @@ class PaymentRepository(Protocol):
 
 
 class PaymentGateway(Protocol):
-    """Porta do provedor de pagamento (Fake/local por padrao)."""
+    """Porta do provedor de pagamento (Fake/local ou Stripe Checkout)."""
 
     async def initiate(
-        self, *, method: PaymentMethod, amount: Decimal, order_id: uuid.UUID
+        self,
+        *,
+        method: PaymentMethod,
+        amount: Decimal,
+        currency: str,
+        order_id: uuid.UUID,
+        company_id: uuid.UUID,
+        locale: str = "pt-BR",
     ) -> GatewayInstruction:
-        """Cria a intencao de pagamento e devolve a referencia do provedor."""
+        """Cria a intencao de pagamento e devolve a referencia (e URL, se houver)."""

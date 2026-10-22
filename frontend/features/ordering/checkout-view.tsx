@@ -20,6 +20,7 @@ interface CheckoutViewProps {
   cart: Cart;
   cartError: unknown;
   credit: CreditAccount | undefined;
+  stripeEnabled: boolean;
   isPlacingOrder: boolean;
   orderError: unknown;
   onPlaceOrder: (paymentMethod: PaymentMethod, notes: string, idempotencyKey: string) => void;
@@ -34,6 +35,7 @@ export function CheckoutView({
   cart,
   cartError,
   credit,
+  stripeEnabled,
   isPlacingOrder,
   orderError,
   onPlaceOrder,
@@ -91,6 +93,20 @@ export function CheckoutView({
   const subtotal = Number(cart.subtotal);
   const available = credit ? Number(credit.available) : null;
   const creditInsufficient = isBoleto && available != null && available < subtotal;
+
+  const availableMethods = PAYMENT_METHODS.filter((method) => method !== "CARD" || stripeEnabled);
+
+  function methodLabel(method: PaymentMethod): string {
+    if (method === "PIX") return t("ordering.pix");
+    if (method === "CARD") return t("ordering.card");
+    return t("ordering.boleto");
+  }
+
+  function methodDescription(method: PaymentMethod): string {
+    if (method === "PIX") return t("ordering.pixDescription");
+    if (method === "CARD") return t("ordering.cardDescription");
+    return t("ordering.boletoDescription");
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -158,11 +174,10 @@ export function CheckoutView({
           <CardTitle>{t("ordering.paymentMethod")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {PAYMENT_METHODS.map((method) => {
+          {availableMethods.map((method) => {
             const selected = paymentMethod === method;
-            const label = method === "PIX" ? t("ordering.pix") : t("ordering.boleto");
-            const description =
-              method === "PIX" ? t("ordering.pixDescription") : t("ordering.boletoDescription");
+            const label = methodLabel(method);
+            const description = methodDescription(method);
             return (
               <button
                 key={method}

@@ -111,7 +111,9 @@
     "idempotencyConflict": "Diese Bestellung wurde bereits verarbeitet.",
     "orderNotFound": "Bestellung nicht gefunden.",
     "emptyOrder": "Die Bestellung darf nicht leer sein.",
-    "invalidOrderState": "Die Bestellung akzeptiert diesen Vorgang nicht."
+    "invalidOrderState": "Die Bestellung akzeptiert diesen Vorgang nicht.",
+    "stripeUnavailable": "Kartenzahlung ist derzeit nicht verfügbar.",
+    "paymentProvider": "Die Zahlung konnte nicht gestartet werden. Versuchen Sie es erneut."
   },
   "catalog": {
     "title": "Katalog",
@@ -222,7 +224,15 @@
     "unitPrice": "Stückpreis",
     "lineTotal": "Positionssumme",
     "orderNotFound": "Bestellung nicht gefunden.",
-    "notCancellable": "Diese Bestellung kann nicht mehr storniert werden."
+    "notCancellable": "Diese Bestellung kann nicht mehr storniert werden.",
+    "card": "Karte (Stripe)",
+    "cardDescription": "Sichere Zahlung über Stripe Checkout (Weiterleitung).",
+    "paymentSuccessTitle": "Zahlung abgeschlossen",
+    "paymentSuccessDescription": "Wir haben Ihre Zahlung erhalten. Die Bestellung wird aktualisiert, sobald Stripe das Ereignis bestätigt.",
+    "paymentCancelTitle": "Zahlung abgebrochen",
+    "paymentCancelDescription": "Es wurde keine Zahlung abgeschlossen. Sie können zum Warenkorb zurückkehren und es erneut versuchen.",
+    "backToOrders": "Bestellungen ansehen",
+    "backToCart": "Zurück zum Warenkorb"
   },
   "credit": {
     "title": "Kredit",

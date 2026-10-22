@@ -39,3 +39,4 @@ export type {
   CreateOrderInput,
 } from "./ordering";
 export type { CreditAccount, CreditEntry } from "./credit";
+export type { PaymentMethods, InitiatePaymentInput, Payment } from "./payment";

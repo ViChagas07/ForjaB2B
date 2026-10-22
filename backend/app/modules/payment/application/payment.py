@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -56,6 +57,7 @@ class InitiatePayment:
         order_id: uuid.UUID,
         method: PaymentMethod,
         idempotency_key: str,
+        locale: str = "pt-BR",
     ) -> PaymentView:
         order = await self._repository.get_order_for_payment(company_id, order_id)
         if order is None:
@@ -79,9 +81,14 @@ class InitiatePayment:
             amount = payable_amount(order.total, discount_amount)
 
         instruction: GatewayInstruction = await self._gateway.initiate(
-            method=method, amount=amount, order_id=order_id
+            method=method,
+            amount=amount,
+            currency=order.currency,
+            order_id=order_id,
+            company_id=company_id,
+            locale=locale,
         )
-        return await self._repository.create_payment(
+        view = await self._repository.create_payment(
             company_id=company_id,
             order_id=order_id,
             invoice_id=invoice_id,
@@ -92,6 +99,9 @@ class InitiatePayment:
             provider_reference=instruction.provider_reference,
             idempotency_key=idempotency_key,
         )
+        if instruction.checkout_url is None:
+            return view
+        return replace(view, checkout_url=instruction.checkout_url)
 
 
 class ConfirmPayment:

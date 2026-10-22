@@ -1,11 +1,12 @@
 /**
  * Contratos do contexto de pedidos (neutros, sem frameworks).
  *
- * O pedido é um snapshot: preços/totais vêm exclusivamente do backend. As
- * formas de pagamento são simuladas (sem pagamento real).
+ * O pedido é um snapshot: preços/totais vêm exclusivamente do backend. PIX e
+ * Boleto são simulados; CARD usa o Stripe Checkout quando habilitado no
+ * backend (redirect para página hospedada do Stripe).
  */
 
-export const PAYMENT_METHODS = ["PIX", "BOLETO"] as const;
+export const PAYMENT_METHODS = ["PIX", "CARD", "BOLETO"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const ORDER_STATUSES = [

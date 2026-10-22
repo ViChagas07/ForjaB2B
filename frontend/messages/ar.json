@@ -111,7 +111,9 @@
     "idempotencyConflict": "تمت معالجة هذا الطلب بالفعل.",
     "orderNotFound": "لم يتم العثور على الطلب.",
     "emptyOrder": "لا يمكن أن يكون الطلب فارغًا.",
-    "invalidOrderState": "الطلب لا يقبل هذه العملية."
+    "invalidOrderState": "الطلب لا يقبل هذه العملية.",
+    "stripeUnavailable": "الدفع بالبطاقة غير متاح حالياً.",
+    "paymentProvider": "تعذر بدء الدفع. حاول مرة أخرى."
   },
   "catalog": {
     "title": "الكتالوج",
@@ -222,7 +224,15 @@
     "unitPrice": "سعر الوحدة",
     "lineTotal": "إجمالي البند",
     "orderNotFound": "لم يتم العثور على الطلب.",
-    "notCancellable": "لم يعد من الممكن إلغاء هذا الطلب."
+    "notCancellable": "لم يعد من الممكن إلغاء هذا الطلب.",
+    "card": "بطاقة (Stripe)",
+    "cardDescription": "دفع آمن عبر Stripe Checkout (إعادة توجيه).",
+    "paymentSuccessTitle": "تم الدفع",
+    "paymentSuccessDescription": "استلمنا دفعتك. سيتم تحديث الطلب بمجرد تأكيد Stripe للحدث.",
+    "paymentCancelTitle": "تم إلغاء الدفع",
+    "paymentCancelDescription": "لم يتم إتمام أي خصم. يمكنك العودة إلى السلة والمحاولة مرة أخرى.",
+    "backToOrders": "عرض الطلبات",
+    "backToCart": "العودة إلى السلة"
   },
   "credit": {
     "title": "ائتمان",

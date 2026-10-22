@@ -46,6 +46,25 @@ class PaymentResponse(BaseModel):
     provider_reference: str
     created_at: datetime
     paid_at: datetime | None
+    checkout_url: str | None = None
+
+
+class PaymentMethodsResponse(BaseModel):
+    """Meios de pagamento disponiveis para o checkout do cliente."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    methods: list[str]
+    stripe_enabled: bool
+
+
+class StripeWebhookResponse(BaseModel):
+    """Confirmacao de recebimento do webhook Stripe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    received: bool = True
+    outcome: str | None = None
 
 
 class WebhookEventRequest(BaseModel):

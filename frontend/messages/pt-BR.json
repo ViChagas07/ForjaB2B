@@ -200,7 +200,15 @@
     "unitPrice": "Preço unitário",
     "lineTotal": "Total da linha",
     "orderNotFound": "Pedido não encontrado.",
-    "notCancellable": "Este pedido não pode mais ser cancelado."
+    "notCancellable": "Este pedido não pode mais ser cancelado.",
+    "card": "Cartão (Stripe)",
+    "cardDescription": "Pagamento seguro no Stripe Checkout (redirecionamento).",
+    "paymentSuccessTitle": "Pagamento concluído",
+    "paymentSuccessDescription": "Recebemos seu pagamento. O pedido será atualizado assim que o Stripe confirmar o evento.",
+    "paymentCancelTitle": "Pagamento cancelado",
+    "paymentCancelDescription": "Nenhuma cobrança foi concluída. Você pode voltar ao carrinho e tentar novamente.",
+    "backToOrders": "Ver pedidos",
+    "backToCart": "Voltar ao carrinho"
   },
   "credit": {
     "title": "Crédito",
@@ -238,7 +246,9 @@
     "orderNotFound": "Pedido não encontrado.",
     "emptyOrder": "O pedido não pode estar vazio.",
     "invalidOrderState": "O pedido não aceita esta operação.",
-    "generic": "Algo deu errado. Tente novamente."
+    "generic": "Algo deu errado. Tente novamente.",
+    "stripeUnavailable": "Pagamento com cartão indisponível no momento.",
+    "paymentProvider": "Falha ao iniciar o pagamento. Tente novamente."
   },
   "admin": {
     "catalog": {

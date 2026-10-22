@@ -9,4 +9,5 @@ export { catalogApi, useCatalogApi } from "./catalog-api";
 export { adminCatalogApi, isVersionConflict, getFieldErrors } from "./admin-catalog-api";
 export { cartApi, useCartApi } from "./cart-api";
 export { orderingApi, useOrderingApi } from "./ordering-api";
+export { paymentApi, usePaymentApi } from "./payment-api";
 export { creditApi, useCreditApi } from "./credit-api";

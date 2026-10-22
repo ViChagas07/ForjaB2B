@@ -111,7 +111,9 @@
     "idempotencyConflict": "This order has already been processed.",
     "orderNotFound": "Order not found.",
     "emptyOrder": "The order cannot be empty.",
-    "invalidOrderState": "The order does not accept this operation."
+    "invalidOrderState": "The order does not accept this operation.",
+    "stripeUnavailable": "Card payment is currently unavailable.",
+    "paymentProvider": "Could not start the payment. Try again."
   },
   "catalog": {
     "title": "Catalog",
@@ -222,7 +224,15 @@
     "unitPrice": "Unit price",
     "lineTotal": "Line total",
     "orderNotFound": "Order not found.",
-    "notCancellable": "This order can no longer be cancelled."
+    "notCancellable": "This order can no longer be cancelled.",
+    "card": "Card (Stripe)",
+    "cardDescription": "Secure payment on Stripe Checkout (redirect).",
+    "paymentSuccessTitle": "Payment completed",
+    "paymentSuccessDescription": "We received your payment. The order will update as soon as Stripe confirms the event.",
+    "paymentCancelTitle": "Payment cancelled",
+    "paymentCancelDescription": "No charge was completed. You can return to the cart and try again.",
+    "backToOrders": "View orders",
+    "backToCart": "Back to cart"
   },
   "credit": {
     "title": "Credit",

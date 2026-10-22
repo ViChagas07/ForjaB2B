@@ -31,6 +31,10 @@ PyJWT==2.10.1
 # Cliente HTTP para integracoes externas (OAuth Google, Authorization Code Flow).
 httpx==0.28.1
 
+# Stripe Checkout (cartao). Checkout hospedado: nenhum dado de cartao passa pelo
+# backend; o webhook valida a assinatura Stripe-Signature.
+stripe==16.0.0
+
 # Logging estruturado JSON.
 structlog==26.1.0
 

@@ -41,7 +41,7 @@ from app.modules.payment.domain.enums import (
 from app.modules.payment.domain.payment import can_transition
 
 _GET_ORDER = text(
-    "SELECT id, company_id, status, total FROM orders "
+    "SELECT id, company_id, status, total, currency FROM orders "
     "WHERE id = :order_id AND company_id = :company_id"
 )
 _GET_INVOICE_BY_ORDER = text(
@@ -136,7 +136,11 @@ class SqlAlchemyPaymentRepository:
             if row is None:
                 return None
             return OrderForPayment(
-                id=row.id, company_id=row.company_id, status=row.status, total=row.total
+                id=row.id,
+                company_id=row.company_id,
+                status=row.status,
+                total=row.total,
+                currency=row.currency,
             )
 
     async def get_invoice_by_order(

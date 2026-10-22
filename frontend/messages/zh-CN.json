@@ -111,7 +111,9 @@
     "idempotencyConflict": "该订单已处理。",
     "orderNotFound": "未找到订单。",
     "emptyOrder": "订单不能为空。",
-    "invalidOrderState": "订单不接受此操作。"
+    "invalidOrderState": "订单不接受此操作。",
+    "stripeUnavailable": "银行卡支付目前不可用。",
+    "paymentProvider": "无法发起支付，请重试。"
   },
   "catalog": {
     "title": "目录",
@@ -222,7 +224,15 @@
     "unitPrice": "单价",
     "lineTotal": "行小计",
     "orderNotFound": "未找到订单。",
-    "notCancellable": "该订单已无法取消。"
+    "notCancellable": "该订单已无法取消。",
+    "card": "银行卡（Stripe）",
+    "cardDescription": "通过 Stripe Checkout 安全支付（跳转）。",
+    "paymentSuccessTitle": "支付完成",
+    "paymentSuccessDescription": "我们已收到您的付款。Stripe 确认事件后订单将更新。",
+    "paymentCancelTitle": "支付已取消",
+    "paymentCancelDescription": "未完成任何扣款。您可以返回购物车重试。",
+    "backToOrders": "查看订单",
+    "backToCart": "返回购物车"
   },
   "credit": {
     "title": "信贷",

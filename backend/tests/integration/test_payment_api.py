@@ -184,12 +184,46 @@ async def test_pix_pagamento_com_desconto(payment_client: httpx.AsyncClient) -> 
     assert payment["provider_reference"] == f"PIX-{order['id']}"
 
 
-async def test_card_pagamento_sem_desconto(payment_client: httpx.AsyncClient) -> None:
+async def test_metodos_pagamento_sem_stripe(payment_client: httpx.AsyncClient) -> None:
+    response = await payment_client.get("/api/v1/payments/methods")
+
+    assert response.status_code == 200
+    assert response.json() == {"methods": ["PIX", "BOLETO"], "stripe_enabled": False}
+
+
+async def test_cors_libera_origem_do_frontend(payment_client: httpx.AsyncClient) -> None:
+    response = await payment_client.options(
+        "/api/v1/payments/methods",
+        headers={
+            "Origin": "https://forja-b2b.vercel.app",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://forja-b2b.vercel.app"
+
+
+async def test_webhook_stripe_sem_segredo_503(payment_client: httpx.AsyncClient) -> None:
+    response = await payment_client.post(
+        "/api/v1/payments/stripe/webhook",
+        content=b"{}",
+        headers={"content-type": "application/json", "Stripe-Signature": "t=1,v1=x"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["type"] == "urn:forja:problem:stripe_webhook_not_configured"
+
+
+async def test_card_sem_stripe_indisponivel(payment_client: httpx.AsyncClient) -> None:
     order = await _create_order(payment_client, "CARD", "pay-card-1")
-    payment = await _initiate(payment_client, order["id"], "CARD", "pay-card-init-1")
-    assert payment["discount_amount"] == "0.00"
-    assert payment["amount"] == "10.00"
-    assert payment["provider"] == "FAKE_CARD"
+    response = await payment_client.post(
+        "/api/v1/payments",
+        json={"order_id": order["id"], "method": "CARD", "idempotency_key": "pay-card-init-1"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["type"] == "urn:forja:problem:stripe_not_configured"
 
 
 async def test_webhook_confirmacao_idempotente_e_fora_de_ordem(
