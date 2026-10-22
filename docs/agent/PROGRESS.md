@@ -1529,3 +1529,16 @@ Relatórios idênticos nas duas execuções.
 - Novo teste `tests/unit/locale-selection.test.ts` (middleware real): nomes nativos,
   `fr-CA`/`en-US`/`ar-EG`, desconhecido, cookie, prefixo de rota e mesma rota ao trocar.
 - Checagem: typecheck OK, lint OK, `npm run test` -> 93 passed.
+
+### Passo 4 — RTL
+
+- Direção centralizada em `directionForLocale()` (lista única `rtlLocales = ["ar"]`), usada
+  no layout (`lang={locale}`, `dir=...`). Hebraico/fa/ur nao existem nos 11.
+- Auditoria nas telas do cliente (admin excluido): **18 classes fisicas trocadas** por logicas
+  (alert 2, dropdown-menu 11, select 5); 1 excecao documentada `left-[50%]` (centralizacao
+  absoluta do dialogo). Classes de animacao do Radix (`slide-in-from-*`, `-translate-x-*`)
+  nao sao layout e ficaram.
+- Icones direcionais espelhados com `rtl:-scale-x-100`: 2 `ArrowLeft` (voltar) e 1 `ChevronRight`.
+- Fontes ja cobrem latina/cirilica (Noto Sans), CJK (SC/JP/KR) e arabe (Noto Sans Arabic).
+- Novo teste `tests/unit/rtl.test.ts`: direcao por idioma, zero classes fisicas (com excecao)
+  e pilhas de fonte. Checagem: typecheck OK, lint OK, 96 testes.

@@ -46,3 +46,8 @@ export function isLocale(value: string): value is Locale {
 export function isRtlLocale(locale: string): boolean {
   return (rtlLocales as readonly string[]).includes(locale);
 }
+
+/** Direção de escrita derivada da lista única `rtlLocales`. */
+export function directionForLocale(locale: string): "rtl" | "ltr" {
+  return isRtlLocale(locale) ? "rtl" : "ltr";
+}

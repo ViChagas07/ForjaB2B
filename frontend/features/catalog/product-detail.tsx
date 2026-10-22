@@ -63,7 +63,7 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
     <div className="space-y-6">
       <Button variant="ghost" size="sm" asChild>
         <Link href="/catalog">
-          <ArrowLeft aria-hidden="true" />
+          <ArrowLeft aria-hidden="true" className="rtl:-scale-x-100" />
           {t("catalog.backToCatalog")}
         </Link>
       </Button>

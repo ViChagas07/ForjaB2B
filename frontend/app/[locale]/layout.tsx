@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 
 import "@/app/globals.css";
-import { isLocale, isRtlLocale, locales } from "@/i18n/locales";
+import { directionForLocale, isLocale, locales } from "@/i18n/locales";
 import { Providers } from "@/shared/providers";
 
 interface LocaleLayoutProps {
@@ -50,7 +50,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   const t = await getTranslations({ locale });
   const messages = await getMessages({ locale });
-  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
+  const dir = directionForLocale(locale);
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>

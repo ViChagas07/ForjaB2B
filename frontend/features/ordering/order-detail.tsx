@@ -84,7 +84,7 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard">
-            <ArrowLeft aria-hidden="true" />
+            <ArrowLeft aria-hidden="true" className="rtl:-scale-x-100" />
             {t("ordering.back")}
           </Link>
         </Button>
