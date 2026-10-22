@@ -9,6 +9,9 @@ Duas correcoes necessarias para o fluxo de administracao de catalogo:
    ``(aggregate_id, event_type)``. O ``INSERT ... ON CONFLICT`` usado pelos
    eventos UPSERT/DELETE exige um indice/constraint unico correspondente.
 
+Reversao: o downgrade normaliza ``DRAFT`` para ``INACTIVE`` antes de restaurar
+a constraint antiga; a reversao e executavel, mas perde o estado DRAFT.
+
 Revision ID: 0018
 Revises: 0017
 Create Date: 2026-10-14
@@ -40,6 +43,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # A constraint anterior nao aceita DRAFT. Normaliza DRAFT -> INACTIVE para
+    # que o downgrade seja executavel em bancos com rascunhos do backoffice;
+    # essa reversao perde o estado DRAFT (documentado em docs/MIGRATIONS.md).
+    op.execute("UPDATE products SET status = 'INACTIVE' WHERE status = 'DRAFT'")
     op.execute(
         "ALTER TABLE search_outbox DROP CONSTRAINT IF EXISTS uq_search_outbox_aggregate_event"
     )

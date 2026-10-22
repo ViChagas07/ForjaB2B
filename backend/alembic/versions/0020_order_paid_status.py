@@ -4,6 +4,9 @@ Pedidos pagos por cartao/PIX passam de ``RECEIVED``/``CREDIT_REVIEW`` para
 ``PAID`` quando o pagamento e confirmado (webhook Stripe ou webhook interno).
 Boleto faturado continua em ``INVOICED`` ate a quitacao.
 
+Reversao: o downgrade normaliza ``PAID`` para ``RECEIVED`` antes de restaurar
+a constraint antiga; a reversao e executavel, mas perde o estado PAID.
+
 Revision ID: 0020
 Revises: 0019
 Create Date: 2026-10-22
