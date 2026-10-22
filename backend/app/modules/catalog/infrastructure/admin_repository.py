@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import Select, func, or_, select, text
@@ -18,9 +18,9 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.infrastructure.db.models.catalog import Brand, Category, Product
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
-from app.modules.catalog.application.ports import (
-    BrandView,
-    CategoryView,
+from app.modules.catalog.application.ports import BrandView, CategoryView
+from app.modules.catalog.domain.enums import ProductStatus
+from app.modules.catalog.domain.product_admin import (
     ProductAdminView,
     ProductListFilters,
     ProductPage,
@@ -126,12 +126,10 @@ class SqlAlchemyCatalogAdminRepository:
                 currency=product.currency,
                 image_url=product.image_url,
                 attributes=product.attributes,
-                created_by=product.created_by,
-                updated_by=product.updated_by,
             )
             uow.session.add(orm)
-            await uow.flush()
-            await uow.session.refresh(orm)
+            await uow.session.flush()
+            await uow.session.refresh(orm, ["category", "brand"])
             await uow.commit()
             return self._to_admin_view(orm, date.today())
 
@@ -205,7 +203,7 @@ class SqlAlchemyCatalogAdminRepository:
             current.name = product.name
             current.slug = product.slug
             current.description = product.description
-            current.status = product.status
+            current.status = ProductStatus(product.status)
             current.category_id = product.category_id
             current.brand_id = product.brand_id
             current.is_epi = product.is_epi
@@ -221,10 +219,10 @@ class SqlAlchemyCatalogAdminRepository:
             current.currency = product.currency
             current.image_url = product.image_url
             current.attributes = product.attributes
-            current.updated_by = product.updated_by
+            current.updated_at = datetime.now(UTC)
 
-            await uow.flush()
-            await uow.session.refresh(current)
+            await uow.session.flush()
+            await uow.session.refresh(current, ["category", "brand"])
             await uow.commit()
             return self._to_admin_view(current, date.today())
 
@@ -252,7 +250,7 @@ class SqlAlchemyCatalogAdminRepository:
             name=product.name,
             slug=product.slug,
             description=product.description,
-            status=product.status.value,
+            status=product.status,
             category_id=product.category_id,
             category_name=category_name,
             category_slug=category_slug,
@@ -273,8 +271,6 @@ class SqlAlchemyCatalogAdminRepository:
             version=int(product.updated_at.timestamp() * 1000) if product.updated_at else 0,
             created_at=product.created_at,
             updated_at=product.updated_at,
-            created_by=product.created_by,
-            updated_by=product.updated_by,
         )
 
 

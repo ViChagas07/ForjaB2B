@@ -16,7 +16,11 @@ from app.domain.product_attributes import (
     AttributeRegistry,
     normalize_and_validate_attributes,
 )
-from app.modules.catalog.application.ports import CatalogAdminRepository, SearchOutboxPort
+from app.modules.catalog.application.ports import (
+    AuditLogPort,
+    CatalogAdminRepository,
+    SearchOutboxPort,
+)
 from app.modules.catalog.domain.product_admin import (
     CreateProductInput,
     ProductAdminView,
@@ -81,10 +85,12 @@ class CreateProduct:
         *,
         repository: CatalogAdminRepository,
         outbox: SearchOutboxPort,
+        audit: AuditLogPort,
         registry: AttributeRegistry,
     ) -> None:
         self._repository = repository
         self._outbox = outbox
+        self._audit = audit
         self._registry = registry
 
     async def execute(
@@ -129,7 +135,7 @@ class CreateProduct:
             name=input_data.name.strip(),
             slug=slug,
             description=input_data.description.strip(),
-            status="DRAFT",
+            status="ACTIVE",
             category_id=input_data.category_id,
             category_name=category.name,
             category_slug=category.slug,
@@ -160,6 +166,15 @@ class CreateProduct:
         await self._outbox.emit_upsert(
             product_id=created.id,
             version=created.version,
+        )
+
+        await self._audit.record(
+            company_id=auth.company_id,
+            actor_user_id=auth.user_id,
+            action="catalog.product.created",
+            resource="product",
+            resource_id=created.id,
+            details={"sku": created.sku},
         )
 
         return created
@@ -213,10 +228,12 @@ class UpdateProduct:
         *,
         repository: CatalogAdminRepository,
         outbox: SearchOutboxPort,
+        audit: AuditLogPort,
         registry: AttributeRegistry,
     ) -> None:
         self._repository = repository
         self._outbox = outbox
+        self._audit = audit
         self._registry = registry
 
     async def execute(
@@ -244,8 +261,11 @@ class UpdateProduct:
                 input_data.attributes or {}, self._registry, category_slug
             )
 
+        # Slugs existentes para desambiguar o slug ao renomear
+        existing_slugs = await self._repository.get_all_slugs()
+
         updated = apply_update_to_product(
-            current, input_data, normalized_attrs, self._registry, category_slug
+            current, input_data, normalized_attrs, self._registry, category_slug, existing_slugs
         )
         updated = ProductAdminView(
             **{**vars(updated), "updated_by": auth.user_id, "category_name": current.category_name}
@@ -258,6 +278,15 @@ class UpdateProduct:
         await self._outbox.emit_upsert(
             product_id=saved.id,
             version=saved.version,
+        )
+
+        await self._audit.record(
+            company_id=auth.company_id,
+            actor_user_id=auth.user_id,
+            action="catalog.product.updated",
+            resource="product",
+            resource_id=saved.id,
+            details={"sku": saved.sku},
         )
 
         return saved
@@ -336,9 +365,11 @@ class PublishProduct:
         *,
         repository: CatalogAdminRepository,
         outbox: SearchOutboxPort,
+        audit: AuditLogPort,
     ) -> None:
         self._repository = repository
         self._outbox = outbox
+        self._audit = audit
 
     async def execute(
         self,
@@ -364,8 +395,8 @@ class PublishProduct:
             **{
                 **vars(current),
                 "status": "ACTIVE",
-                "version": int(datetime.now(UTC).timestamp() * 1000),
-                "updated_at": datetime.now(UTC),
+                "version": current.version,
+                "updated_at": current.updated_at,
                 "updated_by": auth.user_id,
             }
         )
@@ -376,6 +407,15 @@ class PublishProduct:
         await self._outbox.emit_upsert(
             product_id=saved.id,
             version=saved.version,
+        )
+
+        await self._audit.record(
+            company_id=auth.company_id,
+            actor_user_id=auth.user_id,
+            action="catalog.product.published",
+            resource="product",
+            resource_id=saved.id,
+            details={"sku": saved.sku},
         )
 
         return saved
@@ -389,9 +429,11 @@ class UnpublishProduct:
         *,
         repository: CatalogAdminRepository,
         outbox: SearchOutboxPort,
+        audit: AuditLogPort,
     ) -> None:
         self._repository = repository
         self._outbox = outbox
+        self._audit = audit
 
     async def execute(
         self,
@@ -417,8 +459,8 @@ class UnpublishProduct:
             **{
                 **vars(current),
                 "status": "DRAFT",
-                "version": int(datetime.now(UTC).timestamp() * 1000),
-                "updated_at": datetime.now(UTC),
+                "version": current.version,
+                "updated_at": current.updated_at,
                 "updated_by": auth.user_id,
             }
         )
@@ -429,6 +471,15 @@ class UnpublishProduct:
         await self._outbox.emit_delete(
             product_id=saved.id,
             version=saved.version,
+        )
+
+        await self._audit.record(
+            company_id=auth.company_id,
+            actor_user_id=auth.user_id,
+            action="catalog.product.unpublished",
+            resource="product",
+            resource_id=saved.id,
+            details={"sku": saved.sku},
         )
 
         return saved

@@ -19,6 +19,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.application.ports.translation import NullTranslationProvider
 from app.application.product_attributes import load_default_registry
@@ -73,6 +74,7 @@ from app.modules.catalog.infrastructure.admin_repository import (
     SqlAlchemyCatalogAdminRepository,
     SqlAlchemySearchOutboxRepository,
 )
+from app.modules.catalog.infrastructure.audit_repository import SqlAlchemyAuditLogRepository
 from app.modules.catalog.infrastructure.repository import SqlAlchemyCatalogRepository
 from app.modules.catalog.interface import admin_router as catalog_admin_router
 from app.modules.catalog.interface import translation_admin_router
@@ -186,12 +188,37 @@ def _compose_search(app: FastAPI, settings: Settings) -> None:
     )
 
 
+async def _dispose_engine(engine: AsyncEngine | None) -> None:
+    """Descarta uma engine opcional (admin pode nao estar configurada)."""
+    if engine is not None:
+        await engine.dispose()
+
+
+def _build_admin_factories(
+    settings: Settings,
+) -> tuple[
+    AsyncEngine | None, async_sessionmaker[AsyncSession] | None, SqlAlchemyUnitOfWorkFactory | None
+]:
+    """Cria engine/sessao/UoW administrativos (role forja_admin, bypass de RLS).
+
+    Retorna ``(None, None, None)`` quando ``DATABASE_ADMIN_URL`` nao esta
+    configurada. Nesse caso a API administrativa de catalogo nao funciona:
+    a variavel e obrigatoria em qualquer ambiente que use o backoffice.
+    """
+    if not settings.database_admin_url:
+        return None, None, None
+    admin_engine = create_engine(settings, admin=True)
+    session_factory = create_session_factory(admin_engine)
+    return admin_engine, session_factory, SqlAlchemyUnitOfWorkFactory(session_factory)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings)
     configure_telemetry(settings)
 
     engine = create_engine(settings)
+    admin_engine, admin_session_factory, admin_uow_factory = _build_admin_factories(settings)
     redis_client = create_redis_client(settings)
 
     if settings.otel_enabled:
@@ -208,6 +235,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if search_engine is not None:
             await search_engine.close()
         await engine.dispose()
+        await _dispose_engine(admin_engine)
         await close_redis_client(redis_client)
         shutdown_telemetry()
 
@@ -225,6 +253,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.redis_client = redis_client
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)
+    # Admin factories (forja_admin role, bypasses RLS on catalog tables)
+    app.state.admin_session_factory = admin_session_factory
+    app.state.admin_uow_factory = admin_uow_factory
     # Motor de busca (Elasticsearch). Construido aqui (nao apenas no lifespan)
     # para que o health check funcione sob ASGITransport nos testes. A
     # construcao nao abre conexao; indisponibilidade nao impede o startup.
@@ -327,12 +358,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.catalog_get_product = GetProduct(repository=catalog_repository)
 
     # Composicao do contexto de catalogo - ADMIN (escrita, role forja_admin via UoW sem tenant).
-    admin_repository = SqlAlchemyCatalogAdminRepository(app.state.uow_factory)
-    search_outbox = SqlAlchemySearchOutboxRepository(app.state.uow_factory)
+    admin_repository = SqlAlchemyCatalogAdminRepository(app.state.admin_uow_factory)
+    search_outbox = SqlAlchemySearchOutboxRepository(app.state.admin_uow_factory)
+    audit_log = SqlAlchemyAuditLogRepository(app.state.uow_factory)
     attribute_registry = load_default_registry()
     app.state.catalog_admin_create_product = CreateProduct(
         repository=admin_repository,
         outbox=search_outbox,
+        audit=audit_log,
         registry=attribute_registry,
     )
     app.state.catalog_admin_get_product = GetProductAdmin(repository=admin_repository)
@@ -340,13 +373,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.catalog_admin_update_product = UpdateProduct(
         repository=admin_repository,
         outbox=search_outbox,
+        audit=audit_log,
         registry=attribute_registry,
     )
     app.state.catalog_admin_publish_product = PublishProduct(
-        repository=admin_repository, outbox=search_outbox
+        repository=admin_repository, outbox=search_outbox, audit=audit_log
     )
     app.state.catalog_admin_unpublish_product = UnpublishProduct(
-        repository=admin_repository, outbox=search_outbox
+        repository=admin_repository, outbox=search_outbox, audit=audit_log
     )
     app.state.catalog_admin_get_attribute_definitions = GetAttributeDefinitionsForCategory(
         registry=attribute_registry
@@ -354,7 +388,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.catalog_admin_list_static_images = ListStaticImages()
 
     # Composicao do contexto de catalogo - ADMIN (traduções).
-    translation_repository = SqlAlchemyTranslationAdminRepository(app.state.uow_factory)
+    translation_repository = SqlAlchemyTranslationAdminRepository(app.state.admin_uow_factory)
     translation_provider = NullTranslationProvider()
     app.state.catalog_admin_get_translations = GetProductTranslations(
         repository=translation_repository,

@@ -10,3 +10,4 @@ class ProductStatus(StrEnum):
 
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
+    DRAFT = "DRAFT"

@@ -11,6 +11,7 @@ identidade vem exclusivamente do token assinado pelo servidor.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Annotated, cast
 
 import redis.asyncio as redis
@@ -25,22 +26,46 @@ from app.domain.i18n import negotiate_locale
 _BEARER_PREFIX = "Bearer "
 
 
+@dataclass(frozen=True, kw_only=True)
+class LocaleInfo:
+    """Informacoes de idioma resolvidas para a requisicao."""
+
+    ui_locale: str
+    content_locale: str
+    content_fallback: bool
+
+
 def get_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
 
 
-def get_locale(request: Request, lang: str | None = Query(default=None)) -> str:
-    """Idioma do conteudo: ``?lang=`` > ``Accept-Language`` > default.
+def get_locale_info(request: Request, lang: str | None = Query(default=None)) -> LocaleInfo:
+    """Resolve idiomas: UI (para frontend) e Conteudo (para backend).
 
-    Valor nao suportado cai no default (pt-BR) sem erro (ver SUPPORTED_LOCALES).
+    ``?lang=`` > ``Accept-Language`` > default.
+    UI locale negocia contra UI_LOCALES (11 idiomas).
+    Content locale: se UI locale em CONTENT_LOCALES (4), usa-o; senao usa ``en``.
+    Retorna tambem flag de fallback de idioma.
     """
     settings: Settings = request.app.state.settings
-    return negotiate_locale(
+    ui_locale, content_locale, content_fallback = negotiate_locale(
         accept_language=request.headers.get("accept-language"),
         lang_param=lang,
-        supported=settings.supported_locale_list,
+        ui_locales=settings.ui_locale_list,
+        content_locales=settings.supported_locale_list,
         default=settings.default_locale,
     )
+    return LocaleInfo(
+        ui_locale=ui_locale,
+        content_locale=content_locale,
+        content_fallback=content_fallback,
+    )
+
+
+# Compatibilidade: dependencia que devolve apenas o content_locale (string)
+def get_locale(request: Request, lang: str | None = Query(default=None)) -> str:
+    """Idioma do conteudo (compatibilidade): ``?lang=`` > ``Accept-Language`` > default."""
+    return get_locale_info(request, lang).content_locale
 
 
 def get_session_factory(request: Request) -> async_sessionmaker[AsyncSession]:

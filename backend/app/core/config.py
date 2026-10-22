@@ -168,9 +168,11 @@ class Settings(BaseSettings):
     # Em producao deve ser uma chave forte injetada via secrets. Ausente, 401.
     admin_api_key: str | None = None
 
-    # Internacionalizacao do catalogo (Fase 9B). O idioma de origem e pt-BR;
-    # os idiomas atendidos vem de SUPPORTED_LOCALES (lista separada por virgula).
-    # Idioma arbitrario NAO e suportado (ver docs/I18N.md).
+    # Internacionalizacao do catalogo (Fase 9B).
+    # UI_LOCALES: 11 idiomas da interface (frontend/next-intl).
+    # CONTENT_LOCALES: 4 idiomas de conteudo de produto (pt-BR, en, es, ar).
+    # Fallback de conteudo: idioma pedido -> en -> pt-BR (campo a campo).
+    ui_locales: str = "pt-BR,en,zh-CN,ja,ko,ru,es,de,fr,it,ar"
     supported_locales: str = "pt-BR,en,es,ar"
     default_locale: str = "pt-BR"
     # Provedor de traducao automatica: "null" (padrao) = nenhum. Nenhum provedor
@@ -180,8 +182,13 @@ class Settings(BaseSettings):
 
     @property
     def supported_locale_list(self) -> list[str]:
-        """Idiomas suportados (lista limpa), na ordem configurada."""
+        """Idiomas de conteudo suportados (CONTENT_LOCALES), na ordem configurada."""
         return [code.strip() for code in self.supported_locales.split(",") if code.strip()]
+
+    @property
+    def ui_locale_list(self) -> list[str]:
+        """Idiomas da interface suportados (UI_LOCALES), na ordem configurada."""
+        return [code.strip() for code in self.ui_locales.split(",") if code.strip()]
 
     @field_validator(
         "elasticsearch_api_key",

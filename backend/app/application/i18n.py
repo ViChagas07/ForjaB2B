@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.domain.i18n import DEFAULT_LOCALE, ResolvedText, resolve_attributes, resolve_text
+from app.domain.i18n import ResolvedText, resolve_attributes, resolve_text
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -44,8 +44,8 @@ def resolve_product_text(
 ) -> ResolvedProductText:
     """Resolve nome, descricao e atributos com fallback campo a campo.
 
-    ``content_locale`` e o idioma efetivamente entregue; ``fallback`` indica que
-    ao menos um campo veio do pt-BR (ou que nao havia traducao).
+    ``content_locale`` e o idioma de conteudo resolvido (sempre o locale pedido);
+    ``fallback`` indica que ao menos um campo veio do pt-BR (fallback campo a campo).
     """
     name = resolve_text(
         source=source_name,
@@ -62,19 +62,13 @@ def resolve_product_text(
         translated=translation.attributes if translation else None,
         locale=locale,
     )
-    if locale == DEFAULT_LOCALE:
-        content_locale = DEFAULT_LOCALE
-        fallback = False
-    elif translation is None:
-        content_locale = DEFAULT_LOCALE
-        fallback = True
-    else:
-        content_locale = locale
-        fallback = name.fallback or description.fallback or attributes_fallback
+    # content_locale e sempre o locale de conteudo resolvido (parametro locale)
+    # fallback e True se algum campo fez fallback para pt-BR
+    fallback = name.fallback or description.fallback or attributes_fallback
     return ResolvedProductText(
         name=name,
         description=description,
         attributes=attributes,
-        content_locale=content_locale,
+        content_locale=locale,
         fallback=fallback,
     )

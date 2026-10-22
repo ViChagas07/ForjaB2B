@@ -57,7 +57,7 @@ class AttributeDefinitionSchema(BaseModel):
 
     @field_validator("options", mode="before")
     @classmethod
-    def _validate_options(cls, v: list[dict] | None) -> list[EnumOptionSchema] | None:
+    def _validate_options(cls, v: list[dict[str, Any]] | None) -> list[EnumOptionSchema] | None:
         if v is None:
             return None
         return [EnumOptionSchema(**opt) for opt in v]
@@ -69,7 +69,7 @@ class AttributeDefinitionSchema(BaseModel):
             options = tuple(EnumOption(key=opt.key, label=opt.label) for opt in self.options)
 
         scope_type = ScopeType.GLOBAL
-        scope_categories = ()
+        scope_categories: tuple[str, ...] = ()
         if self.scope and self.scope != ["global"]:
             scope_type = ScopeType.CATEGORIES
             scope_categories = tuple(self.scope)

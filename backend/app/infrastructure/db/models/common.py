@@ -70,4 +70,5 @@ class TimestampMixin:
         DateTime(timezone=True),
         nullable=False,
         server_default=text("now()"),
+        onupdate=text("now()"),
     )

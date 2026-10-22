@@ -163,7 +163,7 @@ class ProductAdminSummary(BaseModel):
     image_url: str | None
     version: int
     updated_at: datetime
-    updated_by: uuid.UUID
+    updated_by: uuid.UUID | None
 
 
 class ProductAdminDetail(ProductAdminSummary):
@@ -180,7 +180,7 @@ class ProductAdminDetail(ProductAdminSummary):
     min_order_qty: int
     attributes: dict[str, Any] | None
     created_at: datetime
-    created_by: uuid.UUID
+    created_by: uuid.UUID | None
 
 
 class ProductAdminListResponse(BaseModel):

@@ -1420,3 +1420,67 @@ Relatórios idênticos nas duas execuções.
 - Qualidade traduções árabe — não revisada por nativo
 - Fallback PostgreSQL busca apenas pt-BR
 - Deploy em produção — não executado
+
+---
+
+## Validacao V2 — API de administracao, traducoes, idiomas e busca
+
+**Data:** 2026-10-14
+**Ambiente:** Docker Compose real (PostgreSQL + Elasticsearch v2 + Redis + backend).
+
+### Escopo executado
+
+- Passo 0: tokens de admin/comprador via login real com `DEMO_USER_PASSWORD` (senha nunca impressa).
+- Passo 1: `UI_LOCALES` (11, descobertos em `frontend/i18n/locales.ts`: pt-BR, en, zh-CN, ja, ko,
+  ru, es, de, fr, it, ar) e `CONTENT_LOCALES` (pt-BR, en, es, ar); negociacao por idioma base,
+  q-values, `?lang=` prioritario, invalido -> pt-BR, `Vary: Accept-Language`.
+- Passo 2: CRUD administrativo real, atributos opcionais, RBAC 401/403, 409 concorrente,
+  SKU imutavel (422), auditoria, outbox, despublicar remove do indice (consulta direta ES 404),
+  revert de todos os dados de teste.
+- Passo 3: 4 locales de conteudo, 3 idiomas fora da lista -> en com `fallback=true`,
+  `stale` servido e `reviewed`, precos identicos por idioma, revert.
+- Passo 4: SKU exato em ar, termos en/es/ar, cadeia com fr, preco consultivo para visitante,
+  preco por empresa (gama 27.90, beta 29.61) e isolamento entre empresas (alfa 32.90).
+- Passo 5: `stop elasticsearch` -> `postgres_fallback` (2.05 s na primeira chamada,
+  8-15 ms apos circuit breaker; lexical 68-162 ms), edicao durante a queda OK,
+  `start` + healthcheck + `reconcile` -> recuperacao lexical (28-61 ms).
+- Passo 6: **NAO VALIDADO** — `EMBEDDINGS_ENABLED=false`; backfill/hybrid nao executados.
+- Passo 7: `docs/I18N.md` e `docs/STATUS.md` atualizados; checagens finais verdes.
+
+### Correcoes de bugs encontrados na V2
+
+1. **`orders.content_locale` inexistente**: o repositorio de pedidos ja gravava a coluna,
+   mas nenhuma migration a criava — quebrava criacao de pedido em banco novo. Migration 0019.
+2. **Optimistic lock quebrado**: `apply_update_to_product`/publish/unpublish geravam nova
+   `version` antes do UPDATE, fazendo toda edicao falhar com 409/500. Agora preservam a versao.
+3. **`updated_at` nao avancava** no UPDATE -> versao nao mudava e a segunda edicao concorrente
+   passava. Renovado explicitamente no repositorio.
+4. **`DRAFT` rejeitado pela constraint** de `products.status` -> despublicar falhava. Migration 0018.
+5. **Slug colidia ao renomear** produto para um nome ja existente. Desambiguacao com sufixo.
+6. **API admin usava role de runtime (RLS)** -> `permission denied`. Engine/UoW `forja_admin`
+   separado e `DATABASE_ADMIN_URL` no compose.
+7. **Auditoria inexistente**: `audit_log` nunca era escrito. Implementada para as 4 mutacoes.
+8. **`ON CONFLICT` da outbox sem constraint unica** -> UPSERT falhava. Migration 0018.
+9. **Drift do `product_attribute_definitions`**: model ORM criado; `alembic check` limpo.
+10. **`fallback` nao marcava a cadeia de idioma** (fr -> en retornava `false`). Corrigido no router.
+11. **Tipagem**: `PublicProductPage` separado de `ProductPage` (admin); `mypy --strict` zerado.
+
+### Checagens finais
+
+- `docker compose --env-file .env.example config --quiet` OK
+- `alembic check`: sem drift
+- `pytest tests/unit`: 421 passed; `tests/architecture`: 4 passed
+- `pytest tests/integration`: 252 passed, 1 skipped
+- `ruff check` / `ruff format --check`: OK
+- `mypy app --strict`: sem erros (285 arquivos)
+- `import-linter`: 4 contracts kept
+- Frontend: typecheck OK, lint OK (warnings `<img>`), 86 testes
+- Dados de teste revertidos; indice reconciliado (sem orfaos)
+
+### Pendencias / riscos
+
+- Embeddings/hybrid nao validados (`EMBEDDINGS_ENABLED=false`).
+- Traducoes automatizadas, arabe nao revisado por falante nativo.
+- Fallback PostgreSQL busca apenas pt-BR.
+- `DATABASE_ADMIN_URL` e obrigatoria para o backoffice.
+- Extensao de content locales exige traducoes + analisadores por idioma.

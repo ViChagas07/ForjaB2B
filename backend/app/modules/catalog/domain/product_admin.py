@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -120,8 +120,8 @@ class ProductAdminView:
     version: int  # epoch ms de updated_at para concorrência otimista
     created_at: datetime
     updated_at: datetime
-    created_by: uuid.UUID
-    updated_by: uuid.UUID
+    created_by: uuid.UUID | None = None
+    updated_by: uuid.UUID | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -210,11 +210,6 @@ def _generate_slug(name: str) -> str:
     return slug[:200]
 
 
-def _now_ms() -> int:
-    """Timestamp atual em milissegundos (epoch ms)."""
-    return int(datetime.now(UTC).timestamp() * 1000)
-
-
 def validate_and_normalize_create_input(
     input_data: CreateProductInput,
     registry: AttributeRegistry,
@@ -263,7 +258,7 @@ def validate_and_normalize_update_input(
     registry: AttributeRegistry,
     current_category_slug: str,
     current_sku: str,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """Valida entrada de edição e retorna attributes_normalizados."""
 
     # Valida imagem se fornecida
@@ -290,6 +285,7 @@ def apply_update_to_product(
     normalized_attrs: dict[str, Any] | None,
     registry: AttributeRegistry,
     category_slug: str,
+    existing_slugs: set[str] | None = None,
 ) -> ProductAdminView:
     """Aplica atualização parcial ao produto (retorna nova visão)."""
 
@@ -303,10 +299,18 @@ def apply_update_to_product(
     if normalized_attrs is not None:
         new_attributes = normalized_attrs
 
-    # Gera novo slug se nome mudou
+    # Gera novo slug se nome mudou (com desambiguação para não colidir)
     new_slug = product.slug
     if input_data.name is not None and input_data.name != product.name:
         new_slug = _generate_slug(input_data.name)
+        if existing_slugs is not None:
+            base_slug = new_slug
+            counter = 1
+            while new_slug in existing_slugs and new_slug != product.slug:
+                counter += 1
+                new_slug = f"{base_slug}-{counter}"
+                if len(new_slug) > 200:
+                    new_slug = f"{base_slug[:190]}-{counter}"
 
     return ProductAdminView(
         id=product.id,
@@ -352,9 +356,9 @@ def apply_update_to_product(
         currency=(input_data.currency if input_data.currency is not None else product.currency),
         image_url=(input_data.image_url if input_data.image_url is not None else product.image_url),
         attributes=new_attributes if new_attributes else None,
-        version=_now_ms(),
+        version=product.version,
         created_at=product.created_at,
-        updated_at=datetime.now(UTC),
+        updated_at=product.updated_at,
         created_by=product.created_by,
         updated_by=uuid.UUID("00000000-0000-0000-0000-000000000000"),  # placeholder, repo preenche
     )

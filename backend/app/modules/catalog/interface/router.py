@@ -13,7 +13,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.application.security import AuthContext
-from app.interface.deps import get_locale, get_optional_auth
+from app.interface.deps import LocaleInfo, get_locale_info, get_optional_auth
 from app.modules.catalog.application.catalog import (
     GetBrand,
     GetCategory,
@@ -61,7 +61,7 @@ def _get_product(request: Request) -> GetProduct:
     return cast(GetProduct, request.app.state.catalog_get_product)
 
 
-def _to_summary(view: ProductView) -> ProductSummary:
+def _to_summary(view: ProductView, language_fallback: bool = False) -> ProductSummary:
     return ProductSummary(
         id=view.id,
         sku=view.sku,
@@ -83,7 +83,7 @@ def _to_summary(view: ProductView) -> ProductSummary:
         image_url=view.image_url or "",
         image_alt=view.image_alt,
         content_locale=view.content_locale,
-        fallback=view.fallback,
+        fallback=view.fallback or language_fallback,
     )
 
 
@@ -122,7 +122,7 @@ async def list_products(
     query: Annotated[ProductListQuery, Query()],
     use_case: Annotated[ListProducts, Depends(_list_products)],
     auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
-    locale: Annotated[str, Depends(get_locale)],
+    locale_info: Annotated[LocaleInfo, Depends(get_locale_info)],
 ) -> ProductListResponse:
     page = await use_case.list(
         ProductFilters(
@@ -137,10 +137,10 @@ async def list_products(
             page_size=query.page_size,
         ),
         company_id=auth.company_id if auth is not None else None,
-        locale=locale,
+        locale=locale_info.content_locale,
     )
     return ProductListResponse(
-        items=[_to_summary(item) for item in page.items],
+        items=[_to_summary(item, locale_info.content_fallback) for item in page.items],
         total=page.total,
         page=page.page,
         page_size=page.page_size,
@@ -153,14 +153,14 @@ async def get_product(
     product_id: uuid.UUID,
     use_case: Annotated[GetProduct, Depends(_get_product)],
     auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
-    locale: Annotated[str, Depends(get_locale)],
+    locale_info: Annotated[LocaleInfo, Depends(get_locale_info)],
 ) -> ProductDetail:
     view = await use_case.get(
         product_id,
         company_id=auth.company_id if auth is not None else None,
-        locale=locale,
+        locale=locale_info.content_locale,
     )
-    summary = _to_summary(view)
+    summary = _to_summary(view, locale_info.content_fallback)
 
     # Converte attributes dict para lista ordenada apenas com atributos preenchidos
     attributes_list: list[ProductAttributeOut] = []

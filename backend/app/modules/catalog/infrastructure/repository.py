@@ -31,8 +31,8 @@ from app.modules.catalog.application.ports import (
     BrandView,
     CategoryView,
     ProductFilters,
-    ProductPage,
     ProductView,
+    PublicProductPage,
 )
 from app.modules.catalog.domain.availability import ca_status
 
@@ -115,7 +115,7 @@ class SqlAlchemyCatalogRepository:
                 return None
             return BrandView(id=brand.id, name=brand.name, slug=brand.slug)
 
-    async def list_products(self, filters: ProductFilters) -> ProductPage:
+    async def list_products(self, filters: ProductFilters) -> PublicProductPage:
         async with self._uow_factory.begin() as uow:
             conditions = _product_conditions(filters)
 
@@ -144,7 +144,7 @@ class SqlAlchemyCatalogRepository:
             ]
 
             pages = math.ceil(total / filters.page_size) if total else 0
-            return ProductPage(
+            return PublicProductPage(
                 items=items,
                 total=total,
                 page=filters.page,

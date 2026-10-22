@@ -158,6 +158,22 @@ class CatalogAdminRepository(Protocol):
         """Atualiza um produto (concorrência otimista via version)."""
 
 
+class AuditLogPort(Protocol):
+    """Registra uma entrada de auditoria tenant-scoped (RLS por company_id)."""
+
+    async def record(
+        self,
+        *,
+        company_id: uuid.UUID,
+        actor_user_id: uuid.UUID | None,
+        action: str,
+        resource: str,
+        resource_id: uuid.UUID,
+        details: dict[str, object] | None = None,
+    ) -> None:
+        """Grava a entrada; falha de auditoria propaga (não silencia)."""
+
+
 class SearchOutboxPort(Protocol):
     """Porta para emitir eventos na outbox de busca (global, sem RLS)."""
 

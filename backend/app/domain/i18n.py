@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 DEFAULT_LOCALE = "pt-BR"
+CONTENT_LOCALES = ("pt-BR", "en", "es", "ar")
+UI_LOCALES = ("pt-BR", "en", "zh-CN", "ja", "ko", "ru", "es", "de", "fr", "it", "ar")
 
 
 class TranslationStatus(StrEnum):
@@ -56,24 +58,39 @@ def negotiate_locale(
     *,
     accept_language: str | None = None,
     lang_param: str | None = None,
-    supported: list[str],
+    ui_locales: list[str],
+    content_locales: list[str],
     default: str = DEFAULT_LOCALE,
-) -> str:
+) -> tuple[str, str, bool]:
     """Resolve o idioma: parametro explicito > Accept-Language > default.
 
-    Valor nao suportado cai no default sem erro.
+    Retorna (ui_locale, content_locale, content_fallback).
+    - ui_locale: idioma da interface (sempre um de UI_LOCALES)
+    - content_locale: idioma do conteudo (sempre um de CONTENT_LOCALES)
+    - content_fallback: True se content_locale != ui_locale (houve fallback de idioma)
     """
     explicit = (lang_param or "").strip()
+    ui_locale = default
     if explicit:
-        matched = match_supported_locale(explicit, supported)
+        matched = match_supported_locale(explicit, ui_locales)
         if matched is not None:
-            return matched
-        return default
-    for candidate in _parse_accept_language(accept_language or ""):
-        matched = match_supported_locale(candidate, supported)
-        if matched is not None:
-            return matched
-    return default
+            ui_locale = matched
+    else:
+        for candidate in _parse_accept_language(accept_language or ""):
+            matched = match_supported_locale(candidate, ui_locales)
+            if matched is not None:
+                ui_locale = matched
+                break
+
+    # Resolve content locale from UI locale
+    if ui_locale in content_locales:
+        content_locale = ui_locale
+        content_fallback = False
+    else:
+        content_locale = "en"
+        content_fallback = True
+
+    return ui_locale, content_locale, content_fallback
 
 
 def _parse_accept_language(header: str) -> list[str]:

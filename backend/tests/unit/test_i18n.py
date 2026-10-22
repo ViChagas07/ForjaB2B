@@ -12,7 +12,9 @@ import pytest
 
 from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.domain.i18n import (
+    CONTENT_LOCALES,
     DEFAULT_LOCALE,
+    UI_LOCALES,
     TranslationStatus,
     is_translation_stale,
     match_supported_locale,
@@ -24,7 +26,8 @@ from app.domain.i18n import (
 )
 from app.infrastructure.i18n.dictionary import category_name, load_attribute_dictionary
 
-SUPPORTED = ["pt-BR", "en", "es", "ar"]
+CONTENT_LOCALES_LIST = list(CONTENT_LOCALES)
+UI_LOCALES_LIST = list(UI_LOCALES)
 
 
 # ------------------------------------------------------------------ locale
@@ -43,38 +46,76 @@ SUPPORTED = ["pt-BR", "en", "es", "ar"]
     ],
 )
 def test_match_locale(locale: str, expected: str) -> None:
-    assert match_supported_locale(locale, SUPPORTED) == expected
+    assert match_supported_locale(locale, CONTENT_LOCALES_LIST) == expected
 
 
 @pytest.mark.parametrize("locale", ["de", "fr-CA", "zh-Hans", "", "en "])
 def test_match_locale_nao_suportado_devolve_none(locale: str) -> None:
-    assert match_supported_locale(locale, SUPPORTED) is None
+    assert match_supported_locale(locale, CONTENT_LOCALES_LIST) is None
 
 
 def test_negotiate_locale_respeita_parametro_explicito() -> None:
-    assert negotiate_locale(lang_param="es", supported=SUPPORTED) == "es"
-    assert negotiate_locale(lang_param="en", supported=SUPPORTED) == "en"
+    _ui, content, fallback = negotiate_locale(
+        lang_param="es", ui_locales=UI_LOCALES_LIST, content_locales=CONTENT_LOCALES_LIST
+    )
+    assert content == "es"
+    assert fallback is False
+    _ui, content, fallback = negotiate_locale(
+        lang_param="en", ui_locales=UI_LOCALES_LIST, content_locales=CONTENT_LOCALES_LIST
+    )
+    assert content == "en"
+    assert fallback is False
 
 
 def test_negotiate_locale_lang_invalido_cai_no_default_sem_erro() -> None:
     # ?lang=de fora da lista: sem erro, cai no default (pt-BR). Um parametro
     # explicito invalido NAO promove o Accept-Language (comportamento
     # verificado em runtime): o cliente deve reenviar um ?lang= valido.
-    assert negotiate_locale(lang_param="de", supported=SUPPORTED) == DEFAULT_LOCALE
-    assert (
-        negotiate_locale(accept_language="ar", lang_param="de", supported=SUPPORTED)
-        == DEFAULT_LOCALE
+    _ui, content, fallback = negotiate_locale(
+        lang_param="de", ui_locales=UI_LOCALES_LIST, content_locales=CONTENT_LOCALES_LIST
     )
+    assert content == "en"  # de nao esta em CONTENT_LOCALES, cai em en
+    assert fallback is True
+    _ui, content, fallback = negotiate_locale(
+        accept_language="ar",
+        lang_param="de",
+        ui_locales=UI_LOCALES_LIST,
+        content_locales=CONTENT_LOCALES_LIST,
+    )
+    assert content == "en"  # lang invalido tem prioridade, cai em en
+    assert fallback is True
 
 
 def test_negotiate_locale_usa_accept_language() -> None:
-    assert negotiate_locale(accept_language="en-US,en;q=0.9", supported=SUPPORTED) == "en"
-    assert negotiate_locale(accept_language="es;q=0.8,en;q=0.9", supported=SUPPORTED) == "en"
+    _ui, content, fallback = negotiate_locale(
+        accept_language="en-US,en;q=0.9",
+        ui_locales=UI_LOCALES_LIST,
+        content_locales=CONTENT_LOCALES_LIST,
+    )
+    assert content == "en"
+    assert fallback is False
+    _ui, content, fallback = negotiate_locale(
+        accept_language="es;q=0.8,en;q=0.9",
+        ui_locales=UI_LOCALES_LIST,
+        content_locales=CONTENT_LOCALES_LIST,
+    )
+    assert content == "en"  # en tem q=0.9 maior
+    assert fallback is False
 
 
 def test_negotiate_locale_sem_nada_devolve_default() -> None:
-    assert negotiate_locale(supported=SUPPORTED) == DEFAULT_LOCALE
-    assert negotiate_locale(accept_language="fr", supported=SUPPORTED) == DEFAULT_LOCALE
+    _ui, content, fallback = negotiate_locale(
+        ui_locales=UI_LOCALES_LIST, content_locales=CONTENT_LOCALES_LIST
+    )
+    assert content == DEFAULT_LOCALE
+    assert fallback is False
+    _ui, content, fallback = negotiate_locale(
+        accept_language="fr",
+        ui_locales=UI_LOCALES_LIST,
+        content_locales=CONTENT_LOCALES_LIST,
+    )
+    assert content == "en"  # fr nao esta em CONTENT_LOCALES, cai em en
+    assert fallback is True
 
 
 # ------------------------------------------------------------------ resolve
@@ -211,7 +252,8 @@ def test_resolve_product_text_sem_traducao_faz_fallback() -> None:
         locale="en",
         translation=None,
     )
-    assert r.content_locale == "pt-BR"
+    # content_locale e sempre o locale pedido (en), fallback indica field-by-field
+    assert r.content_locale == "en"
     assert r.fallback is True
     assert r.name.value == "Capacete de Seguranca"
 

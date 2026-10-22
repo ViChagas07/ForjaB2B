@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -211,3 +212,38 @@ class ProductTranslation(TimestampMixin, Base):
         server_default=TranslationStatus.MACHINE.value,
     )
     translated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ProductAttributeDefinition(TimestampMixin, Base):
+    """Definicao do schema de um atributo opcional de produto.
+
+    Espelha a tabela criada pela migration 0017. A leitura e publica
+    (catalogo global); a escrita e restrita ao admin.
+    """
+
+    __tablename__ = "product_attribute_definitions"
+    __table_args__ = (
+        CheckConstraint(
+            "type IN ('text', 'number', 'enum', 'boolean')",
+            name="product_attribute_definitions_type_check",
+        ),
+        Index("ix_product_attribute_definitions_key", "key", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    type: Mapped[str] = mapped_column(String(16), nullable=False)
+    unit: Mapped[str | None] = mapped_column(String(20))
+    options: Mapped[dict[str, object] | list[object] | None] = mapped_column(JSONB)
+    scope: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[\"global\"]'::jsonb")
+    )
+    section: Mapped[str] = mapped_column(String(50), nullable=False, server_default=text("'geral'"))
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    required: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    min_value: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    max_value: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    max_length: Mapped[int | None] = mapped_column(Integer)

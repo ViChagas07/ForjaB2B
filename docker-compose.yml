@@ -284,6 +284,7 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-json}
       POSTGRES_HOST: postgres
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_APP_USER:-forja_app}:${POSTGRES_APP_PASSWORD:-forja_app_secret_dev}@postgres:5432/${POSTGRES_DB:-forja_db}
+      DATABASE_ADMIN_URL: postgresql+asyncpg://${POSTGRES_ADMIN_USER:-forja_admin}:${POSTGRES_ADMIN_PASSWORD:-forja_admin_secret_dev}@postgres:5432/${POSTGRES_DB:-forja_db}
       REDIS_HOST: redis
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       RABBITMQ_HOST: rabbitmq

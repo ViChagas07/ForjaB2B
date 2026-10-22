@@ -17,6 +17,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
     text,
 )
@@ -36,6 +37,7 @@ class SearchOutbox(TimestampMixin, Base):
             "status IN ('PENDING', 'PROCESSED', 'FAILED', 'DEAD_LETTERED')",
             name="status",
         ),
+        UniqueConstraint("aggregate_id", "event_type", name="uq_search_outbox_aggregate_event"),
         Index("ix_search_outbox_status", "status"),
     )
 

@@ -24,8 +24,8 @@ from app.modules.catalog.application.ports import (
     CatalogRepository,
     CategoryView,
     ProductFilters,
-    ProductPage,
     ProductView,
+    PublicProductPage,
 )
 
 
@@ -136,7 +136,7 @@ class ListProducts:
         *,
         company_id: uuid.UUID | None = None,
         locale: str = DEFAULT_LOCALE,
-    ) -> ProductPage:
+    ) -> PublicProductPage:
         page = await self._repository.list_products(filters)
         product_ids = [view.id for view in page.items]
         if company_id is None:

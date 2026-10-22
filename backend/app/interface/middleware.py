@@ -4,6 +4,9 @@ Le `X-Request-ID` quando presente (propagacao de proxies/edge) ou gera um
 novo identificador, expoe em app.core.correlation para logs e devolve no
 header `X-Request-ID` da resposta. O trace context W3C (`traceparent`) e
 tratado pela instrumentacao OpenTelemetry, nao por este middleware.
+
+Middleware de Vary: adiciona `Vary: Accept-Language` para rotas que dependem
+do idioma (catalogo, busca, carrinho, pedidos).
 """
 
 from __future__ import annotations
@@ -14,8 +17,17 @@ from typing import Any
 from app.core.correlation import new_request_id, reset_request_id, set_request_id
 
 REQUEST_ID_HEADER = "x-request-id"
+VARY_HEADER = "vary"
 
 _SCOPE_HEADERS_LIMIT = 100  # defesa contra headers absurdamente grandes
+
+# Rotas que dependem do idioma e devem ter Vary: Accept-Language
+_LOCALE_DEPENDENT_PATHS = (
+    "/api/v1/catalog",
+    "/api/v1/search",
+    "/api/v1/cart",
+    "/api/v1/orders",
+)
 
 
 def _extract_request_id(scope: MutableMapping[str, Any]) -> str:
@@ -26,6 +38,11 @@ def _extract_request_id(scope: MutableMapping[str, Any]) -> str:
             if candidate:
                 return candidate
     return new_request_id()
+
+
+def _is_locale_dependent(path: str) -> bool:
+    """Verifica se o path e dependente de idioma."""
+    return any(path.startswith(prefix) for prefix in _LOCALE_DEPENDENT_PATHS)
 
 
 class CorrelationIdMiddleware:
@@ -46,14 +63,18 @@ class CorrelationIdMiddleware:
 
         request_id = _extract_request_id(scope)
         token = set_request_id(request_id)
+        path = scope.get("path", "")
 
-        async def send_with_request_id(message: MutableMapping[str, Any]) -> None:
+        async def send_with_headers(message: MutableMapping[str, Any]) -> None:
             if message.get("type") == "http.response.start":
                 headers = message.setdefault("headers", [])
                 headers.append((REQUEST_ID_HEADER.encode(), request_id.encode("latin-1")))
+                if _is_locale_dependent(path):
+                    # Adiciona Vary: Accept-Language para rotas dependentes de idioma
+                    headers.append((VARY_HEADER.encode(), b"Accept-Language"))
             await send(message)
 
         try:
-            await self._app(scope, receive, send_with_request_id)
+            await self._app(scope, receive, send_with_headers)
         finally:
             reset_request_id(token)

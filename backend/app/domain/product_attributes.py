@@ -264,7 +264,7 @@ def validate_product_required_fields(
 # ---------------------------------------------------------------------------
 
 
-def _parse_scope(def_data: dict) -> tuple[ScopeType, tuple[str, ...]]:
+def _parse_scope(def_data: dict[str, Any]) -> tuple[ScopeType, tuple[str, ...]]:
     """Parseia o escopo do JSON para tipo e categorias."""
     scope = def_data.get("scope")
     if scope and scope != ["global"]:
@@ -272,7 +272,7 @@ def _parse_scope(def_data: dict) -> tuple[ScopeType, tuple[str, ...]]:
     return ScopeType.GLOBAL, ()
 
 
-def _parse_options(def_data: dict) -> tuple[EnumOption, ...] | None:
+def _parse_options(def_data: dict[str, Any]) -> tuple[EnumOption, ...] | None:
     """Parseia opções de enum do JSON."""
     options_data = def_data.get("options")
     if not options_data:

@@ -97,6 +97,9 @@ class Order(TimestampMixin, Base):
     po_number: Mapped[str | None] = mapped_column(String(100))
     idempotency_key: Mapped[str | None] = mapped_column(String(64))
     notes: Mapped[str | None] = mapped_column(Text)
+    content_locale: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default=text("'pt-BR'")
+    )
 
     company: Mapped[Company] = relationship(back_populates="orders")
     buyer: Mapped[User] = relationship(back_populates="orders")
@@ -144,6 +147,9 @@ class OrderItem(TimestampMixin, Base):
     )
     line_total: Mapped[Decimal] = mapped_column(aggregate_money(), nullable=False)
     tier_min_quantity: Mapped[int | None] = mapped_column(Integer)
+    content_locale: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default=text("'pt-BR'")
+    )
 
     order: Mapped[Order] = relationship(back_populates="items")
     company: Mapped[Company] = relationship()

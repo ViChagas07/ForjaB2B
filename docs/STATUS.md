@@ -707,7 +707,7 @@ cd frontend && npm run test       # vitest run (83 testes)
 
 ## Validação V3 — Frontend: 11 idiomas, RTL, selo fallback, checagem visual
 
-**Iniciado:** 2026-10-14  
+**Iniciado:** 2026-10-14
 **Concluído:** 2026-10-14 (testes automatizados passam; validação visual com Docker pendente)
 
 ### Resumo
@@ -856,3 +856,125 @@ docker compose start elasticsearch
 | `ruff format --check` | ✅ 381 files |
 | `mypy` | Apenas erros em deps externas (opentelemetry, elasticsearch, redis) |
 | `import-linter` | ✅ 4 contracts kept, 0 broken |
+
+---
+
+## Validação V2 — API de administração, traduções, idiomas e busca
+
+**Iniciado:** 2026-10-14
+**Concluído:** 2026-10-14
+**Ambiente:** Docker Compose real (PostgreSQL, Elasticsearch, Redis, backend), API em `http://localhost:8000`, índice `forja_products` (v2).
+
+### Resumo
+
+| Passo | Descrição | Estado |
+|-------|-----------|--------|
+| 0 | Tokens de demonstração via `DEMO_USER_PASSWORD` (login real) | ✅ |
+| 1 | Listas `UI_LOCALES` (11) / `CONTENT_LOCALES` (4), negociação, fallback, `Vary` | ✅ |
+| 2 | Administração ponta a ponta (criar/editar/limpar atributos, RBAC, 409, SKU, auditoria, outbox, despublicar) | ✅ |
+| 3 | Traduções (4 locales, 3 fora da lista, `stale` servido, `reviewed`, preços idênticos) | ✅ |
+| 4 | Busca multilíngue (SKU em `ar`, termos `en`/`es`/`ar`, cadeia, preços por perfil) | ✅ |
+| 5 | Fallback real sem Elasticsearch (latência, edição durante queda, recuperação) | ✅ |
+| 6 | Embeddings | ⚠️ **NÃO VALIDADO** (`EMBEDDINGS_ENABLED=false`) |
+| 7 | Documentação e checagens finais | ✅ |
+
+### Mudanças de código (V2)
+
+**Idiomas e respostas**
+- `core/config.py`: `UI_LOCALES` (11) separado de `SUPPORTED_LOCALES`/`CONTENT_LOCALES` (4).
+- `domain/i18n.py`: `negotiate_locale` retorna `(ui_locale, content_locale, content_fallback)`;
+  correspondência por idioma base; `?lang=` prioritário; inválido → `pt-BR`.
+- `interface/deps.py`: `LocaleInfo` + `get_locale_info`; `get_locale` mantido por compatibilidade.
+- `application/i18n.py`: `content_locale` é sempre o locale de conteúdo resolvido; `fallback`
+  campo a campo.
+- `interface/middleware.py`: `Vary: Accept-Language` em catálogo, busca, carrinho e pedidos.
+- `catalog/interface/router.py`: `fallback=true` também quando o idioma pedido cai na cadeia
+  (`fr` → `en`), além do fallback de campo.
+
+**Administração**
+- Engine/UoW administrativo separado (`forja_admin`, sem RLS) via `DATABASE_ADMIN_URL`
+  (obrigatória para o backoffice).
+- Correção de concorrência otimista: `apply_update_to_product`/`publish`/`unpublish`
+  preservam `version`/`updated_at` até o repositório; `updated_at` é renovado no UPDATE.
+- `ProductStatus.DRAFT` adicionado (despublicar) + constraint do banco.
+- Slug desambiguado ao renomear produto (evita colisão).
+- **Auditoria implementada**: `audit_log` registra `catalog.product.created|updated|published|unpublished`
+  (tenant do ator), via `SqlAlchemyAuditLogRepository`.
+- `search_outbox` com constraint única `(aggregate_id, event_type)` para `ON CONFLICT`.
+
+**Banco**
+- Migration `0018`: `ck_products_status` aceita `DRAFT`; unicidade da outbox.
+- Migration `0019`: `content_locale` em `orders` e `order_items` (bug real: o repositório já
+  gravava a coluna, mas ela não existia em banco migrado do zero).
+- Modelo ORM de `product_attribute_definitions` criado: `alembic check` sem drift.
+
+### Evidências (API real)
+
+**Idiomas (produto demo `CAP-002`)**
+
+| `Accept-Language` | `content_locale` | `fallback` | Nome entregue |
+|---|---|---|---|
+| `pt-BR` | `pt-BR` | `false` | Capacete de Segurança Classe A Aba Frontal |
+| `en` | `en` | `false` | Class A Front Brim Safety Helmet |
+| `es` | `es` | `false` | Casco de Seguridad Clase A Ala Delantera |
+| `ar` | `ar` | `false` | خوذة أمان من الفئة أ الأمامية |
+| `fr`, `ja`, `de` | `en` | `true` | Class A Front Brim Safety Helmet |
+| `ar-EG` | `ar` | `false` | خوذة أمان من الفئة أ الأمامية |
+
+Preços/`price_on_request`/status idênticos em `pt-BR`, `en`, `es`, `ar` e `fr` (`32.90 BRL`).
+
+**Administração**
+- Criar com nome+descrição+marca → `201`, `attributes=null`; detalhe público → `attributes=[]`.
+- Editar com `modelo`/`cor` → ambos aparecem; limpar `cor` → só `modelo`.
+- Visitante: `401` (criar/editar); comprador: `403` (criar/editar).
+- Edição concorrente: 1ª `200`, 2ª com versão antiga `409`.
+- Alterar `sku` no PATCH → `422`.
+- Auditoria: 4 entradas (`created`, 3×`updated`) para o produto de teste.
+- Outbox: `UPSERT` (criação/edições) e `DELETE` (despublicar), ambos `PENDING`.
+- Despublicar → `status=DRAFT`; busca `total=0`; consulta direta ao Elasticsearch do `_doc` → `404`.
+
+**Traduções**
+- Editar texto `pt-BR` → tradução `en` retorna `is_stale=true` e **continua sendo servida**
+  (`Original English Name`).
+- `PATCH .../en` com `mark_reviewed=true` → `status=reviewed`, `is_stale=false`.
+- Dados de teste revertidos (produto, traduções, outbox, auditoria, documento no índice).
+
+**Busca**
+- `q=CAP-002` com `Accept-Language: ar` → 1º resultado `CAP-002`, nome árabe, `content_locale=ar`.
+- `q=Helmet` (`en`) → 5 resultados; `q=Casco` (`es`) → 6; `q=خوذة` (`ar`) → 5.
+- `q=Helmet` com `Accept-Language: fr` → `content_locale=en` (cadeia).
+- Visitante → `base_unit_price=null`, `price_on_request=true`.
+- Comprador Gama (preço fixo `27.90`) → `27.90`; comprador Beta (10%) → `29.61`;
+  comprador Alfa → `32.90` (não recebe o preço fixo de outra empresa).
+
+**Fallback sem Elasticsearch**
+- `docker compose stop elasticsearch` → `search_mode=postgres_fallback`, conteúdo `pt-BR`.
+- Latência: lexical **68–162 ms** (média 102 ms); fallback 1ª requisição **~2.05 s**
+  (timeout do ES), depois do circuit breaker **8–15 ms** (média do termo `capacete` 24 ms).
+- Catálogo editável durante a queda (`201` criação, `200` edição).
+- `docker compose start elasticsearch` + healthcheck → `reconcile` (`checked=50/74`, `upserted`,
+  `deleted=21/1`) → `search_mode=lexical` novamente, latência 28–61 ms, produto de teste indexado.
+- Dados de teste da queda removidos; índice reconciliado sem órfãos.
+
+### Qualidade final (V2)
+
+| Verificador | Resultado |
+|-------------|-----------|
+| `docker compose --env-file .env.example config --quiet` | ✅ |
+| `alembic check` (dev) | ✅ sem drift |
+| `pytest tests/unit` | ✅ 421 passed |
+| `pytest tests/architecture` | ✅ 4 passed |
+| `pytest tests/integration` (Testcontainers) | ✅ 252 passed, 1 skipped |
+| `ruff check` / `ruff format --check` | ✅ |
+| `mypy app --strict` | ✅ sem erros (285 arquivos) |
+| `import-linter` | ✅ 4 contracts kept |
+| Frontend `typecheck` / `lint` / `test` | ✅ / ✅ (warnings `<img>`) / ✅ 86 |
+
+### NÃO VALIDADO e riscos (V2)
+
+- **Embeddings/hybrid**: `EMBEDDINGS_ENABLED=false` no `.env`; backfill e consultas `hybrid`
+  não executados. Não habilitado por padrão.
+- **Qualidade das traduções**: `en`/`es`/`ar` são automatizadas; árabe não revisado por falante nativo.
+- **Fallback PostgreSQL** busca apenas `pt-BR` (não usa `en`/`es`/`ar`).
+- **`DATABASE_ADMIN_URL` obrigatória**: sem ela o backoffice não opera (catálogo global).
+- **Novos idiomas de conteúdo** exigem traduções e analisadores próprios (não é só configuração).

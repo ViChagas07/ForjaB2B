@@ -101,7 +101,7 @@ async def create_product(
     use_case: Annotated[CreateProduct, Depends(_create_product)],
     auth: Annotated[AuthContext, Depends(get_auth)],
 ) -> ProductAdminDetail:
-    """Cria um novo produto (rascunho/DRAFT)."""
+    """Cria um novo produto (ativo por padrão)."""
     from app.modules.catalog.domain.product_admin import CreateProductInput
 
     input_data = CreateProductInput(
