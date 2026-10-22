@@ -32,8 +32,9 @@
 - **Rate limiting ainda não está no código commitado** (só configuração e WIP). **Não há
   backup automatizado** (`make db-backup` é documentado, mas o target não existe) e **não há
   limpeza de índices antigos do Elasticsearch**.
-- `origin/main` está **15 commits atrás** do HEAD local; os 15 commits locais **não foram
-  enviados**. Outros 14 commits desde a Fase 9A-2 já estavam no remoto.
+- No snapshot, `origin/main` estava **15 commits atrás** do HEAD local; os 15 commits
+  locais **não foram enviados**. Após os 3 commits desta auditoria, o total local é 18.
+  Outros 14 commits desde a Fase 9A-2 já estavam no remoto.
 
 ## 1. Estado real das validações
 
@@ -93,10 +94,11 @@ d2426b9 feat(security): endurece CORS com origens explicitas
 c3f28da feat(security): adiciona cabecalhos de seguranca e CSP com nonce
 ```
 
-**Conclusão:** não houve push dos 15 commits locais. A afirmação “nada foi enviado” é
-verdadeira para o trabalho desde `df34400`, mas **não** para todo o intervalo desde 9A-2:
-14 commits já estão no remoto. O `git status` no início da auditoria estava limpo; o WIP de
-rate limiting apareceu depois e não faz parte de nenhum commit.
+**Conclusão:** não houve push dos 15 commits locais do snapshot (nem dos 3 commits de
+documentação desta auditoria). A afirmação “nada foi enviado” é verdadeira para o trabalho
+desde `df34400`, mas **não** para todo o intervalo desde 9A-2: 14 commits já estão no
+remoto. O `git status` no início da auditoria estava limpo; o WIP de rate limiting apareceu
+depois e não faz parte de nenhum commit.
 
 ## 3. Contagens reais de testes
 
