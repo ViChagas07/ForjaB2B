@@ -51,6 +51,10 @@ __pycache__/
 # Assets source (originais nunca versionados)
 assets-src/
 
+# Backups locais de banco (nunca versionar)
+*.dump
+*.dump.*
+
 # Misc
 *.pem
 .cache/

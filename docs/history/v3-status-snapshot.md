@@ -1,3 +1,6 @@
+> **Documento histórico (congelado).** Snapshot intermediário da validação V3,
+> substituído pelo `docs/STATUS.md` atual. Preservado como registro.
+
 ---
 
 ## Validação V3 — Frontend: 11 idiomas, RTL, selo fallback, checagem visual

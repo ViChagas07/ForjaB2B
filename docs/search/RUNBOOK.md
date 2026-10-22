@@ -329,8 +329,8 @@ docker compose exec -T postgres pg_dump -U "$POSTGRES_BOOTSTRAP_USER" -d "$POSTG
 - **Sinônimos/abreviações de EPIs** não implementados (ex.: "óculos"↔"oculos" já funciona por
   `asciifolding`, mas não há dicionário de sinônimos).
 - **Custo de memória do modelo** de embeddings (~0,5–1,0 GB) quando habilitado.
-- **Frescura do índice** depende de reindexação/reconciliação enquanto não existir caminho de
-  escrita de catálogo (backoffice) emitindo eventos no outbox.
+- **Frescura do índice** depende do worker/beat processar a outbox (o admin de catálogo já
+  emite eventos) ou de `reindex`/`reconcile` manual; com o beat parado, a defasagem persiste.
 - **Catálogo é global** (sem tenant): a busca não filtra por empresa; autorização refere-se a
   preço/visibilidade, não a um catálogo por cliente.
 - **Upgrade do Elasticsearch (achado real):** um volume criado pelo ES **8.15.0** não sobe direto no
@@ -361,8 +361,8 @@ consulta `hybrid` real e degradação para `lexical`.
 
 **Não validado (depende do alvo real):** deploy no provedor de produção (alvo ainda `[PREENCHER]`);
 TLS + API key do Elasticsearch em produção; snapshots do ES; imagem com o modelo embutido no build
-(medida, não construída no repositório); latência/memória em produção; circuit breaker (não existe —
-ver limitação de latência abaixo).
+(medida, não construída no repositório); latência/memória em produção; comportamento do circuit
+breaker em produção (ele existe e foi medido localmente — ver limitação de latência abaixo).
 
 ## 15. Como rodar os testes
 

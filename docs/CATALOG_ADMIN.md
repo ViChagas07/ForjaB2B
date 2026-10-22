@@ -1,6 +1,8 @@
 # Modelo de Atributos de Produto — Catálogo Admin
 
-> Documento gerado na Fase 9-a. Atualize conforme evolução do modelo.
+> Documento da Fase 9-a, atualizado com correções pontuais. O schema atual inclui
+> `DRAFT` no `CHECK` de `products.status` (migration 0018) e a API admin descrita
+> em `docs/CATALOG_ADMIN.md`; o estado consolidado está em `docs/STATUS.md`.
 
 ---
 
@@ -17,7 +19,7 @@
 | `name` | `varchar(200)` | NOT NULL | 200 | GIN trigram |
 | `slug` | `varchar(200)` | NOT NULL | 200 | UNIQUE |
 | `description` | `text` | **NULL** | — | GIN tsvector (name \|\| description) |
-| `status` | `varchar(24)` | NOT NULL | 24 | CHECK (ACTIVE/INACTIVE), default ACTIVE |
+| `status` | `varchar(24)` | NOT NULL | 24 | CHECK (DRAFT/ACTIVE/INACTIVE), default ACTIVE |
 | `is_epi` | `boolean` | NOT NULL | — | default false |
 | `ca_number` | `varchar(64)` | NULL | 64 | — |
 | `ca_valid_until` | `date` | NULL | — | idx parcial (WHERE is_epi) |

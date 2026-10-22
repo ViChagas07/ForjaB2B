@@ -1,3 +1,7 @@
+> **Documento histórico (congelado).** Substituído pelo `README.md` da raiz em
+> 2026-10-22. O texto abaixo descreve um estado antigo do projeto (fases iniciais)
+> e não deve ser usado como instrução atual.
+
 # Forja B2B — Backend (README em português)
 
 API FastAPI (Python 3.12) de marketplace B2B multi-tenant, com isolamento via

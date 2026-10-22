@@ -1,3 +1,6 @@
+> **Documento histórico (congelado).** Snapshot da Fase 9B-c, substituído pelas
+> validações V3 e pelo `docs/STATUS.md` atual. Preservado como registro.
+
 ---
 
 ## Fase 9B-c — Frontend multilíngue (seletor de idioma, textos traduzidos e RTL em árabe)

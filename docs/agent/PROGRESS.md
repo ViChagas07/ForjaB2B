@@ -1,5 +1,11 @@
 # Progresso
 
+> **Log cronológico (não é o estado atual).** Registra o que foi feito em cada
+> sessão, inclusive tentativas e números de testes da época. O estado consolidado
+> está em `docs/STATUS.md`. Algumas afirmações antigas foram superadas (por
+> exemplo, "rate limiting herdado do middleware" não corresponde ao código
+> atual); em caso de divergência, vale o código e o `STATUS.md`.
+
 ## Fase 9A-3a — Rascunhos de produtos a partir das fotos e manifesto
 
 **Iniciado:** 2026-10-11
@@ -1590,3 +1596,23 @@ Relatórios idênticos nas duas execuções.
   (`test_analisador_pt_ignora_acento`, ConnectionTimeout no ES de Testcontainers) —
   repetida 3x, registrada como BLOQUEADO de ambiente, sem relacao com a V3.
 - `prettier --check` limpo nos arquivos da V3; 3 arquivos nao tocados seguem fora do padrao.
+
+---
+
+## Prompt 09 — README, ADRs, não-objetivos e relatório final (2026-10-22)
+
+- **Inventário:** README raiz era stub; README.pt-BR, snapshots `temp_*` e log antigo do
+  STATUS foram movidos para `docs/history/` com nota; STATUS reescrito.
+- **Documentação:** README (PT + resumo EN, Mermaid, validação, execução local), 9 ADRs
+  novos + ADR-0004 atualizado, NON_GOALS, CHANGELOG, INDEX, API, DEPLOY_RENDER (não
+  executado), LOAD (não executado), GAP_AUDIT reconstruído (arquivo estava vazio) e
+  FINAL_REPORT.
+- **Checagens reais:** backend unit+arch **425 passed**; sem Docker **427 passed, 251
+  skipped**; suíte com Docker **677 passed, 1 skipped**; frontend **102 passed** + build OK;
+  Ruff OK (384 arquivos); `mypy app --strict` 0 erros (285 arquivos), mas `mypy .` **48
+  erros em 5 arquivos de teste**; import-linter 4/4; Compose config OK. Runtime: Grafana e
+  celery-beat em restart (config/permissão).
+- **Links:** `scripts/check_markdown_links.py` → 41 arquivos, 0 links quebrados (46 com
+  histórico). Nenhum push; commits locais de documentação.
+- **NÃO VALIDADO:** deploy Render, teste de carga, rate limiting (não implementado), CORS,
+  modo hybrid no estado padrão, revisão nativa das traduções.

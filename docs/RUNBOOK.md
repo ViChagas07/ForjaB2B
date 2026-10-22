@@ -51,9 +51,10 @@ Este documento descreve os procedimentos operacionais padrão (SOP), contingênc
   # ou
   docker compose down
   ```
-- Parar e destruir volumes (ATENÇÃO: apaga dados do PostgreSQL e Redis):
+- Parar e destruir volumes (ATENÇÃO: apaga dados do PostgreSQL e Redis; não é
+  usado nas validações deste projeto):
   ```bash
-  make down-volumes
+  make clean
   # ou
   docker compose down -v
   ```

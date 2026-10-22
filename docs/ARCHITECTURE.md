@@ -31,20 +31,33 @@ A raiz de composição (`app/main.py`) liga portas a implementações e as expõ
 | `payment` | pagamentos (PIX/CARD/BOLETO), webhook idempotente, máquina de estados |
 | `notification` | outbox transacional + despacho (Celery/RabbitMQ) + e-mail |
 | `privacy` | LGPD: exportação, retificação, exclusão, consentimento |
-| `search` | busca do catálogo: lexical (Elasticsearch) + semântica (pgvector) fundidas por RRF, com fallback PostgreSQL |
+| `search` | busca do catálogo: lexical (Elasticsearch) + semântica opcional (pgvector) fundidas por RRF, com fallback PostgreSQL |
 | `audit` / `rfq` / `notifications` | scaffolds (fases futuras) |
 
-## Busca do catálogo (Fases 2–6)
+## Busca do catálogo (Fases 2–9B)
 
 - **PostgreSQL** é a fonte de verdade (preço/CA/disponibilidade) e o **fallback** textual
   (`tsvector` + `unaccent` + `pg_trgm`); **Elasticsearch** é o motor lexical (índice versionado
-  + alias) e **pgvector** o motor semântico (embeddings locais).
+  + alias) e **pgvector** o motor semântico opcional (embeddings locais).
 - O índice e os vetores devolvem apenas **ids**; os dados exibidos são **hidratados do PostgreSQL**
   (preço consultivo para visitante), e entradas defasadas são descartadas.
-- A aplicação roda os dois caminhos em paralelo, funde por **RRF** e reporta o **modo real**
+- **Estado padrão do repositório:** `EMBEDDINGS_ENABLED=false`; a busca opera em **lexical com
+  fallback PostgreSQL**. Quando os embeddings são habilitados, a aplicação roda os dois caminhos
+  em paralelo, funde por **RRF** e reporta o **modo real**
   (`hybrid`/`lexical`/`semantic_postgres`/`postgres_fallback`); falha de infraestrutura nunca vira
-  lista vazia. Detalhes operacionais em `docs/search/RUNBOOK.md`; decisão em
+  lista vazia. O modo `hybrid` foi validado localmente (Fase 7), não em produção.
+  Detalhes operacionais em `docs/search/RUNBOOK.md`; decisão em
   `docs/ADRs/0004-busca-hibrida.md`.
+
+## Preços, catálogo e idiomas
+
+- **Preço nunca entra no índice nem no vetor.** A resolução é feita no PostgreSQL por empresa
+  (`company_price_rules`, RLS): negociado > desconto > lista. Visitante recebe preço consultivo.
+- **Catálogo global** (sem tenant) para leitura; a escrita administrativa usa uma role/UoW
+  separada (`DATABASE_ADMIN_URL`) e emite eventos na `search_outbox` na mesma transação.
+- **Texto de produto** é resolvido campo a campo: `pt-BR` é a origem; `en`, `es` e `ar` são os
+  idiomas de conteúdo; a interface tem 11 idiomas. Traduções são armazenadas, nunca geradas no
+  request. Ver `docs/I18N.md`.
 
 ## Isolamento multi-tenant (RLS)
 

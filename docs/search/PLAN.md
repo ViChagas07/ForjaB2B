@@ -1,6 +1,11 @@
 # Forja B2B — Busca: auditoria e plano (Fase 1 de 6)
 
-> Status: **plano aprovado, Fase 1 concluída (auditoria, sem alteração de código)**.
+> **Documento histórico (plano da Fase 1).** Descreve o estado do repositório em
+> 2026-10-10, antes das Fases 2–6. Não é o estado atual: o Elasticsearch hoje é
+> 9.5.5, há `docker-compose.prod.yml`, busca multilíngue e o circuito de fallback.
+> Estado atual em `docs/STATUS.md` e `docs/search/RUNBOOK.md`.
+
+> Status original: **plano aprovado, Fase 1 concluída (auditoria, sem alteração de código)**.
 > Última atualização: 2026-10-10.
 > Este documento é o plano das Fases 2–6 da busca do catálogo. Ele foi produzido por
 > auditoria somente-leitura do repositório; nenhuma linha de código, Compose ou migration
