@@ -1519,3 +1519,13 @@ Relatórios idênticos nas duas execuções.
 - Novo teste `tests/unit/client-hardcoded-text.test.ts` falha se voltar texto fixo/atributo
   literal nas telas do cliente (admin excluido).
 - Checagem: typecheck OK, lint OK (warnings `<img>`), `npm run test` -> 87 passed.
+
+### Passo 3 — Seletor de idioma
+
+- Itens exibem nome nativo, com `lang`/`dir` por item, `aria-current` no idioma atual e
+  `aria-label` no gatilho incluindo o idioma atual; Radix mantém navegação por teclado.
+- Persistência via cookie `NEXT_LOCALE` do next-intl; primeira visita usa `Accept-Language`
+  com match por idioma base; desconhecido -> `pt-BR`.
+- Novo teste `tests/unit/locale-selection.test.ts` (middleware real): nomes nativos,
+  `fr-CA`/`en-US`/`ar-EG`, desconhecido, cookie, prefixo de rota e mesma rota ao trocar.
+- Checagem: typecheck OK, lint OK, `npm run test` -> 93 passed.

@@ -4,7 +4,7 @@ import { Languages } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { localeLabels, locales, type Locale } from "@/i18n/locales";
+import { isLocale, isRtlLocale, localeLabels, locales, type Locale } from "@/i18n/locales";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -28,13 +28,23 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={t("languageLabel")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`${t("languageLabel")}: ${isLocale(locale) ? localeLabels[locale] : locale}`}
+        >
           <Languages className="h-4 w-4" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {locales.map((code) => (
-          <DropdownMenuItem key={code} onSelect={() => onSelect(code)}>
+          <DropdownMenuItem
+            key={code}
+            lang={code}
+            dir={isRtlLocale(code) ? "rtl" : undefined}
+            aria-current={code === locale ? "true" : undefined}
+            onSelect={() => onSelect(code)}
+          >
             {localeLabels[code]}
           </DropdownMenuItem>
         ))}
