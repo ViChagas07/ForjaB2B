@@ -1554,3 +1554,15 @@ Relatórios idênticos nas duas execuções.
   removidas dos 11 dicionarios; `contentDisplayedIn` presente em todos.
 - Novo teste `tests/unit/content-locale-note.test.ts` (helper, presenca so no detalhe e chaves).
 - Checagem: typecheck OK, lint OK, `npm run test` -> 99 passed.
+
+### Passo 6 — Cache e troca de idioma
+
+- Achado: `Accept-Language` ja era enviado (via `useLocale`), mas as chaves do TanStack Query
+  **nao incluiam o locale** em catalogo, carrinho e pedido — trocar de idioma podia reutilizar
+  o conteudo anterior do cache.
+- Chaves agora incluem o idioma: `catalogKeys` (categorias/marcas/produtos/detalhe),
+  `cartKey(locale)` e `orderKey(orderId, locale)`; invalidacao ampla por prefixo preservada.
+- Novo teste `tests/unit/query-keys-locale.test.ts` prova entradas separadas por idioma no
+  QueryClient e que `["cart"]`/`["orders"]` continuam invalidando.
+- Recarregar a pagina sempre refaz o fetch (cache em memoria) e envia o novo `Accept-Language`.
+- Checagem: typecheck OK, lint OK, 102 testes.
