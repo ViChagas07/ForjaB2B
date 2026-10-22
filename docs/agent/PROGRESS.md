@@ -1671,3 +1671,15 @@ RelatÃ³rios idÃªnticos nas duas execuÃ§Ãµes.
   com 251 passed e falhas isoladas de ES por timeout do Testcontainers (ambiente).
 - Rebuild da imagem do backend validado com PIX real: sessao `cs_test_...`, webhook
   `async_payment_succeeded` -> `PAID`, pedido `PAID`.
+
+## Prompt 03 — Seguranca, privacidade e endurecimento (2026-10-22)
+
+### Passo 1 — CORS
+- Origens explicitas validadas (sem '*', sem caminho), credenciais e max_age configuraveis; RateLimit-*/Retry-After expostos.
+- Testes: 5 passed (preflight permitido/bloqueado, credenciais, config invalida); Ruff OK.
+- Pendente: validacao curl no Docker (passo 8).
+
+### Passo 2 — Cabecalhos de seguranca
+- Backend: middleware com nosniff, Referrer-Policy, Permissions-Policy, no-store em rotas sensiveis/autenticadas, HSTS condicional a producao+HTTPS e remocao de Server/X-Powered-By.
+- Frontend: CSP por requisicao com nonce + strict-dynamic, frame-ancestors none, object-src none, base-uri self, connect/img restritos a API; headers em next.config.
+- Testes: 6 backend + 4 CSP frontend; typecheck/lint OK. Validacao visual da CSP fica para o passo 8.

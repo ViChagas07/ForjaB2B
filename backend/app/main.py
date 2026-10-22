@@ -45,6 +45,7 @@ from app.interface.health import ReadinessProbe
 from app.interface.health import router as health_router
 from app.interface.metrics import PrometheusMiddleware
 from app.interface.middleware import CorrelationIdMiddleware
+from app.interface.security_headers import SecurityHeadersMiddleware
 from app.interface.v1.router import api_v1_router
 from app.modules.cart.application.cart import CartService
 from app.modules.cart.infrastructure.repository import SqlAlchemyCartRepository
@@ -481,6 +482,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(PrometheusMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware, settings=settings)
     # CORS por ultimo = camada mais externa, garantindo cabecalhos tambem em
     # respostas de erro produzidas pelos middlewares internos.
     app.add_middleware(
