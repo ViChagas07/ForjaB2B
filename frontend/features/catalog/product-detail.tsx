@@ -1,9 +1,10 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, Globe, ShoppingCart } from "lucide-react";
+import { ArrowLeft, ShoppingCart } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
+import { isLocale, localeLabels } from "@/i18n/locales";
 import { formatNumber } from "@/shared/lib/money";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
@@ -17,6 +18,7 @@ import { isDisplaySellable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
 import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
 import { ProductImage } from "./product-image";
+import { showContentLocaleNote } from "./content-locale";
 
 interface ProductDetailViewProps {
   productId: string;
@@ -72,21 +74,15 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-2xl tracking-tight">{product.name}</CardTitle>
-            {product.content_locale && product.content_locale !== locale ? (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground" title={t("catalog.translationFallback", { locale: product.content_locale })}>
-                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="font-mono">{product.content_locale}</span>
-              </div>
-            ) : product.content_locale ? (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground" title={t("catalog.translationExact", { locale: product.content_locale })}>
-                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="font-mono">{product.content_locale}</span>
-              </div>
-            ) : null}
           </div>
-          {product.content_locale && product.content_locale !== locale ? (
-            <p className="text-xs text-muted-foreground mt-1">
-              {t("catalog.contentDisplayedIn", { locale: product.content_locale })}
+          {showContentLocaleNote(locale, product.content_locale) ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("catalog.contentDisplayedIn", {
+                locale:
+                  product.content_locale && isLocale(product.content_locale)
+                    ? localeLabels[product.content_locale]
+                    : product.content_locale,
+              })}
             </p>
           ) : null}
           <div className="flex flex-wrap gap-1.5">

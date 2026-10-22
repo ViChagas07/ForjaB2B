@@ -137,9 +137,6 @@
     "caNumber": "Número do CA",
     "ncm": "NCM",
     "attributes": "Especificações",
-    "translationFallback": "Traduzido para {locale} (com fallback para português)",
-    "translationExact": "Traduzido para {locale}",
-    "fallback": "Fallback",
     "contentDisplayedIn": "Conteúdo exibido em {locale}"
   },
   "cart": {

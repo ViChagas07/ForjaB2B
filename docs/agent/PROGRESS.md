@@ -1542,3 +1542,15 @@ Relatórios idênticos nas duas execuções.
 - Fontes ja cobrem latina/cirilica (Noto Sans), CJK (SC/JP/KR) e arabe (Noto Sans Arabic).
 - Novo teste `tests/unit/rtl.test.ts`: direcao por idioma, zero classes fisicas (com excecao)
   e pilhas de fonte. Checagem: typecheck OK, lint OK, 96 testes.
+
+### Passo 5 — Nota de fallback
+
+- Removidos os chips/`Fallback` do detalhe do produto e o bloco de idioma do pedido;
+  carrinho e pedido nao exibem nada.
+- Detalhe do produto mostra apenas a nota discreta `catalog.contentDisplayedIn`
+  ("Conteudo exibido em {idioma}") quando `content_locale != locale`, com o **nome nativo**
+  do idioma; helper `showContentLocaleNote()`.
+- Chaves antigas `catalog.fallback`, `catalog.translationFallback` e `catalog.translationExact`
+  removidas dos 11 dicionarios; `contentDisplayedIn` presente em todos.
+- Novo teste `tests/unit/content-locale-note.test.ts` (helper, presenca so no detalhe e chaves).
+- Checagem: typecheck OK, lint OK, `npm run test` -> 99 passed.

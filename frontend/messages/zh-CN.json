@@ -159,9 +159,6 @@
     "caNumber": "CA 编号",
     "ncm": "NCM",
     "attributes": "规格",
-    "translationFallback": "已翻译为 {locale} (回退到葡萄牙语)",
-    "translationExact": "已翻译为 {locale}",
-    "fallback": "回退",
     "contentDisplayedIn": "内容以 {locale} 显示"
   },
   "cart": {

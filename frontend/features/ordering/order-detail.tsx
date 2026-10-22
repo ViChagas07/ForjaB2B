@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, Globe } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { OrderStatus } from "@/core/domain/ordering";
@@ -97,17 +97,6 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("ordering.orderNumber")} <span className="font-mono">{order.id}</span>
         </h1>
-        {order.content_locale && order.content_locale !== locale ? (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground" title={t("catalog.translationFallback", { locale: order.content_locale })}>
-            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="font-mono">{order.content_locale}</span>
-          </div>
-        ) : order.content_locale ? (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground" title={t("catalog.translationExact", { locale: order.content_locale })}>
-            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="font-mono">{order.content_locale}</span>
-          </div>
-        ) : null}
       </div>
 
       {cancelMutation.isError ? (

@@ -159,9 +159,6 @@
     "caNumber": "CA 番号",
     "ncm": "NCM",
     "attributes": "仕様",
-    "translationFallback": "{locale}に翻訳済み (ポルトガル語にフォールバック)",
-    "translationExact": "{locale}に翻訳済み",
-    "fallback": "フォールバック",
     "contentDisplayedIn": "{locale}でコンテンツを表示"
   },
   "cart": {

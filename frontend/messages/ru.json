@@ -159,9 +159,6 @@
     "caNumber": "Номер CA",
     "ncm": "NCM",
     "attributes": "Характеристики",
-    "translationFallback": "Переведено на {locale} (с резервом на португальский)",
-    "translationExact": "Переведено на {locale}",
-    "fallback": "Резерв",
     "contentDisplayedIn": "Контент отображен на {locale}"
   },
   "cart": {

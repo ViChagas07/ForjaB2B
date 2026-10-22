@@ -159,9 +159,6 @@
     "caNumber": "CA 번호",
     "ncm": "NCM",
     "attributes": "사양",
-    "translationFallback": "{locale}로 번역됨 (포르투갈어로 폴백)",
-    "translationExact": "{locale}로 번역됨",
-    "fallback": "폴백",
     "contentDisplayedIn": "{locale}로 콘텐츠 표시"
   },
   "cart": {

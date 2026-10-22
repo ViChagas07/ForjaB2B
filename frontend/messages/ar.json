@@ -159,9 +159,6 @@
     "caNumber": "رقم CA",
     "ncm": "NCM",
     "attributes": "المواصفات",
-    "translationFallback": "مترجم إلى {locale} (مع الرجوع للبرتغالية)",
-    "translationExact": "مترجم إلى {locale}",
-    "fallback": "رجوع",
     "contentDisplayedIn": "المحتوى معروض بـ {locale}"
   },
   "cart": {
