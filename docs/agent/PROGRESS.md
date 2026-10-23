@@ -1711,7 +1711,7 @@ RelatÃ³rios idÃªnticos nas duas execuÃ§Ãµes.
 ### Passo 1 — Rollback de migrations
 - `scripts/migration_drill.py`: banco `forja_scratch_migration_*`, bootstrap real, upgrade/seed/downgrade base/upgrade/seed, comparação de checksums e `alembic check`; remove somente o banco que criou.
 - 0018 e 0020 documentadas como reversíveis com perda de estado (`DRAFT`->`INACTIVE`, `PAID`->`RECEIVED`); teste de arquitetura detecta downgrade ausente/não funcional.
-- Drill real no head **0022**: OK em 25,87 s; seed 50/4/13/4/150 idêntico antes/depois.
+- Drill real no head **0022**: OK em 41,10 s (25,87 s em cache quente); seed 50/4/13/4/150 idêntico antes/depois.
 - Pendente: job `migrations` do Prompt 02 não existe no CI.
 
 ### Passo 2 — Backup e restauração

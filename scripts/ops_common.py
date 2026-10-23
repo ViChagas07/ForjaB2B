@@ -68,8 +68,7 @@ def run(
         cwd=str(cwd),
         env=process_env,
         input=input_bytes,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     if check and completed.returncode != 0:
@@ -125,8 +124,7 @@ def run_with_stdin_file(
             cwd=str(cwd),
             env=process_env,
             stdin=handle,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=False,
         )
     if completed.returncode != 0:
@@ -282,7 +280,8 @@ def database_exists(config: PostgresConfig, name: str) -> bool:
             "-d",
             "postgres",
             "-tAc",
-            f"SELECT 1 FROM pg_database WHERE datname = '{name}'",
+            # Nome validado por assert_scratch_name (regex + prefixo fixo).
+            f"SELECT 1 FROM pg_database WHERE datname = '{name}'",  # noqa: S608
         ],
     )
     return completed.stdout.decode("utf-8").strip() == "1"
@@ -331,7 +330,8 @@ def drop_scratch_database(config: PostgresConfig, name: str, *, created: bool) -
             "-d",
             "postgres",
             "-c",
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+            # Nome validado por assert_scratch_name (regex + prefixo fixo).
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "  # noqa: S608
             f"WHERE datname = '{name}' AND pid <> pg_backend_pid()",
         ],
     )
@@ -356,7 +356,8 @@ def drop_scratch_database(config: PostgresConfig, name: str, *, created: bool) -
         except OpsError as exc:
             last_error = exc
             time.sleep(1.0 + attempt)
-    assert last_error is not None
+    if last_error is None:
+        raise OpsError(f"falha desconhecida ao remover {name}")
     raise last_error
 
 

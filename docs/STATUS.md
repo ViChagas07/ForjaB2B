@@ -216,9 +216,9 @@ dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índ
 
 | Verificação | Resultado |
 | :--- | :--- |
-| Migration drill (head **0022**) | **OK** em **25,87 s**; upgrade → seed → downgrade base → upgrade → seed → `alembic check`; checksums do seed idênticos; banco `forja_scratch_*` removido |
+| Migration drill (head **0022**) | **OK** em **41,10 s** (25,87 s em cache quente; ~290 s a frio); upgrade → seed → downgrade base → upgrade → seed → `alembic check`; checksums do seed idênticos; banco `forja_scratch_*` removido |
 | Backup | `forja_db_20261022T235915Z.dump`, **226.309 bytes**, `PGDMP` válido, rotação com retenção 7 |
-| Restore drill | `pg_restore` **9,81 s** + `upgrade/current/check` **9,59 s**; 50 produtos, 4 empresas, 13 usuários, 4 regras, 150 traduções; extensões presentes; banco dev inalterado; scratch removido |
+| Restore drill | `pg_restore` **1,45 s** + `upgrade/current/check` **9,49 s** (total 13,27 s); 50 produtos, 4 empresas, 13 usuários, 4 regras, 150 traduções; extensões presentes; banco dev inalterado; scratch removido |
 | Outbox dead-letter | ES indisponível + `SEARCH_OUTBOX_MAX_ATTEMPTS=1` → `DEAD_LETTERED`, `last_error=SearchUnavailableError`; `list-dead` e `requeue` (um e `--all --yes`) validados; eventos de teste removidos |
 | Reconciliação concorrente | Com um processo segurando o lock, duas execuções retornaram `{"status":"skipped","reason":"reconcile_already_running"}` |
 | Drift induzido | Documento removido do alias; `reconcile` retornou `upserted=1` e o documento voltou (contagem 41) |

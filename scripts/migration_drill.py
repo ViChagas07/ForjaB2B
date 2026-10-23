@@ -25,7 +25,6 @@ import json
 import sys
 import time
 from collections.abc import Callable
-from typing import TypeVar
 
 from ops_common import (
     OpsError,
@@ -36,11 +35,8 @@ from ops_common import (
     drop_scratch_database,
     psql,
     seed,
-    timestamp_slug,
     utc_now,
 )
-
-T = TypeVar("T")
 
 _SNAPSHOT_SQL = """
 SELECT 'products|' || count(*) || '|' ||
@@ -91,7 +87,7 @@ def _snapshot(config: PostgresConfig, database: str) -> dict[str, str]:
     return snapshot
 
 
-def _timed(label: str, action: Callable[[], T], report: list[dict[str, object]]) -> T:
+def _timed[T](label: str, action: Callable[[], T], report: list[dict[str, object]]) -> T:
     started = time.monotonic()
     print(f"[drill] {label}...")
     try:
@@ -129,7 +125,7 @@ def _downgrade_target(config: PostgresConfig, database: str, steps: int) -> None
     alembic(config, database, ["downgrade", "base"])
 
 
-def _run(args: argparse.Namespace) -> dict[str, object]:
+def _run(args: argparse.Namespace) -> dict[str, object]:  # noqa: C901 - orquestracao linear
     config = PostgresConfig.from_environment()
     report: list[dict[str, object]] = []
     scratch: str | None = None
@@ -148,8 +144,14 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         created = True
         print(f"[drill] banco descartavel: {scratch}")
 
-        _timed("bootstrap do banco descartavel", lambda: bootstrap_scratch_database(config, scratch), report)
-        _timed("upgrade head (inicial)", lambda: alembic(config, scratch, ["upgrade", "head"]), report)
+        _timed(
+            "bootstrap do banco descartavel",
+            lambda: bootstrap_scratch_database(config, scratch),
+            report,
+        )
+        _timed(
+            "upgrade head (inicial)", lambda: alembic(config, scratch, ["upgrade", "head"]), report
+        )
         _timed("seed inicial", lambda: seed(config, scratch), report)
         before = _timed("snapshot do seed (antes)", lambda: _snapshot(config, scratch), report)
         print(f"[drill] seed antes: {before}")
@@ -162,15 +164,15 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         version_after_downgrade = _current_revision(config, scratch)
         if args.steps <= 0:
             if version_after_downgrade:
-                raise OpsError(
-                    f"downgrade base deixou alembic_version={version_after_downgrade!r}"
-                )
+                raise OpsError(f"downgrade base deixou alembic_version={version_after_downgrade!r}")
             products = psql(config, scratch, "SELECT to_regclass('public.products') IS NULL")
             if products != "t":
                 raise OpsError("downgrade base nao removeu a tabela products")
         print(f"[drill] revisao apos downgrade: {version_after_downgrade or '<base>'}")
 
-        _timed("upgrade head (final)", lambda: alembic(config, scratch, ["upgrade", "head"]), report)
+        _timed(
+            "upgrade head (final)", lambda: alembic(config, scratch, ["upgrade", "head"]), report
+        )
         _timed("seed final (idempotente)", lambda: seed(config, scratch), report)
         after = _timed("snapshot do seed (depois)", lambda: _snapshot(config, scratch), report)
         print(f"[drill] seed depois: {after}")
@@ -214,14 +216,18 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Drill de rollback de migrations (banco descartavel).")
+    parser = argparse.ArgumentParser(
+        description="Drill de rollback de migrations (banco descartavel)."
+    )
     parser.add_argument(
         "--steps",
         type=int,
         default=0,
         help="Numero de revisoes a reverter (0 = ate a base).",
     )
-    parser.add_argument("--keep", action="store_true", help="Preserva o banco descartavel para inspecao.")
+    parser.add_argument(
+        "--keep", action="store_true", help="Preserva o banco descartavel para inspecao."
+    )
     parser.add_argument("--json", action="store_true", help="Imprime o relatorio final em JSON.")
     args = parser.parse_args(argv)
     if args.steps < 0:
@@ -232,7 +238,11 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # noqa: BLE001 - saida final e exit code
         elapsed = round(time.monotonic() - started, 2)
         if args.json:
-            print(json.dumps({"status": "failed", "error": str(exc), "seconds": elapsed}, ensure_ascii=False))
+            print(
+                json.dumps(
+                    {"status": "failed", "error": str(exc), "seconds": elapsed}, ensure_ascii=False
+                )
+            )
         else:
             print(f"RELATORIO: FALHOU em {elapsed}s: {exc}", file=sys.stderr)
         return 1

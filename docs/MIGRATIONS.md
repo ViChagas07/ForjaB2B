@@ -91,20 +91,21 @@ Tempos registrados (execucao final de 2026-10-22, Docker de pe, cache aquecido):
 
 | Etapa | Tempo |
 | :--- | ---: |
-| criar banco descartavel | 0,59 s |
-| bootstrap (roles/extensoes/schema `app`) | 1,41 s |
-| upgrade head inicial | 5,32 s |
-| seed inicial | 2,40 s |
-| snapshot do seed (antes) | 0,31 s |
-| downgrade base | 2,89 s |
-| upgrade head final | 3,67 s |
-| seed final | 1,94 s |
-| snapshot do seed (depois) | 0,32 s |
-| `alembic check` | 3,15 s |
-| **total** | **25,87 s** |
+| criar banco descartavel | 0,92 s |
+| bootstrap (roles/extensoes/schema `app`) | 0,87 s |
+| upgrade head inicial | 8,80 s |
+| seed inicial | 5,86 s |
+| snapshot do seed (antes) | 0,62 s |
+| downgrade base | 6,18 s |
+| upgrade head final | 8,48 s |
+| seed final | 2,20 s |
+| snapshot do seed (depois) | 0,31 s |
+| `alembic check` | 2,92 s |
+| **total** | **41,10 s** |
 
-O tempo varia com o I/O do Docker Desktop (a primeira execucao, a frio, levou
-~290 s); o relatorio completo sai em JSON com `--json` e fica registrado no
+O tempo varia com o I/O do Docker Desktop: a primeira execucao a frio levou
+~290 s e uma execucao intermediaria com cache quente levou 25,87 s. O relatorio
+completo sai em JSON com `--json` e fica registrado no
 `docs/STATUS.md`.
 
 ## 4. CI

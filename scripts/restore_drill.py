@@ -23,9 +23,9 @@ import time
 from pathlib import Path
 
 from ops_common import (
+    REPO_ROOT,
     OpsError,
     PostgresConfig,
-    REPO_ROOT,
     alembic,
     create_scratch_database,
     drop_scratch_database,
@@ -75,7 +75,9 @@ def _extensions(config: PostgresConfig, database: str) -> set[str]:
     return {line.strip() for line in raw.splitlines() if line.strip()}
 
 
-def _restore(config: PostgresConfig, database: str, backup: Path, report: list[dict[str, object]]) -> None:
+def _restore(
+    config: PostgresConfig, database: str, backup: Path, report: list[dict[str, object]]
+) -> None:
     started = time.monotonic()
     print(f"[restore] restaurando {backup.name} em {database}...")
     try:
@@ -111,7 +113,7 @@ def _restore(config: PostgresConfig, database: str, backup: Path, report: list[d
     print(f"[restore] pg_restore: ok ({elapsed}s)")
 
 
-def _run(args: argparse.Namespace) -> dict[str, object]:
+def _run(args: argparse.Namespace) -> dict[str, object]:  # noqa: C901 - orquestracao linear
     config = PostgresConfig.from_environment()
     directory = args.dir.expanduser().resolve()
     backup = args.backup.expanduser().resolve() if args.backup else _latest_backup(directory)
@@ -166,8 +168,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         dev_after = _counts(config, config.database)
         if dev_after != dev_before:
             raise OpsError(
-                "o banco operacional mudou durante o drill: "
-                f"{dev_before} -> {dev_after}"
+                f"o banco operacional mudou durante o drill: {dev_before} -> {dev_after}"
             )
         print("[restore] banco operacional inalterado")
 
@@ -211,8 +212,12 @@ def main(argv: list[str] | None = None) -> int:
         default=Path(os.environ.get("BACKUP_DIR", str(REPO_ROOT / "backups"))),
         help="Diretorio que contem os backups.",
     )
-    parser.add_argument("--backup", type=Path, default=None, help="Arquivo especifico (default: ultimo).")
-    parser.add_argument("--keep", action="store_true", help="Preserva o banco descartavel para inspecao.")
+    parser.add_argument(
+        "--backup", type=Path, default=None, help="Arquivo especifico (default: ultimo)."
+    )
+    parser.add_argument(
+        "--keep", action="store_true", help="Preserva o banco descartavel para inspecao."
+    )
     parser.add_argument("--json", action="store_true", help="Imprime o relatorio final em JSON.")
     args = parser.parse_args(argv)
     try:

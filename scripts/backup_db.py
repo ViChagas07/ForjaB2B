@@ -28,9 +28,8 @@ import time
 from pathlib import Path
 
 from ops_common import (
-    OpsError,
-    PostgresConfig,
     REPO_ROOT,
+    PostgresConfig,
     backup_name,
     print_report,
     rotate_backups,
