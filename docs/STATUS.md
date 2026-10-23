@@ -206,7 +206,7 @@
   rotas, respostas 4xx/5xx documentadas, `bearerAuth`/`adminKey`, exemplos nas
   rotas principais e `deprecated: true` na rota legada.
 - Snapshot determinístico `docs/api/openapi.json` (SHA-256
-  `9075CBEC…E88E`), Redoc estático em `docs/api/index.html` e tipos TypeScript
+  `E098BE93…9443`), Redoc estático em `docs/api/index.html` e tipos TypeScript
   em `frontend/core/domain/api-schema.d.ts`.
 - Job `openapi-contract` no CI: regenera e falha em drift; `oasdiff breaking
   --fail-on ERR` contra a `main`; drift dos tipos do frontend.

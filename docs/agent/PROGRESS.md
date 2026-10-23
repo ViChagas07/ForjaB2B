@@ -1749,7 +1749,7 @@ Relat√≥rios id√™nticos nas duas execu√ß√µes.
 - `ProblemDetails` RFC 9457 com `request_id` e `errors[]` por campo; handlers de 4xx/5xx uniformizados (401/403/404/409/413/422/429/503).
 - OpenAPI enriquecido (tags/summary/erros/seguranca/exemplos) em `app/interface/openapi.py`; 51 rotas cobertas pelo teste `tests/unit/test_openapi_contract.py`.
 - `scripts/export_openapi.py` deterministico (`sort_keys`, UTF-8, `--check`); snapshot `docs/api/openapi.json`; Redoc `docs/api/index.html`; tipos `frontend/core/domain/api-schema.d.ts`; job `openapi-contract` com `oasdiff breaking --fail-on ERR` e drift dos tipos.
-- Evidencia: hash SHA-256 `9075CBECÖE88E`; duas execucoes identicas; oasdiff compativel exit 0, incompativel exit 1 (3 erros `response-required-property-removed`).
+- Evidencia: hash SHA-256 `E098BE93Ö9443`; duas execucoes identicas; oasdiff compativel exit 0, incompativel exit 1 (3 erros `response-required-property-removed`).
 
 ### Passo 3 ó Versionamento/depreciacao
 - `docs/API_VERSIONING.md`, `docs/WEBHOOKS.md`, `docs/api/README.md`.

@@ -280,7 +280,8 @@ def _error_statuses(
         statuses.add(403)
     if "{" in path:
         statuses.add(404)
-    if method in _WRITE_METHODS and path not in {"/api/v1/auth/login", "/api/v1/auth/refresh"}:
+    if method in _WRITE_METHODS:
+        statuses.add(400)
         statuses.add(409)
     if path in {"/api/v1/payments/webhook", "/api/v1/payments/stripe/webhook"}:
         statuses.update({400, 401, 413})

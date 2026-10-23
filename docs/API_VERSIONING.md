@@ -121,10 +121,17 @@ async def rota_antiga(...): ...
 - Erros usam Problem Details (RFC 9457) em `application/problem+json`, com
   `type`, `title`, `status`, `detail`, `instance`, `request_id` e, em validacao,
   `errors[]` por campo.
+- Excecao operacional: `GET /health/ready` devolve 503 com o mapa `checks` das
+  probes (contrato consumido por orquestradores), fora do Problem Details.
 - `Idempotency-Key` e obrigatorio em criacao de pedido e checkout/pagamento;
   opcional em criacao/publicacao de produto e exclusao de dados (LGPD).
 - Repeticao com mesmo payload devolve a resposta original e
   `Idempotent-Replayed: true`; payload diferente responde 422; requisicao em
   andamento responde 409 com `Retry-After`.
+- A reserva da chave e gravada antes da mutacao e a resposta definitiva depois.
+  Pedidos e pagamentos mantem a constraint unica de idempotencia na propria
+  tabela, na mesma transacao do recurso; uma falha entre reserva e conclusao
+  nao duplica o pedido/pagamento (a retentativa apos o TTL de 60 s reencontra o
+  registro).
 - Detalhes operacionais em [`docs/WEBHOOKS.md`](WEBHOOKS.md) e
   [`docs/MIGRATIONS.md`](MIGRATIONS.md).
