@@ -111,9 +111,7 @@ def _has_problem_schema(response: dict[str, Any]) -> bool:
 def test_rotas_protegidas_declaram_bearer(schema: dict[str, Any]) -> None:
     order = schema["paths"]["/api/v1/orders"]["post"]
     assert order["security"] == [{"bearerAuth": []}]
-    assert any(
-        parameter["name"] == "Idempotency-Key" for parameter in order["parameters"]
-    )
+    assert any(parameter["name"] == "Idempotency-Key" for parameter in order["parameters"])
     assert "Idempotent-Replayed" in order["responses"]["201"]["headers"]
 
     admin = schema["paths"]["/api/v1/admin/catalog/products"]["post"]
