@@ -83,6 +83,15 @@ docker run --rm -v "$PWD:/work" tufin/oasdiff breaking \
   /work/tmp-base-openapi.json /work/docs/api/openapi.json
 ```
 
+## Tipos TypeScript (migracao gradual)
+
+`frontend/core/domain/api-schema.d.ts` e gerado e versionado. Os contratos
+manuais mais criticos (`Order`, `Payment`, `AdminProductDetail`) continuam sendo
+a fonte usada pela UI, mas `frontend/core/domain/openapi-types.ts` falha o
+`tsc` se o OpenAPI remover/renomear um campo que eles consomem. Contratos novos
+devem importar `ApiSchemas`/`ApiOperations` diretamente; a substituicao dos
+tipos manuais e incremental, sem reescrita em massa.
+
 ## Compatibilidade
 
 A politica completa (o que quebra, janela de depreciacao e `/v2`) esta em
