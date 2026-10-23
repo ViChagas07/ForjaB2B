@@ -13,6 +13,7 @@ export interface CspOptions {
   nonce: string;
   apiUrl?: string | null;
   isProduction: boolean;
+  isSecure?: boolean;
 }
 
 function apiOrigin(apiUrl: string | null | undefined): string {
@@ -27,6 +28,7 @@ export function buildContentSecurityPolicy({
   nonce,
   apiUrl,
   isProduction,
+  isSecure = false,
 }: CspOptions): string {
   const api = apiOrigin(apiUrl);
   const connectSources = ["'self'", api].filter(Boolean);
@@ -52,7 +54,7 @@ export function buildContentSecurityPolicy({
     "frame-ancestors 'none'",
     "manifest-src 'self'",
     "worker-src 'self' blob:",
-    ...(isProduction ? ["upgrade-insecure-requests"] : []),
+    ...(isProduction && isSecure ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 }
 

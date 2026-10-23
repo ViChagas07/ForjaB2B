@@ -40,3 +40,14 @@ Thumbs.db
 Dockerfile*
 docker-compose*
 .dockerignore
+
+# Aplicacao: testes, docs e artefatos locais nao entram na imagem final.
+tests/
+docs/
+*.md
+.git/
+.github/
+assets-src/
+photos-inbox/
+*.dump
+backup*

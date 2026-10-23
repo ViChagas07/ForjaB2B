@@ -9,7 +9,12 @@ const intlMiddleware = createMiddleware(routing);
 const isProduction = process.env.NODE_ENV === "production";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-function withSecurityHeaders(response: NextResponse, nonce: string, csp: string): NextResponse {
+function withSecurityHeaders(
+  response: NextResponse,
+  nonce: string,
+  csp: string,
+  isSecure: boolean,
+): NextResponse {
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -20,18 +25,17 @@ function withSecurityHeaders(response: NextResponse, nonce: string, csp: string)
       "microphone=(), payment=(), usb=(), interest-cohort=()",
   );
   response.headers.set("X-Nonce", nonce);
-  if (isProduction) {
-    response.headers.set(
-      "Strict-Transport-Security",
-      "max-age=31536000; includeSubDomains",
-    );
+  if (isProduction && isSecure) {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
   return response;
 }
 
 export default function middleware(request: NextRequest): NextResponse {
   const nonce = generateNonce();
-  const csp = buildContentSecurityPolicy({ nonce, apiUrl, isProduction });
+  const isSecure =
+    request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
+  const csp = buildContentSecurityPolicy({ nonce, apiUrl, isProduction, isSecure });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
@@ -41,7 +45,7 @@ export default function middleware(request: NextRequest): NextResponse {
   const requestWithNonce = new NextRequest(request, { headers: requestHeaders });
 
   const response = intlMiddleware(requestWithNonce);
-  return withSecurityHeaders(response, nonce, csp);
+  return withSecurityHeaders(response, nonce, csp, isSecure);
 }
 
 export const config = {

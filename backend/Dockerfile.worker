@@ -53,7 +53,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-COPY --chown=forja:forja . .
+# Apenas o runtime; testes e ferramentas de build nao entram na imagem final.
+COPY --chown=forja:forja app ./app
 
 USER forja
 

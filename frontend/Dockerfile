@@ -1,10 +1,10 @@
 # ============================================================
 # Forja B2B — Frontend Dockerfile (multi-stage standalone Next.js)
-# Base: Node 20.17.0-alpine
+# Base: Node 22.20.0-alpine
 # ============================================================
 
 # ---------- Stage 1: base ----------
-FROM node:20.17.0-alpine AS base
+FROM node:22.20.0-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -13,7 +13,7 @@ FROM base AS deps
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f package-lock.json ]; then npm ci --no-audit --no-fund; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
   else npm i; \
   fi
@@ -55,11 +55,12 @@ RUN apk add --no-cache curl
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Cria diretório de cache e ajusta permissões
-RUN mkdir .next && chown nextjs:nodejs .next
+# Cria diretórios graváveis (montados como tmpfs no Compose, pois o rootfs
+# roda somente leitura) e ajusta permissões.
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next
 
 # Copia arquivos estáticos públicos e saída de build standalone
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
@@ -71,3 +72,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || curl -f http://localhost:3000/ || exit 1
 
 CMD ["node", "server.js"]
+
+
+

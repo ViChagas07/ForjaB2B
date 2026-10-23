@@ -274,6 +274,16 @@ services:
       dockerfile: Dockerfile
     container_name: forja-backend
     restart: unless-stopped
+    # Endurecimento: rootfs somente leitura (nada grava em disco em runtime),
+    # sem ganho de privilegios e sem capabilities Linux.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 768m
     # Sem env_file: o backend recebe SOMENTE as variaveis explicitas abaixo.
     # Credenciais de bootstrap (POSTGRES_BOOTSTRAP_*) e de migracao
     # (POSTGRES_ADMIN_*/DATABASE_ADMIN_URL) ficam fora do runtime.
@@ -305,6 +315,17 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3010}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-false}
+      CORS_MAX_AGE_SECONDS: ${CORS_MAX_AGE_SECONDS:-600}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-0}
+      LOGIN_FAILURE_THRESHOLD: ${LOGIN_FAILURE_THRESHOLD:-3}
+      LOGIN_FAILURE_WINDOW_SECONDS: ${LOGIN_FAILURE_WINDOW_SECONDS:-900}
+      LOGIN_FAILURE_BASE_BACKOFF_SECONDS: ${LOGIN_FAILURE_BASE_BACKOFF_SECONDS:-30}
+      LOGIN_FAILURE_MAX_BACKOFF_SECONDS: ${LOGIN_FAILURE_MAX_BACKOFF_SECONDS:-900}
+      SECURITY_HSTS_ENABLED: ${SECURITY_HSTS_ENABLED:-true}
+      SECURITY_HSTS_MAX_AGE_SECONDS: ${SECURITY_HSTS_MAX_AGE_SECONDS:-31536000}
+      SECURITY_HSTS_INCLUDE_SUBDOMAINS: ${SECURITY_HSTS_INCLUDE_SUBDOMAINS:-true}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-dev_admin_api_key_change_in_production}
     ports:
       - "8000:8000"
@@ -335,6 +356,14 @@ services:
       dockerfile: Dockerfile.worker
     container_name: forja-celery-worker
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
     # Sem env_file: mesma regra do backend; apenas variaveis explicitas,
     # nunca credenciais de bootstrap/migracao.
     environment:
@@ -386,6 +415,14 @@ services:
       dockerfile: Dockerfile.worker
     container_name: forja-celery-beat
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -414,7 +451,17 @@ services:
         condition: service_healthy
       otel-collector:
         condition: service_healthy
-    command: ["celery", "-A", "app.tasks.celery_app", "beat", "--loglevel=INFO"]
+    # O schedule fica em tmpfs: o rootfs e somente leitura e o beat nao deve
+    # gravar no diretorio da aplicacao (falha observada antes desta mudanca).
+    command:
+      [
+        "celery",
+        "-A",
+        "app.tasks.celery_app",
+        "beat",
+        "--loglevel=INFO",
+        "--schedule=/tmp/celerybeat-schedule",
+      ]
     healthcheck:
       test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'celery.*beat' || exit 1"]
       interval: 10s
@@ -431,6 +478,15 @@ services:
       dockerfile: Dockerfile
     container_name: forja-frontend
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /app/.next/cache:size=128m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
     environment:
       NODE_ENV: production
       PORT: 3000

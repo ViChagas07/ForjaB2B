@@ -28,9 +28,7 @@ describe("CSP do frontend", () => {
     });
 
     expect(csp).toContain("connect-src 'self' https://api.forja.example");
-    expect(csp).toContain(
-      "img-src 'self' data: blob: https://api.forja.example",
-    );
+    expect(csp).toContain("img-src 'self' data: blob: https://api.forja.example");
     expect(csp).not.toContain("*");
   });
 
@@ -44,12 +42,20 @@ describe("CSP do frontend", () => {
       nonce,
       apiUrl: "http://localhost:8000",
       isProduction: true,
+      isSecure: true,
+    });
+    const prodHttp = buildContentSecurityPolicy({
+      nonce,
+      apiUrl: "http://localhost:8000",
+      isProduction: true,
+      isSecure: false,
     });
 
     expect(dev).toContain("'unsafe-eval'");
     expect(dev).toContain("ws:");
     expect(prod).not.toContain("'unsafe-eval'");
     expect(prod).toContain("upgrade-insecure-requests");
+    expect(prodHttp).not.toContain("upgrade-insecure-requests");
   });
 
   it("gera nonce diferente a cada chamada", () => {

@@ -60,10 +60,14 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
-# Copia código da aplicação
-COPY --chown=forja:forja . .
+# Copia APENAS o necessario em runtime (testes/ferramentas ficam fora da
+# imagem final). Alembic e scripts de seed sao usados por comandos one-off.
+COPY --chown=forja:forja app ./app
+COPY --chown=forja:forja alembic ./alembic
+COPY --chown=forja:forja alembic.ini ./
+COPY --chown=forja:forja scripts ./scripts
 
-# Troca para usuário não-root
+# Troca para usuário não-root (UID fixo 1000)
 USER forja
 
 EXPOSE ${PORT}
@@ -75,11 +79,11 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # Usa tini como init para gerenciar sinais corretamente
 ENTRYPOINT ["tini", "--"]
 
-# Uvicorn com workers calculados automaticamente
+# Sem --proxy-headers/--forwarded-allow-ips: a aplicacao decide o IP real a
+# partir de TRUSTED_PROXY_COUNT. --no-server-header evita fingerprinting.
 CMD ["python", "-m", "uvicorn", "app.main:app", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
      "--workers", "4", \
-     "--proxy-headers", \
-     "--forwarded-allow-ips", "*", \
+     "--no-server-header", \
      "--access-log"]
