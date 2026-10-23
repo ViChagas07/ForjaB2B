@@ -226,3 +226,16 @@ async def test_export_nao_vaza_dados_de_outro_titular(
     body = cast(dict[str, Any], response.json())
     assert body["email"] == _BUYER_EMAIL
     assert body["email"] != _OTHER_EMAIL
+
+
+async def test_exclusao_com_idempotency_header_replay(
+    privacy_client: httpx.AsyncClient,
+) -> None:
+    key = "privacy-delete-replay-0001"
+
+    first = await privacy_client.delete("/api/v1/privacy/me", headers={"Idempotency-Key": key})
+    second = await privacy_client.delete("/api/v1/privacy/me", headers={"Idempotency-Key": key})
+
+    assert first.status_code == 204
+    assert second.status_code == 204
+    assert second.headers["idempotent-replayed"] == "true"

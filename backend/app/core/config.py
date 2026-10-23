@@ -191,6 +191,12 @@ class Settings(BaseSettings):
     # publicado em .env.example; em producao deve ser injetado via secrets.
     pix_discount_rate: Decimal = Field(default=Decimal("0.05"), ge=0, le=1)
     payment_webhook_secret: str = "dev_payment_webhook_secret_change_in_production"  # noqa: S105 - default de dev, nunca em producao
+    # Rotacao sem janela de falha: o segredo anterior continua aceito ate a
+    # publicacao do novo em todos os produtores. Pode ficar vazio.
+    payment_webhook_secret_previous: str | None = None
+    # Limite do corpo de webhooks e tolerancia de timestamp (anti-replay).
+    webhook_max_body_bytes: int = Field(default=1024 * 1024, ge=1024)
+    webhook_timestamp_tolerance_seconds: int = Field(default=300, ge=30, le=3600)
 
     # Stripe Checkout (cartao). `stripe_secret_key` cria a Checkout Session;
     # `stripe_webhook_secret` (whsec_...) valida a assinatura Stripe-Signature.
@@ -198,8 +204,13 @@ class Settings(BaseSettings):
     # uma chave `sk_...`, ela e usada como chave secreta (ver propriedades).
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
+    stripe_webhook_secret_previous: str | None = None
     stripe_checkout_success_path: str = "/checkout/success"
     stripe_checkout_cancel_path: str = "/checkout/cancel"
+
+    # Idempotencia de mutacoes criticas (header Idempotency-Key).
+    idempotency_ttl_seconds: int = Field(default=24 * 60 * 60, ge=60)
+    idempotency_in_progress_ttl_seconds: int = Field(default=60, ge=5, le=600)
     # URL publica do frontend (sem barra final), usada nos redirects do Stripe.
     frontend_base_url: str = "http://localhost:3000"
 
@@ -226,6 +237,9 @@ class Settings(BaseSettings):
     rate_limit_authenticated_refill_per_minute: float = Field(default=240.0, gt=0)
     rate_limit_public_read_capacity: int = Field(default=120, ge=1)
     rate_limit_public_read_refill_per_minute: float = Field(default=600.0, gt=0)
+    # Webhooks de terceiros: limite proprio, por IP (sem JWT).
+    rate_limit_webhook_capacity: int = Field(default=120, ge=1)
+    rate_limit_webhook_refill_per_minute: float = Field(default=300.0, gt=0)
     # Quantidade de proxies confiaveis entre a internet e a aplicacao. Render
     # usa 1. Com 0 (default local), X-Forwarded-For e ignorado.
     trusted_proxy_count: int = Field(default=0, ge=0, le=10)
@@ -294,6 +308,21 @@ class Settings(BaseSettings):
         return None
 
     @property
+    def stripe_webhook_secrets(self) -> list[str]:
+        """Segredos ativos do webhook Stripe (atual + anterior, sem duplicatas)."""
+        candidates = [
+            self.effective_stripe_webhook_secret,
+            (self.stripe_webhook_secret_previous or "").strip() or None,
+        ]
+        return [value for value in dict.fromkeys(candidates) if value]
+
+    @property
+    def payment_webhook_secrets(self) -> list[str]:
+        """Segredos ativos do webhook HMAC legado (atual + anterior)."""
+        candidates = [self.payment_webhook_secret, self.payment_webhook_secret_previous]
+        return [value.strip() for value in dict.fromkeys(candidates) if value and value.strip()]
+
+    @property
     def stripe_enabled(self) -> bool:
         return self.effective_stripe_secret_key is not None
 
@@ -324,6 +353,8 @@ class Settings(BaseSettings):
         "elasticsearch_ca_certs",
         "stripe_secret_key",
         "stripe_webhook_secret",
+        "stripe_webhook_secret_previous",
+        "payment_webhook_secret_previous",
         mode="before",
     )
     @classmethod

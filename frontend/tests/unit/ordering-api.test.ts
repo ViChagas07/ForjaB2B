@@ -47,8 +47,10 @@ describe("orderingApi.create", () => {
     const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
     expect(String(url)).toContain("/api/v1/orders");
     expect((init?.method ?? "get").toUpperCase()).toBe("POST");
+    const headers = init?.headers as Record<string, string>;
+    expect(headers["Idempotency-Key"]).toBe("idem-1");
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-    expect(body.idempotency_key).toBe("idem-1");
+    expect(body.idempotency_key).toBeUndefined();
     expect(body.payment_method).toBe("BOLETO");
     expect(result.id).toBe("o-1");
   });

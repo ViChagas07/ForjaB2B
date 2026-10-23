@@ -23,7 +23,9 @@ class CreateOrderRequest(BaseModel):
 
     items: list[OrderItemInputSchema] = Field(min_length=1)
     payment_method: PaymentMethod
-    idempotency_key: str = Field(min_length=1, max_length=64)
+    # Compatibilidade: clientes antigos enviam a chave no corpo. O header
+    # `Idempotency-Key` e o mecanismo canonico e tem precedencia.
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=64)
     po_number: str | None = Field(default=None, max_length=100)
     notes: str | None = None
     lang: str | None = Field(default=None, max_length=10)

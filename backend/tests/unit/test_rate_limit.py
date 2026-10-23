@@ -37,7 +37,15 @@ class _Clock:
 
 
 class _FailingStore:
-    async def consume(self, **_: object) -> tuple[bool, float, float]:
+    async def consume(
+        self,
+        *,
+        key: str,
+        capacity: int,
+        refill_per_second: float,
+        now: float,
+    ) -> tuple[bool, float, float]:
+        _ = (key, capacity, refill_per_second, now)
         raise RuntimeError("redis indisponivel")
 
 
@@ -79,7 +87,7 @@ async def test_falha_do_redis_faz_fail_open_com_limitador_local() -> None:
     clock = _Clock()
     fallback = InMemoryBucketStore()
     limiter = RateLimiter(
-        store=_FailingStore(),  # type: ignore[arg-type]
+        store=_FailingStore(),
         policies=_POLICIES,
         fallback_store=fallback,
         clock=clock,

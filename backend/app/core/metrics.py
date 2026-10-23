@@ -67,6 +67,23 @@ rate_limit_backend_failures_total = Counter(
     ["rate_class"],
 )
 
+deprecated_route_requests_total = Counter(
+    "forja_deprecated_route_requests_total",
+    "Requisicoes recebidas em rotas marcadas como depreciadas",
+    ["method", "route"],
+)
+
+idempotency_requests_total = Counter(
+    "forja_idempotency_requests_total",
+    "Requisicoes processadas pelo guard de idempotencia",
+    ["outcome"],
+)
+
+idempotency_keys_purged_total = Counter(
+    "forja_idempotency_keys_purged_total",
+    "Chaves de idempotencia expiradas removidas pelo comando de limpeza",
+)
+
 # Outbox de busca e reconciliacao do indice (Prompt 05). Gauges sao atualizados
 # pelo processo da API a partir do PostgreSQL; contadores registram o drift
 # corrigido e falhas de reconciliacao.
@@ -137,6 +154,19 @@ def increment_rate_limit_rejection(*, rate_class: str) -> None:
 
 def increment_rate_limit_backend_failure(*, rate_class: str) -> None:
     rate_limit_backend_failures_total.labels(rate_class=rate_class).inc()
+
+
+def increment_deprecated_route_request(*, method: str, route: str) -> None:
+    deprecated_route_requests_total.labels(method=method, route=route).inc()
+
+
+def increment_idempotency_request(*, outcome: str) -> None:
+    idempotency_requests_total.labels(outcome=outcome).inc()
+
+
+def increment_idempotency_keys_purged(count: int) -> None:
+    if count > 0:
+        idempotency_keys_purged_total.inc(count)
 
 
 def observe_outbox_snapshot(*, pending: int, dead: int, oldest_pending_age_seconds: float) -> None:

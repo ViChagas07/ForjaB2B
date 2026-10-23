@@ -1,19 +1,15 @@
 "use client";
 
+import * as React from "react";
+
 import { useRouter } from "@/i18n/navigation";
+import { createIdempotencyKeyStore } from "@/core/domain/idempotency";
 import type { PaymentMethod } from "@/core/domain/ordering";
 import { CheckoutView } from "@/features/ordering";
 import { useCart } from "@/features/cart";
 import { useCreditAccount } from "@/features/credit";
 import { useCreateOrder } from "@/features/ordering";
 import { useInitiatePayment, usePaymentMethods } from "@/features/payment";
-
-function newPaymentKey(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `pay-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 export function CheckoutClient() {
   const router = useRouter();
@@ -22,6 +18,9 @@ export function CheckoutClient() {
   const createOrderMutation = useCreateOrder();
   const methodsQuery = usePaymentMethods();
   const initiatePaymentMutation = useInitiatePayment();
+  // Uma chave de pagamento por pedido: se a criacao da sessao falhar e o
+  // usuario tentar de novo, a mesma chave e reutilizada.
+  const paymentKeys = React.useRef(createIdempotencyKeyStore());
 
   const stripeEnabled = methodsQuery.data?.stripe_enabled ?? false;
   const isPlacingOrder = createOrderMutation.isPending || initiatePaymentMutation.isPending;
@@ -54,8 +53,8 @@ export function CheckoutClient() {
           initiatePaymentMutation.mutate(
             {
               order_id: order.id,
-              method: "CARD",
-              idempotency_key: newPaymentKey(),
+              method: paymentMethod,
+              idempotency_key: paymentKeys.current.get(order.id),
             },
             {
               onSuccess: (payment) => {

@@ -14,11 +14,13 @@ export const orderingApi = {
     const response = await apiClient.request<Order>({
       method: "POST",
       path: "/api/v1/orders",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Idempotency-Key": input.idempotency_key,
+      },
       body: {
         items: input.items,
         payment_method: input.payment_method,
-        idempotency_key: input.idempotency_key,
         po_number: input.po_number ?? null,
         notes: input.notes ?? null,
       },

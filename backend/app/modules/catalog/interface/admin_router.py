@@ -13,10 +13,11 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Header, Query, Request, status
 
 from app.application.security import AuthContext
 from app.interface.deps import get_current_auth as get_auth
+from app.interface.idempotency import IdempotencyGuard, get_idempotency_service
 from app.modules.catalog.application.product_admin import (
     CreateProduct,
     GetAttributeDefinitionsForCategory,
@@ -98,8 +99,19 @@ def _list_static_images(request: Request) -> ListStaticImages:
 )
 async def create_product(
     payload: ProductCreate,
+    request: Request,
     use_case: Annotated[CreateProduct, Depends(_create_product)],
     auth: Annotated[AuthContext, Depends(get_auth)],
+    idempotency_header: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description=(
+                "Opcional. UUID/string de 16 a 128 caracteres; repeticoes com o "
+                "mesmo payload devolvem a resposta original."
+            ),
+        ),
+    ] = None,
 ) -> ProductAdminDetail:
     """Cria um novo produto (ativo por padrão)."""
     from app.modules.catalog.domain.product_admin import CreateProductInput
@@ -122,8 +134,21 @@ async def create_product(
         image_url=payload.image_url,
         attributes=payload.attributes,
     )
-    product = await use_case.execute(auth, input_data)
-    return _to_detail(product)
+    guard = IdempotencyGuard(
+        request=request,
+        auth=auth,
+        service=get_idempotency_service(request),
+        required=False,
+    )
+    await guard.start()
+    try:
+        product = await use_case.execute(auth, input_data)
+    except Exception:
+        await guard.release()
+        raise
+    response = _to_detail(product)
+    await guard.complete(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.get(
@@ -219,15 +244,39 @@ async def update_product(
 async def publish_product(
     product_id: uuid.UUID,
     payload: ProductPublish,
+    request: Request,
     use_case: Annotated[PublishProduct, Depends(_publish_product)],
     auth: Annotated[AuthContext, Depends(get_auth)],
+    idempotency_header: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description=(
+                "Opcional. UUID/string de 16 a 128 caracteres; repeticoes com o "
+                "mesmo payload devolvem a resposta original."
+            ),
+        ),
+    ] = None,
 ) -> ProductAdminDetail:
     """Publica um produto (torna visível no catálogo público)."""
     from app.modules.catalog.domain.product_admin import PublishProductInput
 
     input_data = PublishProductInput(version=payload.version)
-    product = await use_case.execute(auth, product_id, input_data)
-    return _to_detail(product)
+    guard = IdempotencyGuard(
+        request=request,
+        auth=auth,
+        service=get_idempotency_service(request),
+        required=False,
+    )
+    await guard.start()
+    try:
+        product = await use_case.execute(auth, product_id, input_data)
+    except Exception:
+        await guard.release()
+        raise
+    response = _to_detail(product)
+    await guard.complete(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(

@@ -1742,3 +1742,31 @@ RelatÃ³rios idÃªnticos nas duas execuÃ§Ãµes.
 - `docs/MIGRATIONS.md`, `docs/BACKUP.md`, `docs/search/RUNBOOK.md` e `docs/STATUS.md` atualizados.
 - Testes: suíte completa com Docker 788 passed / 4 failed / 1 skipped; as 4 falhas são do WIP concorrente (1 `type: ignore` + 3 `test_companies_api` com 429 do rate limiting). Nossos testes: outbox repo 1, lock 2, todos os de busca passando.
 - `mypy app --strict` 0 erros/304 arquivos; `ruff` OK; import-linter 4/4; Compose config OK.
+
+## Prompt 06 — API: OpenAPI, versionamento, idempotencia e webhooks (2026-10-22)
+
+### Passo 1/2 — Erros e contrato
+- `ProblemDetails` RFC 9457 com `request_id` e `errors[]` por campo; handlers de 4xx/5xx uniformizados (401/403/404/409/413/422/429/503).
+- OpenAPI enriquecido (tags/summary/erros/seguranca/exemplos) em `app/interface/openapi.py`; 51 rotas cobertas pelo teste `tests/unit/test_openapi_contract.py`.
+- `scripts/export_openapi.py` deterministico (`sort_keys`, UTF-8, `--check`); snapshot `docs/api/openapi.json`; Redoc `docs/api/index.html`; tipos `frontend/core/domain/api-schema.d.ts`; job `openapi-contract` com `oasdiff breaking --fail-on ERR` e drift dos tipos.
+- Evidencia: hash SHA-256 `9075CBEC…E88E`; duas execucoes identicas; oasdiff compativel exit 0, incompativel exit 1 (3 erros `response-required-property-removed`).
+
+### Passo 3 — Versionamento/depreciacao
+- `docs/API_VERSIONING.md`, `docs/WEBHOOKS.md`, `docs/api/README.md`.
+- `app/interface/deprecation.py`: `Deprecation`, `Sunset`, `Link`, `Warning`, metrica `forja_deprecated_route_requests_total`; rota legada de webhook com sunset 2027-04-30. Testes 4/4.
+
+### Passo 4 — Idempotencia
+- Migrations `0021_idempotency_keys` (RLS FORCE, unique por escopo, TTL) e `0022_idempotency_tenant_scope` (indices de orders/payments por empresa).
+- Header `Idempotency-Key` obrigatorio em pedido/pagamento e opcional em produto/exclusao LGPD; replay com `Idempotent-Replayed`, 422 payload diferente, 409 `Retry-After`, liberacao em 5xx; `scripts/cleanup_idempotency_keys.py`.
+- Frontend: `core/domain/idempotency.ts`, header em `ordering-api`/`payment-api`, chave por tentativa/pedido no checkout; testes 112.
+- Evidencia Docker: 10 concorrentes -> 1 pedido, 2 replays, 7 conflitos 409 (`Retry-After: 60`); 422 com payload diferente; limpeza de chave expirada `deleted=1`.
+
+### Passo 5 — Webhooks
+- Stripe e HMAC legado com corpo bruto limitado (1 MiB), HMAC em tempo constante, timestamp assinado (tolerancia 300 s), dois segredos ativos, rate limit `WEBHOOK`, idempotencia por evento e logs sem corpo.
+- ERP/e-mail inbound: **nao se aplica**; callback OAuth nao e webhook. Documentado em `docs/WEBHOOKS.md`.
+- Testes: assinatura valida/invalida/ausente/expirada, rotacao, corpo 413, repetido/DUPLICATE e Stripe (atual/anterior/invalida/expirada/ausente).
+
+### Passo 6/7 — Validacao e documentacao
+- Docker de pe: erros reais 401/403/404/422/429/503; webhook assinado 200, adulterado 401, expirado 401; `alembic downgrade 0020` + `upgrade head` + `check` OK (backup 220.451 bytes).
+- Backend: Ruff check/format OK, mypy strict 0/304, import-linter 4/4, 512 unit/arch + 280 integration (1 skip); frontend typecheck/lint/test 112 OK.
+- `docs/STATUS.md`, `README.md`, `docs/MIGRATIONS.md` atualizados. Nao houve push; commits locais pendentes.

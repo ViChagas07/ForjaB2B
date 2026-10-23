@@ -1,17 +1,16 @@
-# API — mapa de endpoints
+# API - mapa de endpoints
 
-A API é FastAPI e segue o prefixo `/api/v1`. A documentação OpenAPI é gerada em runtime:
+A API e FastAPI e segue o prefixo `/api/v1`. O contrato versionado e o snapshot em `docs/api/openapi.json`; a documentacao estatica fica em `docs/api/index.html`.
 
 - Swagger UI: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
 
-`/docs` e `/openapi.json` são desligados quando `ENVIRONMENT=production` (ver
-`backend/app/main.py`). Não há snapshot versionado do OpenAPI; o contrato executável é o
-próprio app. Erros usam `application/problem+json` (RFC 7807), com `type`, `title`,
-`status`, `detail` e extensões por campo.
+`/docs` e `/openapi.json` sao desligados quando `ENVIRONMENT=production` (ver
+`backend/app/main.py`). Erros usam `application/problem+json` (RFC 9457), com `type`, `title`,
+`status`, `detail`, `request_id` e `errors[]` por campo.
 
 ## Saúde
-
+## Saude
 | Método | Rota | Observação |
 | :--- | :--- | :--- |
 | GET | `/health/live` | Liveness |

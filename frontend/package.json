@@ -18,6 +18,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "depcruise": "depcruise . --config .dependency-cruiser.cjs",
+    "openapi:types": "npx --yes openapi-typescript@7.13.0 ../docs/api/openapi.json -o core/domain/api-schema.d.ts",
+    "openapi:check": "npx --yes openapi-typescript@7.13.0 ../docs/api/openapi.json -o core/domain/api-schema.d.ts && git diff --exit-code -- core/domain/api-schema.d.ts",
     "check": "npm run lint && npm run typecheck && npm run format:check && npm run test && npm run depcruise"
   },
   "dependencies": {

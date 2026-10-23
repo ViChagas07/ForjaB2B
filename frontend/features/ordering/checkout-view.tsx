@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { Cart } from "@/core/domain/cart";
 import type { CreditAccount } from "@/core/domain/credit";
+import { newIdempotencyKey } from "@/core/domain/idempotency";
 import type { PaymentMethod } from "@/core/domain/ordering";
 import { PAYMENT_METHODS } from "@/core/domain/ordering";
 import { formatMoney, DEFAULT_CURRENCY } from "@/shared/lib/money";
@@ -46,12 +47,9 @@ export function CheckoutView({
 
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("PIX");
   const [notes, setNotes] = React.useState("");
-  const [idempotencyKey] = React.useState(() => {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-    return `order-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  });
+  // Uma chave por tentativa de envio (montagem do checkout). Retentativas do
+  // mesmo formulario reutilizam a chave; o backend responde o pedido original.
+  const [idempotencyKey] = React.useState(newIdempotencyKey);
 
   if (status !== "authenticated") {
     return (

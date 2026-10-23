@@ -7,6 +7,7 @@ de credito, credito insuficiente, idempotencia, snapshot imutavel e isolamento.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import uuid
 from collections.abc import AsyncIterator
@@ -16,8 +17,15 @@ from decimal import Decimal
 import httpx
 import pytest
 
+from app.application.idempotency import (
+    IdempotencyInProgressError,
+    IdempotencyScope,
+    IdempotencyService,
+)
 from app.core.config import Settings
 from app.infrastructure.cache.redis import close_redis_client
+from app.infrastructure.db.idempotency import SqlAlchemyIdempotencyRepository
+from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.main import create_app
 from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 
@@ -359,8 +367,190 @@ async def test_idempotencia_payload_conflitante(order_client: httpx.AsyncClient)
             "idempotency_key": "ord-conflict-1",
         },
     )
-    assert response.status_code == 409
-    assert response.json()["type"] == "urn:forja:problem:idempotency_conflict"
+    assert response.status_code == 422
+    assert response.json()["type"] == "urn:forja:problem:idempotency_payload_mismatch"
+
+
+async def _count_orders(pg: PostgresInstance, company_id: uuid.UUID, key: str) -> int:
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
+        row = conn.execute(
+            "SELECT count(*) FROM orders WHERE company_id = %s AND idempotency_key = %s",
+            (company_id, key),
+        ).fetchone()
+        conn.commit()
+        return int(row[0]) if row is not None else 0
+    finally:
+        conn.close()
+
+
+async def test_idempotency_header_replay_nao_duplica_pedido(
+    order_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    key = "order-header-replay-0001"
+    payload = {"items": [_order(_P_NORMAL, 6)], "payment_method": "PIX"}
+
+    first = await order_client.post(
+        "/api/v1/orders", json=payload, headers={"Idempotency-Key": key}
+    )
+    second = await order_client.post(
+        "/api/v1/orders", json=payload, headers={"Idempotency-Key": key}
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert second.headers["idempotent-replayed"] == "true"
+    assert first.json()["id"] == second.json()["id"]
+    assert await _count_orders(pg, _COMPANY_A, key) == 1
+
+
+async def test_idempotency_header_payload_diferente_422(
+    order_client: httpx.AsyncClient,
+) -> None:
+    key = "order-header-mismatch-0001"
+    first = await order_client.post(
+        "/api/v1/orders",
+        json={"items": [_order(_P_NORMAL, 6)], "payment_method": "PIX"},
+        headers={"Idempotency-Key": key},
+    )
+    assert first.status_code == 201
+
+    second = await order_client.post(
+        "/api/v1/orders",
+        json={"items": [_order(_P_SECOND, 1)], "payment_method": "PIX"},
+        headers={"Idempotency-Key": key},
+    )
+    assert second.status_code == 422
+    assert second.json()["type"] == "urn:forja:problem:idempotency_payload_mismatch"
+
+
+async def test_idempotency_ausente_em_pedido_422(order_client: httpx.AsyncClient) -> None:
+    response = await order_client.post(
+        "/api/v1/orders",
+        json={"items": [_order(_P_NORMAL, 6)], "payment_method": "PIX"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["type"] == "urn:forja:problem:idempotency_key_required"
+
+
+async def test_idempotency_concorrente_cria_um_unico_pedido(
+    order_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    key = "order-concurrent-0001"
+    payload = {"items": [_order(_P_NORMAL, 6)], "payment_method": "PIX"}
+
+    async def send() -> httpx.Response:
+        return await order_client.post(
+            "/api/v1/orders", json=payload, headers={"Idempotency-Key": key}
+        )
+
+    # Quatro chamadas concorrentes exercitam a corrida no PostgreSQL sem
+    # esgotar portas efemeras do Windows/Testcontainers. A validacao manual no
+    # Compose (Linux) repete o cenario com 10 chamadas.
+    responses = await asyncio.gather(*(send() for _ in range(4)))
+    success = [r for r in responses if r.status_code == 201]
+    conflicts = [r for r in responses if r.status_code == 409]
+
+    assert success, [r.status_code for r in responses]
+    assert len({r.json()["id"] for r in success}) == 1
+    assert all(r.headers.get("retry-after") for r in conflicts)
+    assert {r.status_code for r in responses} <= {201, 409}
+    assert await _count_orders(pg, _COMPANY_A, key) == 1
+
+
+async def test_idempotency_isolada_por_empresa(test_settings: Settings, order_seed: None) -> None:
+    app = create_app(test_settings)
+    transport = httpx.ASGITransport(app=app)
+    key = "order-tenant-isolation-0001"
+    payload = {"items": [_order(_P_NORMAL, 6)], "payment_method": "PIX"}
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        login_a = await client.post(
+            "/api/v1/auth/login", json={"email": _EMAIL_A, "password": _PASSWORD}
+        )
+        login_b = await client.post(
+            "/api/v1/auth/login", json={"email": _EMAIL_B, "password": _PASSWORD}
+        )
+        client.headers["Authorization"] = f"Bearer {login_a.json()['access_token']}"
+        first = await client.post("/api/v1/orders", json=payload, headers={"Idempotency-Key": key})
+        client.headers["Authorization"] = f"Bearer {login_b.json()['access_token']}"
+        second = await client.post("/api/v1/orders", json=payload, headers={"Idempotency-Key": key})
+
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert "idempotent-replayed" not in second.headers
+        assert first.json()["id"] != second.json()["id"]
+
+    await app.state.db_engine.dispose()
+    await close_redis_client(app.state.redis_client)
+
+
+async def test_idempotency_expirada_permite_nova_reserva(
+    pg: PostgresInstance,
+    uow_factory: SqlAlchemyUnitOfWorkFactory,
+    order_seed: None,
+) -> None:
+    key = "order-expired-0001"
+    scope = IdempotencyScope(
+        company_id=_COMPANY_A,
+        user_id=_BUYER_A,
+        method="POST",
+        route="/api/v1/orders",
+    )
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY_A, _BUYER_A))
+        conn.execute(
+            "INSERT INTO idempotency_keys "
+            "(company_id, user_id, method, route, key, request_hash, state, "
+            "response_status, response_body, expires_at) "
+            "VALUES (%s, %s, 'POST', '/api/v1/orders', %s, %s, 'completed', 201, "
+            "'{}'::jsonb, now() - interval '1 minute')",
+            (_COMPANY_A, _BUYER_A, key, "hash-antigo"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    service = IdempotencyService(repository=SqlAlchemyIdempotencyRepository(uow_factory))
+    result = await service.begin(scope=scope, key=key, request_hash="hash-novo")
+
+    assert result.replay is False
+
+
+async def test_idempotency_em_andamento_409(
+    pg: PostgresInstance,
+    uow_factory: SqlAlchemyUnitOfWorkFactory,
+    order_seed: None,
+) -> None:
+    key = "order-in-progress-0001"
+    scope = IdempotencyScope(
+        company_id=_COMPANY_A,
+        user_id=_BUYER_A,
+        method="POST",
+        route="/api/v1/orders",
+    )
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY_A, _BUYER_A))
+        conn.execute(
+            "INSERT INTO idempotency_keys "
+            "(company_id, user_id, method, route, key, request_hash, state, expires_at) "
+            "VALUES (%s, %s, 'POST', '/api/v1/orders', %s, %s, 'in_progress', "
+            "now() + interval '1 minute')",
+            (_COMPANY_A, _BUYER_A, key, "hash-atual"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    service = IdempotencyService(repository=SqlAlchemyIdempotencyRepository(uow_factory))
+    with pytest.raises(IdempotencyInProgressError) as exc_info:
+        await service.begin(scope=scope, key=key, request_hash="hash-atual")
+
+    assert exc_info.value.headers is not None
+    assert exc_info.value.headers["Retry-After"]
 
 
 async def test_snapshot_preco_nao_muda(

@@ -53,7 +53,9 @@ _GET_TIERS = text(
     "SELECT id, min_quantity, max_quantity, unit_price FROM product_price_tiers "
     "WHERE product_id = :product_id ORDER BY min_quantity"
 )
-_SELECT_BY_KEY = text("SELECT id FROM orders WHERE idempotency_key = :idempotency_key")
+_SELECT_BY_KEY = text(
+    "SELECT id FROM orders WHERE idempotency_key = :idempotency_key AND company_id = :company_id"
+)
 _LOCK_CREDIT = text(
     "SELECT credit_limit FROM credit_accounts WHERE company_id = :company_id FOR UPDATE"
 )
@@ -310,7 +312,10 @@ class SqlAlchemyOrderingRepository:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
             row = (
-                await uow.session.execute(_SELECT_BY_KEY, {"idempotency_key": idempotency_key})
+                await uow.session.execute(
+                    _SELECT_BY_KEY,
+                    {"idempotency_key": idempotency_key, "company_id": company_id},
+                )
             ).first()
             await uow.commit()
             return row[0] if row is not None else None

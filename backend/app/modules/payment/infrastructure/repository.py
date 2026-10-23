@@ -54,7 +54,9 @@ _SELECT_PAYMENT = text(
     "status, provider, provider_reference, created_at, paid_at FROM payments "
     "WHERE id = :payment_id AND company_id = :company_id"
 )
-_SELECT_PAYMENT_BY_KEY = text("SELECT id FROM payments WHERE idempotency_key = :idempotency_key")
+_SELECT_PAYMENT_BY_KEY = text(
+    "SELECT id FROM payments WHERE idempotency_key = :idempotency_key AND company_id = :company_id"
+)
 _LOCK_PAYMENT_BY_REFERENCE = text(
     "SELECT id, company_id, order_id, invoice_id, method, amount, discount_amount, "
     "status, provider, provider_reference, created_at, paid_at FROM payments "
@@ -421,7 +423,8 @@ class SqlAlchemyPaymentRepository:
         async with self._uow_factory.begin(tenant) as uow:
             row = (
                 await uow.session.execute(
-                    _SELECT_PAYMENT_BY_KEY, {"idempotency_key": idempotency_key}
+                    _SELECT_PAYMENT_BY_KEY,
+                    {"idempotency_key": idempotency_key, "company_id": company_id},
                 )
             ).first()
             await uow.commit()

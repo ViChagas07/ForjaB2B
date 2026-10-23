@@ -14,14 +14,26 @@ import { DomainError } from "@/core/domain/errors";
 
 export const PROBLEM_JSON_MEDIA_TYPE = "application/problem+json";
 
-export const problemDetailsSchema = z.object({
-  type: z.string(),
-  title: z.string(),
-  status: z.number().int(),
-  detail: z.string().optional(),
-  instance: z.string().optional(),
-  trace_id: z.string().optional(),
-}).passthrough();
+export const problemDetailsSchema = z
+  .object({
+    type: z.string(),
+    title: z.string(),
+    status: z.number().int(),
+    detail: z.string().optional(),
+    instance: z.string().optional(),
+    request_id: z.string().optional(),
+    trace_id: z.string().optional(),
+    errors: z
+      .array(
+        z.object({
+          field: z.string(),
+          message: z.string(),
+          code: z.string(),
+        }),
+      )
+      .optional(),
+  })
+  .passthrough();
 
 export type ProblemDetails = z.infer<typeof problemDetailsSchema>;
 
@@ -38,6 +50,7 @@ export class ApiError extends DomainError {
   readonly type: string;
   readonly title: string;
   readonly instance?: string;
+  readonly requestId?: string;
   readonly traceId?: string;
   readonly extensions: Record<string, unknown>;
 
@@ -47,11 +60,23 @@ export class ApiError extends DomainError {
     this.type = problem.type;
     this.title = problem.title;
     this.instance = problem.instance;
-    this.traceId = problem.trace_id;
+    this.requestId = problem.request_id ?? problem.trace_id;
+    this.traceId = problem.trace_id ?? problem.request_id;
     // Captura propriedades extras (extensions) do Problem Details
-    const { type, title, status, detail, instance, trace_id, extensions, ...rest } = problem;
-    // Se o backend enviar `extensions` como propriedade (RFC 7807), usa ela; senão usa o resto
-    this.extensions = (extensions as Record<string, unknown>) ?? rest;
+    const {
+      type,
+      title,
+      status,
+      detail,
+      instance,
+      request_id,
+      trace_id,
+      errors,
+      extensions,
+      ...rest
+    } = problem;
+    // Se o backend enviar `extensions` como propriedade (RFC 7807), usa ela; senÃ£o usa o resto
+    this.extensions = (extensions as Record<string, unknown>) ?? { ...rest, errors };
   }
 }
 

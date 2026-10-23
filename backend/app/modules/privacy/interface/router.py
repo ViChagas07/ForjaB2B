@@ -8,10 +8,11 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Header, Request, status
 
 from app.application.security import AuthContext
 from app.interface.deps import get_current_auth
+from app.interface.idempotency import IdempotencyGuard, get_idempotency_service
 from app.modules.privacy.application.ports import PersonalDataView
 from app.modules.privacy.application.privacy import (
     DeletePersonalData,
@@ -105,10 +106,33 @@ async def rectify_personal_data(
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_personal_data(
+    request: Request,
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     use_case: Annotated[DeletePersonalData, Depends(_delete_usecase)],
+    idempotency_header: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description=(
+                "Opcional. UUID/string de 16 a 128 caracteres; repeticoes com o "
+                "mesmo payload devolvem a resposta original."
+            ),
+        ),
+    ] = None,
 ) -> None:
-    await use_case.delete(auth.company_id, auth.user_id)
+    guard = IdempotencyGuard(
+        request=request,
+        auth=auth,
+        service=get_idempotency_service(request),
+        required=False,
+    )
+    await guard.start()
+    try:
+        await use_case.delete(auth.company_id, auth.user_id)
+    except Exception:
+        await guard.release()
+        raise
+    await guard.complete(status.HTTP_204_NO_CONTENT, None)
 
 
 @router.post("/consent", status_code=status.HTTP_204_NO_CONTENT)

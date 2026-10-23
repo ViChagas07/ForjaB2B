@@ -7,11 +7,18 @@ o store local (nunca derrubar a API por causa do limitador).
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, Protocol, cast
 
 import redis.asyncio as redis
 
 from app.application.rate_limit import RateLimitBackendError
+
+
+class _EvalCapable(Protocol):
+    """Vista tipada de ``Redis.eval`` (stubs do redis-py nao anotam o retorno)."""
+
+    async def eval(self, script: str, numkeys: int, *args: Any) -> Any: ...
+
 
 _BUCKET_SCRIPT = """
 local key = KEYS[1]
@@ -96,7 +103,7 @@ class RedisBucketStore:
         now: float,
     ) -> tuple[bool, float, float]:
         try:
-            result = await self._client.eval(  # type: ignore[no-untyped-call]
+            result = await cast(_EvalCapable, self._client).eval(
                 _BUCKET_SCRIPT,
                 1,
                 key,
@@ -139,7 +146,7 @@ class RedisFailureStore:
         max_backoff_seconds: int,
     ) -> float:
         try:
-            result = await self._client.eval(  # type: ignore[no-untyped-call]
+            result = await cast(_EvalCapable, self._client).eval(
                 _FAILURE_SCRIPT,
                 1,
                 key,

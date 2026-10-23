@@ -27,11 +27,13 @@ export const paymentApi = {
     const response = await apiClient.request<Payment>({
       method: "POST",
       path: "/api/v1/payments",
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Idempotency-Key": input.idempotency_key,
+      },
       body: {
         order_id: input.order_id,
         method: input.method,
-        idempotency_key: input.idempotency_key,
       },
       locale,
     });

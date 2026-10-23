@@ -21,6 +21,7 @@ from app.infrastructure.db.models.catalog import (
 from app.infrastructure.db.models.companies import Company, CompanyAddress
 from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
+from app.infrastructure.db.models.idempotency import IdempotencyKey
 from app.infrastructure.db.models.identity import CompanyMember, User
 from app.infrastructure.db.models.invoicing import Invoice
 from app.infrastructure.db.models.notification import Notification, NotificationPreference
@@ -44,6 +45,7 @@ __all__ = [
     "ConsentRecord",
     "CreditAccount",
     "CreditEntry",
+    "IdempotencyKey",
     "Invoice",
     "Notification",
     "NotificationPreference",

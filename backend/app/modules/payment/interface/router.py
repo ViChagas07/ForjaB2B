@@ -7,16 +7,21 @@ payload assinado (autenticado pela assinatura), nunca de header nao verificado.
 
 from __future__ import annotations
 
-import hmac
 import uuid
-from hashlib import sha256
+from datetime import date
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Header, Request, status
+from pydantic import ValidationError
 
+from app.application.idempotency import IdempotencyKeyRequiredError
 from app.application.security import AuthContext
+from app.core.logging import get_logger
 from app.core.metrics import increment_payment_confirmed
+from app.interface.deprecation import deprecated_route
 from app.interface.deps import LocaleInfo, get_current_auth, get_locale_info
+from app.interface.idempotency import IdempotencyGuard, get_idempotency_service
+from app.interface.webhooks import read_limited_body, verify_hmac_signature
 from app.modules.payment.application.errors import (
     InvalidWebhookEventError,
     PaymentForbiddenError,
@@ -46,7 +51,8 @@ from app.modules.payment.interface.schemas import (
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
-_SIGNATURE_PREFIX = "sha256="
+_logger = get_logger(__name__)
+
 _EVENT_TO_STATUS: dict[WebhookEventType, PaymentStatus] = {
     WebhookEventType.PAYMENT_PAID: PaymentStatus.PAID,
     WebhookEventType.PAYMENT_FAILED: PaymentStatus.FAILED,
@@ -96,15 +102,6 @@ def _to_response(view: PaymentView) -> PaymentResponse:
     )
 
 
-def _verify_signature(secret: str, body: bytes, signature: str | None) -> None:
-    if not signature or not signature.startswith(_SIGNATURE_PREFIX):
-        raise WebhookSignatureError()
-    provided = signature[len(_SIGNATURE_PREFIX) :]
-    expected = hmac.new(secret.encode("utf-8"), body, sha256).hexdigest()
-    if not hmac.compare_digest(provided, expected):
-        raise WebhookSignatureError()
-
-
 @router.get("/methods", response_model=PaymentMethodsResponse, status_code=status.HTTP_200_OK)
 async def payment_methods(request: Request) -> PaymentMethodsResponse:
     """Meios disponiveis no checkout (CARD somente com Stripe configurado)."""
@@ -118,18 +115,45 @@ async def payment_methods(request: Request) -> PaymentMethodsResponse:
 @router.post("", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def initiate_payment(
     payload: InitiatePaymentRequest,
+    request: Request,
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     locale_info: Annotated[LocaleInfo, Depends(get_locale_info)],
     use_case: Annotated[InitiatePayment, Depends(_initiate)],
+    idempotency_header: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description=(
+                "Obrigatorio. UUID ou string de 16 a 128 caracteres que identifica "
+                "a tentativa; repeticoes com o mesmo payload devolvem a resposta original."
+            ),
+        ),
+    ] = None,
 ) -> PaymentResponse:
-    view = await use_case.initiate(
-        company_id=auth.company_id,
-        order_id=payload.order_id,
-        method=payload.method,
-        idempotency_key=payload.idempotency_key,
-        locale=locale_info.ui_locale,
+    guard = IdempotencyGuard(
+        request=request,
+        auth=auth,
+        service=get_idempotency_service(request),
+        required=True,
+        legacy_key=payload.idempotency_key,
     )
-    return _to_response(view)
+    await guard.start()
+    if guard.key is None:  # pragma: no cover - required=True garante a chave
+        raise IdempotencyKeyRequiredError("Envie o header Idempotency-Key (16 a 128 caracteres).")
+    try:
+        view = await use_case.initiate(
+            company_id=auth.company_id,
+            order_id=payload.order_id,
+            method=payload.method,
+            idempotency_key=guard.key,
+            locale=locale_info.ui_locale,
+        )
+    except Exception:
+        await guard.release()
+        raise
+    response = _to_response(view)
+    await guard.complete(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -182,20 +206,31 @@ async def stripe_webhook(
     nao retentar; erros de assinatura respondem 401.
     """
     settings = request.app.state.settings
-    secret = settings.effective_stripe_webhook_secret
-    if secret is None:
+    secrets = settings.stripe_webhook_secrets
+    if not secrets:
         raise StripeWebhookNotConfiguredError()
 
-    body = await request.body()
+    body = await read_limited_body(request, settings.webhook_max_body_bytes)
     if not signature:
         raise WebhookSignatureError()
 
     import stripe
 
-    try:
-        event = stripe.Webhook.construct_event(payload=body, sig_header=signature, secret=secret)
-    except (ValueError, stripe.error.SignatureVerificationError) as exc:
-        raise WebhookSignatureError() from exc
+    event = None
+    last_error: Exception | None = None
+    for secret in secrets:
+        try:
+            event = stripe.Webhook.construct_event(
+                payload=body,
+                sig_header=signature,
+                secret=secret,
+                tolerance=settings.webhook_timestamp_tolerance_seconds,
+            )
+            break
+        except (ValueError, stripe.error.SignatureVerificationError) as exc:
+            last_error = exc
+    if event is None:
+        raise WebhookSignatureError() from last_error
 
     mapped = map_stripe_checkout_event(event.to_dict())
     if mapped is None:
@@ -221,20 +256,44 @@ async def get_payment(
     return _to_response(await use_case.get(auth.company_id, payment_id))
 
 
-@router.post("/webhook", response_model=WebhookResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/webhook",
+    response_model=WebhookResponse,
+    status_code=status.HTTP_200_OK,
+    deprecated=True,
+)
+@deprecated_route(
+    sunset=date(2027, 4, 30),
+    successor="/api/v1/payments/stripe/webhook",
+    reason="Webhook HMAC legado; use o webhook assinado do Stripe.",
+)
 async def payment_webhook(
     request: Request,
     use_case: Annotated[ConfirmPayment, Depends(_confirm)],
     signature: Annotated[str | None, Header(alias="X-Forja-Signature")] = None,
+    timestamp: Annotated[str | None, Header(alias="X-Forja-Timestamp")] = None,
 ) -> WebhookResponse:
     # Le o corpo BRUTO antes de qualquer parse: a assinatura HMAC cobre os bytes
     # originais. Deixar o FastAPI/Pydantic consumir o stream antes da verificacao
     # invalidaria a comparacao e abriria brecha no controle de integridade.
-    body = await request.body()
-    secret = cast(str, request.app.state.settings.payment_webhook_secret)
-    _verify_signature(secret, body, signature)
+    settings = request.app.state.settings
+    body = await read_limited_body(request, settings.webhook_max_body_bytes)
+    verify_hmac_signature(
+        secrets=settings.payment_webhook_secrets,
+        body=body,
+        signature=signature,
+        timestamp=timestamp,
+        tolerance_seconds=settings.webhook_timestamp_tolerance_seconds,
+    )
+    if timestamp is None:
+        # Compatibilidade temporaria: produtores antigos assinam apenas o corpo.
+        # A rota esta depreciada; ver docs/API_VERSIONING.md.
+        _logger.warning("webhook_legacy_without_timestamp")
 
-    payload = WebhookEventRequest.model_validate_json(body)
+    try:
+        payload = WebhookEventRequest.model_validate_json(body)
+    except ValidationError as exc:
+        raise InvalidWebhookEventError() from exc
     target_status = _EVENT_TO_STATUS.get(payload.event_type)
     if target_status is None:  # pragma: no cover - enum ja valida o contrato
         raise InvalidWebhookEventError()

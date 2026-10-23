@@ -48,6 +48,7 @@ class Payment(TimestampMixin, Base):
         CheckConstraint("discount_amount >= 0", name="discount_amount"),
         Index(
             "uq_payments_idempotency_key",
+            "company_id",
             "idempotency_key",
             unique=True,
             postgresql_where=text("idempotency_key IS NOT NULL"),

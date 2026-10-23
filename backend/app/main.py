@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.application.idempotency import IdempotencyService
 from app.application.ports.translation import NullTranslationProvider
 from app.application.product_attributes import load_default_registry
 from app.application.rate_limit import (
@@ -47,15 +48,18 @@ from app.core.telemetry import (
 from app.infrastructure.cache.probe import ping_redis
 from app.infrastructure.cache.redis import close_redis_client, create_redis_client
 from app.infrastructure.db.engine import create_engine
+from app.infrastructure.db.idempotency import SqlAlchemyIdempotencyRepository
 from app.infrastructure.db.probe import ping_database
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.infrastructure.rate_limit import RedisBucketStore, RedisFailureStore
+from app.interface.deprecation import register_deprecation
 from app.interface.errors import register_exception_handlers
 from app.interface.health import ReadinessProbe
 from app.interface.health import router as health_router
 from app.interface.metrics import PrometheusMiddleware
 from app.interface.middleware import CorrelationIdMiddleware
+from app.interface.openapi import configure_openapi
 from app.interface.rate_limit import RateLimitMiddleware
 from app.interface.security_headers import SecurityHeadersMiddleware
 from app.interface.v1.router import api_v1_router
@@ -296,6 +300,10 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_public_read_capacity,
             refill_per_minute=settings.rate_limit_public_read_refill_per_minute,
         ),
+        RateLimitClass.WEBHOOK: RateLimitPolicy(
+            capacity=settings.rate_limit_webhook_capacity,
+            refill_per_minute=settings.rate_limit_webhook_refill_per_minute,
+        ),
         RateLimitClass.LOGIN_ACCOUNT: RateLimitPolicy(
             capacity=settings.rate_limit_auth_capacity,
             refill_per_minute=settings.rate_limit_auth_refill_per_minute,
@@ -390,6 +398,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.login_throttle = _build_login_throttle(settings, redis_client)
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)
+    app.state.idempotency_service = IdempotencyService(
+        repository=SqlAlchemyIdempotencyRepository(app.state.uow_factory),
+        ttl_seconds=settings.idempotency_ttl_seconds,
+        in_progress_ttl_seconds=settings.idempotency_in_progress_ttl_seconds,
+    )
     # Admin factories (forja_admin role, bypasses RLS on catalog tables)
     app.state.admin_session_factory = admin_session_factory
     app.state.admin_uow_factory = admin_uow_factory
@@ -649,6 +662,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(api_v1_router)
     app.include_router(catalog_admin_router, prefix="/api/v1")
     app.include_router(translation_admin_router, prefix="/api/v1")
+
+    register_deprecation(app)
+    configure_openapi(app)
 
     if settings.otel_enabled:
         instrument_app(app)

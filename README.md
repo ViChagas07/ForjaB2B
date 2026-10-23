@@ -310,14 +310,30 @@ npm run build
 
 ## API
 
-A API é FastAPI. Fora de produção, a documentação OpenAPI é gerada em runtime:
+A API é FastAPI e o contrato é versionado em `/api/v1`.
+
+- Contrato versionado: [`docs/api/openapi.json`](docs/api/openapi.json)
+- Documentação estática (Redoc): [`docs/api/index.html`](docs/api/index.html)
+- Política de versionamento/depreciação: [`docs/API_VERSIONING.md`](docs/API_VERSIONING.md)
+- Webhooks: [`docs/WEBHOOKS.md`](docs/WEBHOOKS.md)
+- Tipos TypeScript gerados: `frontend/core/domain/api-schema.d.ts`
+- Mapa de endpoints por contexto: [`docs/API.md`](docs/API.md)
+
+Localmente:
 
 - Swagger UI: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
-- Mapa de endpoints por contexto: [`docs/API.md`](docs/API.md)
+- Regenerar o snapshot: `cd backend && python scripts/export_openapi.py`
+- Regenerar os tipos: `cd frontend && npm run openapi:types`
 
 Em produção (`ENVIRONMENT=production`), `/docs` e `/openapi.json` são desligados por
-padrão.
+padrão; publique o HTML estático ou sirva o snapshot.
+
+Erros seguem Problem Details (RFC 9457) em `application/problem+json`, com
+`request_id` e `errors[]` por campo nas validações. Mutações críticas exigem o
+header `Idempotency-Key` (16–128 caracteres): repetição com o mesmo payload
+devolve a resposta original e `Idempotent-Replayed: true`; payload diferente
+responde 422; requisição em andamento responde 409 com `Retry-After`.
 
 ## Deploy
 
@@ -328,16 +344,15 @@ VPS; ele **não** é um plano de deploy completo.
 
 ## Limitações conhecidas
 
-1. **CORS ausente** no backend: o frontend não funciona em navegador comum sem proxy ou
-   habilitação de CORS (ver acima).
+1. **CORS implementado** e configurável por `CORS_ORIGINS`; o domínio real ainda precisa
+   ser definido no deploy.
 2. **`mypy .` falha** em 48 erros de tipagem em testes; o job de CI roda `mypy .`. O código
    de aplicação (`mypy app --strict`) está limpo.
 3. **Grafana e celery-beat** reiniciam no Compose local (provisioning e permissão de
    arquivo). Isso atrasa a reconciliação automática da busca.
-4. **Rate limiting não implementado**, apesar de o Redis existir. Não há proteção de
-   aplicação contra abuso; um WAF/edge seria a primeira linha em produção.
-5. **Idempotência no corpo**, não no header `Idempotency-Key`: pedidos e pagamentos usam
-   `idempotency_key` no JSON. Um middleware genérico por header não existe.
+4. **Rate limiting implementado** (Redis com fallback local); ainda não há WAF/edge.
+5. **Idempotência no header** `Idempotency-Key` nas rotas críticas; o campo
+   `idempotency_key` no corpo continua aceito como fallback depreciado.
 6. **Busca semântica desligada** por padrão (`EMBEDDINGS_ENABLED=false`); o modo `hybrid`
    não é o padrão e não foi validado em produção. O fallback PostgreSQL busca apenas
    `pt-BR`.

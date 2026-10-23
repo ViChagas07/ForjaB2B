@@ -8,8 +8,22 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class FieldError(BaseModel):
+    """Erro de validacao de um campo (sem ecoar o valor recebido)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    field: str = Field(description="Caminho do campo, por exemplo items.0.quantity")
+    message: str = Field(description="Descricao segura do problema")
+    code: str = Field(description="Codigo estavel do erro de validacao")
+
+
 class ProblemDetails(BaseModel):
-    """application/problem+json conforme RFC 7807."""
+    """application/problem+json (RFC 9457, compativel com RFC 7807).
+
+    ``request_id`` correlaciona com o header ``X-Request-ID`` e com os logs.
+    ``trace_id`` continua presente por compatibilidade com clientes antigos.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -18,7 +32,13 @@ class ProblemDetails(BaseModel):
     status: int
     detail: str | None = None
     instance: str | None = Field(default=None, description="Caminho da requisicao")
+    request_id: str | None = Field(
+        default=None, description="ID de correlacao da requisicao (X-Request-ID)"
+    )
     trace_id: str | None = Field(default=None, description="Trace ID W3C ou request ID")
+    errors: list[FieldError] | None = Field(
+        default=None, description="Erros por campo (somente em falhas de validacao)"
+    )
 
 
 class LivenessResponse(BaseModel):

@@ -206,6 +206,14 @@ def test_settings(app_database_url: str, redis_url: str) -> Settings:
         otel_enabled=False,
         admin_api_key="test-admin-key",
         elasticsearch_enabled=False,
+        # Os testes de integracao nao medem throttling; o rate limiting tem
+        # suite dedicada (test_rate_limit_api) com limites proprios. Uma
+        # capacidade alta evita que logins de fixtures consumam o bucket
+        # compartilhado da sessao e gerem 429 intermitentes.
+        rate_limit_auth_capacity=1000,
+        rate_limit_auth_refill_per_minute=1000.0,
+        rate_limit_registration_capacity=1000,
+        rate_limit_registration_refill_per_minute=1000.0,
     )
 
 

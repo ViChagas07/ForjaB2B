@@ -54,6 +54,15 @@ def _classify_admin_write(path: str, method: str) -> RateLimitClass | None:
     return None
 
 
+def _classify_webhook(path: str, method: str) -> RateLimitClass | None:
+    if method == "POST" and path in {
+        "/api/v1/payments/webhook",
+        "/api/v1/payments/stripe/webhook",
+    }:
+        return RateLimitClass.WEBHOOK
+    return None
+
+
 def _classify_data(path: str, method: str) -> RateLimitClass | None:
     if path.startswith("/api/v1/search"):
         return RateLimitClass.SEARCH
@@ -73,6 +82,8 @@ def classify_request(path: str, method: str) -> RateLimitClass | None:
     rate_class = _classify_auth(path)
     if rate_class is None:
         rate_class = _classify_registration(path, method)
+    if rate_class is None:
+        rate_class = _classify_webhook(path, method)
     if rate_class is None:
         rate_class = _classify_admin_write(path, method)
     if rate_class is None:
@@ -109,6 +120,7 @@ def _problem_body(*, status: int, detail: str, path: str) -> bytes:
         status=status,
         detail=detail,
         instance=path,
+        request_id=get_request_id(),
         trace_id=get_request_id(),
     )
     return json.dumps(problem.model_dump(exclude_none=True)).encode("utf-8")

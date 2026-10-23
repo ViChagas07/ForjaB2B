@@ -194,6 +194,67 @@
 - Copiar o **Signing secret** (`whsec_...`) para `STRIPE_WEBHOOK_SECRET` no Render.
   O valor `sk_test_...` informado é a **API key** e deve ir em `STRIPE_SECRET_KEY`.
 
+## API: contrato, versionamento, idempotência e webhooks (2026-10-22)
+
+**Estado:** itens 21–24 e parte do 26 do GAP_AUDIT fechados.
+
+### Contrato e documentação
+
+- `ProblemDetails` (RFC 9457) único em `application/problem+json`, com `type`,
+  `title`, `status`, `detail`, `instance`, `request_id` e `errors[]` por campo.
+- OpenAPI enriquecido: `tags` por módulo com descrição, `summary` em todas as 51
+  rotas, respostas 4xx/5xx documentadas, `bearerAuth`/`adminKey`, exemplos nas
+  rotas principais e `deprecated: true` na rota legada.
+- Snapshot determinístico `docs/api/openapi.json` (SHA-256
+  `9075CBEC…E88E`), Redoc estático em `docs/api/index.html` e tipos TypeScript
+  em `frontend/core/domain/api-schema.d.ts`.
+- Job `openapi-contract` no CI: regenera e falha em drift; `oasdiff breaking
+  --fail-on ERR` contra a `main`; drift dos tipos do frontend.
+
+### Idempotência
+
+- Header `Idempotency-Key` obrigatório em pedido/pagamento e opcional em
+  criação/publicação de produto e exclusão LGPD; fallback no corpo depreciado.
+- Tabela `idempotency_keys` com RLS, unique `(company_id,user_id,method,route,key)`,
+  TTL 24 h e reserva `in_progress` de 60 s; migration `0021`.
+- Índices únicos de `orders`/`payments` escopados por `company_id`; migration `0022`.
+- Replay com `Idempotent-Replayed: true`; payload diferente 422; em andamento 409
+  com `Retry-After`; 5xx libera a chave; limpeza via
+  `scripts/cleanup_idempotency_keys.py` (métrica `forja_idempotency_keys_purged_total`).
+
+### Versionamento e depreciação
+
+- `docs/API_VERSIONING.md` com regras de compatibilidade, janela de 6 meses,
+  quando abrir `/v2` e mapa de comunicação.
+- Utilitário `deprecated_route` + middleware: `Deprecation`, `Sunset`, `Link`,
+  `Warning`, `deprecated: true` e métrica `forja_deprecated_route_requests_total`.
+- Rota legada `POST /api/v1/payments/webhook` marcada com sunset **2027-04-30**.
+
+### Webhooks
+
+- Auditoria em `docs/WEBHOOKS.md`: Stripe e HMAC legado implementados; callback
+  OAuth não é webhook; ERP/e-mail inbound **não se aplica**.
+- Corpo bruto limitado (1 MiB), HMAC em tempo constante, timestamp assinado com
+  tolerância de 5 min, dois segredos ativos, rate limit próprio, logs sem corpo e
+  idempotência por `(provider,event_id)`.
+
+### Evidências (Docker de pé)
+
+- OpenAPI gerado duas vezes: idêntico (`--check`).
+- `oasdiff`: mudança compatível (campo opcional em `OrderResponse`) passou;
+  remoção de `total` falhou com 3 erros `response-required-property-removed`.
+- 10 pedidos concorrentes com a mesma chave: **1** pedido no banco, **2**
+  replays, **7** respostas 409 com `Retry-After: 60`; payload diferente 422.
+- Erros reais: 401 `invalid_token`, 403 `payment_forbidden`, 404
+  `order_not_found`, 422 `validation_error` (com `errors[]`), 429
+  `rate_limit_exceeded` (`Retry-After: 30`), 503 `stripe_not_configured`.
+- Webhook: assinado 200; adulterado 401 `invalid_webhook_signature`; expirado 401
+  `webhook_timestamp_invalid`; repetido 200 `DUPLICATE`.
+- `alembic downgrade 0020` + `upgrade head` + `alembic check`: OK; backup
+  pré-migration `backup_pre_0021.dump` (220.451 bytes).
+- Suítes: backend **512 unit/arch + 280 integration** (1 skip); frontend
+  **112 testes**, typecheck e lint OK.
+
 ### Segurança / pendências
 
 - A `sk_test` foi exposta em conversa; **rotacionar** no dashboard e atualizar o Render.

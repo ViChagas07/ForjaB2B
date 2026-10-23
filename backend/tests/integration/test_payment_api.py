@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import time
 import uuid
 from collections.abc import AsyncIterator
 from decimal import Decimal
@@ -40,7 +41,7 @@ _WEBHOOK_SECRET = "dev_payment_webhook_secret_change_in_production"
 
 
 def _cpf_hash(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return hashlib.sha256(value.encode()).hexdigest()
 
 
 def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
@@ -163,13 +164,30 @@ async def _post_webhook(
         "provider_reference": provider_reference,
         "company_id": str(_COMPANY),
     }
-    body = json.dumps(payload).encode("utf-8")
-    signature = "sha256=" + hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    body = json.dumps(payload).encode()
+    timestamp = int(time.time())
+    signature = _legacy_signature(secret, body, timestamp)
     return await client.post(
         "/api/v1/payments/webhook",
         content=body,
-        headers={"content-type": "application/json", "X-Forja-Signature": signature},
+        headers={
+            "content-type": "application/json",
+            "X-Forja-Signature": signature,
+            "X-Forja-Timestamp": str(timestamp),
+        },
     )
+
+
+def _legacy_signature(secret: str, body: bytes, timestamp: int | None = None) -> str:
+    signed = f"{timestamp}.".encode() + body if timestamp is not None else body
+    return "sha256=" + hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+
+
+def _stripe_signature(secret: str, payload: bytes, timestamp: int | None = None) -> str:
+    moment = int(time.time()) if timestamp is None else timestamp
+    signed = f"{moment}.".encode() + payload
+    digest = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return f"t={moment},v1={digest}"
 
 
 async def test_pix_pagamento_com_desconto(payment_client: httpx.AsyncClient) -> None:
@@ -362,3 +380,213 @@ async def test_webhook_concorrente_idempotente(payment_client: httpx.AsyncClient
     outcomes = [r.json()["outcome"] for r in responses]
     assert outcomes.count("APPLIED") == 1
     assert outcomes.count("DUPLICATE") == 4
+
+
+async def test_pagamento_idempotency_header_replay(payment_client: httpx.AsyncClient) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-header-order-1")
+    key = "payment-header-replay-0001"
+    payload = {"order_id": order["id"], "method": "PIX"}
+
+    first = await payment_client.post(
+        "/api/v1/payments", json=payload, headers={"Idempotency-Key": key}
+    )
+    second = await payment_client.post(
+        "/api/v1/payments", json=payload, headers={"Idempotency-Key": key}
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert second.headers["idempotent-replayed"] == "true"
+    assert first.json()["id"] == second.json()["id"]
+
+
+async def test_pagamento_idempotency_ausente_422(payment_client: httpx.AsyncClient) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-header-order-2")
+
+    response = await payment_client.post(
+        "/api/v1/payments", json={"order_id": order["id"], "method": "PIX"}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["type"] == "urn:forja:problem:idempotency_key_required"
+
+
+async def test_pagamento_idempotency_payload_diferente_422(
+    payment_client: httpx.AsyncClient,
+) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-header-order-3")
+    other = await _create_order(payment_client, "PIX", "pay-header-order-4")
+    key = "payment-header-mismatch-0001"
+
+    first = await payment_client.post(
+        "/api/v1/payments",
+        json={"order_id": order["id"], "method": "PIX"},
+        headers={"Idempotency-Key": key},
+    )
+    assert first.status_code == 201
+
+    second = await payment_client.post(
+        "/api/v1/payments",
+        json={"order_id": other["id"], "method": "PIX"},
+        headers={"Idempotency-Key": key},
+    )
+    assert second.status_code == 422
+    assert second.json()["type"] == "urn:forja:problem:idempotency_payload_mismatch"
+
+
+async def test_webhook_assinatura_ausente_401(payment_client: httpx.AsyncClient) -> None:
+    body = json.dumps({"provider": "FAKE_PIX"}).encode()
+    response = await payment_client.post(
+        "/api/v1/payments/webhook",
+        content=body,
+        headers={"content-type": "application/json"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["type"] == "urn:forja:problem:invalid_webhook_signature"
+
+
+async def test_webhook_timestamp_expirado_401(payment_client: httpx.AsyncClient) -> None:
+    body = json.dumps({"provider": "FAKE_PIX"}).encode()
+    timestamp = int(time.time()) - 400
+    response = await payment_client.post(
+        "/api/v1/payments/webhook",
+        content=body,
+        headers={
+            "content-type": "application/json",
+            "X-Forja-Signature": _legacy_signature(_WEBHOOK_SECRET, body, timestamp),
+            "X-Forja-Timestamp": str(timestamp),
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["type"] == "urn:forja:problem:webhook_timestamp_invalid"
+
+
+async def test_webhook_legado_sem_timestamp_continua_aceito(
+    payment_client: httpx.AsyncClient,
+) -> None:
+    body = json.dumps({"provider": "FAKE_PIX"}).encode()
+    response = await payment_client.post(
+        "/api/v1/payments/webhook",
+        content=body,
+        headers={
+            "content-type": "application/json",
+            "X-Forja-Signature": _legacy_signature(_WEBHOOK_SECRET, body),
+        },
+    )
+
+    # Assinatura valida sobre o corpo antigo; a rota esta depreciada.
+    assert response.status_code == 422
+
+
+async def test_webhook_corpo_grande_413(test_settings: Settings, payment_seed: None) -> None:
+    settings = test_settings.model_copy(update={"webhook_max_body_bytes": 1024})
+    app = create_app(settings)
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/payments/webhook",
+            content=b"{" + b"a" * 2000 + b"}",
+            headers={"content-type": "application/json", "X-Forja-Signature": "sha256=x"},
+        )
+    await app.state.db_engine.dispose()
+    await close_redis_client(app.state.redis_client)
+
+    assert response.status_code == 413
+    assert response.json()["type"] == "urn:forja:problem:webhook_payload_too_large"
+
+
+async def test_webhook_rotacao_de_segredo(
+    test_settings: Settings,
+    payment_client: httpx.AsyncClient,
+) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-rotation-order")
+    payment = await _initiate(payment_client, order["id"], "PIX", "pay-rotation-init")
+
+    settings = test_settings.model_copy(
+        update={
+            "payment_webhook_secret": "segredo_novo_rotacao_1234567890",
+            "payment_webhook_secret_previous": _WEBHOOK_SECRET,
+        }
+    )
+    app = create_app(settings)
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as rotated_client:
+        response = await _post_webhook(
+            rotated_client,
+            provider_reference=payment["provider_reference"],
+            event_id="evt-rotation",
+            event_type="payment.paid",
+            secret=_WEBHOOK_SECRET,
+        )
+    await app.state.db_engine.dispose()
+    await close_redis_client(app.state.redis_client)
+
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "APPLIED"
+
+
+async def test_stripe_webhook_assinaturas(test_settings: Settings, payment_seed: None) -> None:
+    settings = test_settings.model_copy(
+        update={
+            "stripe_webhook_secret": "whsec_test_atual",
+            "stripe_webhook_secret_previous": "whsec_test_anterior",
+        }
+    )
+    app = create_app(settings)
+    transport = httpx.ASGITransport(app=app)
+    payload = json.dumps(
+        {"id": "evt_stripe_sig", "type": "customer.created", "data": {"object": {}}}
+    ).encode()
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            valid = await client.post(
+                "/api/v1/payments/stripe/webhook",
+                content=payload,
+                headers={
+                    "content-type": "application/json",
+                    "Stripe-Signature": _stripe_signature("whsec_test_atual", payload),
+                },
+            )
+            rotated = await client.post(
+                "/api/v1/payments/stripe/webhook",
+                content=payload,
+                headers={
+                    "content-type": "application/json",
+                    "Stripe-Signature": _stripe_signature("whsec_test_anterior", payload),
+                },
+            )
+            invalid = await client.post(
+                "/api/v1/payments/stripe/webhook",
+                content=payload,
+                headers={
+                    "content-type": "application/json",
+                    "Stripe-Signature": "t=1,v1=" + "0" * 64,
+                },
+            )
+            expired = await client.post(
+                "/api/v1/payments/stripe/webhook",
+                content=payload,
+                headers={
+                    "content-type": "application/json",
+                    "Stripe-Signature": _stripe_signature(
+                        "whsec_test_atual", payload, int(time.time()) - 400
+                    ),
+                },
+            )
+            missing = await client.post(
+                "/api/v1/payments/stripe/webhook",
+                content=payload,
+                headers={"content-type": "application/json"},
+            )
+    finally:
+        await app.state.db_engine.dispose()
+        await close_redis_client(app.state.redis_client)
+
+    assert valid.status_code == 200
+    assert rotated.status_code == 200
+    assert invalid.status_code == 401
+    assert expired.status_code == 401
+    assert missing.status_code == 401
+    assert "detail" not in invalid.json() or "signature" not in str(invalid.json().get("detail"))

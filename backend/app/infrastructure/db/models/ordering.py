@@ -56,6 +56,7 @@ class Order(TimestampMixin, Base):
         Index("ix_orders_created_at", "created_at"),
         Index(
             "uq_orders_idempotency_key",
+            "company_id",
             "idempotency_key",
             unique=True,
             postgresql_where=text("idempotency_key IS NOT NULL"),

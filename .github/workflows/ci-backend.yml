@@ -9,6 +9,8 @@ on:
       - "backend/**"
       - "docker/postgres/**"
       - "docker/otel/**"
+      - "docs/api/**"
+      - "frontend/core/domain/api-schema.d.ts"
       - ".github/workflows/ci-backend.yml"
   pull_request:
     branches:
@@ -18,6 +20,8 @@ on:
       - "backend/**"
       - "docker/postgres/**"
       - "docker/otel/**"
+      - "docs/api/**"
+      - "frontend/core/domain/api-schema.d.ts"
       - ".github/workflows/ci-backend.yml"
 
 permissions:
@@ -93,6 +97,62 @@ jobs:
         # Cobertura do pacote app sera reintroduzida pelo @backend-specialist
         # quando o codigo da aplicacao existir.
         run: pytest tests/ -v --tb=short
+
+  openapi-contract:
+    name: OpenAPI Contract
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Regenerate OpenAPI snapshot
+        working-directory: backend
+        run: python scripts/export_openapi.py
+
+      - name: Fail on contract drift
+        # O snapshot e versionado: toda mudanca consciente precisa entrar no PR.
+        run: git diff --exit-code -- docs/api/openapi.json
+
+      - name: Check breaking changes against main
+        # O oasdiff falha em remocao de rota/campo, mudanca de tipo ou de
+        # obrigatoriedade; mudancas compativeis passam. Na primeira publicacao
+        # (snapshot ainda ausente na main) a etapa e informativa.
+        run: |
+          if git cat-file -e origin/main:docs/api/openapi.json 2>/dev/null; then
+            git show origin/main:docs/api/openapi.json > .tmp-openapi-main.json
+            docker run --rm -v "$PWD:/work" tufin/oasdiff breaking \
+              --fail-on ERR \
+              /work/.tmp-openapi-main.json /work/docs/api/openapi.json
+            rm -f .tmp-openapi-main.json
+          else
+            echo "Snapshot da main ausente; oasdiff sera aplicado no proximo PR."
+          fi
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check frontend type drift
+        working-directory: frontend
+        run: |
+          npx --yes openapi-typescript@7.13.0 ../docs/api/openapi.json \
+            -o core/domain/api-schema.d.ts
+          git diff --exit-code -- core/domain/api-schema.d.ts
 
   security-scan:
     name: Security & Vulnerability Scan

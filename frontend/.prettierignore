@@ -9,3 +9,4 @@ test-results
 package-lock.json
 next-env.d.ts
 public/brand
+core/domain/api-schema.d.ts

@@ -26,7 +26,8 @@ class InitiatePaymentRequest(BaseModel):
 
     order_id: uuid.UUID
     method: PaymentMethod
-    idempotency_key: str = Field(min_length=1, max_length=64)
+    # Compatibilidade: ver CreateOrderRequest.idempotency_key.
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class PaymentResponse(BaseModel):
