@@ -226,15 +226,18 @@ dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índ
 
 ### Testes
 
-- `tests/unit` + `tests/architecture`: **511 passed / 1 failed**; a única falha é
-  `test_nenhum_type_ignore_no_codigo` em arquivos do WIP concorrente
+- Suíte completa com Docker: **788 passed, 4 failed, 1 skipped** em 170 s. As 4 falhas
+  são do WIP concorrente, não deste prompt: `test_nenhum_type_ignore_no_codigo`
   (`app/interface/openapi.py`, `app/infrastructure/rate_limit/redis_stores.py`,
-  `tests/unit/test_deprecation.py`, `tests/unit/test_rate_limit.py`), fora deste prompt.
-- `tests/integration/test_search_outbox_repository.py`: **1 passed**.
-- `tests/integration/test_search_reconcile_lock.py`: **2 passed**.
-- `tests/integration/test_search_index_es.py`: **8 passed**, 1 timeout transitório do
-  Testcontainers; o teste isolado passou na repetição.
-- `mypy` dos arquivos alterados e `ruff check/format`: **OK**.
+  `tests/unit/test_deprecation.py`, `tests/unit/test_rate_limit.py`) e três testes de
+  `test_companies_api.py` que receberam **429** do rate limiting em Redis (estado de
+  bucket compartilhado entre execuções).
+- Suíte sem Docker: **514 passed, 278 skipped, 1 failed** (a mesma falha de
+  `type: ignore` alheia).
+- `test_search_outbox_repository.py`: **1 passed**; `test_search_reconcile_lock.py`:
+  **2 passed**; `test_search_index_es.py`: **9 passed** na execução completa.
+- `mypy app --strict`: **0 erros em 304 arquivos**; `ruff check/format` dos arquivos
+  alterados: **OK**; import-linter: **4 contratos mantidos**; Compose config: **OK**.
 
 ### Pendências registradas
 
