@@ -19,7 +19,7 @@
 - Migrations rodam com `forja_admin` (`DATABASE_ADMIN_URL`). O runtime
   (`forja_app`) nunca executa DDL.
 
-## 2. Inventario (revisao 0021)
+## 2. Inventario (revisao 0022)
 
 | Revisao | Assunto | Downgrade | Observacao |
 | :--- | :--- | :--- | :--- |
@@ -44,6 +44,7 @@
 | 0019 | Locale do pedido | Sim | Remove `content_locale` de pedidos e itens. |
 | 0020 | Status `PAID` | Sim, com perda de estado | `PAID` e normalizado para `RECEIVED` antes de restaurar a constraint antiga. |
 | 0021 | Chaves de idempotencia (admin/API) | Sim | Remove `idempotency_keys` e suas policies RLS. |
+| 0022 | Escopo multi-tenant das chaves de idempotencia | Sim | Recria os indices unicos de `orders`/`payments` com `company_id`; o downgrade volta ao indice global (pode falhar se houver chaves duplicadas entre empresas). |
 
 Nao ha migration irreversivel. As perdas de 0015, 0018 e 0020 sao
 intencionais e ocorrem apenas no rollback; o upgrade seguinte nao recria os
@@ -83,25 +84,28 @@ Execucao de 2026-10-22 (Docker de pe, PostgreSQL 16 + pgvector):
   `alembic check`: **OK**;
 - seed antes e depois identico: 50 produtos, 4 empresas, 13 usuarios, 4 regras
   de preco e 150 traducoes (checksums identicos);
-- revisao final `0021` (head), sem divergencia de esquema;
+- revisao final `0022` (head), sem divergencia de esquema;
 - o banco descartavel foi removido ao final.
 
-Tempos registrados (execucao com Docker de pe, maquina de desenvolvimento):
+Tempos registrados (execucao final de 2026-10-22, Docker de pe, cache aquecido):
 
 | Etapa | Tempo |
 | :--- | ---: |
-| criar banco descartavel | 12,19 s |
-| bootstrap (roles/extensoes/schema `app`) | 1,55 s |
-| upgrade head inicial | 8,54 s |
-| seed inicial | 83,44 s |
-| downgrade base | 14,09 s |
-| upgrade head final | 42,21 s |
-| seed final | 24,32 s |
-| `alembic check` | 68,41 s |
-| **total** | **290,88 s** |
+| criar banco descartavel | 0,59 s |
+| bootstrap (roles/extensoes/schema `app`) | 1,41 s |
+| upgrade head inicial | 5,32 s |
+| seed inicial | 2,40 s |
+| snapshot do seed (antes) | 0,31 s |
+| downgrade base | 2,89 s |
+| upgrade head final | 3,67 s |
+| seed final | 1,94 s |
+| snapshot do seed (depois) | 0,32 s |
+| `alembic check` | 3,15 s |
+| **total** | **25,87 s** |
 
-O tempo varia com o I/O do Docker Desktop; o relatorio completo sai em JSON
-com `--json` e fica registrado no `docs/STATUS.md`.
+O tempo varia com o I/O do Docker Desktop (a primeira execucao, a frio, levou
+~290 s); o relatorio completo sai em JSON com `--json` e fica registrado no
+`docs/STATUS.md`.
 
 ## 4. CI
 

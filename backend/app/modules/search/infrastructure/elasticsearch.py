@@ -28,7 +28,7 @@ from elasticsearch.helpers import async_bulk, async_scan
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.modules.search.application.documents import SEARCH_TRANSLATION_LOCALES
-from app.modules.search.application.errors import SearchUnavailableError
+from app.modules.search.application.errors import SearchIndexError, SearchUnavailableError
 from app.modules.search.application.ports import (
     IndexBulkResult,
     ProductDocument,
@@ -198,7 +198,10 @@ class ElasticsearchProductIndex:
                 "_index": target,
                 "_id": document.id,
                 "version": document.version,
-                "version_type": "external",
+                # external_gte permite recriar um documento cuja versao e
+                # igual ao tombstone de um delete; versoes mais antigas que o
+                # documento atual continuam sendo rejeitadas.
+                "version_type": "external_gte",
                 "_source": document.to_source(),
             }
             for document in documents
@@ -208,9 +211,17 @@ class ElasticsearchProductIndex:
     async def delete_documents(self, *, target: str, ids: Sequence[str]) -> IndexBulkResult:
         if not ids:
             return IndexBulkResult()
-        actions: list[dict[str, Any]] = [
-            {"_op_type": "delete", "_index": target, "_id": doc_id} for doc_id in ids
-        ]
+        # Usa a versao atual do documento no delete para o tombstone ficar com
+        # a mesma versao externa. Assim um UPSERT posterior com external_gte
+        # consegue recriar o documento sem conflito.
+        versions = await self.fetch_versions(target=target)
+        actions: list[dict[str, Any]] = []
+        for doc_id in ids:
+            action: dict[str, Any] = {"_op_type": "delete", "_index": target, "_id": doc_id}
+            if doc_id in versions:
+                action["version"] = versions[doc_id]
+                action["version_type"] = "external_gte"
+            actions.append(action)
         return await self._bulk(actions)
 
     async def search(self, query: SearchQuery) -> SearchResult:
@@ -369,6 +380,38 @@ class ElasticsearchProductIndex:
             raise translate_elasticsearch_error(exc) from exc
         _logger.info("search_alias_swapped", alias=self._alias, index=index_name)
 
+    async def list_versioned_indices(self) -> list[str]:
+        """Indices que seguem o padrao ``<alias>_vN`` (inclui fechados)."""
+        try:
+            response = await self._client.indices.get(
+                index=f"{self._alias}_v*",
+                allow_no_indices=True,
+                expand_wildcards="open,closed",
+            )
+        except _ELASTICSEARCH_ERRORS as exc:
+            raise translate_elasticsearch_error(exc) from exc
+        return sorted(str(name) for name in response)
+
+    async def alias_targets(self) -> set[str]:
+        """Indices apontados pelo alias; vazio quando o alias nao existe."""
+        try:
+            if not await self._client.indices.exists_alias(name=self._alias):
+                return set()
+            response = await self._client.indices.get_alias(name=self._alias)
+        except _ELASTICSEARCH_ERRORS as exc:
+            raise translate_elasticsearch_error(exc) from exc
+        return {str(name) for name in response}
+
+    async def delete_index(self, *, index_name: str) -> None:
+        """Remove um indice versionado; recusa remover o proprio alias."""
+        if index_name == self._alias:
+            raise SearchIndexError("recusado: remover o alias em vez do indice versionado")
+        try:
+            await self._client.indices.delete(index=index_name)
+        except _ELASTICSEARCH_ERRORS as exc:
+            raise translate_elasticsearch_error(exc) from exc
+        _logger.info("search_index_deleted", index=index_name)
+
     async def _bulk(self, actions: list[dict[str, Any]]) -> IndexBulkResult:
         index_ops = sum(1 for action in actions if action["_op_type"] == "index")
         delete_ops = sum(1 for action in actions if action["_op_type"] == "delete")
@@ -378,6 +421,8 @@ class ElasticsearchProductIndex:
             raise translate_elasticsearch_error(exc) from exc
         failed_index = 0
         failed_delete = 0
+        index_conflicts = 0
+        delete_conflicts = 0
         samples: list[str] = []
         failed_items = errors if isinstance(errors, list) else []
         for item in failed_items:
@@ -386,7 +431,16 @@ class ElasticsearchProductIndex:
             error = cast("dict[str, Any]", op_detail.get("error", {}))
             error_type = str(error.get("type", ""))
             if error_type == _VERSION_CONFLICT:
-                continue  # versao mais antiga que a indexada: ignora (idempotente)
+                # Versao mais antiga que a indexada: nao e erro (idempotencia),
+                # mas tambem nao e escrita aplicada.
+                if op_name == "index":
+                    index_conflicts += 1
+                else:
+                    delete_conflicts += 1
+                continue
+            if op_name == "delete" and error_type == "not_found":
+                # Documento ja ausente: o estado desejado foi atingido.
+                continue
             if op_name == "index":
                 failed_index += 1
             else:
@@ -395,9 +449,10 @@ class ElasticsearchProductIndex:
                 # Somente o tipo de operacao e o motivo (id do documento fica de fora).
                 samples.append(f"{op_name}:{error_type}")
         return IndexBulkResult(
-            indexed=index_ops - failed_index,
-            deleted=delete_ops - failed_delete,
+            indexed=index_ops - failed_index - index_conflicts,
+            deleted=delete_ops - failed_delete - delete_conflicts,
             errors=failed_index + failed_delete,
+            conflicts=index_conflicts + delete_conflicts,
             sample_errors=tuple(samples),
         )
 

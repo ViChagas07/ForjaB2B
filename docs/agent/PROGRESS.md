@@ -1705,3 +1705,40 @@ RelatÃ³rios idÃªnticos nas duas execuÃ§Ãµes.
 - 429 RFC 7807 com Retry-After e RateLimit-*, IP real via TRUSTED_PROXY_COUNT, fail-open com limitador local + circuit breaker curto, metricas de rejeicao/falha.
 - Login: limite por conta (HMAC), bloqueio progressivo por conta+IP sem revelar existencia; cadastro tambem limita por conta.
 - Testes: 8 unitarios + 4 de integracao com Redis real; Ruff/mypy OK. Validacao Docker de 429/fail-open fica no passo 8.
+
+## Prompt 05 — Dados, migrations, backup e reconciliação (2026-10-22)
+
+### Passo 1 — Rollback de migrations
+- `scripts/migration_drill.py`: banco `forja_scratch_migration_*`, bootstrap real, upgrade/seed/downgrade base/upgrade/seed, comparação de checksums e `alembic check`; remove somente o banco que criou.
+- 0018 e 0020 documentadas como reversíveis com perda de estado (`DRAFT`->`INACTIVE`, `PAID`->`RECEIVED`); teste de arquitetura detecta downgrade ausente/não funcional.
+- Drill real no head **0022**: OK em 25,87 s; seed 50/4/13/4/150 idêntico antes/depois.
+- Pendente: job `migrations` do Prompt 02 não existe no CI.
+
+### Passo 2 — Backup e restauração
+- `scripts/backup_db.py`: pg_dump custom, validação `PGDMP`, arquivo temporário + rename, rotação por retenção, saída em `backups/` (fora do volume).
+- `scripts/restore_drill.py`: restaura o último backup em `forja_scratch_restore_*`, aplica `upgrade head`, `alembic current/check`, contagens e extensões, confirma banco dev inalterado e remove o scratch.
+- Evidência: dump 226.309 bytes; restore 9,81 s; upgrade/check 9,59 s; 50/4/13/4/150; extensões OK; dev inalterado.
+- `docs/BACKUP.md` cobre política, Render (PITR 3/7 dias, exports 7 dias; plano real NÃO CONFERIDO) e snapshots do ES; índice reconstruível.
+
+### Passo 3 — Outbox
+- Backoff exponencial no SQL (2^attempts, teto 60 s), `DEAD_LETTERED` no limite, motivo apenas tipo da exceção.
+- CLI `outbox list-dead`, `outbox requeue <id|--all --yes>`; auditoria estruturada `search_outbox_requeued`.
+- Gauges `forja_outbox_pending`, `forja_outbox_dead_total`, `forja_outbox_oldest_pending_age_seconds` atualizados pela API.
+- Evidência real: ES fora + max_attempts=1 -> dead; list/requeue validados; eventos de teste removidos. Testes de idempotência e dead-letter passando.
+
+### Passo 4 — Reconciliação
+- Advisory lock de sessão (`hashtext('forja:search:reconcile')`); segunda instância sai `skipped`/`reconcile_already_running`.
+- Agendador opcional (`RECONCILE_INTERVAL_SECONDS=0` default) com jitter, timeout e métricas `reconcile_last_success_timestamp_seconds`, `reconcile_duration_seconds`, `reconcile_drift_total`, `reconcile_failures_total`.
+- Evidência real: lock segurado -> duas execuções skipped; drift induzido -> `upserted=1` e documento restaurado.
+- Corrigido upsert pós-delete com `external_gte` + delete versionado; conflitos não contam como escrita.
+- Pendente: alerta do Prompt 04 ainda não aplicado (métrica pronta); Cron Job do Render NÃO CONFERIDO no plano.
+
+### Passo 5 — Limpeza de índices
+- `prune-indices --keep N` (default 2), `--dry-run`, `--yes`; nunca remove o alvo do alias nem as N mais recentes; ordenação numérica.
+- Evidência real: removida `forja_products_v1`; alias permaneceu em `forja_products_v2`; dry-run seguinte vazio.
+- ILM não é usado (índice único versionado + alias + reconstruível); documentado no RUNBOOK.
+
+### Passo 6/7 — Validação e documentação
+- `docs/MIGRATIONS.md`, `docs/BACKUP.md`, `docs/search/RUNBOOK.md` e `docs/STATUS.md` atualizados.
+- Testes: unit+arch 511/512 (falha alheia de `type: ignore` no WIP concorrente); outbox repo 1; lock 2; ES 8+1 retry.
+- `mypy`/`ruff` dos arquivos alterados OK.

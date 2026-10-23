@@ -7,7 +7,9 @@ negocio (order_id, payment_id) tambem sao omitidos por padrao.
 
 from __future__ import annotations
 
-from prometheus_client import Counter, Histogram, generate_latest
+import time
+
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 _HTTP_LABELS = ["method", "status"]
 
@@ -65,6 +67,39 @@ rate_limit_backend_failures_total = Counter(
     ["rate_class"],
 )
 
+# Outbox de busca e reconciliacao do indice (Prompt 05). Gauges sao atualizados
+# pelo processo da API a partir do PostgreSQL; contadores registram o drift
+# corrigido e falhas de reconciliacao.
+outbox_pending = Gauge(
+    "forja_outbox_pending",
+    "Eventos de busca pendentes ou falhos ainda retentaveis",
+)
+outbox_dead_total = Gauge(
+    "forja_outbox_dead_total",
+    "Eventos de busca em DEAD_LETTERED",
+)
+outbox_oldest_pending_age_seconds = Gauge(
+    "forja_outbox_oldest_pending_age_seconds",
+    "Idade do evento de busca pendente mais antigo, em segundos",
+)
+reconcile_last_success_timestamp_seconds = Gauge(
+    "forja_reconcile_last_success_timestamp_seconds",
+    "Timestamp Unix da ultima reconciliacao bem-sucedida",
+)
+reconcile_duration_seconds = Histogram(
+    "forja_reconcile_duration_seconds",
+    "Duracao da reconciliacao do indice de busca",
+)
+reconcile_drift_total = Counter(
+    "forja_reconcile_drift_total",
+    "Correcoes aplicadas pela reconciliacao (upsert/delete)",
+    ["kind"],
+)
+reconcile_failures_total = Counter(
+    "forja_reconcile_failures_total",
+    "Execucoes de reconciliacao que falharam",
+)
+
 _DEGRADED_SEARCH_MODES = frozenset({"semantic_postgres", "postgres_fallback"})
 
 
@@ -102,6 +137,29 @@ def increment_rate_limit_rejection(*, rate_class: str) -> None:
 
 def increment_rate_limit_backend_failure(*, rate_class: str) -> None:
     rate_limit_backend_failures_total.labels(rate_class=rate_class).inc()
+
+
+def observe_outbox_snapshot(*, pending: int, dead: int, oldest_pending_age_seconds: float) -> None:
+    """Atualiza os gauges da outbox com um instantaneo do PostgreSQL."""
+    outbox_pending.set(pending)
+    outbox_dead_total.set(dead)
+    outbox_oldest_pending_age_seconds.set(max(0.0, oldest_pending_age_seconds))
+
+
+def observe_reconcile_success(*, duration: float, upserted: int, deleted: int) -> None:
+    """Registra sucesso, duracao e drift corrigido por uma reconciliacao."""
+    reconcile_duration_seconds.observe(duration)
+    reconcile_last_success_timestamp_seconds.set(time.time())
+    if upserted > 0:
+        reconcile_drift_total.labels(kind="upserted").inc(upserted)
+    if deleted > 0:
+        reconcile_drift_total.labels(kind="deleted").inc(deleted)
+
+
+def observe_reconcile_failure(*, duration: float) -> None:
+    """Registra falha sem atualizar o timestamp da ultima execucao valida."""
+    reconcile_duration_seconds.observe(duration)
+    reconcile_failures_total.inc()
 
 
 def prometheus_metrics() -> bytes:

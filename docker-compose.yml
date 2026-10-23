@@ -292,6 +292,8 @@ services:
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
       ELASTICSEARCH_HOST: elasticsearch
       ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD is required (see .env.example)}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-forja-backend}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example)}
@@ -346,6 +348,9 @@ services:
       RABBITMQ_HOST: rabbitmq
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD is required (see .env.example)}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-forja-backend}-worker
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required (see .env.example)}
@@ -392,6 +397,9 @@ services:
       RABBITMQ_HOST: rabbitmq
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@rabbitmq:5672//}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD is required (see .env.example)}
       EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:-mailpit}
       EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-1025}
       EMAIL_FROM: ${EMAIL_FROM:-no-reply@forja.local}

@@ -158,7 +158,7 @@ class _FakeOutbox:
     async def mark_processed(self, event_id: uuid.UUID) -> None:
         self.processed.append(event_id)
 
-    async def mark_failed(self, event_id: uuid.UUID, *, error: str) -> None:
+    async def mark_failed(self, event_id: uuid.UUID, *, error: str, dead: bool) -> None:
         self.failed.append((event_id, error))
 
 
@@ -190,7 +190,7 @@ class ReindexProducts:
         self._replicas = replicas
         self._count_tolerance = count_tolerance
 
-    async def run(self, *, version: int, batch_size: int, dry_run: bool = False):
+    async def run(self, *, version: int, batch_size: int, dry_run: bool = False) -> Any:
         @dataclass(frozen=True, kw_only=True)
         class ReindexReport:
             index_name: str | None
@@ -251,7 +251,9 @@ class ReindexProducts:
             dry_run=False,
         )
 
-    async def _index_all(self, index_name: str, batch_size: int, today: date):
+    async def _index_all(
+        self, index_name: str, batch_size: int, today: date
+    ) -> tuple[int, int, int, set[str]]:
         expected = 0
         indexed = 0
         rejected = 0
@@ -279,7 +281,7 @@ class ReconcileSearchIndex:
         self._reader = reader
         self._batch_size = batch_size
 
-    async def run(self):
+    async def run(self) -> Any:
         @dataclass(frozen=True, kw_only=True)
         class ReconcileReport:
             checked: int
@@ -346,7 +348,7 @@ class DispatchSearchOutbox:
         self._outbox = outbox
         self._max_attempts = max_attempts
 
-    async def run(self, *, limit: int = 100):
+    async def run(self, *, limit: int = 100) -> Any:
         @dataclass(frozen=True, kw_only=True)
         class DispatchReport:
             candidates: int
@@ -362,7 +364,11 @@ class DispatchSearchOutbox:
                 await self._apply(event, today=today)
             except Exception as exc:  # noqa: BLE001 - test: catch all for outbox retry
                 failed += 1
-                await self._outbox.mark_failed(event.id, error=type(exc).__name__)
+                await self._outbox.mark_failed(
+                    event.id,
+                    error=type(exc).__name__,
+                    dead=event.attempts + 1 >= self._max_attempts,
+                )
             else:
                 processed += 1
                 await self._outbox.mark_processed(event.id)

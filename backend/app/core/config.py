@@ -126,6 +126,12 @@ class Settings(BaseSettings):
     # Sincronizacao do indice de busca (Fase 3): tentativas por evento na
     # outbox antes de descartar (dead-letter).
     search_outbox_max_attempts: int = Field(default=5, ge=1)
+    # Intervalo do atualizador de gauges da outbox no processo da API (0 = off).
+    search_metrics_interval_seconds: int = Field(default=30, ge=0, le=3600)
+    # Reconciliacao dentro do processo (0 = desligada; use o CLI/Cron).
+    reconcile_interval_seconds: int = Field(default=0, ge=0)
+    reconcile_jitter_seconds: int = Field(default=20, ge=0, le=300)
+    reconcile_timeout_seconds: int = Field(default=300, ge=1, le=3600)
 
     # Busca lexical (Fase 4): paginacao, limites e autocomplete.
     search_default_page_size: int = Field(default=20, ge=1, le=100)

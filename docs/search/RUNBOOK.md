@@ -374,3 +374,128 @@ pytest tests/ -q                          # suite completa
 ```
 Os testes de integração são marcados com `integration` e, **sem Docker, são pulados** com mensagem
 clara (a suíte padrão termina sem erros). Ver `docs/STATUS.md` para os resultados reais.
+
+## 16. Outbox: dead-letter e reprocessamento (2026-10-22)
+
+O worker tenta cada evento até `SEARCH_OUTBOX_MAX_ATTEMPTS` (default **5**). Entre falhas há
+**backoff exponencial** calculado no SQL (`2^attempts` segundos, teto de **60 s**); o evento volta
+a ficar elegível quando `updated_at + backoff <= now()`. Ao atingir o limite, o status vira
+**`DEAD_LETTERED`** e o evento para de ser listado. O motivo gravado é apenas o **tipo da
+exceção** (`SearchUnavailableError`, etc.), nunca termo buscado, ID de produto ou credencial.
+
+```bash
+# listar (JSON; inclui aggregate_id, attempts, last_error e timestamps)
+docker compose exec backend python -m app.modules.search.interface.cli outbox list-dead
+docker compose exec backend python -m app.modules.search.interface.cli outbox list-dead --limit 20
+
+# devolver UM evento para a fila (sem confirmação adicional)
+docker compose exec backend python -m app.modules.search.interface.cli outbox requeue <uuid>
+
+# devolver TODOS (exige confirmação explícita)
+docker compose exec backend python -m app.modules.search.interface.cli outbox requeue --all --yes
+```
+
+- `requeue --all` sem `--yes` retorna `confirmation_required` e **exit 2**.
+- Requeue zera `attempts`, limpa `last_error` e volta para `PENDING`.
+- A operação é auditada em log estruturado: `search_outbox_requeued` com `scope`, `count`/`event_id`
+  e `operator` (usuário do processo). Não há PII no log.
+- O `dispatch` continua idempotente: o índice usa versão externa (`external_gte`) e um evento
+  reaplicado não duplica documento.
+
+**Métricas Prometheus** (a API lê o PostgreSQL em background; ver §17):
+
+| Métrica | Tipo | Significado |
+| :--- | :--- | :--- |
+| `forja_outbox_pending` | Gauge | Eventos `PENDING` + `FAILED` ainda retentáveis |
+| `forja_outbox_dead_total` | Gauge | Eventos em `DEAD_LETTERED` |
+| `forja_outbox_oldest_pending_age_seconds` | Gauge | Idade do pendente mais antigo |
+
+`SEARCH_METRICS_INTERVAL_SECONDS` controla o loop (default **30 s**; `0` desliga). O worker não
+expõe `/metrics`; a API é quem responde ao scrape.
+
+## 17. Reconciliação agendada e exclusão mútua
+
+A reconciliação corrige faltantes, órfãos e versões desatualizadas. Antes de tocar no índice, ela
+adquire um **advisory lock de sessão** do PostgreSQL com a chave
+`hashtext('forja:search:reconcile')`. O lock fica preso a uma conexão dedicada; se o processo morrer,
+o PostgreSQL libera o lock ao fechar a conexão.
+
+```bash
+docker compose exec backend python -m app.modules.search.interface.cli reconcile
+# segunda instância concorrente:
+# {"status": "skipped", "reason": "reconcile_already_running"}
+```
+
+- A segunda execução sai com **exit 0** e mensagem clara; não é uma falha do serviço.
+- O `reconcile` também roda no beat a cada 15 min. **Escolha uma** opção por ambiente: beat, CLI por
+  Cron Job ou agendador no processo; o lock evita sobreposição, mas rodar três agendadores é
+  desperdício.
+- **Agendador no processo (opcional):** `RECONCILE_INTERVAL_SECONDS` (default **0 = desligado**),
+  `RECONCILE_JITTER_SECONDS` (default 20) e `RECONCILE_TIMEOUT_SECONDS` (default 300). O loop roda
+  em background, espera o intervalo com jitter, impõe timeout total e não derruba a API se o
+  Elasticsearch/PostgreSQL falhar. O primeiro disparo ocorre após o intervalo, não no startup.
+- **Alternativa de produção — Cron Job do Render:** a documentação oficial consultada em
+  2026-10-22 (<https://render.com/docs/cronjobs>) descreve Cron Jobs como um tipo de serviço
+  disponível, com cobrança mínima e garantia de execução única por horário. O comando seria:
+  `python -m app.modules.search.interface.cli reconcile` no serviço backend/worker.
+  **NÃO CONFERIDO:** se o plano/workspace real deste projeto permite Cron Jobs e qual o custo.
+  Quando usar: prefira Cron quando a API escala horizontalmente ou quando quiser reconciliar sem
+  manter um loop em cada réplica; prefira o agendador no processo quando houver uma única réplica e
+  você quiser as métricas de sucesso no próprio `/metrics`.
+- **Métricas:** `forja_reconcile_last_success_timestamp_seconds`,
+  `forja_reconcile_duration_seconds`, `forja_reconcile_drift_total{kind="upserted"|"deleted"}` e
+  `forja_reconcile_failures_total`. O alerta de reconciliação atrasada do Prompt 04 deve usar
+  `time() - forja_reconcile_last_success_timestamp_seconds`; se o Prompt 04 ainda não estiver
+  aplicado, a métrica já está pronta e a pendência fica registrada em `docs/STATUS.md`.
+- As métricas de reconciliação são atualizadas no processo que executa (API, CLI ou Cron). Se o
+  Cron roda em outro processo, o `/metrics` da API não verá o timestamp; nesse caso monitore o
+  sucesso do Cron Job e/ou use um Pushgateway.
+
+## 18. Limpeza de versões antigas do índice (substitui ILM)
+
+```bash
+# mostra o que seria removido (não altera nada)
+docker compose exec backend python -m app.modules.search.interface.cli prune-indices --dry-run --keep 2
+
+# remove de verdade (exige --yes)
+docker compose exec backend python -m app.modules.search.interface.cli prune-indices --keep 2 --yes
+```
+
+- `--keep N` (default **2**) preserva as N versões mais recentes **e sempre** o índice apontado pelo
+  alias. A ordenação é numérica (`v10 > v9`), não lexicográfica.
+- `--dry-run` não chama `delete_index`; o relatório lista `kept` e `deleted`.
+- Sem `--yes` (fora do dry-run) retorna `confirmation_required` e exit 2.
+- Se o alias não tiver alvo, a limpeza é **recusada** (não remove nada) para evitar apagar versões
+  válidas quando o alias está quebrado.
+- Operações de remoção são registradas em `search_index_deleted` (nome do índice, sem dados).
+
+**Por que não usar ILM:** o produto usa **um único índice versionado por vez** com troca atômica de
+alias, não um fluxo append-only de séries temporais. O índice é **reconstruível a partir do
+PostgreSQL** e a retenção é deliberada (N versões para rollback). ILM exigiria rollover por
+tamanho/idade, o que quebraria a semântica de alias/rollback e aumentaria o custo sem benefício.
+Passaria a fazer sentido se o índice virasse multi-tenant/append-only com rollover diário e
+consultas por janela de tempo — não é o caso.
+
+## 19. Correção de versão após delete (importante)
+
+O índice usa versão externa derivada de `products.updated_at` (epoch ms). Para que um documento
+possa ser recriado após um delete (tombstone), o adapter usa `external_gte` no upsert e grava o
+delete com a **versão atual** do documento (`external_gte`). Versões mais antigas que o documento
+atual continuam rejeitadas (proteção contra regressão), e conflitos de versão não são contados como
+escrita aplicada. Sem esse ajuste, um `reconcile` podia reportar `upserted=1` sem restaurar o
+documento; o teste de integração `test_search_index_es.py` e o drill real cobrem o fluxo.
+
+## 20. Evidências de validação (2026-10-22)
+
+- **Drift induzido:** documento do produto `...0302` removido do alias de validação;
+  `reconcile` retornou `upserted=1` e o documento voltou a existir. O mesmo foi feito no alias
+  principal: `checked=50, upserted=1`, contagem **41** e documento presente.
+- **Concorrência:** com um processo segurando o advisory lock, duas execuções de `reconcile`
+  retornaram `{"status":"skipped","reason":"reconcile_already_running"}`.
+- **Dead-letter:** com o Elasticsearch indisponível e `SEARCH_OUTBOX_MAX_ATTEMPTS=1`, o evento
+  virou `DEAD_LETTERED` com `last_error=SearchUnavailableError`; `outbox list-dead` o listou,
+  `requeue` o devolveu a `PENDING` (attempts=0) e os eventos de teste foram removidos ao final.
+- **Prune:** `--dry-run` listou `forja_products_v1`; a execução real removeu v1 e o alias
+  continuou em **`forja_products_v2`**; o dry-run seguinte não tinha nada a remover.
+- **Métricas:** testes unitários confirmam gauges de outbox e métricas de sucesso/falha da
+  reconciliação; o agendador no processo está desligado por padrão.

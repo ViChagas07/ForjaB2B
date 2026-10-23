@@ -13,8 +13,9 @@ conhece interface e infraestrutura ao mesmo tempo.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -148,14 +149,21 @@ from app.modules.privacy.application.privacy import (
     RectifyPersonalData,
 )
 from app.modules.privacy.infrastructure.repository import SqlAlchemyPrivacyRepository
+from app.modules.search.application.metrics import SearchMetricsLoop
 from app.modules.search.application.ports import SearchEngine
+from app.modules.search.application.scheduler import ReconcileScheduler
 from app.modules.search.application.search import AutocompleteProducts, SearchProducts
 from app.modules.search.application.semantic import SemanticSearch
+from app.modules.search.application.sync import RefreshSearchMetrics
 from app.modules.search.infrastructure.elasticsearch import build_product_index, build_search_engine
 from app.modules.search.infrastructure.embeddings import build_embedding_provider
+from app.modules.search.infrastructure.outbox_repository import (
+    SqlAlchemySearchOutboxRepository as SqlAlchemySearchDispatchOutboxRepository,
+)
 from app.modules.search.infrastructure.pgvector_store import PgVectorStore
 from app.modules.search.infrastructure.postgres_search import PostgresSearchReader
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
+from app.modules.search.infrastructure.reconcile import ReconcileService
 
 _logger = get_logger(__name__)
 
@@ -173,6 +181,50 @@ async def _log_search_engine_startup(search_engine: SearchEngine) -> None:
         return
     if health.state.value != "ok":
         _logger.warning("search_engine_unavailable", state=health.state.value, detail=health.detail)
+
+
+async def _stop_background_task(task: asyncio.Task[None] | None) -> None:
+    """Cancela um loop de manutencao sem propagar o cancelamento no shutdown."""
+    if task is None:
+        return
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
+
+
+def _start_reconcile_scheduler(app: FastAPI, settings: Settings) -> asyncio.Task[None] | None:
+    """Inicia a reconciliacao periodica (desligada por padrao)."""
+    if settings.reconcile_interval_seconds <= 0:
+        return None
+    service = ReconcileService(
+        settings=settings,
+        engine=app.state.db_engine,
+        uow_factory=app.state.uow_factory,
+    )
+    return asyncio.create_task(
+        ReconcileScheduler(
+            run_once=service.run,
+            interval_seconds=settings.reconcile_interval_seconds,
+            jitter_seconds=settings.reconcile_jitter_seconds,
+            timeout_seconds=settings.reconcile_timeout_seconds,
+        ).run_forever()
+    )
+
+
+def _start_search_metrics(app: FastAPI, settings: Settings) -> asyncio.Task[None] | None:
+    """Inicia o loop de gauges da outbox (sem bloquear o startup)."""
+    if settings.search_metrics_interval_seconds <= 0:
+        return None
+    # Gauge da outbox: le o PostgreSQL em background. O worker nao expoe
+    # /metrics; a API e quem responde ao scrape do Prometheus.
+    return asyncio.create_task(
+        SearchMetricsLoop(
+            updater=RefreshSearchMetrics(
+                outbox=SqlAlchemySearchDispatchOutboxRepository(app.state.uow_factory)
+            ),
+            interval_seconds=settings.search_metrics_interval_seconds,
+        ).run_forever()
+    )
 
 
 def _compose_search(app: FastAPI, settings: Settings) -> None:
@@ -309,8 +361,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         search_engine: SearchEngine | None = app.state.search_engine
         if search_engine is not None:
             await _log_search_engine_startup(search_engine)
+        metrics_task = _start_search_metrics(app, settings)
+        reconcile_task = _start_reconcile_scheduler(app, settings)
         yield
         _logger.info("application_stopping")
+        await _stop_background_task(reconcile_task)
+        await _stop_background_task(metrics_task)
         if search_engine is not None:
             await search_engine.close()
         await engine.dispose()

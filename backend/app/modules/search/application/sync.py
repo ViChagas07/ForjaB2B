@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.core.logging import get_logger
+from app.core.metrics import observe_outbox_snapshot
 from app.modules.search.application.documents import build_product_document, is_row_sellable
 from app.modules.search.application.embeddings_backfill import EmbeddingSync
 from app.modules.search.application.errors import SearchIndexError
@@ -22,7 +23,9 @@ from app.modules.search.application.ports import (
     ProductRow,
     SearchEventType,
     SearchOutboxEvent,
+    SearchOutboxMetricsReader,
     SearchOutboxRepository,
+    SearchOutboxStats,
 )
 
 _logger = get_logger(__name__)
@@ -53,12 +56,22 @@ class ReconcileReport:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ReconcileRun:
+    """Resultado de uma tentativa de reconciliacao (inclusive bloqueada)."""
+
+    status: str
+    report: ReconcileReport | None
+    duration: float
+
+
+@dataclass(frozen=True, kw_only=True)
 class DispatchReport:
     """Relatorio do processamento da outbox de busca."""
 
     candidates: int
     processed: int
     failed: int
+    dead: int = 0
 
 
 class ReindexProducts:
@@ -276,23 +289,36 @@ class DispatchSearchOutbox:
         today = date.today()
         processed = 0
         failed = 0
+        dead = 0
         for event in events:
             try:
                 await self._apply(event, today=today)
             except Exception as exc:  # noqa: BLE001 - falha registrada, nunca perdida
                 failed += 1
-                await self._outbox.mark_failed(event.id, error=type(exc).__name__)
+                is_dead = event.attempts + 1 >= self._max_attempts
+                if is_dead:
+                    dead += 1
+                # Somente o tipo da excecao: motivo resumido e sem dados
+                # sensiveis (nem IDs de produto, nem URLs/credenciais).
+                await self._outbox.mark_failed(event.id, error=type(exc).__name__, dead=is_dead)
                 _logger.warning(
                     "search_outbox_event_failed",
                     event_id=str(event.id),
                     error=type(exc).__name__,
+                    attempts=event.attempts + 1,
+                    dead=is_dead,
                 )
             else:
                 processed += 1
                 await self._outbox.mark_processed(event.id)
         if events:
-            await self._index.refresh(target=self._index.alias)
-        return DispatchReport(candidates=len(events), processed=processed, failed=failed)
+            try:
+                await self._index.refresh(target=self._index.alias)
+            except Exception as exc:  # noqa: BLE001 - refresh nao desfaz o processamento
+                # O estado de cada evento ja foi persistido. Se o ES caiu depois,
+                # o proximo ciclo/reconcile torna as escritas visiveis.
+                _logger.warning("search_outbox_refresh_failed", error=type(exc).__name__)
+        return DispatchReport(candidates=len(events), processed=processed, failed=failed, dead=dead)
 
     async def _apply(self, event: SearchOutboxEvent, *, today: date) -> None:
         product_id = str(event.aggregate_id)
@@ -336,3 +362,24 @@ class DispatchSearchOutbox:
             await self._embedding_sync.upsert_row(row)
         except Exception:  # noqa: BLE001 - embedding nunca bloqueia a busca lexical
             _logger.warning("search_embedding_sync_failed", product_id=str(row.id))
+
+
+class RefreshSearchMetrics:
+    """Atualiza os gauges da outbox a partir do estado persistido.
+
+    Roda no processo da API (nao no worker) para que o Prometheus, que faz
+    scrape do backend, veja os valores reais independentemente de quem
+    processou os eventos.
+    """
+
+    def __init__(self, *, outbox: SearchOutboxMetricsReader) -> None:
+        self._outbox = outbox
+
+    async def run(self) -> SearchOutboxStats:
+        stats = await self._outbox.stats()
+        observe_outbox_snapshot(
+            pending=stats.pending,
+            dead=stats.dead,
+            oldest_pending_age_seconds=stats.oldest_pending_age_seconds,
+        )
+        return stats

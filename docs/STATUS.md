@@ -79,11 +79,12 @@
   `BYPASSRLS`.
 - JWT curto + refresh com rotação; Argon2id; OAuth com `state` e exchange code de uso
   único.
-- Webhook HMAC-SHA256 sobre o corpo bruto.
+- Webhook HMAC-SHA256 sobre o corpo bruto, com timestamp assinado, tolerância de
+  5 min, dois segredos ativos (rotação), limite de corpo e idempotência por evento.
 - Sem segredo real versionado; `.env.example` só com valores fictícios.
 - LGPD self-service; anonimização preserva registros financeiros/fiscais/auditoria.
-- **Lacunas:** sem rate limiting, sem WAF, sem secret manager; CORS implementado
-  (configurável por `CORS_ORIGINS`).
+- **Lacunas:** sem WAF e sem secret manager; rate limiting implementado (Redis com
+  fallback local); CORS implementado (configurável por `CORS_ORIGINS`).
 
 ## Limitações e pendências (não ocultar)
 
@@ -91,8 +92,9 @@
 2. **`mypy .` falha** em 48 erros de testes; o CI roda `mypy .`.
 3. **Grafana** reinicia por datasource default duplicado; **celery-beat** reinicia por
    permissão em `celerybeat-schedule`.
-4. **Rate limiting não implementado**; ADR-0010 é proposta.
-5. **Idempotência no corpo** (`idempotency_key`), não no header `Idempotency-Key`.
+4. **Rate limiting** implementado (Redis + fallback local); ADR-0010 atualizada.
+5. **Idempotência no header** `Idempotency-Key` (obrigatório em pedido/pagamento);
+   `idempotency_key` no corpo continua aceito como fallback depreciado.
 6. **Embeddings desligados**; `hybrid` não é padrão; fallback PG só `pt-BR`.
 7. **Traduções não revisadas por nativos**; árabe é demonstração.
 8. **Pagamento**: cartão e PIX via Stripe Checkout quando configurado; Boleto faturado
@@ -202,3 +204,48 @@
 - Sem teste com cartão real (somente test mode) nem conciliação financeira automática.
 - Produção exige `FRONTEND_BASE_URL=https://forja-b2b.vercel.app` e
   `CORS_ORIGINS=https://forja-b2b.vercel.app`.
+
+---
+
+## Dados, backup e reconciliação (Prompt 05, 2026-10-22)
+
+**Estado:** migrations com rollback testado, backup com restauração comprovada, outbox com
+dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índices antigos.
+
+### Evidências reais (Docker de pé)
+
+| Verificação | Resultado |
+| :--- | :--- |
+| Migration drill (head **0022**) | **OK** em **25,87 s**; upgrade → seed → downgrade base → upgrade → seed → `alembic check`; checksums do seed idênticos; banco `forja_scratch_*` removido |
+| Backup | `forja_db_20261022T235915Z.dump`, **226.309 bytes**, `PGDMP` válido, rotação com retenção 7 |
+| Restore drill | `pg_restore` **9,81 s** + `upgrade/current/check` **9,59 s**; 50 produtos, 4 empresas, 13 usuários, 4 regras, 150 traduções; extensões presentes; banco dev inalterado; scratch removido |
+| Outbox dead-letter | ES indisponível + `SEARCH_OUTBOX_MAX_ATTEMPTS=1` → `DEAD_LETTERED`, `last_error=SearchUnavailableError`; `list-dead` e `requeue` (um e `--all --yes`) validados; eventos de teste removidos |
+| Reconciliação concorrente | Com um processo segurando o lock, duas execuções retornaram `{"status":"skipped","reason":"reconcile_already_running"}` |
+| Drift induzido | Documento removido do alias; `reconcile` retornou `upserted=1` e o documento voltou (contagem 41) |
+| Prune de índices | `--dry-run` listou `forja_products_v1`; execução real removeu v1 e preservou o alias em **`forja_products_v2`**; novo dry-run sem remoções |
+
+### Testes
+
+- `tests/unit` + `tests/architecture`: **511 passed / 1 failed**; a única falha é
+  `test_nenhum_type_ignore_no_codigo` em arquivos do WIP concorrente
+  (`app/interface/openapi.py`, `app/infrastructure/rate_limit/redis_stores.py`,
+  `tests/unit/test_deprecation.py`, `tests/unit/test_rate_limit.py`), fora deste prompt.
+- `tests/integration/test_search_outbox_repository.py`: **1 passed**.
+- `tests/integration/test_search_reconcile_lock.py`: **2 passed**.
+- `tests/integration/test_search_index_es.py`: **8 passed**, 1 timeout transitório do
+  Testcontainers; o teste isolado passou na repetição.
+- `mypy` dos arquivos alterados e `ruff check/format`: **OK**.
+
+### Pendências registradas
+
+1. O job `migrations` do Prompt 02 **não existe** no CI; o drill ainda não está conectado.
+2. O alerta do Prompt 04 para reconciliação atrasada ainda não foi aplicado; a métrica
+   `forja_reconcile_last_success_timestamp_seconds` está pronta.
+3. O loop de métricas/agendador no processo da API foi validado por testes unitários, mas a
+   imagem em execução no dev não foi reconstruída; o comportamento em `/metrics` deve ser
+   confirmado no próximo build.
+4. Cron Job do Render: a documentação oficial foi consultada; a disponibilidade no
+   plano/workspace real está **NÃO CONFERIDA**.
+5. O `docker-compose.yml` passou a entregar `ELASTICSEARCH_URL/USERNAME/PASSWORD` ao backend,
+   worker e beat (antes só o backend recebia a URL). O `.env` local aponta para um cluster
+   Elastic Cloud; para validar localmente use `ELASTICSEARCH_URL=http://elasticsearch:9200`.

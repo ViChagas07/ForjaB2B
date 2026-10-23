@@ -16,7 +16,7 @@ from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.search.application.embeddings_backfill import BackfillEmbeddings, EmbeddingSync
-from app.modules.search.application.sync import DispatchSearchOutbox, ReconcileSearchIndex
+from app.modules.search.application.sync import DispatchSearchOutbox
 from app.modules.search.infrastructure.elasticsearch import build_product_index
 from app.modules.search.infrastructure.embeddings import build_embedding_provider
 from app.modules.search.infrastructure.outbox_repository import (
@@ -24,6 +24,7 @@ from app.modules.search.infrastructure.outbox_repository import (
 )
 from app.modules.search.infrastructure.pgvector_store import PgVectorStore
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
+from app.modules.search.infrastructure.reconcile import ReconcileService
 from app.tasks.celery_app import celery_app
 
 
@@ -91,19 +92,14 @@ def reconcile_search_index() -> int:
 
 
 async def _run_reconcile(settings: Settings) -> int:
-    index = build_product_index(settings)
-    if index is None:
-        return 0
     engine = create_engine(settings)
     try:
         uow_factory = SqlAlchemyUnitOfWorkFactory(create_session_factory(engine))
-        use_case = ReconcileSearchIndex(
-            index=index,
-            reader=SqlAlchemyProductReader(uow_factory),
-            batch_size=settings.elasticsearch_bulk_batch_size,
-        )
-        report = await use_case.run()
-        return report.upserted + report.deleted
+        run = await ReconcileService(
+            settings=settings, engine=engine, uow_factory=uow_factory
+        ).run()
+        if run.report is None:
+            return 0
+        return run.report.upserted + run.report.deleted
     finally:
-        await index.close()
         await engine.dispose()

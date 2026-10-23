@@ -193,6 +193,7 @@ class _FakeOutbox:
         self.events = events
         self.processed: list[uuid.UUID] = []
         self.failed: list[tuple[uuid.UUID, str]] = []
+        self.dead: list[uuid.UUID] = []
 
     async def list_due(self, *, limit: int, max_attempts: int) -> list[SearchOutboxEvent]:
         return list(self.events[:limit])
@@ -200,19 +201,24 @@ class _FakeOutbox:
     async def mark_processed(self, event_id: uuid.UUID) -> None:
         self.processed.append(event_id)
 
-    async def mark_failed(self, event_id: uuid.UUID, *, error: str) -> None:
+    async def mark_failed(self, event_id: uuid.UUID, *, error: str, dead: bool) -> None:
         self.failed.append((event_id, error))
+        if dead:
+            self.dead.append(event_id)
 
 
 def _event(
-    row: ProductRow, event_type: SearchEventType = SearchEventType.UPSERT
+    row: ProductRow,
+    event_type: SearchEventType = SearchEventType.UPSERT,
+    *,
+    attempts: int = 0,
 ) -> SearchOutboxEvent:
     return SearchOutboxEvent(
         id=uuid.uuid4(),
         aggregate_id=row.id,
         event_type=event_type.value,
         version=row.version,
-        attempts=0,
+        attempts=attempts,
     )
 
 
@@ -294,7 +300,35 @@ async def test_dispatch_registra_falha_sem_perder_evento() -> None:
     assert report.processed == 0
     assert report.failed == 1
     assert len(outbox.failed) == 1
+    assert outbox.dead == []  # ainda ha tentativas
     assert outbox.events  # evento permanece para reprocessamento
+
+
+async def test_dispatch_ultima_tentativa_vira_dead_letter() -> None:
+    a = _row(key="A")
+    event = _event(a, attempts=4)
+    outbox = _FakeOutbox([event])
+    report = await DispatchSearchOutbox(
+        index=_FailingIndex(), reader=_FakeReader([a]), outbox=outbox, max_attempts=5
+    ).run()
+    assert report.failed == 1
+    assert report.dead == 1
+    assert outbox.dead == [event.id]
+    assert outbox.failed == [(event.id, "SearchUnavailableError")]
+
+
+async def test_dispatch_duas_vezes_nao_duplica_documento() -> None:
+    """Reprocessar o mesmo evento nao duplica o efeito no indice (versao externa)."""
+    a = _row(key="A")
+    outbox = _FakeOutbox([_event(a)])
+    index = _FakeIndex()
+    use_case = DispatchSearchOutbox(
+        index=index, reader=_FakeReader([a]), outbox=outbox, max_attempts=5
+    )
+    first = await use_case.run()
+    second = await use_case.run()
+    assert first.processed == second.processed == 1
+    assert await index.count(target=index.alias) == 1
 
 
 def test_documento_de_linha_vendavel_tem_versao() -> None:

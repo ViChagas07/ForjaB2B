@@ -16,6 +16,8 @@ def test_defaults_de_desenvolvimento() -> None:
     assert settings.database_url.hosts()[0]["host"] == "localhost"
     assert settings.database_url.path == "/forja_db"
     assert settings.database_admin_url is None
+    assert settings.reconcile_interval_seconds == 0  # agendador desligado por padrao
+    assert settings.search_metrics_interval_seconds == 30
 
 
 def test_leitura_de_variaveis_de_ambiente(monkeypatch: pytest.MonkeyPatch) -> None:

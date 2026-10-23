@@ -72,11 +72,13 @@ backup continua sendo o caminho de recuperacao (o rollback nao e).
 
 ### Ultimo resultado registrado
 
-Execucao de 2026-10-22 (Docker de pe):
+Execucao final de 2026-10-22 (Docker de pe, schema 0022):
 
-- arquivo: `forja_db_20261022T225027Z.dump`, **220.451 bytes**;
-- `pg_restore`: 13,98 s;
-- `alembic upgrade/current/check`: 12,19 s;
+- arquivo: `forja_db_20261022T235915Z.dump`, **226.309 bytes**
+  (sha256 `b3da36ca...d5db9ce1`);
+- `pg_restore`: 9,81 s;
+- `alembic upgrade/current/check`: 9,59 s;
+- total do drill: 22,73 s;
 - contagens restauradas: 50 produtos, 4 empresas, 13 usuarios, 4 regras de
   preco, 150 traducoes, 0 eventos de outbox;
 - extensoes: `vector`, `unaccent`, `pg_trgm`, `pgcrypto`, `uuid-ossp`;

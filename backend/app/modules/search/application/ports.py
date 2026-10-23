@@ -169,6 +169,8 @@ class IndexBulkResult:
     indexed: int = 0
     deleted: int = 0
     errors: int = 0
+    # Conflitos de versao (doc mais novo ja existe): nao sao erro nem escrita.
+    conflicts: int = 0
     # Motivos resumidos (sem dados sensiveis) das rejeicoes por documento.
     sample_errors: tuple[str, ...] = ()
 
@@ -182,6 +184,29 @@ class SearchOutboxEvent:
     event_type: str
     version: int
     attempts: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class SearchOutboxStats:
+    """Instantaneo da outbox para metricas operacionais."""
+
+    pending: int
+    dead: int
+    oldest_pending_age_seconds: float
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeadOutboxEvent:
+    """Evento em dead-letter, com o motivo resumido (sem dados sensiveis)."""
+
+    id: uuid.UUID
+    aggregate_id: uuid.UUID
+    event_type: str
+    version: int
+    attempts: int
+    last_error: str | None
+    created_at: datetime
+    updated_at: datetime
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -298,6 +323,27 @@ class ProductIndex(Protocol):
         ...
 
 
+class PrunableProductIndex(Protocol):
+    """Operacoes de manutencao de indices versionados (limpeza de versoes)."""
+
+    @property
+    def alias(self) -> str:
+        """Alias estavel do produto."""
+        ...
+
+    async def list_versioned_indices(self) -> list[str]:
+        """Nomes dos indices ``<alias>_vN`` existentes."""
+        ...
+
+    async def alias_targets(self) -> set[str]:
+        """Indices apontados pelo alias neste momento."""
+        ...
+
+    async def delete_index(self, *, index_name: str) -> None:
+        """Remove um indice versionado (nunca o alias)."""
+        ...
+
+
 class SearchOutboxRepository(Protocol):
     """Outbox transacional da sincronizacao do indice (global)."""
 
@@ -309,8 +355,32 @@ class SearchOutboxRepository(Protocol):
         """Marca o evento como PROCESSED."""
         ...
 
-    async def mark_failed(self, event_id: uuid.UUID, *, error: str) -> None:
-        """Incrementa tentativas e registra o erro (retentavel)."""
+    async def mark_failed(self, event_id: uuid.UUID, *, error: str, dead: bool) -> None:
+        """Incrementa tentativas; ``dead`` encerra em DEAD_LETTERED."""
+        ...
+
+
+class SearchOutboxDeadLetterRepository(Protocol):
+    """Operacao administrativa da outbox (dead-letter e reprocessamento)."""
+
+    async def list_dead(self, *, limit: int) -> list[DeadOutboxEvent]:
+        """Eventos em DEAD_LETTERED, do mais antigo para o mais novo."""
+        ...
+
+    async def requeue(self, event_id: uuid.UUID) -> bool:
+        """Devolve um evento dead-letter para PENDING; False se nao existir."""
+        ...
+
+    async def requeue_all(self) -> int:
+        """Devolve todos os eventos dead-letter para PENDING."""
+        ...
+
+
+class SearchOutboxMetricsReader(Protocol):
+    """Leitura agregada da outbox para gauges Prometheus."""
+
+    async def stats(self) -> SearchOutboxStats:
+        """Contagens e idade do pendente mais antigo."""
         ...
 
 
