@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "B2B platform for industry.",
+  "homeTitle": "Equipment and PPE for your operation.",
+  "homeDescription": "Everything to keep your team protected and your operation moving. B2B terms, invoiced credit and support that understands your business.",
   "skipToContent": "Skip to content",
   "loading": "Loading…",
   "notFoundTitle": "Page not found",
@@ -13,7 +13,7 @@
   "themeLabel": "Toggle theme",
   "languageLabel": "Language",
   "homeLogin": "Sign in",
-  "homeSignUp": "Create account",
+  "homeSignUp": "Request a business account",
   "auth": {
     "loginTitle": "Sign in",
     "loginSubtitle": "Access your account to continue.",
@@ -182,7 +182,20 @@
     "updated": "Quantity updated.",
     "removed": "Item removed.",
     "cleared": "Cart cleared.",
-    "tierApplied": "Tier price applied"
+    "tierApplied": "Tier price applied",
+    "breadcrumbHome": "Home",
+    "pageTitle": "My cart",
+    "itemsCount": "{count} items",
+    "shippingCalculated": "Calculated at checkout",
+    "secureNote": "Protected checkout with prices revalidated on the server.",
+    "emptyDescription": "Browse the catalog and find equipment for your operation.",
+    "benefit1Title": "Business pricing",
+    "benefit1Description": "Negotiated terms and volume-based pricing.",
+    "benefit2Title": "Invoiced credit",
+    "benefit2Description": "Healthy cash flow with B2B invoicing.",
+    "benefit3Title": "Nationwide delivery",
+    "benefit3Description": "Logistics planned for your operation.",
+    "itemCountOne": "One item"
   },
   "ordering": {
     "reviewTitle": "Order review",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "No charge was completed. You can return to the cart and try again.",
     "backToOrders": "View orders",
     "backToCart": "Back to cart",
-    "statusPaid": "Paid"
+    "statusPaid": "Paid",
+    "summaryTitle": "Order summary"
   },
   "credit": {
     "title": "Credit",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "Close"
+  "closeLabel": "Close",
+  "nav": {
+    "primary": "Main navigation",
+    "solutions": "Solutions",
+    "about": "The Forge",
+    "searchPlaceholder": "Search product, SKU or brand",
+    "searchLabel": "Search the catalog",
+    "searchSubmit": "Search",
+    "cart": "Cart",
+    "dashboard": "Dashboard",
+    "login": "Sign in",
+    "register": "Create account",
+    "menu": "Open menu"
+  },
+  "home": {
+    "eyebrow": "INTEGRATED INDUSTRIAL DISTRIBUTION",
+    "ctaRequestAccount": "Request a business account",
+    "ctaExploreCatalog": "Explore the catalog",
+    "trustCnpj": "Business CNPJ support",
+    "trustNational": "Nationwide delivery",
+    "trustSecure": "Secure checkout",
+    "dashboardTitle": "Operation overview",
+    "live": "live",
+    "openOrders": "Open orders",
+    "avgSavings": "Average savings",
+    "invoiceDescription": "Order #1042 · CAP-002",
+    "brandsEyebrow": "PARTNER BRANDS",
+    "brandsTitle": "The brands that keep industry moving",
+    "categoriesEyebrow": "FIND WHAT YOU NEED",
+    "categoriesTitle": "Categories for every challenge",
+    "categoriesDescription": "A complete catalog that simplifies industrial purchasing for your company.",
+    "categoriesCta": "View full catalog",
+    "categoryExplore": "Explore category",
+    "categoriesEmpty": "The catalog is being updated. Explore all available products.",
+    "featuredEyebrow": "CATALOG HIGHLIGHTS",
+    "featuredTitle": "Ready for your next purchase",
+    "featuredDescription": "Selected products with exclusive terms for approved businesses.",
+    "featuredCta": "View all products",
+    "featuredEmpty": "No highlights available right now.",
+    "companyEyebrow": "BUILT FOR BUSINESS",
+    "companyTitleA": "More than distribution.",
+    "companyTitleB": "An operating partnership.",
+    "companyDescription": "Forja B2B connects your company with the right equipment, combining commercial intelligence to reduce costs and keep your operation running.",
+    "companyCta": "Discover Forja",
+    "featureCreditTitle": "Invoiced credit",
+    "featureCreditDescription": "Flexible terms that keep your cash flow healthy.",
+    "featureCoverageTitle": "Nationwide coverage",
+    "featureCoverageDescription": "Planned deliveries wherever your operation is.",
+    "featurePricingTitle": "Tiered pricing",
+    "featurePricingDescription": "The larger the order, the better the terms for your company.",
+    "featureSupportTitle": "Consultative support",
+    "featureSupportDescription": "Specialists to help you make better decisions.",
+    "finalCtaTitle": "Your operation cannot stop.",
+    "finalCtaDescription": "Create your business account and unlock exclusive purchasing terms.",
+    "finalCtaButton": "Request account"
+  },
+  "footer": {
+    "tagline": "Industrial distribution for businesses that make things happen.",
+    "note": "Built for industry",
+    "navTitle": "Browse",
+    "categories": "Categories",
+    "businessTitle": "For business",
+    "accountTitle": "Your account",
+    "orders": "Orders",
+    "credit": "B2B credit",
+    "copyright": "© {year} Forja B2B. All rights reserved.",
+    "madeIn": "Portfolio project — fictional data."
+  },
+  "authGate": {
+    "title": "Sign in to add to cart",
+    "description": "Create your business account or sign in to save items to your cart."
+  }
 }

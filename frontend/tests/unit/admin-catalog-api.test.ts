@@ -81,7 +81,9 @@ describe("adminCatalogApi.getProduct", () => {
 describe("adminCatalogApi.createProduct", () => {
   it("envia payload completo para criar produto", async () => {
     const created = { id: "p-new", sku: "NEW-1", name: "Novo", status: "DRAFT" };
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(created, { status: 201 }));
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse(created, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const payload = {
@@ -162,7 +164,20 @@ describe("adminCatalogApi.publishProduct / unpublishProduct", () => {
 describe("adminCatalogApi.getAttributeDefinitions", () => {
   it("busca definições de atributo por slug de categoria", async () => {
     const defs = [
-      { key: "modelo", label: "Modelo", type: "text" as const, unit: null, options: null, scope: ["protecao-maos"], section: "Detalhes", display_order: 1, required: false, min_value: null, max_value: null, max_length: 100 },
+      {
+        key: "modelo",
+        label: "Modelo",
+        type: "text" as const,
+        unit: null,
+        options: null,
+        scope: ["protecao-maos"],
+        section: "Detalhes",
+        display_order: 1,
+        required: false,
+        min_value: null,
+        max_value: null,
+        max_length: 100,
+      },
     ];
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(defs));
     vi.stubGlobal("fetch", fetchMock);
@@ -199,13 +214,25 @@ describe("adminCatalogApi.listStaticImages", () => {
 
 describe("isVersionConflict", () => {
   it("retorna true para ApiError com status 409", () => {
-    const error = new ApiError({ type: "urn:forja:problem:conflict", title: "Conflict", status: 409 });
+    const error = new ApiError({
+      type: "urn:forja:problem:conflict",
+      title: "Conflict",
+      status: 409,
+    });
     expect(isVersionConflict(error)).toBe(true);
   });
 
   it("retorna false para outros status", () => {
-    const error400 = new ApiError({ type: "urn:forja:problem:bad_request", title: "Bad Request", status: 400 });
-    const error404 = new ApiError({ type: "urn:forja:problem:not_found", title: "Not Found", status: 404 });
+    const error400 = new ApiError({
+      type: "urn:forja:problem:bad_request",
+      title: "Bad Request",
+      status: 400,
+    });
+    const error404 = new ApiError({
+      type: "urn:forja:problem:not_found",
+      title: "Not Found",
+      status: 404,
+    });
     expect(isVersionConflict(error400)).toBe(false);
     expect(isVersionConflict(error404)).toBe(false);
   });
@@ -237,7 +264,11 @@ describe("getFieldErrors", () => {
   });
 
   it("retorna objeto vazio para ApiError sem extensions", () => {
-    const error = new ApiError({ type: "urn:forja:problem:conflict", title: "Conflict", status: 409 });
+    const error = new ApiError({
+      type: "urn:forja:problem:conflict",
+      title: "Conflict",
+      status: 409,
+    });
     expect(getFieldErrors(error)).toEqual({});
   });
 

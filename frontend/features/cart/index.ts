@@ -1,6 +1,7 @@
 export { CartView } from "./cart-view";
 export { AddToCartButton } from "./add-to-cart-button";
 export {
+  cartKey,
   useCart,
   useAddCartItem,
   useUpdateCartItem,

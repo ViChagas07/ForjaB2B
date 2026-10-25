@@ -1,40 +1,42 @@
 import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
-import { LanguageSwitcher } from "./language-switcher";
-import { ThemeToggle } from "./theme-toggle";
 
-/**
- * Cabeçalho da aplicação (Server Component). Apenas os controles interativos
- * (idioma e tema) são Client Components — a fronteira RSC fica explícita aqui.
- */
+import { BrandLogo } from "./brand-logo";
+import { HeaderActions } from "./header-actions";
+import { HeaderSearch } from "./header-search";
+
+const navLinkClass =
+  "rounded-lg px-3 py-2 text-sm font-medium text-white/65 transition-colors hover:bg-white/10 hover:text-white";
+
 export async function SiteHeader() {
   const t = await getTranslations();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
-      <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span
-              aria-hidden="true"
-              className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground"
-            >
-              F
-            </span>
-            <span>{t("appName")}</span>
-          </Link>
-          <Link
-            href="/catalog"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/95 text-white backdrop-blur supports-[backdrop-filter]:bg-ink/90">
+      <div className="container flex h-[72px] items-center gap-4 lg:gap-7">
+        <BrandLogo />
+
+        <nav aria-label={t("nav.primary")} className="hidden items-center gap-0.5 lg:flex">
+          <Link href="/catalog" className={navLinkClass}>
             {t("catalog.title")}
           </Link>
+          <Link href="/#solucoes" className={navLinkClass}>
+            {t("nav.solutions")}
+          </Link>
+          <Link href="/#a-forja" className={navLinkClass}>
+            {t("nav.about")}
+          </Link>
+        </nav>
+
+        <HeaderSearch className="ms-auto hidden max-w-sm flex-1 md:block" />
+        <div className="ms-auto md:ms-0">
+          <HeaderActions />
         </div>
-        <div className="flex items-center gap-1">
-          <LanguageSwitcher />
-          <ThemeToggle />
-        </div>
+      </div>
+
+      <div className="border-t border-white/10 px-4 py-2.5 md:hidden">
+        <HeaderSearch />
       </div>
     </header>
   );

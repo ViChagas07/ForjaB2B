@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "B2B-платформа для промышленности.",
+  "homeTitle": "Оборудование и СИЗ для вашей работы.",
+  "homeDescription": "Всё, чтобы защитить команду и поддерживать работу. B2B-условия, кредит с отсрочкой и поддержка, которая понимает ваш бизнес.",
   "skipToContent": "Перейти к содержимому",
   "loading": "Загрузка…",
   "notFoundTitle": "Страница не найдена",
@@ -13,7 +13,7 @@
   "themeLabel": "Переключить тему",
   "languageLabel": "Язык",
   "homeLogin": "Войти",
-  "homeSignUp": "Создать аккаунт",
+  "homeSignUp": "Запросить корпоративный аккаунт",
   "auth": {
     "loginTitle": "Вход",
     "loginSubtitle": "Войдите в аккаунт, чтобы продолжить.",
@@ -182,7 +182,20 @@
     "updated": "Количество обновлено.",
     "removed": "Позиция удалена.",
     "cleared": "Корзина очищена.",
-    "tierApplied": "Применена ступенчатая цена"
+    "tierApplied": "Применена ступенчатая цена",
+    "breadcrumbHome": "Главная",
+    "pageTitle": "Моя корзина",
+    "itemsCount": "{count} товаров",
+    "shippingCalculated": "Рассчитывается при заказе",
+    "secureNote": "Защищённая покупка, цены повторно проверяются на сервере.",
+    "emptyDescription": "Откройте каталог и найдите оборудование для вашей работы.",
+    "benefit1Title": "Корпоративная цена",
+    "benefit1Description": "Согласованные условия и прогрессивная цена по объёму.",
+    "benefit2Title": "Кредит с отсрочкой",
+    "benefit2Description": "Здоровый денежный поток с B2B-выставлением счетов.",
+    "benefit3Title": "Доставка по стране",
+    "benefit3Description": "Планируемая логистика для вашей компании.",
+    "itemCountOne": "1 товар"
   },
   "ordering": {
     "reviewTitle": "Проверка заказа",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "Платеж не был завершен. Вернитесь в корзину и попробуйте снова.",
     "backToOrders": "Мои заказы",
     "backToCart": "Вернуться в корзину",
-    "statusPaid": "Оплачен"
+    "statusPaid": "Оплачен",
+    "summaryTitle": "Сводка заказа"
   },
   "credit": {
     "title": "Кредит",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "Закрыть"
+  "closeLabel": "Закрыть",
+  "nav": {
+    "primary": "Основная навигация",
+    "solutions": "Решения",
+    "about": "О Forja",
+    "searchPlaceholder": "Поиск товара, SKU или бренда",
+    "searchLabel": "Поиск по каталогу",
+    "searchSubmit": "Найти",
+    "cart": "Корзина",
+    "dashboard": "Панель",
+    "login": "Войти",
+    "register": "Создать аккаунт",
+    "menu": "Открыть меню"
+  },
+  "home": {
+    "eyebrow": "ИНТЕГРИРОВАННАЯ ПРОМЫШЛЕННАЯ ДИСТРИБУЦИЯ",
+    "ctaRequestAccount": "Запросить корпоративный аккаунт",
+    "ctaExploreCatalog": "Открыть каталог",
+    "trustCnpj": "Поддержка для CNPJ",
+    "trustNational": "Доставка по стране",
+    "trustSecure": "Безопасная покупка",
+    "dashboardTitle": "Обзор операций",
+    "live": "в реальном времени",
+    "openOrders": "Открытые заказы",
+    "avgSavings": "Средняя экономия",
+    "invoiceDescription": "Заказ #1042 · CAP-002",
+    "brandsEyebrow": "БРЕНДЫ-ПАРТНЁРЫ",
+    "brandsTitle": "Бренды, которые двигают промышленность",
+    "categoriesEyebrow": "НАЙДИТЕ НУЖНОЕ",
+    "categoriesTitle": "Категории для любой задачи",
+    "categoriesDescription": "Полный каталог, который упрощает промышленные закупки вашей компании.",
+    "categoriesCta": "Смотреть весь каталог",
+    "categoryExplore": "Открыть категорию",
+    "categoriesEmpty": "Каталог обновляется. Просмотрите все доступные товары.",
+    "featuredEyebrow": "ИЗБРАННОЕ В КАТАЛОГЕ",
+    "featuredTitle": "Готово к вашей следующей покупке",
+    "featuredDescription": "Отобранные товары с особыми условиями для одобренных компаний.",
+    "featuredCta": "Смотреть все товары",
+    "featuredEmpty": "Сейчас нет избранных товаров.",
+    "companyEyebrow": "СОЗДАНО ДЛЯ КОМПАНИЙ",
+    "companyTitleA": "Больше, чем дистрибуция.",
+    "companyTitleB": "Партнёрство в работе.",
+    "companyDescription": "Forja B2B связывает вашу компанию с нужным оборудованием, используя коммерческую аналитику для снижения затрат и поддержания ритма работы.",
+    "companyCta": "Узнать Forja",
+    "featureCreditTitle": "Кредит с отсрочкой",
+    "featureCreditDescription": "Гибкие условия для здорового денежного потока.",
+    "featureCoverageTitle": "Покрытие по стране",
+    "featureCoverageDescription": "Плановые поставки туда, где работает ваша компания.",
+    "featurePricingTitle": "Прогрессивная цена",
+    "featurePricingDescription": "Чем больше партия, тем лучше условия для вашей компании.",
+    "featureSupportTitle": "Консультационная поддержка",
+    "featureSupportDescription": "Специалисты помогут принять лучшее решение.",
+    "finalCtaTitle": "Ваша работа не может останавливаться.",
+    "finalCtaDescription": "Создайте корпоративный аккаунт и получите эксклюзивные условия закупки.",
+    "finalCtaButton": "Запросить аккаунт"
+  },
+  "footer": {
+    "tagline": "Промышленная дистрибуция для компаний, которые двигают дело вперёд.",
+    "note": "Создано для промышленности",
+    "navTitle": "Навигация",
+    "categories": "Категории",
+    "businessTitle": "Для компаний",
+    "accountTitle": "Ваш аккаунт",
+    "orders": "Заказы",
+    "credit": "B2B-кредит",
+    "copyright": "© {year} Forja B2B. Все права защищены.",
+    "madeIn": "Портфолио-проект — вымышленные данные."
+  },
+  "authGate": {
+    "title": "Войдите, чтобы добавить в корзину",
+    "description": "Создайте корпоративный аккаунт или войдите, чтобы сохранить товары в корзине."
+  }
 }

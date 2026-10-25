@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { OrderDetailView } from "@/features/ordering";
+import { SiteFooter } from "@/shared/components/site-footer";
 import { SiteHeader } from "@/shared/components/site-header";
 
 interface OrderPageProps {
@@ -17,9 +18,10 @@ export default function OrderPage({ params }: OrderPageProps) {
   return (
     <>
       <SiteHeader />
-      <main id="main" className="container flex-1 py-10">
+      <main id="main" className="container flex-1 py-12">
         <OrderDetailView orderId={params.id} />
       </main>
+      <SiteFooter />
     </>
   );
 }

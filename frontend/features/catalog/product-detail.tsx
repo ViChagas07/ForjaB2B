@@ -1,42 +1,50 @@
 "use client";
 
+import {
+  ArrowLeft,
+  BadgeCheck,
+  BadgePercent,
+  CreditCard,
+  PackageCheck,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, ShoppingCart } from "lucide-react";
 
+import { AddToCartButton } from "@/features/cart";
 import { Link } from "@/i18n/navigation";
 import { isLocale, localeLabels } from "@/i18n/locales";
-import { formatNumber } from "@/shared/lib/money";
-import { useAuthStore } from "@/shared/stores/auth-store";
-import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
-import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
-import { Skeleton } from "@/shared/ui/skeleton";
 import { errorMessageKey } from "@/shared/lib/api-error";
+import { formatNumber } from "@/shared/lib/money";
+import { ProductImage } from "@/shared/components/product-image";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
+import { Skeleton } from "@/shared/ui/skeleton";
 
-import { useProduct } from "./hooks";
 import { isDisplaySellable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
-import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
-import { ProductImage } from "./product-image";
 import { showContentLocaleNote } from "./content-locale";
+import { useProduct } from "./hooks";
+import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
 
 interface ProductDetailViewProps {
   productId: string;
-  onAdd?: (productId: string) => void;
-  addingProductId?: string | null;
 }
 
-export function ProductDetailView({ productId, onAdd, addingProductId }: ProductDetailViewProps) {
+export function ProductDetailView({ productId }: ProductDetailViewProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const isAuthenticated = useAuthStore((s) => s.status === "authenticated");
   const query = useProduct(productId);
 
   if (query.isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-56 w-full" />
+      <div className="grid gap-8 lg:grid-cols-2">
+        <Skeleton className="aspect-[4/3] w-full rounded-3xl" />
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-10 w-3/4" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+          <Skeleton className="h-24 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -62,138 +70,221 @@ export function ProductDetailView({ productId, onAdd, addingProductId }: Product
   const sellable = isDisplaySellable(product);
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild>
-        <Link href="/catalog">
-          <ArrowLeft aria-hidden="true" className="rtl:-scale-x-100" />
+    <div className="space-y-8">
+      <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          href="/catalog"
+          className="inline-flex items-center gap-1.5 font-medium text-foreground transition-colors hover:text-forge-700 dark:hover:text-forge-300"
+        >
+          <ArrowLeft aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
           {t("catalog.backToCatalog")}
         </Link>
-      </Button>
+        <span aria-hidden="true">/</span>
+        <span className="truncate">{product.category.name}</span>
+        <span aria-hidden="true">/</span>
+        <span className="truncate text-foreground/70">{product.name}</span>
+      </nav>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-2xl tracking-tight">{product.name}</CardTitle>
+      <div className="grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12">
+        <div className="space-y-4">
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+            <div className="absolute start-4 top-4 z-10 flex flex-wrap gap-1.5">
+              <EpiBadge isEpi={product.is_epi} />
+              <CaStatusBadge status={product.ca_status} />
+              <AvailabilityBadge isSellable={sellable} />
+            </div>
+            <div className="flex min-h-[320px] items-center justify-center p-8 sm:min-h-[420px]">
+              <ProductImage
+                src={product.image_url}
+                alt={product.image_alt}
+                className="max-h-[360px] w-full object-contain"
+              />
+            </div>
+            <div className="pointer-events-none absolute end-5 top-5 h-24 w-24 rounded-full bg-primary/5" />
           </div>
-          {showContentLocaleNote(locale, product.content_locale) ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("catalog.contentDisplayedIn", {
-                locale:
-                  product.content_locale && isLocale(product.content_locale)
-                    ? localeLabels[product.content_locale]
-                    : product.content_locale,
-              })}
+
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: BadgeCheck, label: t("home.trustCnpj") },
+              { icon: PackageCheck, label: t("home.trustNational") },
+              { icon: ShieldCheck, label: t("home.trustSecure") },
+            ].map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card px-2 py-4 text-center"
+              >
+                <Icon aria-hidden="true" className="h-4 w-4 text-primary" />
+                <span className="text-[11px] font-medium leading-tight text-muted-foreground">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden rounded-2xl border border-border bg-card p-6 lg:block">
+            <ul className="space-y-5">
+              {[
+                {
+                  icon: BadgePercent,
+                  title: t("cart.benefit1Title"),
+                  description: t("cart.benefit1Description"),
+                },
+                {
+                  icon: CreditCard,
+                  title: t("cart.benefit2Title"),
+                  description: t("cart.benefit2Description"),
+                },
+                {
+                  icon: Truck,
+                  title: t("cart.benefit3Title"),
+                  description: t("cart.benefit3Description"),
+                },
+              ].map(({ icon: Icon, title, description }) => (
+                <li key={title} className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                    <Icon aria-hidden="true" className="h-4 w-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold">{title}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                      {description}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forge-700 dark:text-forge-300">
+              {product.category.name}
             </p>
-          ) : null}
-          <div className="flex flex-wrap gap-1.5">
-            <EpiBadge isEpi={product.is_epi} />
-            <CaStatusBadge status={product.ca_status} />
-            <AvailabilityBadge isSellable={sellable} />
+            <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight sm:text-4xl">
+              {product.name}
+            </h1>
+            <p className="mt-3 font-mono text-xs text-muted-foreground">
+              {t("catalog.sku")}: {product.sku}
+              {product.brand ? ` · ${product.brand.name}` : ""}
+            </p>
+            {showContentLocaleNote(locale, product.content_locale) ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("catalog.contentDisplayedIn", {
+                  locale:
+                    product.content_locale && isLocale(product.content_locale)
+                      ? localeLabels[product.content_locale]
+                      : product.content_locale,
+                })}
+              </p>
+            ) : null}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="overflow-hidden rounded-lg bg-muted">
-            <ProductImage
-              src={product.image_url}
-              alt={product.image_alt}
-              className="mx-auto h-72 w-full object-contain"
-            />
-          </div>
-          <div className="flex items-center justify-between">
+
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <CatalogPrice
               amount={product.base_unit_price}
               currency={product.currency}
               priceOnRequest={product.price_on_request}
-              className="text-3xl font-bold"
+              className="text-3xl font-black tracking-tight"
             />
-            {onAdd ? (
-              <Button
-                disabled={!isAuthenticated || !sellable || addingProductId === product.id}
-                onClick={() => onAdd(product.id)}
-              >
-                <ShoppingCart aria-hidden="true" />
-                {addingProductId === product.id ? t("loading") : t("catalog.addToCart")}
-              </Button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t("catalog.minOrderQty")}:{" "}
+              <span className="font-semibold text-foreground">{product.min_order_qty}</span>
+              {product.unit_of_measure ? ` · ${product.unit_of_measure}` : ""}
+            </p>
+
+            <AddToCartButton
+              productId={product.id}
+              minQuantity={product.min_order_qty}
+              disabled={!sellable}
+              size="lg"
+              className="mt-5 h-12 w-full rounded-xl text-sm font-semibold"
+            />
+
+            {!sellable ? (
+              <p className="mt-3 text-center text-xs font-medium text-destructive">
+                {t("catalog.notSellable")}
+              </p>
             ) : null}
           </div>
 
           {product.description ? (
-            <div>
-              <h2 className="mb-2 font-medium">{t("catalog.description")}</h2>
-              <p className="text-sm text-muted-foreground">{product.description}</p>
-            </div>
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t("catalog.description")}
+              </h2>
+              <p className="text-sm leading-relaxed text-foreground/80">{product.description}</p>
+            </section>
           ) : null}
 
-          <dl className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <dt className="text-sm text-muted-foreground">{t("catalog.sku")}</dt>
-              <dd className="font-mono font-medium">{product.sku}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted-foreground">{t("catalog.category")}</dt>
-              <dd className="font-medium">{product.category.name}</dd>
-            </div>
-            {product.brand ? (
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              {t("catalog.details")}
+            </h2>
+            <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
               <div>
-                <dt className="text-sm text-muted-foreground">{t("catalog.brand")}</dt>
-                <dd className="font-medium">{product.brand.name}</dd>
+                <dt className="text-xs text-muted-foreground">{t("catalog.category")}</dt>
+                <dd className="mt-0.5 text-sm font-medium">{product.category.name}</dd>
               </div>
-            ) : null}
-            {product.unit_of_measure ? (
-              <div>
-                <dt className="text-sm text-muted-foreground">{t("catalog.unit")}</dt>
-                <dd className="font-medium">{product.unit_of_measure}</dd>
-              </div>
-            ) : null}
-            <div>
-              <dt className="text-sm text-muted-foreground">{t("catalog.minOrderQty")}</dt>
-              <dd className="font-medium">{product.min_order_qty}</dd>
-            </div>
-            {product.weight_kg != null ? (
-              <div>
-                <dt className="text-sm text-muted-foreground">{t("catalog.weight")}</dt>
-                <dd className="font-medium">
-                  {t("catalog.weightKg", {
-                    weight: formatNumber(Number(product.weight_kg), locale),
-                  })}
-                </dd>
-              </div>
-            ) : null}
-            {product.ca_number ? (
-              <div>
-                <dt className="text-sm text-muted-foreground">{t("catalog.caNumber")}</dt>
-                <dd className="font-medium">{product.ca_number}</dd>
-              </div>
-            ) : null}
-            {product.ncm ? (
-              <div>
-                <dt className="text-sm text-muted-foreground">{t("catalog.ncm")}</dt>
-                <dd className="font-mono font-medium">{product.ncm}</dd>
-              </div>
-            ) : null}
-          </dl>
+              {product.brand ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("catalog.brand")}</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{product.brand.name}</dd>
+                </div>
+              ) : null}
+              {product.unit_of_measure ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("catalog.unit")}</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{product.unit_of_measure}</dd>
+                </div>
+              ) : null}
+              {product.weight_kg != null ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("catalog.weight")}</dt>
+                  <dd className="mt-0.5 text-sm font-medium">
+                    {t("catalog.weightKg", {
+                      weight: formatNumber(Number(product.weight_kg), locale),
+                    })}
+                  </dd>
+                </div>
+              ) : null}
+              {product.ca_number ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("catalog.caNumber")}</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{product.ca_number}</dd>
+                </div>
+              ) : null}
+              {product.ncm ? (
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("catalog.ncm")}</dt>
+                  <dd className="mt-0.5 font-mono text-sm font-medium">{product.ncm}</dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
 
-          {/* Especificações - apenas renderiza se houver atributos preenchidos */}
-          {product.attributes && product.attributes.length > 0 ? (
-            <div>
-              <h2 className="mb-3 font-medium">{t("catalog.attributes")}</h2>
-              <dl className="grid gap-2 sm:grid-cols-2">
-                {product.attributes.map((attr) => (
-                  <div key={attr.key} className="flex flex-col gap-1 text-sm">
-                    <dt className="text-muted-foreground">{attr.label}</dt>
-                    <dd className="font-medium">
-                      {attr.value}
-                      {attr.unit && (
-                        <span className="text-muted-foreground ms-1">({attr.unit})</span>
-                      )}
+          {product.attributes.length > 0 ? (
+            <section className="rounded-2xl border border-border bg-card p-6">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {t("catalog.attributes")}
+              </h2>
+              <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                {product.attributes.map((attribute) => (
+                  <div key={attribute.key}>
+                    <dt className="text-xs text-muted-foreground">{attribute.label}</dt>
+                    <dd className="mt-0.5 text-sm font-medium">
+                      {attribute.value}
+                      {attribute.unit ? (
+                        <span className="ms-1 text-muted-foreground">({attribute.unit})</span>
+                      ) : null}
                     </dd>
                   </div>
                 ))}
               </dl>
-            </div>
+            </section>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "産業向けB2Bプラットフォーム。",
+  "homeTitle": "運用に必要な設備と保護具。",
+  "homeDescription": "チームを守り、運用を動かし続けるためのすべて。B2B条件、掛け売り与信、ビジネスを理解するサポート。",
   "skipToContent": "本文へスキップ",
   "loading": "読み込み中…",
   "notFoundTitle": "ページが見つかりません",
@@ -13,7 +13,7 @@
   "themeLabel": "テーマを切り替え",
   "languageLabel": "言語",
   "homeLogin": "ログイン",
-  "homeSignUp": "アカウント作成",
+  "homeSignUp": "法人アカウントを申請",
   "auth": {
     "loginTitle": "ログイン",
     "loginSubtitle": "続行するにはアカウントにログインしてください。",
@@ -182,7 +182,20 @@
     "updated": "数量を更新しました。",
     "removed": "商品を削除しました。",
     "cleared": "カートを空にしました。",
-    "tierApplied": "段階価格を適用"
+    "tierApplied": "段階価格を適用",
+    "breadcrumbHome": "ホーム",
+    "pageTitle": "マイカート",
+    "itemsCount": "{count} 点",
+    "shippingCalculated": "注文時に計算",
+    "secureNote": "安全な購入。価格はサーバーで再検証されます。",
+    "emptyDescription": "カタログを見て、運用に必要な設備を見つけましょう。",
+    "benefit1Title": "企業価格",
+    "benefit1Description": "交渉済みの条件と数量に応じた段階価格。",
+    "benefit2Title": "掛け売り与信",
+    "benefit2Description": "B2B請求で健全なキャッシュフローを。",
+    "benefit3Title": "全国配送",
+    "benefit3Description": "運用に合わせた物流計画。",
+    "itemCountOne": "1 点"
   },
   "ordering": {
     "reviewTitle": "注文の確認",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "請求は完了していません。カートに戻って再試行できます。",
     "backToOrders": "注文を見る",
     "backToCart": "カートに戻る",
-    "statusPaid": "支払い済み"
+    "statusPaid": "支払い済み",
+    "summaryTitle": "注文概要"
   },
   "credit": {
     "title": "クレジット",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "閉じる"
+  "closeLabel": "閉じる",
+  "nav": {
+    "primary": "メインナビゲーション",
+    "solutions": "ソリューション",
+    "about": "Forjaについて",
+    "searchPlaceholder": "製品、SKU、ブランドを検索",
+    "searchLabel": "カタログを検索",
+    "searchSubmit": "検索",
+    "cart": "カート",
+    "dashboard": "ダッシュボード",
+    "login": "ログイン",
+    "register": "アカウント作成",
+    "menu": "メニューを開く"
+  },
+  "home": {
+    "eyebrow": "統合産業流通",
+    "ctaRequestAccount": "法人アカウントを申請",
+    "ctaExploreCatalog": "カタログを見る",
+    "trustCnpj": "CNPJ 法人サポート",
+    "trustNational": "全国配送",
+    "trustSecure": "安全な購入",
+    "dashboardTitle": "運用概要",
+    "live": "ライブ",
+    "openOrders": "未処理の注文",
+    "avgSavings": "平均削減額",
+    "invoiceDescription": "注文 #1042 · CAP-002",
+    "brandsEyebrow": "パートナーブランド",
+    "brandsTitle": "産業を動かすブランド",
+    "categoriesEyebrow": "必要なものを探す",
+    "categoriesTitle": "あらゆる課題に対応するカテゴリ",
+    "categoriesDescription": "企業の産業購買をシンプルにする充実したカタログ。",
+    "categoriesCta": "カタログ全体を見る",
+    "categoryExplore": "カテゴリを見る",
+    "categoriesEmpty": "カタログを更新中です。利用可能なすべての製品をご覧ください。",
+    "featuredEyebrow": "カタログ注目商品",
+    "featuredTitle": "次の購入に備えて",
+    "featuredDescription": "審査済み企業向けの特別条件付き厳選製品。",
+    "featuredCta": "すべての製品を見る",
+    "featuredEmpty": "現在、注目商品はありません。",
+    "companyEyebrow": "企業のために",
+    "companyTitleA": "流通以上の価値。",
+    "companyTitleB": "運用パートナーシップ。",
+    "companyDescription": "Forja B2B は企業を適切な設備につなぎ、商業インテリジェンスでコストを削減し、運用のリズムを保ちます。",
+    "companyCta": "Forjaを知る",
+    "featureCreditTitle": "掛け売り与信",
+    "featureCreditDescription": "健全なキャッシュフローを保つ柔軟な条件。",
+    "featureCoverageTitle": "全国カバレッジ",
+    "featureCoverageDescription": "運用拠点に合わせた配送計画。",
+    "featurePricingTitle": "段階価格",
+    "featurePricingDescription": "ロットが大きいほど、企業にとって有利な条件になります。",
+    "featureSupportTitle": "コンサルティングサポート",
+    "featureSupportDescription": "より良い判断を支援する専門スタッフ。",
+    "finalCtaTitle": "運用を止めるわけにはいきません。",
+    "finalCtaDescription": "法人アカウントを作成し、限定の購買条件を利用しましょう。",
+    "finalCtaButton": "アカウントを申請"
+  },
+  "footer": {
+    "tagline": "物事を動かす企業のための産業流通。",
+    "note": "産業のために",
+    "navTitle": "ナビゲーション",
+    "categories": "カテゴリ",
+    "businessTitle": "企業向け",
+    "accountTitle": "アカウント",
+    "orders": "注文",
+    "credit": "B2B与信",
+    "copyright": "© {year} Forja B2B. 無断転載を禁じます。",
+    "madeIn": "ポートフォリオプロジェクト — 架空のデータ。"
+  },
+  "authGate": {
+    "title": "カートに追加するにはログイン",
+    "description": "法人アカウントを作成するかログインして、商品をカートに保存します。"
+  }
 }

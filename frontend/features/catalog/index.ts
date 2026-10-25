@@ -5,3 +5,4 @@ export { ProductCard } from "./product-card";
 export { ProductDetailView } from "./product-detail";
 export { CaStatusBadge, EpiBadge, AvailabilityBadge } from "./product-badges";
 export { isDisplaySellable } from "./availability";
+export { useBrands, useCategories, useProduct, useProducts } from "./hooks";

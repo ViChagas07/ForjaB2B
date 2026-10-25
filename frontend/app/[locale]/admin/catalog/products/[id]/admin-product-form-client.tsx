@@ -3,7 +3,20 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, usePathname, useParams } from "next/navigation";
-import { Loader2, AlertCircle, CheckCircle2, Image as ImageIcon, X, ChevronDown, ChevronUp, Eye, Plus, LayoutDashboard, Maximize2, Shield } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Image as ImageIcon,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Plus,
+  LayoutDashboard,
+  Maximize2,
+  Shield,
+} from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as z from "zod";
 
@@ -25,11 +38,7 @@ import { formatNumber } from "@/shared/lib/money";
 import { errorMessageKey } from "@/shared/lib/api-error";
 
 import { localeLabels, type Locale } from "@/i18n/locales";
-import {
-  adminCatalogApi,
-  isVersionConflict,
-  getFieldErrors,
-} from "@/infrastructure/http";
+import { adminCatalogApi, isVersionConflict, getFieldErrors } from "@/infrastructure/http";
 import type {
   AdminProductCreate,
   AdminProductUpdate,
@@ -120,10 +129,10 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     queryKey: ["catalog", "categories"],
     queryFn: async () => {
       const result = await adminCatalogApi.listProducts({ page_size: 100 });
-      const cats = result.items.map(i => i.category);
+      const cats = result.items.map((i) => i.category);
       // Deduplicate by id
       const seen = new Set<string>();
-      return cats.filter(cat => {
+      return cats.filter((cat) => {
         if (seen.has(cat.id)) return false;
         seen.add(cat.id);
         return true;
@@ -136,10 +145,12 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     queryKey: ["catalog", "brands"],
     queryFn: async () => {
       const result = await adminCatalogApi.listProducts({ page_size: 100 });
-      const brandList = result.items.map(i => i.brand).filter((b): b is NonNullable<typeof b> => Boolean(b));
+      const brandList = result.items
+        .map((i) => i.brand)
+        .filter((b): b is NonNullable<typeof b> => Boolean(b));
       // Deduplicate by id
       const seen = new Set<string>();
-      return brandList.filter(brand => {
+      return brandList.filter((brand) => {
         if (seen.has(brand.id)) return false;
         seen.add(brand.id);
         return true;
@@ -156,7 +167,9 @@ export function AdminProductFormClient({ productId }: { productId: string | null
   });
 
   // productIdForQuery for use in queries
-  const productIdForQuery = Array.isArray(currentProductId) ? currentProductId[0] : currentProductId;
+  const productIdForQuery = Array.isArray(currentProductId)
+    ? currentProductId[0]
+    : currentProductId;
 
   // Load product translations
   const { data: translations, refetch: refetchTranslations } = useQuery({
@@ -227,14 +240,14 @@ export function AdminProductFormClient({ productId }: { productId: string | null
   // Category change: reset attributes not in new category
   useEffect(() => {
     if (attributeDefs) {
-      const validKeys = new Set(attributeDefs.map(d => d.key));
+      const validKeys = new Set(attributeDefs.map((d) => d.key));
       const newAttrs: Record<string, unknown> = {};
       Object.entries(dynamicAttributes).forEach(([key, value]) => {
         if (validKeys.has(key)) {
           newAttrs[key] = value;
         }
       });
-      const removedKeys = Object.keys(dynamicAttributes).filter(k => !validKeys.has(k));
+      const removedKeys = Object.keys(dynamicAttributes).filter((k) => !validKeys.has(k));
       if (removedKeys.length > 0) {
         alert(t("attributesRemovedWarning", { keys: removedKeys.join(", ") }));
       }
@@ -285,12 +298,13 @@ export function AdminProductFormClient({ productId }: { productId: string | null
         else delete newErrors.brand_id;
         break;
       case "base_unit_price":
-        if (!value || !/^\d+(\.\d{1,2})?$/.test(String(value))) newErrors.base_unit_price = t("priceInvalid");
+        if (!value || !/^\d+(\.\d{1,2})?$/.test(String(value)))
+          newErrors.base_unit_price = t("priceInvalid");
         else delete newErrors.base_unit_price;
         break;
       default:
         if (attributeDefs) {
-          const def = attributeDefs.find(d => d.key === name);
+          const def = attributeDefs.find((d) => d.key === name);
           if (def?.required && (!value || (typeof value === "string" && !value.trim()))) {
             newErrors[name] = t("fieldRequired", { field: def.label });
           } else {
@@ -302,12 +316,12 @@ export function AdminProductFormClient({ productId }: { productId: string | null
   };
 
   const handleBasicInfoChange = (name: string, value: unknown) => {
-    setBasicInfo(prev => ({ ...prev, [name]: value }));
+    setBasicInfo((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
   };
 
   const handleAttributeChange = (key: string, value: unknown) => {
-    setDynamicAttributes(prev => ({ ...prev, [key]: value }));
+    setDynamicAttributes((prev) => ({ ...prev, [key]: value }));
     validateField(key, value);
   };
 
@@ -325,10 +339,10 @@ export function AdminProductFormClient({ productId }: { productId: string | null
   const isBasicInfoValid = () => {
     const result = basicInfoSchema.safeParse(basicInfo);
     if (!result.success) {
-      result.error.errors.forEach(e => {
+      result.error.errors.forEach((e) => {
         const path = e.path[0];
         if (typeof path === "string") {
-          setErrors(prev => ({ ...prev, [path]: e.message }));
+          setErrors((prev) => ({ ...prev, [path]: e.message }));
         }
       });
       return false;
@@ -336,9 +350,12 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     // Check required attributes
     if (attributeDefs) {
       let valid = true;
-      attributeDefs.forEach(def => {
-        if (def.required && (!dynamicAttributes[def.key] || String(dynamicAttributes[def.key]).trim() === "")) {
-          setErrors(prev => ({ ...prev, [def.key]: t("fieldRequired", { field: def.label }) }));
+      attributeDefs.forEach((def) => {
+        if (
+          def.required &&
+          (!dynamicAttributes[def.key] || String(dynamicAttributes[def.key]).trim() === "")
+        ) {
+          setErrors((prev) => ({ ...prev, [def.key]: t("fieldRequired", { field: def.label }) }));
           valid = false;
         }
       });
@@ -349,7 +366,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
 
   // Helper: determine if product is sellable (mirrors public page logic)
   const getSellableStatus = () => {
-    const caStatus = basicInfo.ca_number ? (basicInfo.ca_valid_until ? "VALID" : "EXPIRED") : "NOT_APPLICABLE";
+    const caStatus = basicInfo.ca_number
+      ? basicInfo.ca_valid_until
+        ? "VALID"
+        : "EXPIRED"
+      : "NOT_APPLICABLE";
     const hasValidCa = basicInfo.is_epi ? caStatus === "VALID" : true;
     const isActive = !isEdit || product?.status === "ACTIVE"; // For preview, assume published
     return isActive && hasValidCa;
@@ -476,20 +497,24 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     const error = errors[def.key];
     const isTouched = touched[def.key];
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const handleChange = (
+      e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    ) => {
       let val: unknown = e.target.value;
       if (def.type === "number") val = val === "" ? null : Number(val);
       if (def.type === "boolean" && e.target instanceof HTMLInputElement) val = e.target.checked;
       handleAttributeChange(def.key, val);
     };
 
-    const handleBlur = () => setTouched(prev => ({ ...prev, [def.key]: true }));
+    const handleBlur = () => setTouched((prev) => ({ ...prev, [def.key]: true }));
 
     switch (def.type) {
       case "text":
         return (
           <div className="space-y-1">
-            <Label htmlFor={def.key}>{def.label} {def.required && <span className="text-destructive">*</span>}</Label>
+            <Label htmlFor={def.key}>
+              {def.label} {def.required && <span className="text-destructive">*</span>}
+            </Label>
             <Input
               id={def.key}
               name={def.key}
@@ -508,14 +533,18 @@ export function AdminProductFormClient({ productId }: { productId: string | null
               </p>
             )}
             {error && isTouched && (
-              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">{error}</p>
+              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
             )}
           </div>
         );
       case "number":
         return (
           <div className="space-y-1">
-            <Label htmlFor={def.key}>{def.label} {def.required && <span className="text-destructive">*</span>}</Label>
+            <Label htmlFor={def.key}>
+              {def.label} {def.required && <span className="text-destructive">*</span>}
+            </Label>
             <Input
               id={def.key}
               name={def.key}
@@ -532,26 +561,41 @@ export function AdminProductFormClient({ productId }: { productId: string | null
               aria-describedby={error ? `${def.key}-error` : undefined}
             />
             {error && isTouched && (
-              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">{error}</p>
+              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
             )}
           </div>
         );
       case "enum":
         return (
           <div className="space-y-1">
-            <Label htmlFor={def.key}>{def.label} {def.required && <span className="text-destructive">*</span>}</Label>
-            <Select value={String(value ?? "")} onValueChange={(v: string) => handleAttributeChange(def.key, v)}>
-              <SelectTrigger id={def.key} className={cn(error && "border-destructive")} aria-invalid={!!error}>
+            <Label htmlFor={def.key}>
+              {def.label} {def.required && <span className="text-destructive">*</span>}
+            </Label>
+            <Select
+              value={String(value ?? "")}
+              onValueChange={(v: string) => handleAttributeChange(def.key, v)}
+            >
+              <SelectTrigger
+                id={def.key}
+                className={cn(error && "border-destructive")}
+                aria-invalid={!!error}
+              >
                 <SelectValue placeholder={t("selectOption")} />
               </SelectTrigger>
               <SelectContent>
-                {def.options?.map(opt => (
-                  <SelectItem key={opt.key} value={opt.key}>{opt.label}</SelectItem>
+                {def.options?.map((opt) => (
+                  <SelectItem key={opt.key} value={opt.key}>
+                    {opt.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {error && isTouched && (
-              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">{error}</p>
+              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
             )}
           </div>
         );
@@ -572,7 +616,9 @@ export function AdminProductFormClient({ productId }: { productId: string | null
               {def.required && <span className="text-destructive">*</span>}
             </label>
             {error && isTouched && (
-              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">{error}</p>
+              <p id={`${def.key}-error`} className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
             )}
           </div>
         );
@@ -637,11 +683,19 @@ export function AdminProductFormClient({ productId }: { productId: string | null
               {t("cancel")}
             </Link>
           </Button>
-          <Button variant="outline" onClick={() => setShowCustomerPreview(true)} disabled={createMutation.isPending || updateMutation.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => setShowCustomerPreview(true)}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          >
             <LayoutDashboard className="mr-2 h-4 w-4" />
             {t("preview.customerView")}
           </Button>
-          <Button variant="outline" onClick={() => handleSubmit("draft")} disabled={createMutation.isPending || updateMutation.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => handleSubmit("draft")}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          >
             {createMutation.isPending || updateMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -651,7 +705,10 @@ export function AdminProductFormClient({ productId }: { productId: string | null
               t("saveDraft")
             )}
           </Button>
-          <Button onClick={() => handleSubmit("publish")} disabled={createMutation.isPending || updateMutation.isPending}>
+          <Button
+            onClick={() => handleSubmit("publish")}
+            disabled={createMutation.isPending || updateMutation.isPending}
+          >
             {createMutation.isPending || updateMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -665,7 +722,13 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       </div>
 
       {/* Form */}
-      <form onSubmit={e => { e.preventDefault(); handleSubmit("draft"); }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit("draft");
+        }}
+        className="space-y-6"
+      >
         {/* Section 1: Informações Básicas */}
         <Card>
           <CardHeader>
@@ -678,107 +741,164 @@ export function AdminProductFormClient({ productId }: { productId: string | null
             <div className="grid gap-4 sm:grid-cols-2">
               {/* SKU */}
               <div className="space-y-1">
-                <Label htmlFor="sku">{t("basicInfo.sku")} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="sku">
+                  {t("basicInfo.sku")} <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="sku"
                   name="sku"
                   value={basicInfo.sku}
-                  onChange={e => handleBasicInfoChange("sku", e.target.value)}
-                  onBlur={() => setTouched(prev => ({ ...prev, sku: true }))}
+                  onChange={(e) => handleBasicInfoChange("sku", e.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, sku: true }))}
                   disabled={isEdit}
                   className={cn(errors.sku && "border-destructive")}
                   aria-invalid={!!errors.sku}
                   aria-describedby={errors.sku ? "sku-error" : undefined}
                 />
-                {errors.sku && touched.sku && <p id="sku-error" className="text-sm text-destructive" role="alert">{errors.sku}</p>}
+                {errors.sku && touched.sku && (
+                  <p id="sku-error" className="text-sm text-destructive" role="alert">
+                    {errors.sku}
+                  </p>
+                )}
                 {isEdit && <p className="text-xs text-muted-foreground">{t("skuImmutable")}</p>}
               </div>
 
               {/* Name */}
               <div className="space-y-1">
-                <Label htmlFor="name">{t("basicInfo.name")} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="name">
+                  {t("basicInfo.name")} <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="name"
                   name="name"
                   value={basicInfo.name}
-                  onChange={e => handleBasicInfoChange("name", e.target.value)}
-                  onBlur={() => setTouched(prev => ({ ...prev, name: true }))}
+                  onChange={(e) => handleBasicInfoChange("name", e.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
                   maxLength={200}
                   className={cn(errors.name && "border-destructive")}
                   aria-invalid={!!errors.name}
                   aria-describedby={errors.name ? "name-error" : undefined}
                 />
-                <p className="text-xs text-muted-foreground text-right">{basicInfo.name.length} / 200</p>
-                {errors.name && touched.name && <p id="name-error" className="text-sm text-destructive" role="alert">{errors.name}</p>}
+                <p className="text-xs text-muted-foreground text-right">
+                  {basicInfo.name.length} / 200
+                </p>
+                {errors.name && touched.name && (
+                  <p id="name-error" className="text-sm text-destructive" role="alert">
+                    {errors.name}
+                  </p>
+                )}
               </div>
 
               {/* Category */}
               <div className="space-y-1">
-                <Label htmlFor="category_id">{t("basicInfo.category")} <span className="text-destructive">*</span></Label>
-                <Select value={basicInfo.category_id} onValueChange={(v: string) => handleBasicInfoChange("category_id", v)}>
-                  <SelectTrigger id="category_id" className={cn(errors.category_id && "border-destructive")} aria-invalid={!!errors.category_id}>
+                <Label htmlFor="category_id">
+                  {t("basicInfo.category")} <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={basicInfo.category_id}
+                  onValueChange={(v: string) => handleBasicInfoChange("category_id", v)}
+                >
+                  <SelectTrigger
+                    id="category_id"
+                    className={cn(errors.category_id && "border-destructive")}
+                    aria-invalid={!!errors.category_id}
+                  >
                     <SelectValue placeholder={t("basicInfo.categoryPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories?.flat().map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    {categories?.flat().map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.category_id && touched.category_id && <p className="text-sm text-destructive" role="alert">{errors.category_id}</p>}
+                {errors.category_id && touched.category_id && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {errors.category_id}
+                  </p>
+                )}
               </div>
 
               {/* Brand */}
               <div className="space-y-1">
-                <Label htmlFor="brand_id">{t("basicInfo.brand")} <span className="text-destructive">*</span></Label>
-                <Select value={basicInfo.brand_id} onValueChange={(v: string) => handleBasicInfoChange("brand_id", v)}>
-                  <SelectTrigger id="brand_id" className={cn(errors.brand_id && "border-destructive")} aria-invalid={!!errors.brand_id}>
+                <Label htmlFor="brand_id">
+                  {t("basicInfo.brand")} <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={basicInfo.brand_id}
+                  onValueChange={(v: string) => handleBasicInfoChange("brand_id", v)}
+                >
+                  <SelectTrigger
+                    id="brand_id"
+                    className={cn(errors.brand_id && "border-destructive")}
+                    aria-invalid={!!errors.brand_id}
+                  >
                     <SelectValue placeholder={t("basicInfo.brandPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {brands?.flat().map(brand => (
-                      <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                    {brands?.flat().map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.brand_id && touched.brand_id && <p className="text-sm text-destructive" role="alert">{errors.brand_id}</p>}
+                {errors.brand_id && touched.brand_id && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {errors.brand_id}
+                  </p>
+                )}
               </div>
 
               {/* Description */}
               <div className="sm:col-span-2 space-y-1">
-                <Label htmlFor="description">{t("basicInfo.description")} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="description">
+                  {t("basicInfo.description")} <span className="text-destructive">*</span>
+                </Label>
                 <Textarea
                   id="description"
                   name="description"
                   value={basicInfo.description}
-                  onChange={e => handleBasicInfoChange("description", e.target.value)}
-                  onBlur={() => setTouched(prev => ({ ...prev, description: true }))}
+                  onChange={(e) => handleBasicInfoChange("description", e.target.value)}
+                  onBlur={() => setTouched((prev) => ({ ...prev, description: true }))}
                   maxLength={2000}
                   rows={4}
                   className={cn(errors.description && "border-destructive")}
                   aria-invalid={!!errors.description}
                   aria-describedby={errors.description ? "description-error" : "description-hint"}
                 />
-                <p className="text-xs text-muted-foreground text-right">{basicInfo.description.length} / 2000</p>
-                {errors.description && touched.description && <p id="description-error" className="text-sm text-destructive" role="alert">{errors.description}</p>}
+                <p className="text-xs text-muted-foreground text-right">
+                  {basicInfo.description.length} / 2000
+                </p>
+                {errors.description && touched.description && (
+                  <p id="description-error" className="text-sm text-destructive" role="alert">
+                    {errors.description}
+                  </p>
+                )}
               </div>
 
               {/* Price */}
               <div className="space-y-1">
-                <Label htmlFor="base_unit_price">{t("basicInfo.price")} <span className="text-destructive">*</span></Label>
+                <Label htmlFor="base_unit_price">
+                  {t("basicInfo.price")} <span className="text-destructive">*</span>
+                </Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="base_unit_price"
                     name="base_unit_price"
                     value={basicInfo.base_unit_price}
-                    onChange={e => handleBasicInfoChange("base_unit_price", e.target.value)}
-                    onBlur={() => setTouched(prev => ({ ...prev, base_unit_price: true }))}
+                    onChange={(e) => handleBasicInfoChange("base_unit_price", e.target.value)}
+                    onBlur={() => setTouched((prev) => ({ ...prev, base_unit_price: true }))}
                     placeholder="0,00"
                     className={cn(errors.base_unit_price && "border-destructive", "w-32")}
                     aria-invalid={!!errors.base_unit_price}
                     aria-describedby={errors.base_unit_price ? "price-error" : undefined}
                   />
-                  <Select value={basicInfo.currency} onValueChange={(v: string) => handleBasicInfoChange("currency", v)}>
+                  <Select
+                    value={basicInfo.currency}
+                    onValueChange={(v: string) => handleBasicInfoChange("currency", v)}
+                  >
                     <SelectTrigger className="w-24">
                       <SelectValue />
                     </SelectTrigger>
@@ -789,7 +909,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                     </SelectContent>
                   </Select>
                 </div>
-                {errors.base_unit_price && touched.base_unit_price && <p id="price-error" className="text-sm text-destructive" role="alert">{errors.base_unit_price}</p>}
+                {errors.base_unit_price && touched.base_unit_price && (
+                  <p id="price-error" className="text-sm text-destructive" role="alert">
+                    {errors.base_unit_price}
+                  </p>
+                )}
               </div>
 
               {/* Min Order Qty */}
@@ -800,7 +924,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                   name="min_order_qty"
                   type="number"
                   value={basicInfo.min_order_qty}
-                  onChange={e => handleBasicInfoChange("min_order_qty", Number(e.target.value))}
+                  onChange={(e) => handleBasicInfoChange("min_order_qty", Number(e.target.value))}
                   min={1}
                   className="w-24"
                 />
@@ -814,10 +938,12 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                     id="is_epi"
                     name="is_epi"
                     checked={basicInfo.is_epi}
-                    onChange={e => handleBasicInfoChange("is_epi", e.target.checked)}
+                    onChange={(e) => handleBasicInfoChange("is_epi", e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <Label htmlFor="is_epi" className="cursor-pointer mb-0">{t("basicInfo.isEpi")}</Label>
+                  <Label htmlFor="is_epi" className="cursor-pointer mb-0">
+                    {t("basicInfo.isEpi")}
+                  </Label>
                 </div>
               </div>
             </div>
@@ -835,20 +961,25 @@ export function AdminProductFormClient({ productId }: { productId: string | null
           <CardContent>
             {loadingAttrs ? (
               <div className="space-y-4">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
               </div>
             ) : attributeDefs && attributeDefs.length > 0 ? (
               <div className="space-y-6">
                 {/* Group by section */}
-                {Array.from(new Set(attributeDefs.map(d => d.section))).map(section => (
+                {Array.from(new Set(attributeDefs.map((d) => d.section))).map((section) => (
                   <div key={section} className="space-y-4">
-                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{section}</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                      {section}
+                    </h3>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {attributeDefs.filter(d => d.section === section).sort((a, b) => a.display_order - b.display_order).map(def => (
-                        <div key={def.key}>
-                          {renderAttributeInput(def)}
-                        </div>
-                      ))}
+                      {attributeDefs
+                        .filter((d) => d.section === section)
+                        .sort((a, b) => a.display_order - b.display_order)
+                        .map((def) => (
+                          <div key={def.key}>{renderAttributeInput(def)}</div>
+                        ))}
                     </div>
                   </div>
                 ))}
@@ -903,8 +1034,8 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                       name="image_url"
                       type="url"
                       value={imageUrl}
-                      onChange={e => handleImageUrlChange(e.target.value)}
-                      onBlur={() => setTouched(prev => ({ ...prev, image_url: true }))}
+                      onChange={(e) => handleImageUrlChange(e.target.value)}
+                      onBlur={() => setTouched((prev) => ({ ...prev, image_url: true }))}
                       placeholder="https://exemplo.com/imagem.jpg"
                       className="flex-1"
                     />
@@ -922,7 +1053,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                   <Label>{t("image.staticLabel")}</Label>
                   {staticImages && staticImages.length > 0 ? (
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                      {staticImages.map(img => (
+                      {staticImages.map((img) => (
                         <button
                           key={img.path}
                           type="button"
@@ -931,11 +1062,15 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                             "relative aspect-video rounded-lg border-2 overflow-hidden transition-all",
                             selectedStaticImage === img.path
                               ? "border-primary ring-2 ring-primary ring-offset-2"
-                              : "border-muted hover:border-primary/50"
+                              : "border-muted hover:border-primary/50",
                           )}
                           aria-pressed={selectedStaticImage === img.path}
                         >
-                          <img src={img.path} alt={img.label} className="h-full w-full object-cover" />
+                          <img
+                            src={img.path}
+                            alt={img.label}
+                            className="h-full w-full object-cover"
+                          />
                           <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 text-white text-xs truncate">
                             {img.label}
                           </div>
@@ -948,7 +1083,9 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-center py-8">{t("image.noStaticImages")}</p>
+                    <p className="text-muted-foreground text-center py-8">
+                      {t("image.noStaticImages")}
+                    </p>
                   )}
                 </div>
               </TabsContent>
@@ -970,7 +1107,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                 <p className="font-medium">{t("publish.draftLabel")}</p>
                 <p className="text-sm text-muted-foreground">{t("publish.draftDescription")}</p>
               </div>
-              <Button variant="outline" onClick={() => handleSubmit("draft")} disabled={createMutation.isPending || updateMutation.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => handleSubmit("draft")}
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
                 {t("publish.saveDraft")}
               </Button>
             </div>
@@ -979,7 +1120,10 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                 <p className="font-medium">{t("publish.publishLabel")}</p>
                 <p className="text-sm text-muted-foreground">{t("publish.publishDescription")}</p>
               </div>
-              <Button onClick={() => handleSubmit("publish")} disabled={createMutation.isPending || updateMutation.isPending}>
+              <Button
+                onClick={() => handleSubmit("publish")}
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
                 {t("publish.saveAndPublish")}
               </Button>
             </div>
@@ -1002,7 +1146,9 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                   <TranslationRow
                     key={tr.locale}
                     translation={tr}
-                    onUpdate={({ locale, payload }) => updateTranslationMutation.mutate({ locale, payload })}
+                    onUpdate={({ locale, payload }) =>
+                      updateTranslationMutation.mutate({ locale, payload })
+                    }
                     isPending={updateTranslationMutation.isPending}
                   />
                 ))}
@@ -1013,19 +1159,30 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       </form>
 
       {/* Image Preview Dialog (for image tab) */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="image-preview-title">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="image-preview-title"
+      >
         {showPreview && imagePreview && (
           <>
             <div className="fixed inset-0 bg-black/80" onClick={() => setShowPreview(false)} />
             <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] bg-background rounded-lg shadow-xl overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b">
-                <h2 id="image-preview-title" className="text-lg font-semibold">{t("image.previewTitle")}</h2>
+                <h2 id="image-preview-title" className="text-lg font-semibold">
+                  {t("image.previewTitle")}
+                </h2>
                 <Button variant="ghost" size="icon" onClick={() => setShowPreview(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
               <div className="p-4">
-                <img src={imagePreview} alt={t("image.previewAlt")} className="max-h-[70vh] w-auto mx-auto object-contain" />
+                <img
+                  src={imagePreview}
+                  alt={t("image.previewAlt")}
+                  className="max-h-[70vh] w-auto mx-auto object-contain"
+                />
               </div>
             </div>
           </>
@@ -1033,13 +1190,23 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       </div>
 
       {/* Customer Preview Dialog - "Como o cliente verá" */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="customer-preview-title">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="customer-preview-title"
+      >
         {showCustomerPreview && (
           <>
-            <div className="fixed inset-0 bg-black/80" onClick={() => setShowCustomerPreview(false)} />
+            <div
+              className="fixed inset-0 bg-black/80"
+              onClick={() => setShowCustomerPreview(false)}
+            />
             <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] bg-background rounded-lg shadow-xl overflow-hidden flex flex-col">
               <div className="flex items-center justify-between p-4 border-b">
-                <h2 id="customer-preview-title" className="text-lg font-semibold">{t("preview.customerView")}</h2>
+                <h2 id="customer-preview-title" className="text-lg font-semibold">
+                  {t("preview.customerView")}
+                </h2>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{t("preview.note")}</span>
                   <Button variant="ghost" size="icon" onClick={() => setShowCustomerPreview(false)}>
@@ -1052,7 +1219,9 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                   {/* Product Card - mirrors public page */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-2xl tracking-tight">{basicInfo.name || t("preview.noName")}</CardTitle>
+                      <CardTitle className="text-2xl tracking-tight">
+                        {basicInfo.name || t("preview.noName")}
+                      </CardTitle>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {/* EPI Badge */}
                         {basicInfo.is_epi && (
@@ -1062,9 +1231,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                           </Badge>
                         )}
                         {/* CA Status Badge */}
-                        <Badge variant={getCaStatusVariant()}>
-                          {getCaStatusLabel()}
-                        </Badge>
+                        <Badge variant={getCaStatusVariant()}>{getCaStatusLabel()}</Badge>
                         {/* Availability Badge */}
                         <Badge variant={getSellableStatus() ? "default" : "destructive"}>
                           {getSellableStatus() ? t("preview.available") : t("preview.notSellable")}
@@ -1092,10 +1259,13 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                         <div className="text-3xl font-bold">
                           {basicInfo.base_unit_price && Number(basicInfo.base_unit_price) > 0 ? (
                             <>
-                              {formatNumber(Number(basicInfo.base_unit_price), "pt-BR")} {basicInfo.currency}
+                              {formatNumber(Number(basicInfo.base_unit_price), "pt-BR")}{" "}
+                              {basicInfo.currency}
                             </>
                           ) : (
-                            <span className="text-muted-foreground">{tCatalog("priceOnRequest")}</span>
+                            <span className="text-muted-foreground">
+                              {tCatalog("priceOnRequest")}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1112,19 +1282,23 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                       <dl className="grid gap-3 sm:grid-cols-2 text-sm">
                         <div>
                           <dt className="text-muted-foreground">{tCatalog("sku")}</dt>
-                          <dd className="font-mono font-medium">{basicInfo.sku || t("preview.notSet")}</dd>
+                          <dd className="font-mono font-medium">
+                            {basicInfo.sku || t("preview.notSet")}
+                          </dd>
                         </div>
                         <div>
                           <dt className="text-muted-foreground">{tCatalog("category")}</dt>
                           <dd className="font-medium">
-                            {categories?.flat().find(c => c.id === basicInfo.category_id)?.name || t("preview.notSet")}
+                            {categories?.flat().find((c) => c.id === basicInfo.category_id)?.name ||
+                              t("preview.notSet")}
                           </dd>
                         </div>
                         {basicInfo.brand_id ? (
                           <div>
                             <dt className="text-muted-foreground">{tCatalog("brand")}</dt>
                             <dd className="font-medium">
-                              {brands?.flat().find(b => b.id === basicInfo.brand_id)?.name || t("preview.notSet")}
+                              {brands?.flat().find((b) => b.id === basicInfo.brand_id)?.name ||
+                                t("preview.notSet")}
                             </dd>
                           </div>
                         ) : null}
@@ -1166,14 +1340,22 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                           <h3 className="mb-3 font-medium">{tCatalog("attributes")}</h3>
                           <dl className="grid gap-2 sm:grid-cols-2">
                             {attributeDefs
-                              .filter(def => dynamicAttributes[def.key] && String(dynamicAttributes[def.key]).trim() !== "")
+                              .filter(
+                                (def) =>
+                                  dynamicAttributes[def.key] &&
+                                  String(dynamicAttributes[def.key]).trim() !== "",
+                              )
                               .sort((a, b) => a.display_order - b.display_order)
-                              .map(def => (
+                              .map((def) => (
                                 <div key={def.key} className="flex flex-col gap-1 text-sm">
                                   <dt className="text-muted-foreground">{def.label}</dt>
                                   <dd className="font-medium">
                                     {String(dynamicAttributes[def.key])}
-                                    {def.unit && <span className="text-muted-foreground ml-1">({def.unit})</span>}
+                                    {def.unit && (
+                                      <span className="text-muted-foreground ml-1">
+                                        ({def.unit})
+                                      </span>
+                                    )}
                                   </dd>
                                 </div>
                               ))}

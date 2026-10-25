@@ -4,90 +4,95 @@
 
 @layer base {
   :root {
-    /* Superfícies — platinum (slate) */
-    --background: 210 40% 96.1%; /* platinum-50 #F8FAFC */
-    --foreground: 222.2 47.4% 11.2%; /* steel-900 #0F172A */
+    /* Superfícies — branco quente e preto profundo */
+    --background: 40 20% 98%; /* #FAF9F6 */
+    --foreground: 0 0% 4%; /* #0A0A0A */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 0 0% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 0 0% 4%;
 
-    /* Marca — forge (orange) */
-    --primary: 24.6 95% 53.1%; /* forge-500 #F97316 */
-    /* Texto escuro sobre laranja para contraste AA (ver README). */
-    --primary-foreground: 222.2 47.4% 11.2%; /* steel-900 */
+    /* Marca — âmbar */
+    --primary: 38 92% 50%; /* #F59E0B */
+    --primary-foreground: 0 0% 4%; /* preto sobre âmbar (AA) */
 
-    --secondary: 214.3 31.8% 91.4%; /* platinum-200 #E2E8F0 */
-    --secondary-foreground: 217.2 32.6% 17.5%; /* steel-800 #1E293B */
+    --secondary: 40 18% 95%; /* #F4F2ED */
+    --secondary-foreground: 0 0% 8%;
 
-    --muted: 214.3 31.8% 91.4%;
-    --muted-foreground: 215.4 19.3% 33.9%; /* slate-600 (contraste AA) */
+    --muted: 40 18% 95%;
+    --muted-foreground: 30 6% 38%;
 
-    --accent: 214.3 31.8% 91.4%;
-    --accent-foreground: 217.2 32.6% 17.5%;
+    --accent: 44 100% 94%; /* #FEF4D6 */
+    --accent-foreground: 30 85% 22%;
 
-    --destructive: 0 72.2% 50.6%; /* red-600 */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 24.6 95% 53.1%;
+    --border: 36 12% 88%;
+    --input: 36 12% 84%;
+    --ring: 38 92% 50%;
 
     /* Semânticos */
-    --success: 142.1 76.2% 36.3%; /* green-600 */
+    --success: 152 60% 32%;
     --success-foreground: 0 0% 100%;
 
-    --info: 221.2 83.2% 53.3%; /* blue-600 */
+    --info: 205 74% 40%;
     --info-foreground: 0 0% 100%;
 
-    --warning: 37.7 92.1% 50.2%; /* amber-500 */
-    --warning-foreground: 222.2 47.4% 11.2%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 4%;
 
-    --danger: 0 72.2% 50.6%;
+    --danger: 0 72% 51%;
     --danger-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    /* Tokens de marca */
+    --ink: 0 0% 4%; /* #0A0A0A */
+    --ink-soft: 0 0% 9%; /* #171717 */
+    --amber: 38 92% 50%; /* #F59E0B */
+    --amber-strong: 32 95% 44%; /* #D97706 */
+
+    --radius: 0.875rem;
   }
 
   .dark {
-    --background: 222.2 47.4% 11.2%; /* steel-900 */
-    --foreground: 210 40% 96.1%; /* platinum-50 */
+    --background: 0 0% 4%; /* #0A0A0A */
+    --foreground: 40 20% 97%;
 
-    --card: 217.2 32.6% 17.5%; /* steel-800 */
-    --card-foreground: 210 40% 96.1%;
+    --card: 0 0% 7%; /* #121212 */
+    --card-foreground: 40 20% 97%;
 
-    --popover: 217.2 32.6% 17.5%;
-    --popover-foreground: 210 40% 96.1%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 40 20% 97%;
 
-    --primary: 24.6 95% 53.1%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 96.1%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 40 20% 97%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 36 8% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 96.1%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 43 96% 64%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 96.1%;
+    --destructive: 0 63% 42%;
+    --destructive-foreground: 40 20% 97%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 24.6 95% 53.1%;
+    --border: 0 0% 16%;
+    --input: 0 0% 20%;
+    --ring: 38 92% 50%;
 
-    --success: 142.1 70.6% 45.3%;
-    --success-foreground: 222.2 47.4% 11.2%;
-    --info: 217.2 91.2% 59.8%;
-    --info-foreground: 222.2 47.4% 11.2%;
-    --warning: 37.7 92.1% 50.2%;
-    --warning-foreground: 222.2 47.4% 11.2%;
-    --danger: 0 72.2% 50.6%;
-    --danger-foreground: 210 40% 96.1%;
+    --success: 152 55% 42%;
+    --success-foreground: 0 0% 4%;
+    --info: 205 82% 60%;
+    --info-foreground: 0 0% 4%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 4%;
+    --danger: 0 72% 54%;
+    --danger-foreground: 0 0% 100%;
   }
 }
 
@@ -103,6 +108,14 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -132,11 +145,56 @@
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
     padding: 0.5rem 1rem;
-    font-weight: 500;
+    font-weight: 600;
     transition: transform 150ms ease;
   }
 
   .skip-link:focus {
     transform: translateY(0);
+  }
+
+  /* Superfície escura usada no header, hero, faixa CTA e rodapé. */
+  .surface-ink {
+    background-color: hsl(var(--ink));
+    color: hsl(40 20% 97%);
+  }
+
+  .amber-glow {
+    background-image:
+      radial-gradient(60% 70% at 18% 10%, hsl(var(--amber) / 0.18) 0%, transparent 62%),
+      radial-gradient(45% 55% at 92% 4%, hsl(var(--amber) / 0.12) 0%, transparent 58%);
+  }
+
+  .soft-grid {
+    background-image:
+      linear-gradient(to right, hsl(0 0% 100% / 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.055) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .amber-grid {
+    background-image:
+      linear-gradient(to right, hsl(0 0% 4% / 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 4% / 0.06) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
+
+  .logo-plate {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    padding: 0.35rem 0.65rem;
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.15) inset;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

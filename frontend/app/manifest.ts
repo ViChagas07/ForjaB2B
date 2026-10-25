@@ -7,14 +7,20 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Plataforma B2B para a indústria.",
     start_url: "/pt-BR",
     display: "standalone",
-    background_color: "#F8FAFC",
-    theme_color: "#F97316",
+    background_color: "#0A0A0A",
+    theme_color: "#F59E0B",
     icons: [
       {
-        src: "/brand/icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/icon.png",
+        sizes: "512x512",
+        type: "image/png",
         purpose: "any",
+      },
+      {
+        src: "/icon.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

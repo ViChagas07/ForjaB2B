@@ -13,33 +13,55 @@ import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { Badge } from "@/shared/ui/badge";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/shared/ui/dialog";
 import { errorMessageKey } from "@/shared/lib/api-error";
 
 import { adminCatalogApi, isVersionConflict, getFieldErrors } from "@/infrastructure/http";
-import type { AdminProductListQuery, AdminProductSummary, AdminProductStatus } from "@/core/domain/catalog";
+import type {
+  AdminProductListQuery,
+  AdminProductSummary,
+  AdminProductStatus,
+} from "@/core/domain/catalog";
 
-function StatusBadge({ status, t }: { status: AdminProductStatus; t: ReturnType<typeof useTranslations> }) {
+function StatusBadge({
+  status,
+  t,
+}: {
+  status: AdminProductStatus;
+  t: ReturnType<typeof useTranslations>;
+}) {
   const statusLabels: Record<AdminProductStatus, string> = {
     DRAFT: t("status.draft"),
     ACTIVE: t("status.active"),
     ARCHIVED: t("status.archived"),
   };
 
-  const statusVariants: Record<AdminProductStatus, "default" | "secondary" | "destructive" | "outline"> = {
+  const statusVariants: Record<
+    AdminProductStatus,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
     DRAFT: "secondary",
     ACTIVE: "default",
     ARCHIVED: "outline",
   };
 
-  return (
-    <Badge variant={statusVariants[status]}>
-      {statusLabels[status]}
-    </Badge>
-  );
+  return <Badge variant={statusVariants[status]}>{statusLabels[status]}</Badge>;
 }
 
 export function AdminProductListClient() {
@@ -54,7 +76,7 @@ export function AdminProductListClient() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category_id") ?? "");
   const [selectedStatus, setSelectedStatus] = useState<AdminProductStatus | "">(
-    (searchParams.get("status") as AdminProductStatus) ?? ""
+    (searchParams.get("status") as AdminProductStatus) ?? "",
   );
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -240,11 +262,14 @@ export function AdminProductListClient() {
                 className="flex h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">{t("allCategories")}</option>
-                {data?.items.flatMap((p: AdminProductSummary) => p.category).filter(Boolean).map((cat: { id: string; name: string }) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
+                {data?.items
+                  .flatMap((p: AdminProductSummary) => p.category)
+                  .filter(Boolean)
+                  .map((cat: { id: string; name: string }) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
               </select>
               <select
                 value={selectedStatus}
@@ -302,7 +327,10 @@ export function AdminProductListClient() {
                   products.map((product: AdminProductSummary) => (
                     <tr key={product.id} className="border-b transition-colors hover:bg-muted/50">
                       <td className="p-4">
-                        <Link href={`/admin/catalog/products/${product.id}`} className="font-medium hover:underline">
+                        <Link
+                          href={`/admin/catalog/products/${product.id}`}
+                          className="font-medium hover:underline"
+                        >
                           {product.name}
                         </Link>
                       </td>
@@ -314,7 +342,8 @@ export function AdminProductListClient() {
                       <td className="p-4">
                         {product.base_unit_price ? (
                           <span className="font-medium">
-                            {formatNumber(Number(product.base_unit_price), "pt-BR")} {product.currency}
+                            {formatNumber(Number(product.base_unit_price), "pt-BR")}{" "}
+                            {product.currency}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">{t("priceOnRequest")}</span>
@@ -440,7 +469,12 @@ export function AdminProductListClient() {
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               {t("cancel")}
             </Button>
-            <Button variant="destructive" onClick={() => { /* TODO: implement delete */ setDeleteDialogOpen(false); }}>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                /* TODO: implement delete */ setDeleteDialogOpen(false);
+              }}
+            >
               {t("delete")}
             </Button>
           </DialogFooter>

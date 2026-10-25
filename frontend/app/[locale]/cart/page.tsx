@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { CartView } from "@/features/cart";
+import { SiteFooter } from "@/shared/components/site-footer";
 import { SiteHeader } from "@/shared/components/site-header";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,9 +14,10 @@ export default function CartPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main" className="container flex-1 py-10">
+      <main id="main" className="container flex-1 py-12">
         <CartView />
       </main>
+      <SiteFooter />
     </>
   );
 }

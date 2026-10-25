@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "面向工业的 B2B 平台。",
+  "homeTitle": "为您的运营提供设备与个人防护用品。",
+  "homeDescription": "保护团队、保持运营所需的一切。B2B 条件、账期信用以及懂您业务的服务。",
   "skipToContent": "跳到内容",
   "loading": "加载中…",
   "notFoundTitle": "页面未找到",
@@ -13,7 +13,7 @@
   "themeLabel": "切换主题",
   "languageLabel": "语言",
   "homeLogin": "登录",
-  "homeSignUp": "创建账户",
+  "homeSignUp": "申请企业账户",
   "auth": {
     "loginTitle": "登录",
     "loginSubtitle": "登录您的账户以继续。",
@@ -182,7 +182,20 @@
     "updated": "数量已更新。",
     "removed": "商品已移除。",
     "cleared": "购物车已清空。",
-    "tierApplied": "已应用阶梯价格"
+    "tierApplied": "已应用阶梯价格",
+    "breadcrumbHome": "首页",
+    "pageTitle": "我的购物车",
+    "itemsCount": "{count} 件商品",
+    "shippingCalculated": "下单时计算",
+    "secureNote": "安全购买，价格由服务器重新验证。",
+    "emptyDescription": "浏览目录，为您的运营找到合适的设备。",
+    "benefit1Title": "企业价格",
+    "benefit1Description": "议定条件和按量阶梯定价。",
+    "benefit2Title": "账期信用",
+    "benefit2Description": "通过 B2B 账期保持健康现金流。",
+    "benefit3Title": "全国配送",
+    "benefit3Description": "为您的运营规划物流。",
+    "itemCountOne": "1 件商品"
   },
   "ordering": {
     "reviewTitle": "订单审核",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "未完成任何扣款。您可以返回购物车重试。",
     "backToOrders": "查看订单",
     "backToCart": "返回购物车",
-    "statusPaid": "已支付"
+    "statusPaid": "已支付",
+    "summaryTitle": "订单摘要"
   },
   "credit": {
     "title": "信贷",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "关闭"
+  "closeLabel": "关闭",
+  "nav": {
+    "primary": "主导航",
+    "solutions": "解决方案",
+    "about": "关于 Forja",
+    "searchPlaceholder": "搜索产品、SKU 或品牌",
+    "searchLabel": "搜索目录",
+    "searchSubmit": "搜索",
+    "cart": "购物车",
+    "dashboard": "控制台",
+    "login": "登录",
+    "register": "创建账户",
+    "menu": "打开菜单"
+  },
+  "home": {
+    "eyebrow": "一体化工业分销",
+    "ctaRequestAccount": "申请企业账户",
+    "ctaExploreCatalog": "浏览目录",
+    "trustCnpj": "CNPJ 企业支持",
+    "trustNational": "全国配送",
+    "trustSecure": "安全购买",
+    "dashboardTitle": "运营概览",
+    "live": "实时",
+    "openOrders": "待处理订单",
+    "avgSavings": "平均节省",
+    "invoiceDescription": "订单 #1042 · CAP-002",
+    "brandsEyebrow": "合作品牌",
+    "brandsTitle": "推动工业前进的品牌",
+    "categoriesEyebrow": "找到您需要的产品",
+    "categoriesTitle": "应对每种挑战的品类",
+    "categoriesDescription": "完整的目录，让您企业的工业采购更简单。",
+    "categoriesCta": "查看完整目录",
+    "categoryExplore": "浏览品类",
+    "categoriesEmpty": "目录正在更新。浏览所有可用产品。",
+    "featuredEyebrow": "目录精选",
+    "featuredTitle": "为您的下一次采购做好准备",
+    "featuredDescription": "为已认证企业精选的产品和专属条件。",
+    "featuredCta": "查看所有产品",
+    "featuredEmpty": "目前没有精选产品。",
+    "companyEyebrow": "为企业而生",
+    "companyTitleA": "不止是分销。",
+    "companyTitleB": "更是运营伙伴。",
+    "companyDescription": "Forja B2B 将您的企业与合适的设备连接起来，以商业智能降低成本并保持运营节奏。",
+    "companyCta": "了解 Forja",
+    "featureCreditTitle": "账期信用",
+    "featureCreditDescription": "灵活的条件，保持健康的现金流。",
+    "featureCoverageTitle": "全国覆盖",
+    "featureCoverageDescription": "为您的运营所在地规划配送。",
+    "featurePricingTitle": "阶梯定价",
+    "featurePricingDescription": "采购量越大，企业的条件越优惠。",
+    "featureSupportTitle": "顾问式服务",
+    "featureSupportDescription": "专家帮助您做出更好的决策。",
+    "finalCtaTitle": "您的运营不能停。",
+    "finalCtaDescription": "创建企业账户，解锁专属采购条件。",
+    "finalCtaButton": "申请账户"
+  },
+  "footer": {
+    "tagline": "为让事情发生的企业提供工业分销。",
+    "note": "为工业而生",
+    "navTitle": "浏览",
+    "categories": "品类",
+    "businessTitle": "面向企业",
+    "accountTitle": "您的账户",
+    "orders": "订单",
+    "credit": "B2B 信用",
+    "copyright": "© {year} Forja B2B。保留所有权利。",
+    "madeIn": "作品集项目 — 虚构数据。"
+  },
+  "authGate": {
+    "title": "登录后加入购物车",
+    "description": "创建企业账户或登录，将商品保存到购物车。"
+  }
 }

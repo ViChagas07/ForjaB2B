@@ -37,7 +37,10 @@ export async function generateMetadata({ params }: LocaleLayoutProps): Promise<M
       title: t("homeTitle"),
       description: t("homeDescription"),
     },
-    icons: { icon: "/brand/icon.svg" },
+    icons: {
+      icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }],
+      apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "512x512" }],
+    },
   };
 }
 

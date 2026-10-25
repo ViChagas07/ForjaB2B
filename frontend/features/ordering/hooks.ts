@@ -7,7 +7,7 @@ import type { CreateOrderInput } from "@/core/domain/ordering";
 import { orderingApi, useOrderingApi } from "@/infrastructure/http";
 import { withAuth } from "@/shared/lib/with-auth";
 
-import { cartKey } from "@/features/cart/hooks";
+import { cartKey } from "@/features/cart";
 
 /**
  * Chave do pedido. O locale entra na chave porque os itens do pedido trazem

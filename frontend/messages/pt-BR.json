@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "Plataforma B2B para a indústria.",
+  "homeTitle": "Equipamentos e EPIs para a sua operação.",
+  "homeDescription": "Tudo para proteger sua equipe e manter a operação em movimento. Condições B2B, crédito faturado e atendimento que entende o seu negócio.",
   "skipToContent": "Pular para o conteúdo",
   "loading": "Carregando…",
   "notFoundTitle": "Página não encontrada",
@@ -13,7 +13,7 @@
   "themeLabel": "Alternar tema",
   "languageLabel": "Idioma",
   "homeLogin": "Entrar",
-  "homeSignUp": "Criar conta",
+  "homeSignUp": "Solicitar conta para empresas",
   "auth": {
     "loginTitle": "Entrar",
     "loginSubtitle": "Acesse sua conta para continuar.",
@@ -157,7 +157,20 @@
     "updated": "Quantidade atualizada.",
     "removed": "Item removido.",
     "cleared": "Carrinho limpo.",
-    "tierApplied": "Preço de faixa aplicado"
+    "tierApplied": "Preço de faixa aplicado",
+    "breadcrumbHome": "Início",
+    "pageTitle": "Meu carrinho",
+    "itemsCount": "{count} itens",
+    "shippingCalculated": "Calculado no pedido",
+    "secureNote": "Compra protegida e preços revalidados no servidor.",
+    "emptyDescription": "Explore o catálogo e encontre equipamentos para a sua operação.",
+    "benefit1Title": "Preço por empresa",
+    "benefit1Description": "Condições negociadas e preço progressivo por volume.",
+    "benefit2Title": "Crédito faturado",
+    "benefit2Description": "Fluxo de caixa saudável com faturamento B2B.",
+    "benefit3Title": "Entrega nacional",
+    "benefit3Description": "Logística planejada para a sua operação.",
+    "itemCountOne": "1 item"
   },
   "ordering": {
     "reviewTitle": "Revisão do pedido",
@@ -209,7 +222,8 @@
     "paymentCancelDescription": "Nenhuma cobrança foi concluída. Você pode voltar ao carrinho e tentar novamente.",
     "backToOrders": "Ver pedidos",
     "backToCart": "Voltar ao carrinho",
-    "statusPaid": "Pago"
+    "statusPaid": "Pago",
+    "summaryTitle": "Resumo do pedido"
   },
   "credit": {
     "title": "Crédito",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "Fechar"
+  "closeLabel": "Fechar",
+  "nav": {
+    "primary": "Navegação principal",
+    "solutions": "Soluções",
+    "about": "A Forja",
+    "searchPlaceholder": "Buscar produto, SKU ou marca",
+    "searchLabel": "Buscar no catálogo",
+    "searchSubmit": "Buscar",
+    "cart": "Carrinho",
+    "dashboard": "Painel",
+    "login": "Entrar",
+    "register": "Criar conta",
+    "menu": "Abrir menu"
+  },
+  "home": {
+    "eyebrow": "DISTRIBUIÇÃO INDUSTRIAL INTEGRADA",
+    "ctaRequestAccount": "Solicitar conta para empresas",
+    "ctaExploreCatalog": "Explorar catálogo",
+    "trustCnpj": "Atendimento para CNPJ",
+    "trustNational": "Entrega nacional",
+    "trustSecure": "Compra segura",
+    "dashboardTitle": "Visão geral da operação",
+    "live": "ao vivo",
+    "openOrders": "Pedidos em aberto",
+    "avgSavings": "Economia média",
+    "invoiceDescription": "Pedido #1042 · CAP-002",
+    "brandsEyebrow": "MARCAS PARCEIRAS",
+    "brandsTitle": "Quem move a indústria com a Forja",
+    "categoriesEyebrow": "ENCONTRE O QUE PRECISA",
+    "categoriesTitle": "Categorias para cada desafio",
+    "categoriesDescription": "Um catálogo completo para simplificar as compras industriais da sua empresa.",
+    "categoriesCta": "Ver catálogo completo",
+    "categoryExplore": "Explorar categoria",
+    "categoriesEmpty": "O catálogo está sendo atualizado. Explore todos os produtos disponíveis.",
+    "featuredEyebrow": "DESTAQUES DO CATÁLOGO",
+    "featuredTitle": "Prontos para a sua próxima compra",
+    "featuredDescription": "Produtos selecionados com condições exclusivas para empresas com CNPJ aprovado.",
+    "featuredCta": "Ver todos os produtos",
+    "featuredEmpty": "Nenhum destaque disponível no momento.",
+    "companyEyebrow": "FEITA PARA EMPRESAS",
+    "companyTitleA": "Mais que distribuição.",
+    "companyTitleB": "Parceria de operação.",
+    "companyDescription": "A Forja B2B conecta sua empresa aos equipamentos certos, com inteligência comercial para reduzir custos e manter o ritmo da sua operação.",
+    "companyCta": "Conheça a Forja",
+    "featureCreditTitle": "Crédito faturado",
+    "featureCreditDescription": "Condições flexíveis para manter o fluxo de caixa saudável.",
+    "featureCoverageTitle": "Cobertura nacional",
+    "featureCoverageDescription": "Entregas planejadas para onde a sua operação estiver.",
+    "featurePricingTitle": "Preço progressivo",
+    "featurePricingDescription": "Quanto maior o lote, melhor a condição para a sua empresa.",
+    "featureSupportTitle": "Atendimento consultivo",
+    "featureSupportDescription": "Especialistas para ajudar você a decidir melhor.",
+    "finalCtaTitle": "Sua operação não pode parar.",
+    "finalCtaDescription": "Crie sua conta empresarial e acesse condições exclusivas de compra.",
+    "finalCtaButton": "Solicitar conta"
+  },
+  "footer": {
+    "tagline": "Distribuição industrial para empresas que fazem acontecer.",
+    "note": "Feito para a indústria",
+    "navTitle": "Navegar",
+    "categories": "Categorias",
+    "businessTitle": "Para empresas",
+    "accountTitle": "Sua conta",
+    "orders": "Pedidos",
+    "credit": "Crédito B2B",
+    "copyright": "© {year} Forja B2B. Todos os direitos reservados.",
+    "madeIn": "Projeto de portfólio — dados fictícios."
+  },
+  "authGate": {
+    "title": "Entre para adicionar ao carrinho",
+    "description": "Crie sua conta empresarial ou entre na sua conta para guardar itens no carrinho."
+  }
 }

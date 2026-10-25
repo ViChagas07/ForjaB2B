@@ -96,7 +96,7 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
       </div>
 
       <div className="flex items-start justify-between gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
           {t("ordering.orderNumber")} <span className="font-mono">{order.id}</span>
         </h1>
       </div>
@@ -162,6 +162,7 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
         <div className="flex justify-end">
           <Button
             variant="destructive"
+            className="rounded-xl"
             disabled={cancelMutation.isPending}
             onClick={() => cancelMutation.mutate(order.id)}
           >

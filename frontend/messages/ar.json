@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "منصة B2B للصناعة.",
+  "homeTitle": "معدات ومستلزمات حماية لعملياتك.",
+  "homeDescription": "كل ما تحتاجه لحماية فريقك وإبقاء عملياتك مستمرة. شروط B2B وائتمان بالفاتورة ودعم يفهم أعمالك.",
   "skipToContent": "تخطَّ إلى المحتوى",
   "loading": "جارٍ التحميل…",
   "notFoundTitle": "الصفحة غير موجودة",
@@ -13,7 +13,7 @@
   "themeLabel": "تبديل السمة",
   "languageLabel": "اللغة",
   "homeLogin": "تسجيل الدخول",
-  "homeSignUp": "إنشاء حساب",
+  "homeSignUp": "اطلب حساب أعمال",
   "auth": {
     "loginTitle": "تسجيل الدخول",
     "loginSubtitle": "سجّل الدخول إلى حسابك للمتابعة.",
@@ -182,7 +182,20 @@
     "updated": "تم تحديث الكمية.",
     "removed": "تمت إزالة الصنف.",
     "cleared": "تم إفراغ السلة.",
-    "tierApplied": "تم تطبيق سعر الشريحة"
+    "tierApplied": "تم تطبيق سعر الشريحة",
+    "breadcrumbHome": "الرئيسية",
+    "pageTitle": "سلتي",
+    "itemsCount": "{count} عناصر",
+    "shippingCalculated": "يُحسب عند الطلب",
+    "secureNote": "شراء محمي وأسعار يُعاد التحقق منها على الخادم.",
+    "emptyDescription": "استكشف الكتالوج واعثر على معدات لعملياتك.",
+    "benefit1Title": "سعر الشركات",
+    "benefit1Description": "شروط تفاوضية وتسعير متدرج حسب الحجم.",
+    "benefit2Title": "ائتمان بالفاتورة",
+    "benefit2Description": "تدفق نقدي صحي مع فوترة B2B.",
+    "benefit3Title": "توصيل وطني",
+    "benefit3Description": "لوجستيات مخططة لعملياتك.",
+    "itemCountOne": "عنصر واحد"
   },
   "ordering": {
     "reviewTitle": "مراجعة الطلب",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "لم يتم إتمام أي خصم. يمكنك العودة إلى السلة والمحاولة مرة أخرى.",
     "backToOrders": "عرض الطلبات",
     "backToCart": "العودة إلى السلة",
-    "statusPaid": "مدفوع"
+    "statusPaid": "مدفوع",
+    "summaryTitle": "ملخص الطلب"
   },
   "credit": {
     "title": "ائتمان",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "إغلاق"
+  "closeLabel": "إغلاق",
+  "nav": {
+    "primary": "التنقل الرئيسي",
+    "solutions": "الحلول",
+    "about": "عن Forja",
+    "searchPlaceholder": "ابحث عن منتج أو SKU أو علامة تجارية",
+    "searchLabel": "ابحث في الكتالوج",
+    "searchSubmit": "بحث",
+    "cart": "السلة",
+    "dashboard": "لوحة التحكم",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "menu": "فتح القائمة"
+  },
+  "home": {
+    "eyebrow": "توزيع صناعي متكامل",
+    "ctaRequestAccount": "اطلب حساب أعمال",
+    "ctaExploreCatalog": "استكشف الكتالوج",
+    "trustCnpj": "دعم CNPJ للشركات",
+    "trustNational": "توصيل وطني",
+    "trustSecure": "شراء آمن",
+    "dashboardTitle": "نظرة عامة على العمليات",
+    "live": "مباشر",
+    "openOrders": "الطلبات المفتوحة",
+    "avgSavings": "متوسط التوفير",
+    "invoiceDescription": "الطلب #1042 · CAP-002",
+    "brandsEyebrow": "العلامات الشريكة",
+    "brandsTitle": "علامات تحرك الصناعة",
+    "categoriesEyebrow": "اعثر على ما تحتاجه",
+    "categoriesTitle": "فئات لكل تحدٍ",
+    "categoriesDescription": "كتالوج شامل يبسط المشتريات الصناعية لشركتك.",
+    "categoriesCta": "عرض الكتالوج الكامل",
+    "categoryExplore": "استكشف الفئة",
+    "categoriesEmpty": "يتم تحديث الكتالوج. استكشف جميع المنتجات المتاحة.",
+    "featuredEyebrow": "أبرز منتجات الكتالوج",
+    "featuredTitle": "جاهز لشرائك القادم",
+    "featuredDescription": "منتجات مختارة بشروط حصرية للشركات المعتمدة.",
+    "featuredCta": "عرض جميع المنتجات",
+    "featuredEmpty": "لا توجد منتجات مميزة حاليًا.",
+    "companyEyebrow": "مصممة للشركات",
+    "companyTitleA": "أكثر من مجرد توزيع.",
+    "companyTitleB": "شراكة تشغيلية.",
+    "companyDescription": "تربط Forja B2B شركتك بالمعدات المناسبة، مع ذكاء تجاري لتقليل التكاليف والحفاظ على إيقاع عملياتك.",
+    "companyCta": "تعرف على Forja",
+    "featureCreditTitle": "ائتمان بالفاتورة",
+    "featureCreditDescription": "شروط مرنة للحفاظ على تدفق نقدي صحي.",
+    "featureCoverageTitle": "تغطية وطنية",
+    "featureCoverageDescription": "عمليات تسليم مخططة حيثما كانت عملياتك.",
+    "featurePricingTitle": "تسعير متدرج",
+    "featurePricingDescription": "كلما زاد حجم الطلب، تحسنت الشروط لشركتك.",
+    "featureSupportTitle": "دعم استشاري",
+    "featureSupportDescription": "متخصصون لمساعدتك على اتخاذ قرارات أفضل.",
+    "finalCtaTitle": "عملياتك لا يمكن أن تتوقف.",
+    "finalCtaDescription": "أنشئ حساب أعمالك واحصل على شروط شراء حصرية.",
+    "finalCtaButton": "اطلب حسابًا"
+  },
+  "footer": {
+    "tagline": "توزيع صناعي للشركات التي تصنع الفارق.",
+    "note": "مصمم للصناعة",
+    "navTitle": "التنقل",
+    "categories": "الفئات",
+    "businessTitle": "للشركات",
+    "accountTitle": "حسابك",
+    "orders": "الطلبات",
+    "credit": "ائتمان B2B",
+    "copyright": "© {year} Forja B2B. جميع الحقوق محفوظة.",
+    "madeIn": "مشروع بورتفوليو — بيانات خيالية."
+  },
+  "authGate": {
+    "title": "سجّل الدخول للإضافة إلى السلة",
+    "description": "أنشئ حساب أعمالك أو سجّل الدخول لحفظ العناصر في سلتك."
+  }
 }

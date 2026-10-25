@@ -1,10 +1,16 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+// A raiz redireciona conforme Accept-Language; fixar pt-BR torna o teste
+// determinístico em qualquer runner.
+test.use({ locale: "pt-BR" });
+
 test("redireciona a raiz para o locale padrão", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/pt-BR$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Forja B2B");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Equipamentos e EPIs para a sua operação.",
+  );
 });
 
 test("health endpoint responde ok", async ({ request }) => {

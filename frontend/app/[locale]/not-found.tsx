@@ -7,11 +7,14 @@ export default async function NotFound() {
   const t = await getTranslations();
 
   return (
-    <main className="container flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
-      <p className="text-7xl font-bold text-primary">404</p>
-      <h1 className="text-2xl font-semibold">{t("notFoundTitle")}</h1>
-      <p className="text-muted-foreground">{t("notFoundDescription")}</p>
-      <Button asChild>
+    <main
+      id="main"
+      className="container flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center"
+    >
+      <p className="text-8xl font-black tracking-tighter text-forge-700 dark:text-forge-300">404</p>
+      <h1 className="text-2xl font-black tracking-tight">{t("notFoundTitle")}</h1>
+      <p className="max-w-md text-sm text-muted-foreground">{t("notFoundDescription")}</p>
+      <Button asChild className="mt-2 rounded-xl">
         <Link href="/">{t("notFoundBackHome")}</Link>
       </Button>
     </main>

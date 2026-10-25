@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
+import { SiteFooter } from "@/shared/components/site-footer";
 import { SiteHeader } from "@/shared/components/site-header";
 import { ProductDetailClient } from "./product-detail-client";
 
@@ -17,9 +18,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   return (
     <>
       <SiteHeader />
-      <main id="main" className="container flex-1 py-10">
+      <main id="main" className="container flex-1 py-12">
         <ProductDetailClient productId={params.id} />
       </main>
+      <SiteFooter />
     </>
   );
 }

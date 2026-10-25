@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "산업을 위한 B2B 플랫폼.",
+  "homeTitle": "운영을 위한 장비와 보호구.",
+  "homeDescription": "팀을 보호하고 운영을 계속 움직이는 모든 것. B2B 조건, 외상 신용, 비즈니스를 이해하는 지원.",
   "skipToContent": "콘텐츠로 건너뛰기",
   "loading": "불러오는 중…",
   "notFoundTitle": "페이지를 찾을 수 없음",
@@ -13,7 +13,7 @@
   "themeLabel": "테마 전환",
   "languageLabel": "언어",
   "homeLogin": "로그인",
-  "homeSignUp": "계정 만들기",
+  "homeSignUp": "기업 계정 신청",
   "auth": {
     "loginTitle": "로그인",
     "loginSubtitle": "계속하려면 계정에 로그인하세요.",
@@ -182,7 +182,20 @@
     "updated": "수량이 업데이트되었습니다.",
     "removed": "항목이 삭제되었습니다.",
     "cleared": "장바구니를 비웠습니다.",
-    "tierApplied": "구간 가격 적용"
+    "tierApplied": "구간 가격 적용",
+    "breadcrumbHome": "홈",
+    "pageTitle": "내 장바구니",
+    "itemsCount": "{count}개 상품",
+    "shippingCalculated": "주문 시 계산",
+    "secureNote": "안전한 구매, 서버에서 가격을 다시 검증합니다.",
+    "emptyDescription": "카탈로그를 둘러보고 운영에 필요한 장비를 찾으세요.",
+    "benefit1Title": "기업 가격",
+    "benefit1Description": "협상된 조건과 수량에 따른 단계별 가격.",
+    "benefit2Title": "외상 신용",
+    "benefit2Description": "B2B 청구로 건강한 현금 흐름.",
+    "benefit3Title": "전국 배송",
+    "benefit3Description": "운영을 위한 계획된 물류.",
+    "itemCountOne": "1개 상품"
   },
   "ordering": {
     "reviewTitle": "주문 검토",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "결제가 완료되지 않았습니다. 장바구니로 돌아가 다시 시도할 수 있습니다.",
     "backToOrders": "주문 보기",
     "backToCart": "장바구니로 돌아가기",
-    "statusPaid": "결제 완료"
+    "statusPaid": "결제 완료",
+    "summaryTitle": "주문 요약"
   },
   "credit": {
     "title": "크레딧",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "닫기"
+  "closeLabel": "닫기",
+  "nav": {
+    "primary": "주요 탐색",
+    "solutions": "솔루션",
+    "about": "Forja 소개",
+    "searchPlaceholder": "제품, SKU 또는 브랜드 검색",
+    "searchLabel": "카탈로그 검색",
+    "searchSubmit": "검색",
+    "cart": "장바구니",
+    "dashboard": "대시보드",
+    "login": "로그인",
+    "register": "계정 만들기",
+    "menu": "메뉴 열기"
+  },
+  "home": {
+    "eyebrow": "통합 산업 유통",
+    "ctaRequestAccount": "기업 계정 신청",
+    "ctaExploreCatalog": "카탈로그 둘러보기",
+    "trustCnpj": "CNPJ 기업 지원",
+    "trustNational": "전국 배송",
+    "trustSecure": "안전한 구매",
+    "dashboardTitle": "운영 개요",
+    "live": "실시간",
+    "openOrders": "미처리 주문",
+    "avgSavings": "평균 절감액",
+    "invoiceDescription": "주문 #1042 · CAP-002",
+    "brandsEyebrow": "파트너 브랜드",
+    "brandsTitle": "산업을 움직이는 브랜드",
+    "categoriesEyebrow": "필요한 것을 찾으세요",
+    "categoriesTitle": "모든 과제를 위한 카테고리",
+    "categoriesDescription": "기업의 산업 구매를 간소화하는 완벽한 카탈로그.",
+    "categoriesCta": "전체 카탈로그 보기",
+    "categoryExplore": "카테고리 둘러보기",
+    "categoriesEmpty": "카탈로그를 업데이트 중입니다. 이용 가능한 모든 제품을 둘러보세요.",
+    "featuredEyebrow": "카탈로그 추천",
+    "featuredTitle": "다음 구매를 준비하세요",
+    "featuredDescription": "승인된 기업을 위한 특별 조건의 엄선된 제품.",
+    "featuredCta": "모든 제품 보기",
+    "featuredEmpty": "현재 추천 제품이 없습니다.",
+    "companyEyebrow": "기업을 위해",
+    "companyTitleA": "유통 그 이상.",
+    "companyTitleB": "운영 파트너십.",
+    "companyDescription": "Forja B2B는 기업을 적합한 장비와 연결하고 비즈니스 인텔리전스로 비용을 절감하며 운영 리듬을 유지합니다.",
+    "companyCta": "Forja 알아보기",
+    "featureCreditTitle": "외상 신용",
+    "featureCreditDescription": "건강한 현금 흐름을 위한 유연한 조건.",
+    "featureCoverageTitle": "전국 커버리지",
+    "featureCoverageDescription": "운영 지역에 맞춘 배송 계획.",
+    "featurePricingTitle": "단계별 가격",
+    "featurePricingDescription": "주문량이 클수록 기업에 더 좋은 조건.",
+    "featureSupportTitle": "컨설팅 지원",
+    "featureSupportDescription": "더 나은 결정을 돕는 전문가.",
+    "finalCtaTitle": "운영은 멈출 수 없습니다.",
+    "finalCtaDescription": "기업 계정을 만들고 독점 구매 조건을 이용하세요.",
+    "finalCtaButton": "계정 신청"
+  },
+  "footer": {
+    "tagline": "일을 만들어내는 기업을 위한 산업 유통.",
+    "note": "산업을 위해",
+    "navTitle": "탐색",
+    "categories": "카테고리",
+    "businessTitle": "기업용",
+    "accountTitle": "내 계정",
+    "orders": "주문",
+    "credit": "B2B 신용",
+    "copyright": "© {year} Forja B2B. 모든 권리 보유.",
+    "madeIn": "포트폴리오 프로젝트 — 가상 데이터."
+  },
+  "authGate": {
+    "title": "장바구니에 담으려면 로그인하세요",
+    "description": "기업 계정을 만들거나 로그인하여 상품을 장바구니에 저장하세요."
+  }
 }

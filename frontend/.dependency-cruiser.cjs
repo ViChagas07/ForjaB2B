@@ -74,11 +74,12 @@ module.exports = {
     {
       name: "features-no-cross-internal-imports",
       severity: "error",
-      comment: "Uma feature nao pode importar internals de outra feature.",
+      comment:
+        "Uma feature so pode consumir a API publica (index.ts) de outra feature, nunca seus arquivos internos.",
       from: { path: "^features/([^/]+)/" },
       to: {
         path: "^features/[^/]+/",
-        pathNot: "^features/$1/",
+        pathNot: ["^features/$1/", "^features/[^/]+/index\\.ts$"],
       },
     },
   ],

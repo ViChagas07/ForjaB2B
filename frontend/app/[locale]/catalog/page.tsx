@@ -3,6 +3,7 @@ import * as React from "react";
 import { getTranslations } from "next-intl/server";
 
 import { CatalogBrowser } from "@/features/catalog";
+import { SiteFooter } from "@/shared/components/site-footer";
 import { SiteHeader } from "@/shared/components/site-header";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,11 +15,12 @@ export default function CatalogPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main" className="container flex-1 py-10">
+      <main id="main" className="container flex-1 py-12">
         <React.Suspense fallback={null}>
           <CatalogBrowser />
         </React.Suspense>
       </main>
+      <SiteFooter />
     </>
   );
 }

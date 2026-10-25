@@ -12,7 +12,11 @@ interface AdminProductFormPageProps {
 export async function generateMetadata({ params }: AdminProductFormPageProps): Promise<Metadata> {
   const t = await getTranslations({ locale: params.locale });
   const isEdit = Boolean(params.id);
-  return { title: t(isEdit ? "admin.catalog.products.form.editTitle" : "admin.catalog.products.form.newTitle") };
+  return {
+    title: t(
+      isEdit ? "admin.catalog.products.form.editTitle" : "admin.catalog.products.form.newTitle",
+    ),
+  };
 }
 
 export default function AdminProductFormPage({ params }: AdminProductFormPageProps) {

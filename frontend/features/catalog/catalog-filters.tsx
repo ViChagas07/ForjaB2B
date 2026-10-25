@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownWideNarrow, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { BrandRef, Category, SortField, SortOrder } from "@/core/domain/catalog";
@@ -22,6 +23,9 @@ interface CatalogFiltersProps {
   onOrderToggle: () => void;
 }
 
+const selectClass =
+  "flex h-11 w-full rounded-xl border border-input bg-card px-3 text-sm text-foreground shadow-none transition-colors focus-visible:outline-none focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50";
+
 export function CatalogFilters({
   search,
   categoryId,
@@ -38,9 +42,6 @@ export function CatalogFilters({
 }: CatalogFiltersProps) {
   const t = useTranslations();
 
-  const selectClass =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
-
   const sortLabelKeys: Record<SortField, string> = {
     name: "catalog.sortName",
     sku: "catalog.sortSku",
@@ -49,18 +50,31 @@ export function CatalogFilters({
   };
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="space-y-2 lg:col-span-2">
-        <Input
-          type="search"
-          value={search}
-          placeholder={t("catalog.searchPlaceholder")}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
+    <div className="grid gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor="catalog-search" className="text-xs font-medium text-muted-foreground">
+          {t("catalog.searchPlaceholder")}
+        </Label>
+        <div className="relative">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            id="catalog-search"
+            type="search"
+            value={search}
+            placeholder={t("catalog.searchPlaceholder")}
+            onChange={(event) => onSearchChange(event.target.value)}
+            className="h-11 rounded-xl bg-card ps-9 shadow-none"
+          />
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="catalog-category">{t("catalog.filterCategory")}</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="catalog-category" className="text-xs font-medium text-muted-foreground">
+          {t("catalog.filterCategory")}
+        </Label>
         <select
           id="catalog-category"
           className={selectClass}
@@ -76,8 +90,10 @@ export function CatalogFilters({
         </select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="catalog-brand">{t("catalog.filterBrand")}</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="catalog-brand" className="text-xs font-medium text-muted-foreground">
+          {t("catalog.filterBrand")}
+        </Label>
         <select
           id="catalog-brand"
           className={selectClass}
@@ -93,8 +109,10 @@ export function CatalogFilters({
         </select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="catalog-sort">{t("catalog.sortLabel")}</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="catalog-sort" className="text-xs font-medium text-muted-foreground">
+          {t("catalog.sortLabel")}
+        </Label>
         <select
           id="catalog-sort"
           className={selectClass}
@@ -109,15 +127,23 @@ export function CatalogFilters({
         </select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="catalog-order">{t("catalog.sortDirection")}</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="catalog-order" className="text-xs font-medium text-muted-foreground">
+          {t("catalog.sortDirection")}
+        </Label>
         <button
           id="catalog-order"
           type="button"
-          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+          className={`${selectClass} items-center justify-between gap-2`}
           onClick={onOrderToggle}
         >
-          {order === "asc" ? t("catalog.sortAsc") : t("catalog.sortDesc")}
+          <span>{order === "asc" ? t("catalog.sortAsc") : t("catalog.sortDesc")}</span>
+          <ArrowDownWideNarrow
+            aria-hidden="true"
+            className={`h-4 w-4 text-muted-foreground transition-transform ${
+              order === "asc" ? "rotate-180" : ""
+            }`}
+          />
         </button>
       </div>
     </div>

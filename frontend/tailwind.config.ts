@@ -3,18 +3,19 @@ import type { Config } from "tailwindcss";
 /**
  * Design tokens — Forja B2B (fonte central de cor).
  *
- * Valores oficiais do MEGA-PROMPT (hex), expressos em HSL para permitir
- * dark mode via CSS variables (padrao shadcn/ui) sem espalhar hex pelo codigo.
+ * Paleta da marca: preto profundo, âmbar e branco quente. Os valores são
+ * expressos em HSL para permitir dark mode via CSS variables (padrão
+ * shadcn/ui) sem espalhar hex pelo código.
  *
- *   forge-500 #F97316   -> 24.6 95% 53.1%
- *   forge-600 #EA580C   -> 21.7 92.5% 48.2%
- *   steel-800 #1E293B   -> 217.2 32.6% 17.5%
- *   steel-900 #0F172A   -> 222.2 47.4% 11.2%
- *   platinum-50 #F8FAFC -> 210 40% 96.1%
- *   platinum-200 #E2E8F0 -> 214.3 31.8% 91.4%
+ *   forge-500 #F59E0B   -> 38 92% 50%
+ *   forge-600 #D97706   -> 32 95% 44%
+ *   steel-800 #171717   -> 0 0% 9%
+ *   steel-900 #0A0A0A   -> 0 0% 4%
+ *   platinum-50 #FAF9F6 -> 40 20% 98%
+ *   platinum-200 #F4F2ED -> 40 18% 95%
  *
- * A fonte de verdade em runtime sao as CSS custom properties em globals.css;
- * esta config apenas referencia aquelas variaveis (hsl(var(--x))).
+ * A fonte de verdade em runtime são as CSS custom properties em globals.css;
+ * esta config apenas referencia aquelas variáveis (hsl(var(--x))).
  */
 
 const config: Config = {
@@ -107,16 +108,24 @@ const config: Config = {
         },
         // Tokens de marca (acesso direto, para uso pontual).
         forge: {
-          500: "#F97316",
-          600: "#EA580C",
+          100: "#FEF3C7",
+          300: "#FCD34D",
+          500: "#F59E0B",
+          600: "#D97706",
+          700: "#B45309",
+        },
+        ink: {
+          DEFAULT: "#0A0A0A",
+          soft: "#171717",
+          800: "#262626",
         },
         steel: {
-          800: "#1E293B",
-          900: "#0F172A",
+          800: "#171717",
+          900: "#0A0A0A",
         },
         platinum: {
-          50: "#F8FAFC",
-          200: "#E2E8F0",
+          50: "#FAF9F6",
+          200: "#F4F2ED",
         },
       },
       borderRadius: {
@@ -133,10 +142,25 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        rise: {
+          from: { opacity: "0", transform: "translateY(18px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.55" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        rise: "rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "fade-in": "fade-in 0.5s ease-out both",
+        "pulse-soft": "pulse-soft 2.6s ease-in-out infinite",
       },
     },
   },

@@ -63,7 +63,10 @@ export const adminCatalogApi = {
     return response.body;
   },
 
-  async publishProduct(productId: string, payload: AdminProductPublish): Promise<AdminProductDetail> {
+  async publishProduct(
+    productId: string,
+    payload: AdminProductPublish,
+  ): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "POST",
       path: `/api/v1/admin/catalog/products/${productId}/publish`,
@@ -72,7 +75,10 @@ export const adminCatalogApi = {
     return response.body;
   },
 
-  async unpublishProduct(productId: string, payload: AdminProductPublish): Promise<AdminProductDetail> {
+  async unpublishProduct(
+    productId: string,
+    payload: AdminProductPublish,
+  ): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "POST",
       path: `/api/v1/admin/catalog/products/${productId}/unpublish`,
@@ -106,7 +112,11 @@ export const adminCatalogApi = {
     return response.body;
   },
 
-  async updateProductTranslation(productId: string, locale: string, payload: TranslationUpdate): Promise<ProductTranslationAdmin> {
+  async updateProductTranslation(
+    productId: string,
+    locale: string,
+    payload: TranslationUpdate,
+  ): Promise<ProductTranslationAdmin> {
     const response = await apiClient.request<ProductTranslationAdmin>({
       method: "PATCH",
       path: `/api/v1/admin/catalog/translations/products/${productId}/${locale}`,

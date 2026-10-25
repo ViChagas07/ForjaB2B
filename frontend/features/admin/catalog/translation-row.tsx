@@ -23,7 +23,9 @@ export function TranslationRow({ translation, onUpdate, isPending }: Translation
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(translation.name ?? "");
   const [description, setDescription] = useState(translation.description ?? "");
-  const [attributes, setAttributes] = useState<Record<string, unknown>>(translation.attributes ?? {});
+  const [attributes, setAttributes] = useState<Record<string, unknown>>(
+    translation.attributes ?? {},
+  );
 
   const stateLabels: Record<string, string> = {
     ausente: t("stateAusente"),
@@ -52,11 +54,23 @@ export function TranslationRow({ translation, onUpdate, isPending }: Translation
         <div className="flex items-center gap-3 flex-1">
           <span className="font-mono text-sm px-2 py-1 bg-muted rounded">{translation.locale}</span>
           <span className="font-medium">{translation.locale_label}</span>
-          <Badge variant={state === "reviewed" ? "default" : state === "machine" ? "secondary" : state === "stale" ? "destructive" : "outline"}>
+          <Badge
+            variant={
+              state === "reviewed"
+                ? "default"
+                : state === "machine"
+                  ? "secondary"
+                  : state === "stale"
+                    ? "destructive"
+                    : "outline"
+            }
+          >
             {stateLabels[state] || state}
           </Badge>
           {isStale && (
-            <Badge variant="destructive" className="text-xs">{t("staleBadge")}</Badge>
+            <Badge variant="destructive" className="text-xs">
+              {t("staleBadge")}
+            </Badge>
           )}
           {translation.updated_at && (
             <span className="text-xs text-muted-foreground">
@@ -65,11 +79,21 @@ export function TranslationRow({ translation, onUpdate, isPending }: Translation
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            disabled={isPending}
+          >
             {t("edit")}
           </Button>
           {state !== "reviewed" && (
-            <Button variant="secondary" size="sm" onClick={() => handleSubmit(true)} disabled={isPending}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleSubmit(true)}
+              disabled={isPending}
+            >
               {t("markReviewed")}
             </Button>
           )}
@@ -88,7 +112,17 @@ export function TranslationRow({ translation, onUpdate, isPending }: Translation
       <div className="flex items-center gap-3">
         <span className="font-mono text-sm px-2 py-1 bg-muted rounded">{translation.locale}</span>
         <span className="font-medium">{translation.locale_label}</span>
-        <Badge variant={state === "reviewed" ? "default" : state === "machine" ? "secondary" : state === "stale" ? "destructive" : "outline"}>
+        <Badge
+          variant={
+            state === "reviewed"
+              ? "default"
+              : state === "machine"
+                ? "secondary"
+                : state === "stale"
+                  ? "destructive"
+                  : "outline"
+          }
+        >
           {stateLabels[state] || state}
         </Badge>
       </div>
@@ -118,13 +152,16 @@ export function TranslationRow({ translation, onUpdate, isPending }: Translation
             <div className="grid gap-2 sm:grid-cols-2">
               {Object.entries(attributes).map(([key, value]) => (
                 <div key={key} className="space-y-1">
-                  <Label htmlFor={`trans-attr-${translation.locale}-${key}`} className="text-sm font-medium">
+                  <Label
+                    htmlFor={`trans-attr-${translation.locale}-${key}`}
+                    className="text-sm font-medium"
+                  >
                     {key}
                   </Label>
                   <Input
                     id={`trans-attr-${translation.locale}-${key}`}
                     value={String(value ?? "")}
-                    onChange={(e) => setAttributes(prev => ({ ...prev, [key]: e.target.value }))}
+                    onChange={(e) => setAttributes((prev) => ({ ...prev, [key]: e.target.value }))}
                   />
                 </div>
               ))}
@@ -135,7 +172,12 @@ export function TranslationRow({ translation, onUpdate, isPending }: Translation
           <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
             {t("cancel")}
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => handleSubmit(true)} disabled={isPending}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleSubmit(true)}
+            disabled={isPending}
+          >
             {t("markReviewed")}
           </Button>
           <Button size="sm" onClick={() => handleSubmit(false)} disabled={isPending}>

@@ -1,7 +1,7 @@
 {
   "appName": "Forja B2B",
-  "homeTitle": "Forja B2B",
-  "homeDescription": "B2B-Plattform für die Industrie.",
+  "homeTitle": "Geräte und PSA für Ihren Betrieb.",
+  "homeDescription": "Alles, um Ihr Team zu schützen und Ihren Betrieb am Laufen zu halten. B2B-Konditionen, Rechnungskredit und ein Service, der Ihr Geschäft versteht.",
   "skipToContent": "Zum Inhalt springen",
   "loading": "Wird geladen…",
   "notFoundTitle": "Seite nicht gefunden",
@@ -13,7 +13,7 @@
   "themeLabel": "Design wechseln",
   "languageLabel": "Sprache",
   "homeLogin": "Anmelden",
-  "homeSignUp": "Konto erstellen",
+  "homeSignUp": "Firmenkonto anfordern",
   "auth": {
     "loginTitle": "Anmelden",
     "loginSubtitle": "Melde dich an, um fortzufahren.",
@@ -182,7 +182,20 @@
     "updated": "Menge aktualisiert.",
     "removed": "Artikel entfernt.",
     "cleared": "Warenkorb geleert.",
-    "tierApplied": "Staffelpreis angewendet"
+    "tierApplied": "Staffelpreis angewendet",
+    "breadcrumbHome": "Startseite",
+    "pageTitle": "Mein Warenkorb",
+    "itemsCount": "{count} Artikel",
+    "shippingCalculated": "Wird bei der Bestellung berechnet",
+    "secureNote": "Geschützter Einkauf und serverseitig erneut geprüfte Preise.",
+    "emptyDescription": "Entdecken Sie den Katalog und finden Sie Geräte für Ihren Betrieb.",
+    "benefit1Title": "Firmenpreis",
+    "benefit1Description": "Ausgehandelte Konditionen und Staffelpreise nach Volumen.",
+    "benefit2Title": "Rechnungskredit",
+    "benefit2Description": "Gesunder Cashflow mit B2B-Rechnungsstellung.",
+    "benefit3Title": "Landesweite Lieferung",
+    "benefit3Description": "Geplante Logistik für Ihren Betrieb.",
+    "itemCountOne": "1 Artikel"
   },
   "ordering": {
     "reviewTitle": "Bestellübersicht",
@@ -234,7 +247,8 @@
     "paymentCancelDescription": "Es wurde keine Zahlung abgeschlossen. Sie können zum Warenkorb zurückkehren und es erneut versuchen.",
     "backToOrders": "Bestellungen ansehen",
     "backToCart": "Zurück zum Warenkorb",
-    "statusPaid": "Bezahlt"
+    "statusPaid": "Bezahlt",
+    "summaryTitle": "Bestellübersicht"
   },
   "credit": {
     "title": "Kredit",
@@ -389,5 +403,76 @@
       }
     }
   },
-  "closeLabel": "Schließen"
+  "closeLabel": "Schließen",
+  "nav": {
+    "primary": "Hauptnavigation",
+    "solutions": "Lösungen",
+    "about": "Über Forja",
+    "searchPlaceholder": "Produkt, SKU oder Marke suchen",
+    "searchLabel": "Im Katalog suchen",
+    "searchSubmit": "Suchen",
+    "cart": "Warenkorb",
+    "dashboard": "Übersicht",
+    "login": "Anmelden",
+    "register": "Konto erstellen",
+    "menu": "Menü öffnen"
+  },
+  "home": {
+    "eyebrow": "INTEGRIERTE INDUSTRIEVERTEILUNG",
+    "ctaRequestAccount": "Firmenkonto anfordern",
+    "ctaExploreCatalog": "Katalog entdecken",
+    "trustCnpj": "Support für CNPJ",
+    "trustNational": "Landesweite Lieferung",
+    "trustSecure": "Sicherer Einkauf",
+    "dashboardTitle": "Betriebsübersicht",
+    "live": "live",
+    "openOrders": "Offene Bestellungen",
+    "avgSavings": "Durchschnittliche Ersparnis",
+    "invoiceDescription": "Bestellung #1042 · CAP-002",
+    "brandsEyebrow": "PARTNERMARKEN",
+    "brandsTitle": "Marken, die die Industrie bewegen",
+    "categoriesEyebrow": "FINDEN SIE, WAS SIE BRAUCHEN",
+    "categoriesTitle": "Kategorien für jede Herausforderung",
+    "categoriesDescription": "Ein vollständiger Katalog, der den industriellen Einkauf Ihres Unternehmens vereinfacht.",
+    "categoriesCta": "Gesamten Katalog ansehen",
+    "categoryExplore": "Kategorie entdecken",
+    "categoriesEmpty": "Der Katalog wird aktualisiert. Entdecken Sie alle verfügbaren Produkte.",
+    "featuredEyebrow": "KATALOG-HIGHLIGHTS",
+    "featuredTitle": "Bereit für Ihren nächsten Einkauf",
+    "featuredDescription": "Ausgewählte Produkte mit exklusiven Konditionen für freigegebene Unternehmen.",
+    "featuredCta": "Alle Produkte ansehen",
+    "featuredEmpty": "Derzeit keine Highlights verfügbar.",
+    "companyEyebrow": "FÜR UNTERNEHMEN GEMACHT",
+    "companyTitleA": "Mehr als Distribution.",
+    "companyTitleB": "Eine operative Partnerschaft.",
+    "companyDescription": "Forja B2B verbindet Ihr Unternehmen mit den richtigen Geräten und kombiniert Handelsintelligenz, um Kosten zu senken und Ihren Betrieb am Laufen zu halten.",
+    "companyCta": "Forja entdecken",
+    "featureCreditTitle": "Rechnungskredit",
+    "featureCreditDescription": "Flexible Konditionen für einen gesunden Cashflow.",
+    "featureCoverageTitle": "Landesweite Abdeckung",
+    "featureCoverageDescription": "Geplante Lieferungen dorthin, wo Ihr Betrieb ist.",
+    "featurePricingTitle": "Staffelpreise",
+    "featurePricingDescription": "Je größer die Bestellung, desto besser die Konditionen für Ihr Unternehmen.",
+    "featureSupportTitle": "Beratender Service",
+    "featureSupportDescription": "Spezialisten helfen Ihnen, bessere Entscheidungen zu treffen.",
+    "finalCtaTitle": "Ihr Betrieb darf nicht stillstehen.",
+    "finalCtaDescription": "Erstellen Sie Ihr Firmenkonto und erhalten Sie exklusive Einkaufskonditionen.",
+    "finalCtaButton": "Konto anfordern"
+  },
+  "footer": {
+    "tagline": "Industrieverteilung für Unternehmen, die etwas bewegen.",
+    "note": "Für die Industrie gemacht",
+    "navTitle": "Navigation",
+    "categories": "Kategorien",
+    "businessTitle": "Für Unternehmen",
+    "accountTitle": "Ihr Konto",
+    "orders": "Bestellungen",
+    "credit": "B2B-Kredit",
+    "copyright": "© {year} Forja B2B. Alle Rechte vorbehalten.",
+    "madeIn": "Portfolioprojekt — fiktive Daten."
+  },
+  "authGate": {
+    "title": "Anmelden, um in den Warenkorb zu legen",
+    "description": "Erstellen Sie Ihr Firmenkonto oder melden Sie sich an, um Artikel im Warenkorb zu speichern."
+  }
 }

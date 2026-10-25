@@ -6,13 +6,13 @@ import { useTranslations } from "next-intl";
 
 import type { SortField, SortOrder } from "@/core/domain/catalog";
 import { SORT_FIELDS, SORT_ORDERS } from "@/core/domain/catalog";
+import { errorMessageKey } from "@/shared/lib/api-error";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { errorMessageKey } from "@/shared/lib/api-error";
 
-import { useBrands, useCategories, useProducts } from "./hooks";
 import { CatalogFilters } from "./catalog-filters";
+import { useBrands, useCategories, useProducts } from "./hooks";
 import { ProductCard } from "./product-card";
 
 const PAGE_SIZE = 20;
@@ -65,9 +65,26 @@ export function CatalogBrowser() {
   const pages = productsQuery.data?.pages ?? 1;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("catalog.title")}</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forge-700 dark:text-forge-300">
+            {t("home.categoriesEyebrow")}
+          </p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">
+            {t("catalog.title")}
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            {t("home.categoriesDescription")}
+          </p>
+        </div>
+        <span
+          data-testid="catalog-results-count"
+          className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground shadow-sm"
+        >
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          {t("catalog.results", { count: total })}
+        </span>
       </div>
 
       <CatalogFilters
@@ -85,16 +102,10 @@ export function CatalogBrowser() {
         onOrderToggle={() => setParam("order", order === "asc" ? "desc" : "asc")}
       />
 
-      {search ? (
-        <p className="text-sm text-muted-foreground" data-testid="catalog-results-count">
-          {t("catalog.results", { count: total })}
-        </p>
-      ) : null}
-
       {productsQuery.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-56 w-full" />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Skeleton key={index} className="h-[420px] w-full rounded-2xl" />
           ))}
         </div>
       ) : productsQuery.isError ? (
@@ -103,11 +114,11 @@ export function CatalogBrowser() {
           <AlertDescription>{t(errorMessageKey(productsQuery.error))}</AlertDescription>
         </Alert>
       ) : products.length === 0 ? (
-        <Alert variant="info">
-          <AlertDescription>{t("catalog.noResults")}</AlertDescription>
-        </Alert>
+        <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+          <p className="text-sm text-muted-foreground">{t("catalog.noResults")}</p>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -115,10 +126,11 @@ export function CatalogBrowser() {
       )}
 
       {pages > 1 ? (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4">
           <Button
             variant="outline"
             size="sm"
+            className="rounded-lg"
             disabled={page <= 1}
             onClick={() => setParam("page", String(page - 1), false)}
           >
@@ -130,6 +142,7 @@ export function CatalogBrowser() {
           <Button
             variant="outline"
             size="sm"
+            className="rounded-lg"
             disabled={page >= pages}
             onClick={() => setParam("page", String(page + 1), false)}
           >
