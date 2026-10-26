@@ -1916,3 +1916,28 @@ mesma paleta) e servido pela origem do frontend, e um timeout de 10 s troca imag
 nao carrega pelo fallback local. Com a API fria/lenta, o tile mostra a ilustracao local
 em vez de girar ate o erro. Validador permite generic.svg fora do mapa de familias;
 testes atualizados (123 OK, typecheck 0, validador 0 violacoes).
+
+### Prompt 10 — Lote 2: fotos nomeadas por produto (2026-10-26, noite)
+
+Responsavel forneceu 36 fotos nomeadas pelo proprio produto (Abafador...Ate Antiembaçante)
+em frontend/public/catalog/photos/. Auditoria: 0 GPS; EXIF com Artist/Copyright dedutivel
+em 4 (Anton Shoutvin, Jonathan Cooper, AdventistAsia, Lars H. Knudsen; Panoramico vazio);
+formatos variados (jpg/png/webp), dimensoes 342..6000. TODAS inspecionadas visualmente —
+conteudo bate com o nome (nenhum tipo divergente). Modos: 7 fit (Cinturao, Furadeira 850W,
+Nitrilica, Panoramico, PFF2, Serra Circular, Incolor — recorte central cortaria o objeto),
+29 crop. Pipeline estendido (PHOTO_SOURCES com dir por entrada; --verify so cobre saidas
+nomeadas por SKU). Saidas: 45/50 produtos com foto; ilustracoes remanescentes: AUD-004,
+LUV-004, RES-004, OCV-006, LUV-009; 0 ativos em fallback de categoria. Desempates
+registrados: "Luva de Raspa Premium" -> EPI-LUV-002 (nome exato singular; LUV-004 "Luvas"
+fica com ilustracao), "Respirador PFF2" -> EPI-RES-003 (nome exato; RES-004 fica com
+ilustracao), "Conjugado"/"Fumê"/"7 14" normalizados.
+
+Anti-travamento (pedido do responsavel): seed 2x no Docker (83/150/16/13 identicos);
+DB 50 = 45 foto + 5 ilustracao + 0 categoria (46 ativos); API confirmada (RES-005,
+RES-007, LUV-003, RES-004, AUD-004, MAQ-010, CAP-002, FUR-003); 50/50 image_url -> 200
+em <2s (0 falhas, 0 lentas); navegador: 20/20 tiles carregados (16 imediatas + 4 lazy no
+scroll — sem pendentes apos scroll; primeira foto visivel ~2s apos carregamento de dados
+em prod; o ~21s medido local inclui compilacao dev one-off); rede de seguranca: timeout
+10s -> generic.svg LOCAL (1715b9e). EXIF: 45/45 saidas limpas. Originais movidos para
+assets-src/photos-inbox/ (nao servidos, nao versionados). Lint/mypy strict 0; testes
+backend 15/15 novos. Commits + push ao final.
