@@ -1,0 +1,501 @@
+- generic [active] [ref=f41e1]:
+  - link "Pular para o conteúdo" [ref=f41e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=f41e3]:
+    - generic [ref=f41e4]:
+      - link "Forja B2B" [ref=f41e5] [cursor=pointer]:
+        - /url: /pt-BR
+        - img "Forja B2B" [ref=f41e6]
+      - navigation "Navegação principal" [ref=f41e7]:
+        - link "Catálogo" [ref=f41e8] [cursor=pointer]:
+          - /url: /pt-BR/catalog
+        - link "Soluções" [ref=f41e9] [cursor=pointer]:
+          - /url: /pt-BR#solucoes
+        - link "A Forja" [ref=f41e10] [cursor=pointer]:
+          - /url: /pt-BR#a-forja
+      - search [ref=f41e11]:
+        - searchbox "Buscar no catálogo" [ref=f41e12]
+        - button "Buscar" [ref=f41e13] [cursor=pointer]
+      - generic [ref=f41e17]:
+        - 'button "Idioma: Português (Brasil)" [ref=f41e18] [cursor=pointer]'
+        - button "Alternar tema" [ref=f41e19] [cursor=pointer]
+        - link "Carrinho" [ref=f41e20] [cursor=pointer]:
+          - /url: /pt-BR/cart
+        - button "Administrador Exemplo" [ref=f41e100] [cursor=pointer]
+  - main [ref=f41e27]:
+    - generic [ref=f41e28]:
+      - generic [ref=f41e29]:
+        - generic [ref=f41e30]:
+          - paragraph [ref=f41e31]: ENCONTRE O QUE PRECISA
+          - heading "Catálogo" [level=1] [ref=f41e32]
+          - paragraph [ref=f41e33]: Um catálogo completo para simplificar as compras industriais da sua empresa.
+        - generic [ref=f41e34]: 50 resultados
+      - generic [ref=f41e36]:
+        - generic [ref=f41e37]:
+          - text: Buscar produtos…
+          - searchbox "Buscar produtos…" [ref=f41e39]
+        - generic [ref=f41e40]:
+          - text: Categoria
+          - combobox "Categoria" [ref=f41e41] [cursor=pointer]:
+            - option "Todas as categorias" [selected]
+        - generic [ref=f41e42]:
+          - text: Marca
+          - combobox "Marca" [ref=f41e43] [cursor=pointer]:
+            - option "Todas as marcas" [selected]
+        - generic [ref=f41e44]:
+          - text: Ordenar por
+          - combobox "Ordenar por" [ref=f41e45] [cursor=pointer]:
+            - option "Nome" [selected]
+            - option "SKU"
+            - option "Preço"
+            - option "Mais recentes"
+        - generic [ref=f41e46]:
+          - text: Direção
+          - button "Direção" [ref=f41e47] [cursor=pointer]:
+            - generic [ref=f41e48]: Crescente
+      - generic [ref=f41e51]:
+        - article [ref=f41e103]:
+          - link "Abafador de Ruído Acoplado ao Capacete EPI CA válido" [ref=f41e104] [cursor=pointer]:
+            - /url: /pt-BR/catalog/8dc2f4a1-ee00-5ddf-8368-67f45e221e7d
+            - img "Abafador de Ruído Acoplado ao Capacete" [ref=f41e105]
+            - generic [ref=f41e106]:
+              - generic [ref=f41e107]: EPI
+              - generic [ref=f41e108]: CA válido
+          - generic [ref=f41e113]:
+            - generic [ref=f41e114]:
+              - generic [ref=f41e115]: Proteção Auditiva
+              - generic [ref=f41e116]: VULCANO
+            - heading [level=3] [ref=f41e117]:
+              - link "Abafador de Ruído Acoplado ao Capacete" [ref=f41e118] [cursor=pointer]:
+                - /url: /pt-BR/catalog/8dc2f4a1-ee00-5ddf-8368-67f45e221e7d
+            - paragraph [ref=f41e119]: "SKU: AUD-003"
+            - generic [ref=f41e120]:
+              - generic [ref=f41e121]:
+                - text: R$ 79,90
+                - paragraph [ref=f41e122]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e123] [cursor=pointer]
+        - article [ref=f41e124]:
+          - link "Bomba d'Água Autoaspirante Não se aplica" [ref=f41e125] [cursor=pointer]:
+            - /url: /pt-BR/catalog/ef80f01d-d87b-5459-8922-36e75448ce8c
+            - img "Bomba d'Água Autoaspirante" [ref=f41e126]
+            - generic [ref=f41e127]: Não se aplica
+          - generic [ref=f41e133]:
+            - generic [ref=f41e134]:
+              - generic [ref=f41e135]: Máquinas Estacionárias
+              - generic [ref=f41e136]: VULCANO
+            - heading [level=3] [ref=f41e137]:
+              - link "Bomba d'Água Autoaspirante" [ref=f41e138] [cursor=pointer]:
+                - /url: /pt-BR/catalog/ef80f01d-d87b-5459-8922-36e75448ce8c
+            - paragraph [ref=f41e139]: "SKU: MAQ-009"
+            - generic [ref=f41e140]:
+              - generic [ref=f41e141]:
+                - text: R$ 349,90
+                - paragraph [ref=f41e142]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e143] [cursor=pointer]
+        - article [ref=f41e144]:
+          - link "Bota de Segurança Bico Composite EPI CA válido" [ref=f41e145] [cursor=pointer]:
+            - /url: /pt-BR/catalog/bc99c466-5e20-516c-b9e4-a8a54c4fb5e4
+            - img "Bota de Segurança Bico Composite" [ref=f41e146]
+            - generic [ref=f41e147]:
+              - generic [ref=f41e148]: EPI
+              - generic [ref=f41e149]: CA válido
+          - generic [ref=f41e154]:
+            - generic [ref=f41e155]:
+              - generic [ref=f41e156]: Proteção dos Pés
+              - generic [ref=f41e157]: TITAN
+            - heading [level=3] [ref=f41e158]:
+              - link "Bota de Segurança Bico Composite" [ref=f41e159] [cursor=pointer]:
+                - /url: /pt-BR/catalog/bc99c466-5e20-516c-b9e4-a8a54c4fb5e4
+            - paragraph [ref=f41e160]: "SKU: BOT-002"
+            - generic [ref=f41e161]:
+              - generic [ref=f41e162]:
+                - text: R$ 149,90
+                - paragraph [ref=f41e163]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e164] [cursor=pointer]
+        - article [ref=f41e165]:
+          - link "Botas de Segurança Impermeáveis EPI CA válido" [ref=f41e166] [cursor=pointer]:
+            - /url: /pt-BR/catalog/8fa1dab6-b555-5e82-9569-61e771f2820e
+            - img "Botas de Segurança Impermeáveis" [ref=f41e167]
+            - generic [ref=f41e168]:
+              - generic [ref=f41e169]: EPI
+              - generic [ref=f41e170]: CA válido
+          - generic [ref=f41e175]:
+            - generic [ref=f41e176]:
+              - generic [ref=f41e177]: Proteção dos Pés
+              - generic [ref=f41e178]: FERRUM
+            - heading [level=3] [ref=f41e179]:
+              - link "Botas de Segurança Impermeáveis" [ref=f41e180] [cursor=pointer]:
+                - /url: /pt-BR/catalog/8fa1dab6-b555-5e82-9569-61e771f2820e
+            - paragraph [ref=f41e181]: "SKU: BOT-003"
+            - generic [ref=f41e182]:
+              - generic [ref=f41e183]:
+                - text: R$ 69,90
+                - paragraph [ref=f41e184]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e185] [cursor=pointer]
+        - article [ref=f41e186]:
+          - link "Botina de Segurança Couro EPI CA válido" [ref=f41e187] [cursor=pointer]:
+            - /url: /pt-BR/catalog/d78c156e-6064-5179-a4be-d02fd3525efe
+            - img "Botina de Segurança Couro" [ref=f41e188]
+            - generic [ref=f41e189]:
+              - generic [ref=f41e190]: EPI
+              - generic [ref=f41e191]: CA válido
+          - generic [ref=f41e196]:
+            - generic [ref=f41e197]:
+              - generic [ref=f41e198]: Proteção dos Pés
+              - generic [ref=f41e199]: TITAN
+            - heading [level=3] [ref=f41e200]:
+              - link "Botina de Segurança Couro" [ref=f41e201] [cursor=pointer]:
+                - /url: /pt-BR/catalog/d78c156e-6064-5179-a4be-d02fd3525efe
+            - paragraph [ref=f41e202]: "SKU: BOT-001"
+            - generic [ref=f41e203]:
+              - generic [ref=f41e204]:
+                - text: R$ 89,90
+                - paragraph [ref=f41e205]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e206] [cursor=pointer]
+        - article [ref=f41e207]:
+          - link "Botina Eletricista EPI CA ausente Produto não vendável" [ref=f41e208] [cursor=pointer]:
+            - /url: /pt-BR/catalog/8389923f-331a-595b-a968-569ab494c50b
+            - img "Botina Eletricista" [ref=f41e209]
+            - generic [ref=f41e210]:
+              - generic [ref=f41e211]: EPI
+              - generic [ref=f41e212]: CA ausente
+              - generic [ref=f41e213]: Produto não vendável
+          - generic [ref=f41e218]:
+            - generic [ref=f41e219]:
+              - generic [ref=f41e220]: Proteção dos Pés
+              - generic [ref=f41e221]: TITAN
+            - heading [level=3] [ref=f41e222]:
+              - link "Botina Eletricista" [ref=f41e223] [cursor=pointer]:
+                - /url: /pt-BR/catalog/8389923f-331a-595b-a968-569ab494c50b
+            - paragraph [ref=f41e224]: "SKU: BOT-004"
+            - generic [ref=f41e225]:
+              - generic [ref=f41e226]:
+                - text: Preço sob consulta, apenas para CNPJ
+                - paragraph [ref=f41e227]: Mínimo de 1
+              - button "Adicionar ao carrinho" [disabled]
+        - article [ref=f41e228]:
+          - link "Capacete de Segurança Classe A Aba Frontal EPI CA válido" [ref=f41e229] [cursor=pointer]:
+            - /url: /pt-BR/catalog/e138db51-39d4-5656-9290-63b985e0fe34
+            - img "Capacete de Segurança Classe A Aba Frontal" [ref=f41e230]
+            - generic [ref=f41e231]:
+              - generic [ref=f41e232]: EPI
+              - generic [ref=f41e233]: CA válido
+          - generic [ref=f41e238]:
+            - generic [ref=f41e239]:
+              - generic [ref=f41e240]: Proteção da Cabeça
+              - generic [ref=f41e241]: PROTEC
+            - heading [level=3] [ref=f41e242]:
+              - link "Capacete de Segurança Classe A Aba Frontal" [ref=f41e243] [cursor=pointer]:
+                - /url: /pt-BR/catalog/e138db51-39d4-5656-9290-63b985e0fe34
+            - paragraph [ref=f41e244]: "SKU: CAP-002"
+            - generic [ref=f41e245]:
+              - generic [ref=f41e246]:
+                - text: R$ 29,90
+                - paragraph [ref=f41e247]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e248] [cursor=pointer]
+        - article [ref=f41e249]:
+          - link "Capacete de Segurança Classe B com Jugular EPI CA válido" [ref=f41e250] [cursor=pointer]:
+            - /url: /pt-BR/catalog/8bed9c29-804c-50c1-84d7-df02a04a7b95
+            - img "Capacete de Segurança Classe B com Jugular" [ref=f41e251]
+            - generic [ref=f41e252]:
+              - generic [ref=f41e253]: EPI
+              - generic [ref=f41e254]: CA válido
+          - generic [ref=f41e259]:
+            - generic [ref=f41e260]:
+              - generic [ref=f41e261]: Proteção da Cabeça
+              - generic [ref=f41e262]: VULCANO
+            - heading [level=3] [ref=f41e263]:
+              - link "Capacete de Segurança Classe B com Jugular" [ref=f41e264] [cursor=pointer]:
+                - /url: /pt-BR/catalog/8bed9c29-804c-50c1-84d7-df02a04a7b95
+            - paragraph [ref=f41e265]: "SKU: CAP-003"
+            - generic [ref=f41e266]:
+              - generic [ref=f41e267]:
+                - text: R$ 59,90
+                - paragraph [ref=f41e268]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e269] [cursor=pointer]
+        - article [ref=f41e270]:
+          - link "Capacete de Segurança Descontinuado EPI CA válido Produto não vendável" [ref=f41e271] [cursor=pointer]:
+            - /url: /pt-BR/catalog/5b21c1d0-8184-5535-aab7-17563cc4abd0
+            - img "Capacete de Segurança Descontinuado" [ref=f41e272]
+            - generic [ref=f41e273]:
+              - generic [ref=f41e274]: EPI
+              - generic [ref=f41e275]: CA válido
+              - generic [ref=f41e276]: Produto não vendável
+          - generic [ref=f41e281]:
+            - generic [ref=f41e282]:
+              - generic [ref=f41e283]: Proteção da Cabeça
+              - generic [ref=f41e284]: PROTEC
+            - heading [level=3] [ref=f41e285]:
+              - link "Capacete de Segurança Descontinuado" [ref=f41e286] [cursor=pointer]:
+                - /url: /pt-BR/catalog/5b21c1d0-8184-5535-aab7-17563cc4abd0
+            - paragraph [ref=f41e287]: "SKU: CAP-005"
+            - generic [ref=f41e288]:
+              - generic [ref=f41e289]:
+                - text: Preço sob consulta, apenas para CNPJ
+                - paragraph [ref=f41e290]: Mínimo de 1
+              - button "Adicionar ao carrinho" [disabled]
+        - article [ref=f41e291]:
+          - link "Capacete de Seguranca Pro EPI CA válido" [ref=f41e292] [cursor=pointer]:
+            - /url: /pt-BR/catalog/00000000-0000-0000-0000-000000000301
+            - img "Capacete de Seguranca Pro" [ref=f41e293]
+            - generic [ref=f41e294]:
+              - generic [ref=f41e295]: EPI
+              - generic [ref=f41e296]: CA válido
+          - generic [ref=f41e301]:
+            - generic [ref=f41e302]:
+              - generic [ref=f41e303]: EPIs
+              - generic [ref=f41e304]: PROTEC
+            - heading [level=3] [ref=f41e305]:
+              - link "Capacete de Seguranca Pro" [ref=f41e306] [cursor=pointer]:
+                - /url: /pt-BR/catalog/00000000-0000-0000-0000-000000000301
+            - paragraph [ref=f41e307]: "SKU: EPI-CAP-001"
+            - generic [ref=f41e308]:
+              - generic [ref=f41e309]:
+                - text: R$ 39,90
+                - paragraph [ref=f41e310]: Mínimo de 6
+              - button "Adicionar ao carrinho" [ref=f41e311] [cursor=pointer]
+        - article [ref=f41e312]:
+          - link "Capacetes de Segurança Conjugados EPI CA válido" [ref=f41e313] [cursor=pointer]:
+            - /url: /pt-BR/catalog/6b59a6c8-df3e-5d31-b375-1687017b6a57
+            - img "Capacetes de Segurança Conjugados" [ref=f41e314]
+            - generic [ref=f41e315]:
+              - generic [ref=f41e316]: EPI
+              - generic [ref=f41e317]: CA válido
+          - generic [ref=f41e322]:
+            - generic [ref=f41e323]:
+              - generic [ref=f41e324]: Proteção da Cabeça
+              - generic [ref=f41e325]: PROTEC
+            - heading [level=3] [ref=f41e326]:
+              - link "Capacetes de Segurança Conjugados" [ref=f41e327] [cursor=pointer]:
+                - /url: /pt-BR/catalog/6b59a6c8-df3e-5d31-b375-1687017b6a57
+            - paragraph [ref=f41e328]: "SKU: CAP-004"
+            - generic [ref=f41e329]:
+              - generic [ref=f41e330]:
+                - text: R$ 119,90
+                - paragraph [ref=f41e331]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e332] [cursor=pointer]
+        - article [ref=f41e333]:
+          - link "Cinto Paraquedista 4 Pontos EPI CA válido" [ref=f41e334] [cursor=pointer]:
+            - /url: /pt-BR/catalog/4341863a-19d7-5035-89f8-86e54fd9d5cf
+            - img "Cinto Paraquedista 4 Pontos" [ref=f41e335]
+            - generic [ref=f41e336]:
+              - generic [ref=f41e337]: EPI
+              - generic [ref=f41e338]: CA válido
+          - generic [ref=f41e343]:
+            - generic [ref=f41e344]:
+              - generic [ref=f41e345]: Proteção contra Quedas
+              - generic [ref=f41e346]: VULCANO
+            - heading [level=3] [ref=f41e347]:
+              - link "Cinto Paraquedista 4 Pontos" [ref=f41e348] [cursor=pointer]:
+                - /url: /pt-BR/catalog/4341863a-19d7-5035-89f8-86e54fd9d5cf
+            - paragraph [ref=f41e349]: "SKU: QUE-001"
+            - generic [ref=f41e350]:
+              - generic [ref=f41e351]:
+                - text: R$ 189,90
+                - paragraph [ref=f41e352]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e353] [cursor=pointer]
+        - article [ref=f41e354]:
+          - link "Cinturão de Segurança Abdominal EPI CA válido" [ref=f41e355] [cursor=pointer]:
+            - /url: /pt-BR/catalog/6a2d9243-faa1-51cd-8050-bc157ab4162e
+            - img "Cinturão de Segurança Abdominal" [ref=f41e356]
+            - generic [ref=f41e357]:
+              - generic [ref=f41e358]: EPI
+              - generic [ref=f41e359]: CA válido
+          - generic [ref=f41e364]:
+            - generic [ref=f41e365]:
+              - generic [ref=f41e366]: Proteção contra Quedas
+              - generic [ref=f41e367]: TITAN
+            - heading [level=3] [ref=f41e368]:
+              - link "Cinturão de Segurança Abdominal" [ref=f41e369] [cursor=pointer]:
+                - /url: /pt-BR/catalog/6a2d9243-faa1-51cd-8050-bc157ab4162e
+            - paragraph [ref=f41e370]: "SKU: QUE-003"
+            - generic [ref=f41e371]:
+              - generic [ref=f41e372]:
+                - text: R$ 89,90
+                - paragraph [ref=f41e373]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e374] [cursor=pointer]
+        - article [ref=f41e375]:
+          - link "Compressor de Ar 100L Não se aplica" [ref=f41e376] [cursor=pointer]:
+            - /url: /pt-BR/catalog/f8ef9d70-dea5-5ad2-9c4d-7580071badf0
+            - img "Compressor de Ar 100L" [ref=f41e377]
+            - generic [ref=f41e378]: Não se aplica
+          - generic [ref=f41e384]:
+            - generic [ref=f41e385]:
+              - generic [ref=f41e386]: Máquinas Estacionárias
+              - generic [ref=f41e387]: TITAN
+            - heading [level=3] [ref=f41e388]:
+              - link "Compressor de Ar 100L" [ref=f41e389] [cursor=pointer]:
+                - /url: /pt-BR/catalog/f8ef9d70-dea5-5ad2-9c4d-7580071badf0
+            - paragraph [ref=f41e390]: "SKU: MAQ-005"
+            - generic [ref=f41e391]:
+              - generic [ref=f41e392]:
+                - text: R$ 2.499,90
+                - paragraph [ref=f41e393]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e394] [cursor=pointer]
+        - article [ref=f41e395]:
+          - link "Esmerilhadeira Angular 115mm Não se aplica" [ref=f41e396] [cursor=pointer]:
+            - /url: /pt-BR/catalog/a4fb89f0-de0a-56db-b104-b3449c7f21ff
+            - img "Esmerilhadeira Angular 115mm" [ref=f41e397]
+            - generic [ref=f41e398]: Não se aplica
+          - generic [ref=f41e404]:
+            - generic [ref=f41e405]:
+              - generic [ref=f41e406]: Ferramentas Elétricas
+              - generic [ref=f41e407]: VULCANO
+            - heading [level=3] [ref=f41e408]:
+              - link "Esmerilhadeira Angular 115mm" [ref=f41e409] [cursor=pointer]:
+                - /url: /pt-BR/catalog/a4fb89f0-de0a-56db-b104-b3449c7f21ff
+            - paragraph [ref=f41e410]: "SKU: FUR-003"
+            - generic [ref=f41e411]:
+              - generic [ref=f41e412]:
+                - text: R$ 199,90
+                - paragraph [ref=f41e413]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e414] [cursor=pointer]
+        - article [ref=f41e415]:
+          - link "Furadeira de Impacto 850W Não se aplica" [ref=f41e416] [cursor=pointer]:
+            - /url: /pt-BR/catalog/7ba96a33-2884-5e99-a21f-246e5161b99d
+            - img "Furadeira de Impacto 850W" [ref=f41e417]
+            - generic [ref=f41e418]: Não se aplica
+          - generic [ref=f41e424]:
+            - generic [ref=f41e425]:
+              - generic [ref=f41e426]: Ferramentas Elétricas
+              - generic [ref=f41e427]: NORTON
+            - heading [level=3] [ref=f41e428]:
+              - link "Furadeira de Impacto 850W" [ref=f41e429] [cursor=pointer]:
+                - /url: /pt-BR/catalog/7ba96a33-2884-5e99-a21f-246e5161b99d
+            - paragraph [ref=f41e430]: "SKU: FUR-001"
+            - generic [ref=f41e431]:
+              - generic [ref=f41e432]:
+                - text: R$ 249,90
+                - paragraph [ref=f41e433]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e434] [cursor=pointer]
+        - article [ref=f41e435]:
+          - link "Furadeiras de Bancada 500W Não se aplica" [ref=f41e436] [cursor=pointer]:
+            - /url: /pt-BR/catalog/0e76f73c-2170-598e-a4e5-5baabe235975
+            - img "Furadeiras de Bancada 500W" [ref=f41e437]
+            - generic [ref=f41e438]: Não se aplica
+          - generic [ref=f41e444]:
+            - generic [ref=f41e445]:
+              - generic [ref=f41e446]: Ferramentas Elétricas
+              - generic [ref=f41e447]: NORTON
+            - heading [level=3] [ref=f41e448]:
+              - link "Furadeiras de Bancada 500W" [ref=f41e449] [cursor=pointer]:
+                - /url: /pt-BR/catalog/0e76f73c-2170-598e-a4e5-5baabe235975
+            - paragraph [ref=f41e450]: "SKU: FUR-002"
+            - generic [ref=f41e451]:
+              - generic [ref=f41e452]:
+                - text: R$ 599,90
+                - paragraph [ref=f41e453]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e454] [cursor=pointer]
+        - article [ref=f41e455]:
+          - link "Luva Anticorte Nível 5 EPI CA válido" [ref=f41e456] [cursor=pointer]:
+            - /url: /pt-BR/catalog/e98aaf60-009c-5634-a80b-a8269552b02e
+            - img "Luva Anticorte Nível 5" [ref=f41e457]
+            - generic [ref=f41e458]:
+              - generic [ref=f41e459]: EPI
+              - generic [ref=f41e460]: CA válido
+          - generic [ref=f41e465]:
+            - generic [ref=f41e466]:
+              - generic [ref=f41e467]: Proteção das Mãos
+              - generic [ref=f41e468]: TITAN
+            - heading [level=3] [ref=f41e469]:
+              - link "Luva Anticorte Nível 5" [ref=f41e470] [cursor=pointer]:
+                - /url: /pt-BR/catalog/e98aaf60-009c-5634-a80b-a8269552b02e
+            - paragraph [ref=f41e471]: "SKU: LUV-007"
+            - generic [ref=f41e472]:
+              - generic [ref=f41e473]:
+                - text: R$ 49,90
+                - paragraph [ref=f41e474]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e475] [cursor=pointer]
+        - article [ref=f41e476]:
+          - link "Luva de Látex Forrada EPI CA ausente Produto não vendável" [ref=f41e477] [cursor=pointer]:
+            - /url: /pt-BR/catalog/00cb7bc6-bdd5-556b-bb7c-0b77250f4dc2
+            - img "Luva de Látex Forrada" [ref=f41e478]
+            - generic [ref=f41e479]:
+              - generic [ref=f41e480]: EPI
+              - generic [ref=f41e481]: CA ausente
+              - generic [ref=f41e482]: Produto não vendável
+          - generic [ref=f41e487]:
+            - generic [ref=f41e488]:
+              - generic [ref=f41e489]: Proteção das Mãos
+              - generic [ref=f41e490]: PROTEC
+            - heading [level=3] [ref=f41e491]:
+              - link "Luva de Látex Forrada" [ref=f41e492] [cursor=pointer]:
+                - /url: /pt-BR/catalog/00cb7bc6-bdd5-556b-bb7c-0b77250f4dc2
+            - paragraph [ref=f41e493]: "SKU: LUV-008"
+            - generic [ref=f41e494]:
+              - generic [ref=f41e495]:
+                - text: Preço sob consulta, apenas para CNPJ
+                - paragraph [ref=f41e496]: Mínimo de 1
+              - button "Adicionar ao carrinho" [disabled]
+        - article [ref=f41e497]:
+          - link "Luva de Raspa de Couro EPI CA válido" [ref=f41e498] [cursor=pointer]:
+            - /url: /pt-BR/catalog/7be40421-69b7-5468-946e-cbc43471f993
+            - img "Luva de Raspa de Couro" [ref=f41e499]
+            - generic [ref=f41e500]:
+              - generic [ref=f41e501]: EPI
+              - generic [ref=f41e502]: CA válido
+          - generic [ref=f41e507]:
+            - generic [ref=f41e508]:
+              - generic [ref=f41e509]: Proteção das Mãos
+              - generic [ref=f41e510]: PROTEC
+            - heading [level=3] [ref=f41e511]:
+              - link "Luva de Raspa de Couro" [ref=f41e512] [cursor=pointer]:
+                - /url: /pt-BR/catalog/7be40421-69b7-5468-946e-cbc43471f993
+            - paragraph [ref=f41e513]: "SKU: LUV-003"
+            - generic [ref=f41e514]:
+              - generic [ref=f41e515]:
+                - text: R$ 19,90
+                - paragraph [ref=f41e516]: Mínimo de 1
+              - button "Adicionar ao carrinho" [ref=f41e517] [cursor=pointer]
+      - generic [ref=f41e518]:
+        - button "Anterior" [disabled]
+        - generic [ref=f41e519]: Página 1 de 3
+        - button "Próxima" [ref=f41e520] [cursor=pointer]
+  - contentinfo [ref=f41e60]:
+    - generic [ref=f41e61]:
+      - generic [ref=f41e62]:
+        - link "Forja B2B" [ref=f41e63] [cursor=pointer]:
+          - /url: /pt-BR
+          - img "Forja B2B" [ref=f41e64]
+        - paragraph [ref=f41e65]: Distribuição industrial para empresas que fazem acontecer.
+        - generic [ref=f41e66]: Feito para a indústria
+      - generic [ref=f41e68]:
+        - heading "Navegar" [level=2] [ref=f41e69]
+        - list [ref=f41e70]:
+          - listitem [ref=f41e71]:
+            - link "Catálogo" [ref=f41e72] [cursor=pointer]:
+              - /url: /pt-BR/catalog
+          - listitem [ref=f41e73]:
+            - link "Categorias" [ref=f41e74] [cursor=pointer]:
+              - /url: /pt-BR#solucoes
+          - listitem [ref=f41e75]:
+            - link "A Forja" [ref=f41e76] [cursor=pointer]:
+              - /url: /pt-BR#a-forja
+      - generic [ref=f41e77]:
+        - heading "Para empresas" [level=2] [ref=f41e78]
+        - list [ref=f41e79]:
+          - listitem [ref=f41e80]:
+            - link "Criar conta" [ref=f41e81] [cursor=pointer]:
+              - /url: /pt-BR/onboarding
+          - listitem [ref=f41e82]:
+            - link "Entrar" [ref=f41e83] [cursor=pointer]:
+              - /url: /pt-BR/login
+          - listitem [ref=f41e84]:
+            - link "Painel" [ref=f41e85] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+      - generic [ref=f41e86]:
+        - heading "Sua conta" [level=2] [ref=f41e87]
+        - list [ref=f41e88]:
+          - listitem [ref=f41e89]:
+            - link "Carrinho" [ref=f41e90] [cursor=pointer]:
+              - /url: /pt-BR/cart
+          - listitem [ref=f41e91]:
+            - link "Pedidos" [ref=f41e92] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+          - listitem [ref=f41e93]:
+            - link "Crédito B2B" [ref=f41e94] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+    - generic [ref=f41e96]:
+      - paragraph [ref=f41e97]: © 2026 Forja B2B. Todos os direitos reservados.
+      - paragraph [ref=f41e98]: Projeto de portfólio — dados fictícios.
+  - alert [ref=f41e521]

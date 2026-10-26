@@ -1,0 +1,155 @@
+- generic [active] [ref=f35e1]:
+  - link "Pular para o conteúdo" [ref=f35e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=f35e3]:
+    - generic [ref=f35e4]:
+      - link "Forja B2B" [ref=f35e5] [cursor=pointer]:
+        - /url: /pt-BR
+        - img "Forja B2B" [ref=f35e6]
+      - navigation "Navegação principal" [ref=f35e7]:
+        - link "Catálogo" [ref=f35e8] [cursor=pointer]:
+          - /url: /pt-BR/catalog
+        - link "Soluções" [ref=f35e9] [cursor=pointer]:
+          - /url: /pt-BR#solucoes
+        - link "A Forja" [ref=f35e10] [cursor=pointer]:
+          - /url: /pt-BR#a-forja
+      - search [ref=f35e11]:
+        - searchbox "Buscar no catálogo" [ref=f35e12]
+        - button "Buscar" [ref=f35e13] [cursor=pointer]
+      - generic [ref=f35e17]:
+        - 'button "Idioma: Português (Brasil)" [ref=f35e18] [cursor=pointer]'
+        - button "Alternar tema" [ref=f35e19] [cursor=pointer]
+        - link "Carrinho" [ref=f35e20] [cursor=pointer]:
+          - /url: /pt-BR/cart
+        - button "Administrador Exemplo" [ref=f35e236] [cursor=pointer]
+  - main [ref=f35e27]:
+    - generic [ref=f35e31]:
+      - generic [ref=f35e32]:
+        - generic [ref=f35e33]: DISTRIBUIÇÃO INDUSTRIAL INTEGRADA
+        - heading "Equipamentos e EPIs para a sua operação." [level=1] [ref=f35e35]
+        - paragraph [ref=f35e36]: Tudo para proteger sua equipe e manter a operação em movimento. Condições B2B, crédito faturado e atendimento que entende o seu negócio.
+        - generic [ref=f35e37]:
+          - link "Solicitar conta para empresas" [ref=f35e38] [cursor=pointer]:
+            - /url: /pt-BR/onboarding
+          - link "Explorar catálogo" [ref=f35e39] [cursor=pointer]:
+            - /url: /pt-BR/catalog
+        - list [ref=f35e40]:
+          - listitem [ref=f35e41]: Atendimento para CNPJ
+          - listitem [ref=f35e45]: Entrega nacional
+          - listitem [ref=f35e51]: Compra segura
+      - generic [ref=f35e55]:
+        - generic [ref=f35e58]:
+          - generic [ref=f35e59]:
+            - generic [ref=f35e60]:
+              - paragraph [ref=f35e61]: Visão geral da operação
+              - paragraph [ref=f35e62]: Conta de crédito
+            - generic [ref=f35e63]: ao vivo
+          - generic [ref=f35e65]:
+            - generic [ref=f35e66]: Crédito
+            - paragraph [ref=f35e70]: R$ 50.000,00
+            - generic [ref=f35e73]:
+              - generic [ref=f35e74]: Utilizado
+              - generic [ref=f35e75]: 36%
+          - generic [ref=f35e76]:
+            - generic [ref=f35e77]:
+              - generic [ref=f35e78]: Pedidos em aberto
+              - paragraph [ref=f35e85]: "12"
+            - generic [ref=f35e94]:
+              - generic [ref=f35e95]: Economia média
+              - paragraph [ref=f35e100]: 18,6%
+        - generic [ref=f35e109]:
+          - paragraph [ref=f35e110]: Faturado
+          - paragraph [ref=f35e111]: "Pedido #1042 · CAP-002"
+    - generic [ref=f35e124]:
+      - generic [ref=f35e125]:
+        - generic [ref=f35e126]:
+          - paragraph [ref=f35e127]: ENCONTRE O QUE PRECISA
+          - heading "Categorias para cada desafio" [level=2] [ref=f35e128]
+          - paragraph [ref=f35e129]: Um catálogo completo para simplificar as compras industriais da sua empresa.
+        - link "Ver catálogo completo" [ref=f35e130] [cursor=pointer]:
+          - /url: /pt-BR/catalog
+      - generic [ref=f35e132]:
+        - paragraph [ref=f35e239]: O catálogo está sendo atualizado. Explore todos os produtos disponíveis.
+        - link "Ver catálogo completo" [ref=f35e240] [cursor=pointer]:
+          - /url: /pt-BR/catalog
+    - generic [ref=f35e139]:
+      - generic [ref=f35e140]:
+        - paragraph [ref=f35e141]: DESTAQUES DO CATÁLOGO
+        - heading "Prontos para a sua próxima compra" [level=2] [ref=f35e142]
+        - paragraph [ref=f35e143]: Produtos selecionados com condições exclusivas para empresas com CNPJ aprovado.
+      - link "Ver todos os produtos" [ref=f35e144] [cursor=pointer]:
+        - /url: /pt-BR/catalog
+    - generic [ref=f35e152]:
+      - generic [ref=f35e153]:
+        - paragraph [ref=f35e154]: FEITA PARA EMPRESAS
+        - heading "Mais que distribuição. Parceria de operação." [level=2] [ref=f35e155]
+        - paragraph [ref=f35e156]: A Forja B2B conecta sua empresa aos equipamentos certos, com inteligência comercial para reduzir custos e manter o ritmo da sua operação.
+        - link "Conheça a Forja" [ref=f35e157] [cursor=pointer]:
+          - /url: /pt-BR/onboarding
+      - generic [ref=f35e158]:
+        - generic [ref=f35e159]:
+          - heading "Crédito faturado" [level=3] [ref=f35e163]
+          - paragraph [ref=f35e164]: Condições flexíveis para manter o fluxo de caixa saudável.
+        - generic [ref=f35e165]:
+          - heading "Cobertura nacional" [level=3] [ref=f35e170]
+          - paragraph [ref=f35e171]: Entregas planejadas para onde a sua operação estiver.
+        - generic [ref=f35e172]:
+          - heading "Preço progressivo" [level=3] [ref=f35e177]
+          - paragraph [ref=f35e178]: Quanto maior o lote, melhor a condição para a sua empresa.
+        - generic [ref=f35e179]:
+          - heading "Atendimento consultivo" [level=3] [ref=f35e184]
+          - paragraph [ref=f35e185]: Especialistas para ajudar você a decidir melhor.
+    - generic [ref=f35e190]:
+      - generic [ref=f35e191]:
+        - heading "Sua operação não pode parar." [level=2] [ref=f35e192]
+        - paragraph [ref=f35e193]: Crie sua conta empresarial e acesse condições exclusivas de compra.
+      - link "Solicitar conta" [ref=f35e194] [cursor=pointer]:
+        - /url: /pt-BR/onboarding
+  - contentinfo [ref=f35e195]:
+    - generic [ref=f35e196]:
+      - generic [ref=f35e197]:
+        - link "Forja B2B" [ref=f35e198] [cursor=pointer]:
+          - /url: /pt-BR
+          - img "Forja B2B" [ref=f35e199]
+        - paragraph [ref=f35e200]: Distribuição industrial para empresas que fazem acontecer.
+        - generic [ref=f35e201]: Feito para a indústria
+      - generic [ref=f35e203]:
+        - heading "Navegar" [level=2] [ref=f35e204]
+        - list [ref=f35e205]:
+          - listitem [ref=f35e206]:
+            - link "Catálogo" [ref=f35e207] [cursor=pointer]:
+              - /url: /pt-BR/catalog
+          - listitem [ref=f35e208]:
+            - link "Categorias" [ref=f35e209] [cursor=pointer]:
+              - /url: /pt-BR#solucoes
+          - listitem [ref=f35e210]:
+            - link "A Forja" [ref=f35e211] [cursor=pointer]:
+              - /url: /pt-BR#a-forja
+      - generic [ref=f35e212]:
+        - heading "Para empresas" [level=2] [ref=f35e213]
+        - list [ref=f35e214]:
+          - listitem [ref=f35e215]:
+            - link "Criar conta" [ref=f35e216] [cursor=pointer]:
+              - /url: /pt-BR/onboarding
+          - listitem [ref=f35e217]:
+            - link "Entrar" [ref=f35e218] [cursor=pointer]:
+              - /url: /pt-BR/login
+          - listitem [ref=f35e219]:
+            - link "Painel" [ref=f35e220] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+      - generic [ref=f35e221]:
+        - heading "Sua conta" [level=2] [ref=f35e222]
+        - list [ref=f35e223]:
+          - listitem [ref=f35e224]:
+            - link "Carrinho" [ref=f35e225] [cursor=pointer]:
+              - /url: /pt-BR/cart
+          - listitem [ref=f35e226]:
+            - link "Pedidos" [ref=f35e227] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+          - listitem [ref=f35e228]:
+            - link "Crédito B2B" [ref=f35e229] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+    - generic [ref=f35e231]:
+      - paragraph [ref=f35e232]: © 2026 Forja B2B. Todos os direitos reservados.
+      - paragraph [ref=f35e233]: Projeto de portfólio — dados fictícios.
+  - alert [ref=f35e234]
