@@ -1,0 +1,106 @@
+- generic [active] [ref=e1]:
+  - link "Pular para o conteúdo" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "Forja B2B" [ref=e5] [cursor=pointer]:
+        - /url: /pt-BR
+        - img "Forja B2B" [ref=e7]
+      - navigation "Navegação principal" [ref=e8]:
+        - link "Catálogo" [ref=e9] [cursor=pointer]:
+          - /url: /pt-BR/catalog
+        - link "Soluções" [ref=e10] [cursor=pointer]:
+          - /url: /pt-BR#solucoes
+        - link "A Forja" [ref=e11] [cursor=pointer]:
+          - /url: /pt-BR#a-forja
+      - search [ref=e12]:
+        - searchbox "Buscar no catálogo" [ref=e13]
+        - button "Buscar" [ref=e14] [cursor=pointer]
+      - generic [ref=e18]:
+        - 'button "Idioma: Português (Brasil)" [ref=e19] [cursor=pointer]'
+        - button "Alternar tema" [ref=e20] [cursor=pointer]
+        - link "Carrinho" [ref=e21] [cursor=pointer]:
+          - /url: /pt-BR/cart
+        - link "Entrar" [ref=e26] [cursor=pointer]:
+          - /url: /pt-BR/login
+        - link "Criar conta" [ref=e27] [cursor=pointer]:
+          - /url: /pt-BR/onboarding
+  - main [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - paragraph [ref=e32]: ENCONTRE O QUE PRECISA
+          - heading "Catálogo" [level=1] [ref=e33]
+          - paragraph [ref=e34]: Um catálogo completo para simplificar as compras industriais da sua empresa.
+        - generic [ref=e35]: 0 resultados
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - text: Buscar produtos…
+          - searchbox "Buscar produtos…" [ref=e40]
+        - generic [ref=e41]:
+          - text: Categoria
+          - combobox "Categoria" [ref=e42]:
+            - option "Todas as categorias" [selected]
+        - generic [ref=e43]:
+          - text: Marca
+          - combobox "Marca" [ref=e44]:
+            - option "Todas as marcas" [selected]
+        - generic [ref=e45]:
+          - text: Ordenar por
+          - combobox "Ordenar por" [ref=e46]:
+            - option "Nome" [selected]
+            - option "SKU"
+            - option "Preço"
+            - option "Mais recentes"
+        - generic [ref=e47]:
+          - text: Direção
+          - button "Direção" [ref=e48] [cursor=pointer]:
+            - generic [ref=e49]: Crescente
+  - contentinfo [ref=e61]:
+    - generic [ref=e62]:
+      - generic [ref=e63]:
+        - link "Forja B2B" [ref=e64] [cursor=pointer]:
+          - /url: /pt-BR
+          - img "Forja B2B" [ref=e66]
+        - paragraph [ref=e67]: Distribuição industrial para empresas que fazem acontecer.
+        - generic [ref=e68]: Feito para a indústria
+      - generic [ref=e70]:
+        - heading "Navegar" [level=2] [ref=e71]
+        - list [ref=e72]:
+          - listitem [ref=e73]:
+            - link "Catálogo" [ref=e74] [cursor=pointer]:
+              - /url: /pt-BR/catalog
+          - listitem [ref=e75]:
+            - link "Categorias" [ref=e76] [cursor=pointer]:
+              - /url: /pt-BR#solucoes
+          - listitem [ref=e77]:
+            - link "A Forja" [ref=e78] [cursor=pointer]:
+              - /url: /pt-BR#a-forja
+      - generic [ref=e79]:
+        - heading "Para empresas" [level=2] [ref=e80]
+        - list [ref=e81]:
+          - listitem [ref=e82]:
+            - link "Criar conta" [ref=e83] [cursor=pointer]:
+              - /url: /pt-BR/onboarding
+          - listitem [ref=e84]:
+            - link "Entrar" [ref=e85] [cursor=pointer]:
+              - /url: /pt-BR/login
+          - listitem [ref=e86]:
+            - link "Painel" [ref=e87] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+      - generic [ref=e88]:
+        - heading "Sua conta" [level=2] [ref=e89]
+        - list [ref=e90]:
+          - listitem [ref=e91]:
+            - link "Carrinho" [ref=e92] [cursor=pointer]:
+              - /url: /pt-BR/cart
+          - listitem [ref=e93]:
+            - link "Pedidos" [ref=e94] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+          - listitem [ref=e95]:
+            - link "Crédito B2B" [ref=e96] [cursor=pointer]:
+              - /url: /pt-BR/dashboard
+    - generic [ref=e98]:
+      - paragraph [ref=e99]: © 2026 Forja B2B. Todos os direitos reservados.
+      - paragraph [ref=e100]: Projeto de portfólio — dados fictícios.
+  - alert [ref=e101]

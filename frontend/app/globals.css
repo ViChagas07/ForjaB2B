@@ -133,6 +133,49 @@
   }
 }
 
+@layer base {
+  /*
+   * Sinalização de interação: todo elemento clicável do app usa a "mãozinha".
+   * Cobre controles nativos, links, labels, itens de menu/combobox e os
+   * componentes Radix (dropdown, tabs, select etc.). Controles desabilitados
+   * continuam com not-allowed para deixar o estado explícito.
+   */
+  a[href]:not([aria-disabled="true"]),
+  button:not(:disabled),
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="color"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"]),
+  [role="combobox"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="menuitemcheckbox"]:not([aria-disabled="true"]),
+  [role="menuitemradio"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="slider"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 @layer components {
   /* Link "pular para o conteúdo" (acessibilidade de teclado). */
   .skip-link {
@@ -177,16 +220,6 @@
       linear-gradient(to right, hsl(0 0% 4% / 0.06) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(0 0% 4% / 0.06) 1px, transparent 1px);
     background-size: 36px 36px;
-  }
-
-  .logo-plate {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.75rem;
-    background: #ffffff;
-    padding: 0.35rem 0.65rem;
-    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.15) inset;
   }
 
   .no-scrollbar {

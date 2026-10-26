@@ -1167,7 +1167,10 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       >
         {showPreview && imagePreview && (
           <>
-            <div className="fixed inset-0 bg-black/80" onClick={() => setShowPreview(false)} />
+            <div
+              className="fixed inset-0 cursor-pointer bg-black/80"
+              onClick={() => setShowPreview(false)}
+            />
             <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] bg-background rounded-lg shadow-xl overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b">
                 <h2 id="image-preview-title" className="text-lg font-semibold">
@@ -1199,7 +1202,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
         {showCustomerPreview && (
           <>
             <div
-              className="fixed inset-0 bg-black/80"
+              className="fixed inset-0 cursor-pointer bg-black/80"
               onClick={() => setShowCustomerPreview(false)}
             />
             <div className="relative max-w-4xl w-full mx-4 max-h-[90vh] bg-background rounded-lg shadow-xl overflow-hidden flex flex-col">
