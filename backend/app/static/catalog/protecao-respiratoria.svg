@@ -1,10 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img">
   <title>Ilustracao de protecao respiratoria (respirador) - Forja B2B</title>
-  <rect width="64" height="64" rx="12" fill="#0F172A"/>
-  <path d="M20 26a12 12 0 0 1 24 0v6a12 12 0 0 1-24 0z" fill="none" stroke="#F8FAFC" stroke-width="3" stroke-linejoin="round"/>
-  <circle cx="32" cy="33" r="4" fill="none" stroke="#F97316" stroke-width="3"/>
-  <g fill="none" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round">
-    <path d="M20 26l-6-4"/>
-    <path d="M44 26l6-4"/>
+  <rect width="512" height="512" rx="96" fill="#0F172A"/>
+  <g fill="none" stroke="#F8FAFC" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M116 250 C116 190 180 168 256 168 C332 168 396 190 396 250 C396 320 320 368 256 368 C192 368 116 320 116 250 Z"/>
+    <path d="M116 248 H96 M396 248 H416"/>
   </g>
+  <path d="M176 232 C220 202 292 202 336 232" fill="none" stroke="#F97316" stroke-width="14" stroke-linecap="round"/>
 </svg>

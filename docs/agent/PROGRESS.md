@@ -1,18 +1,18 @@
-# Progresso
+﻿# Progresso
 
-> **Log cronológico (não é o estado atual).** Registra o que foi feito em cada
-> sessão, inclusive tentativas e números de testes da época. O estado consolidado
-> está em `docs/STATUS.md`. Algumas afirmações antigas foram superadas (por
-> exemplo, "rate limiting herdado do middleware" não corresponde ao código
-> atual); em caso de divergência, vale o código e o `STATUS.md`.
+> **Log cronolÃ³gico (nÃ£o Ã© o estado atual).** Registra o que foi feito em cada
+> sessÃ£o, inclusive tentativas e nÃºmeros de testes da Ã©poca. O estado consolidado
+> estÃ¡ em `docs/STATUS.md`. Algumas afirmaÃ§Ãµes antigas foram superadas (por
+> exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
+> atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
-## Fase 9A-3a — Rascunhos de produtos a partir das fotos e manifesto
+## Fase 9A-3a â€” Rascunhos de produtos a partir das fotos e manifesto
 
 **Iniciado:** 2026-10-11
-**Concluído:** 2026-10-11
+**ConcluÃ­do:** 2026-10-11
 
-### Passo 1 — Levantamento (somente leitura)
-- **Pasta de entrada:** `assets-src/` (raiz, pois `photos-inbox/` está vazia)
+### Passo 1 â€” Levantamento (somente leitura)
+- **Pasta de entrada:** `assets-src/` (raiz, pois `photos-inbox/` estÃ¡ vazia)
 - **Arquivos encontrados (10):**
   1. `bota-e-luva-de-obra-kindelmedia-8488037.jpg` (1.42 MB)
   2. `capacete-para-obra-38070.jpg` (1.60 MB)
@@ -21,50 +21,50 @@
   5. `kit-parafuso-7285983.jpg` (3.00 MB)
   6. `luva-de-obra-8488007.jpg` (1.51 MB)
   7. `mascara-de-gas-3435524-5499417.jpg` (957 KB)
-  8. `máscara-respiradora-8487784.jpg` (832 KB)
+  8. `mÃ¡scara-respiradora-8487784.jpg` (832 KB)
   9. `protetor-auricular-6791514.jpg` (2.24 MB)
   10. `turquesa-2160382064-36847981.jpg` (1.55 MB)
-- **Categorias, marcas, SKUs, faixas de preço:** conforme seed (documentado no arquivo)
+- **Categorias, marcas, SKUs, faixas de preÃ§o:** conforme seed (documentado no arquivo)
 
-### Passo 2 — Formato do manifesto ✅
-- Criado `backend/app/domain/photo_manifest.py` (domínio puro, dataclasses)
-- Criado `backend/app/application/photo_manifest.py` (Pydantic v2, validação, serialização)
-- Modelo vazio com instruções: `backend/app/seed_data/catalog_photos_manifest_template.json`
-- Validador rejeita entrada sem `sku`, `name`, `description`, `category_slug` válida, `brand` existente
-- Entrada com `owner_verified: false`, `needs_name: true` ou créditos incompletos = "não publicável"
+### Passo 2 â€” Formato do manifesto âœ…
+- Criado `backend/app/domain/photo_manifest.py` (domÃ­nio puro, dataclasses)
+- Criado `backend/app/application/photo_manifest.py` (Pydantic v2, validaÃ§Ã£o, serializaÃ§Ã£o)
+- Modelo vazio com instruÃ§Ãµes: `backend/app/seed_data/catalog_photos_manifest_template.json`
+- Validador rejeita entrada sem `sku`, `name`, `description`, `category_slug` vÃ¡lida, `brand` existente
+- Entrada com `owner_verified: false`, `needs_name: true` ou crÃ©ditos incompletos = "nÃ£o publicÃ¡vel"
 
-### Passo 3 — Função de formatação de nome (com testes) ✅
-- `filename_to_product_name()`: remove extensão, troca `-`/`_` por espaço, colapsa espaços, remove sufixos de cópia, título em PT-BR com acentos corrigidos, preposições minúsculas
-- Padrão Pexels (`pexels-autor-123.jpg`, `pexels-photo-123.jpeg`, `pexels-123.jpg`) → `needs_name: true`, créditos inferidos
-- **Testes:** 10 casos cobertos (nome simples, hífen/underscore, acentos, preposições, sufixo cópia, inglês, 3 padrões Pexels, colapso espaços) — todos verdes
+### Passo 3 â€” FunÃ§Ã£o de formataÃ§Ã£o de nome (com testes) âœ…
+- `filename_to_product_name()`: remove extensÃ£o, troca `-`/`_` por espaÃ§o, colapsa espaÃ§os, remove sufixos de cÃ³pia, tÃ­tulo em PT-BR com acentos corrigidos, preposiÃ§Ãµes minÃºsculas
+- PadrÃ£o Pexels (`pexels-autor-123.jpg`, `pexels-photo-123.jpeg`, `pexels-123.jpg`) â†’ `needs_name: true`, crÃ©ditos inferidos
+- **Testes:** 10 casos cobertos (nome simples, hÃ­fen/underscore, acentos, preposiÃ§Ãµes, sufixo cÃ³pia, inglÃªs, 3 padrÃµes Pexels, colapso espaÃ§os) â€” todos verdes
 
-### Passo 4 — Gerar os rascunhos ✅
+### Passo 4 â€” Gerar os rascunhos âœ…
 - `generate_drafts_from_dir()` processa `assets-src/` e gera manifesto com 10 entradas
-- Cada entrada: `name` derivado, `category_slug` sugerida (confiança alta/baixa), `brand` placeholder determinística por categoria, `sku` estável determinístico, `list_price` na faixa da categoria arredondado varejo, `description` 1-2 frases ≤200 chars sem termos proibidos
-- Pexels: `author`, `source_url`, `license` pré-preenchidos, `inferred_from_filename: true`
-- **Nunca** `owner_verified: true` automático
+- Cada entrada: `name` derivado, `category_slug` sugerida (confianÃ§a alta/baixa), `brand` placeholder determinÃ­stica por categoria, `sku` estÃ¡vel determinÃ­stico, `list_price` na faixa da categoria arredondado varejo, `description` 1-2 frases â‰¤200 chars sem termos proibidos
+- Pexels: `author`, `source_url`, `license` prÃ©-preenchidos, `inferred_from_filename: true`
+- **Nunca** `owner_verified: true` automÃ¡tico
 
-### Passo 5 — Validação do manifesto (com testes) ✅
+### Passo 5 â€” ValidaÃ§Ã£o do manifesto (com testes) âœ…
 - `validate_manifest()` verifica regras estruturais + publicabilidade
-- Testes: 55 testes unitários cobrindo domínio e aplicação (válido, inválidos vários, publicável, não publicável, serialização) — todos verdes
+- Testes: 55 testes unitÃ¡rios cobrindo domÃ­nio e aplicaÃ§Ã£o (vÃ¡lido, invÃ¡lidos vÃ¡rios, publicÃ¡vel, nÃ£o publicÃ¡vel, serializaÃ§Ã£o) â€” todos verdes
 
-### Passo 6 — Pasta de entrada e documentação ✅
+### Passo 6 â€” Pasta de entrada e documentaÃ§Ã£o âœ…
 - `assets-src/` adicionado ao `.gitignore` (originais nunca versionados)
-- Criado `docs/CATALOG_DEMO.md` com fluxo completo e checklist do responsável
+- Criado `docs/CATALOG_DEMO.md` com fluxo completo e checklist do responsÃ¡vel
 
-### Passo 7 — Checagens finais ✅
+### Passo 7 â€” Checagens finais âœ…
 - Ruff check: **passed**
 - Ruff format: **passed**
 - Import-linter: **4 contracts kept, 0 broken**
-- Testes unitários: **111 passed** (incluindo 55 novos)
+- Testes unitÃ¡rios: **111 passed** (incluindo 55 novos)
 
 ---
 
-## Relatório final
+## RelatÃ³rio final
 
 ### Tabela de rascunhos gerados
 
-| Arquivo | Nome | Categoria | Confiança | SKU | Flags |
+| Arquivo | Nome | Categoria | ConfianÃ§a | SKU | Flags |
 |---------|------|-----------|-----------|-----|-------|
 | bota-e-luva-de-obra-kindelmedia-8488037.jpg | Bota e Luva de Obra Kindelmedia | protecao-maos | alta | EPI-LUV-397 | needs_review=False |
 | capacete-para-obra-38070.jpg | Capacete para Obra | protecao-cabeca | alta | EPI-CAP-345 | needs_review=False |
@@ -72,23 +72,23 @@
 | furadeira-3877525.jpg | Furadeira | ferramentas-eletricas | alta | EPI-FUR-656 | needs_review=False |
 | kit-parafuso-7285983.jpg | Kit Parafuso | epis | baixa | EPI-EPI-917 | needs_review=True |
 | luva-de-obra-8488007.jpg | Luva de Obra | protecao-maos | alta | EPI-LUV-925 | needs_review=False |
-| mascara-de-gas-3435524-5499417.jpg | Máscara de Gas 3435524 | protecao-respiratoria | alta | EPI-RES-953 | needs_review=False |
-| máscara-respiradora-8487784.jpg | Máscara Respiradora | protecao-respiratoria | alta | EPI-RES-436 | needs_review=False |
+| mascara-de-gas-3435524-5499417.jpg | MÃ¡scara de Gas 3435524 | protecao-respiratoria | alta | EPI-RES-953 | needs_review=False |
+| mÃ¡scara-respiradora-8487784.jpg | MÃ¡scara Respiradora | protecao-respiratoria | alta | EPI-RES-436 | needs_review=False |
 | protetor-auricular-6791514.jpg | Protetor Auricular | protecao-auditiva | alta | EPI-AUD-331 | needs_review=False |
 | turquesa-2160382064-36847981.jpg | Turquesa 2160382064 | epis | baixa | EPI-EPI-345 | needs_review=True |
 
-### Pendências
+### PendÃªncias
 - **needs_name**: 0 (nenhum arquivo Pexels na entrada)
-- **needs_review**: 3 (colete, kit, turquesa — categoria confiança baixa)
-- **owner_verified**: 10 falsos (aguardando verificação do responsável)
+- **needs_review**: 3 (colete, kit, turquesa â€” categoria confianÃ§a baixa)
+- **owner_verified**: 10 falsos (aguardando verificaÃ§Ã£o do responsÃ¡vel)
 
 ### Arquivos criados/modificados
-- `backend/app/domain/photo_manifest.py` (novo - domínio puro)
+- `backend/app/domain/photo_manifest.py` (novo - domÃ­nio puro)
 - `backend/app/application/photo_manifest.py` (novo - Pydantic v2)
 - `backend/tests/unit/test_photo_manifest.py` (novo - 55 testes)
 - `backend/app/seed_data/catalog_photos_manifest.json` (gerado - 10 entradas)
 - `backend/app/seed_data/catalog_photos_manifest_template.json` (gerado - modelo vazio)
-- `docs/CATALOG_DEMO.md` (novo - documentação do fluxo)
+- `docs/CATALOG_DEMO.md` (novo - documentaÃ§Ã£o do fluxo)
 - `.gitignore` (atualizado - `assets-src/` ignorado)
 
 ### Comandos executados e resultados
@@ -108,65 +108,65 @@ cd backend && import-linter lint --config .import-linter
 # 4 contracts kept, 0 broken
 ```
 
-### NÃO VALIDADO e riscos
-- **Imagens não inspecionadas visualmente**: O responsável deve conferir licença, rostos, logos nas imagens reais
-- **Preços são demonstração**: `price_is_demo: true` — não devem ir para produção sem revisão comercial
-- **Marcas são placeholders fictícias**: `brand_is_placeholder: true` — usar marcas reais apenas após negociação
-- **0 publicados**: Aguardando verificação do responsável (`owner_verified: false` em todas)
+### NÃƒO VALIDADO e riscos
+- **Imagens nÃ£o inspecionadas visualmente**: O responsÃ¡vel deve conferir licenÃ§a, rostos, logos nas imagens reais
+- **PreÃ§os sÃ£o demonstraÃ§Ã£o**: `price_is_demo: true` â€” nÃ£o devem ir para produÃ§Ã£o sem revisÃ£o comercial
+- **Marcas sÃ£o placeholders fictÃ­cias**: `brand_is_placeholder: true` â€” usar marcas reais apenas apÃ³s negociaÃ§Ã£o
+- **0 publicados**: Aguardando verificaÃ§Ã£o do responsÃ¡vel (`owner_verified: false` em todas)
 
 ### Commits locais criados
-(Nenhum commit feito nesta sessão — apenas arquivos criados/modificados localmente)
+(Nenhum commit feito nesta sessÃ£o â€” apenas arquivos criados/modificados localmente)
 
 ---
 
-**Declaração:** 0 publicados; aguardando verificação do responsável.
+**DeclaraÃ§Ã£o:** 0 publicados; aguardando verificaÃ§Ã£o do responsÃ¡vel.
 
 ---
 
-## Fase 9-a — Modelo de atributos de produto (domínio, migration e seed)
+## Fase 9-a â€” Modelo de atributos de produto (domÃ­nio, migration e seed)
 
 **Iniciado:** 2026-10-12
-**Concluído:** 2026-10-12
+**ConcluÃ­do:** 2026-10-12
 
-### Passo 1 — Auditoria (somente leitura) ✅
+### Passo 1 â€” Auditoria (somente leitura) âœ…
 - Documentado em `docs/CATALOG_ADMIN.md`:
-  - Colunas atuais de `products` (nulabilidade, limites, índices)
-  - **3 produtos violam "descrição obrigatória"**: EPI-LUV-002, EPI-RES-003, MAQ-PAR-004 (description NULL)
-  - `brand_id` já é preenchido pelo seed (0 violações)
-  - `name` já é NOT NULL (0 violações)
+  - Colunas atuais de `products` (nulabilidade, limites, Ã­ndices)
+  - **3 produtos violam "descriÃ§Ã£o obrigatÃ³ria"**: EPI-LUV-002, EPI-RES-003, MAQ-PAR-004 (description NULL)
+  - `brand_id` jÃ¡ Ã© preenchido pelo seed (0 violaÃ§Ãµes)
+  - `name` jÃ¡ Ã© NOT NULL (0 violaÃ§Ãµes)
   - Marca modelada como entidade separada (`brands` table, FK SET NULL)
   - 11 categorias existentes (slugs documentados)
 
-### Passo 2 — Domínio puro (com testes) ✅
-- `app/domain/product_attributes.py`: tipos (text, number, enum, boolean), definição, validador, registry, normalizador
+### Passo 2 â€” DomÃ­nio puro (com testes) âœ…
+- `app/domain/product_attributes.py`: tipos (text, number, enum, boolean), definiÃ§Ã£o, validador, registry, normalizador
 - `app/application/product_attributes.py`: Pydantic v2 schemas + service
-- Regras de validação: tipo correto, número em intervalo, enum só opções válidas, texto com limite, chave desconhecida/fora de escopo = erro, vazios descartados
-- **Testes:** 38 testes unitários cobrindo cada tipo, erros, normalização, obrigatórios — **todos verdes**
+- Regras de validaÃ§Ã£o: tipo correto, nÃºmero em intervalo, enum sÃ³ opÃ§Ãµes vÃ¡lidas, texto com limite, chave desconhecida/fora de escopo = erro, vazios descartados
+- **Testes:** 38 testes unitÃ¡rios cobrindo cada tipo, erros, normalizaÃ§Ã£o, obrigatÃ³rios â€” **todos verdes**
 
-### Passo 3 — Persistência e migration ✅
-- Migration `0017_product_attribute_definitions.py`: tabela `product_attribute_definitions` + coluna `attributes` JSONB já existente em `products`
+### Passo 3 â€” PersistÃªncia e migration âœ…
+- Migration `0017_product_attribute_definitions.py`: tabela `product_attribute_definitions` + coluna `attributes` JSONB jÃ¡ existente em `products`
 - Tabela criada via SQL direto no container (alembic connection issues no Windows)
-- Seed idempotente via SQL (`ON CONFLICT (key) DO UPDATE`) aplicado no container — **13 definições**
-- NOT NULL em `description` e `brand_id` **NÃO aplicado** (aguardando preenchimento dos 3 produtos)
+- Seed idempotente via SQL (`ON CONFLICT (key) DO UPDATE`) aplicado no container â€” **13 definiÃ§Ãµes**
+- NOT NULL em `description` e `brand_id` **NÃƒO aplicado** (aguardando preenchimento dos 3 produtos)
 
-### Passo 4 — Seed das definições (idempotente) ✅
+### Passo 4 â€” Seed das definiÃ§Ãµes (idempotente) âœ…
 - JSON versionado em `backend/app/seed_data/attribute_definitions.json`
-- 13 definições: 7 globais (modelo, cor, tamanho, material, peso_kg, unidade_venda) + 6 por categoria (tamanho luvas/botas, cor capacete/colete, potência/tensão ferramentas/máquinas, CA opcional)
-- Rótulos e opções centralizados no JSON único (facilita tradução Fase 9-b)
-- **Teste idempotência:** 2 execuções → mesmo resultado (13 INSERT 0 1)
+- 13 definiÃ§Ãµes: 7 globais (modelo, cor, tamanho, material, peso_kg, unidade_venda) + 6 por categoria (tamanho luvas/botas, cor capacete/colete, potÃªncia/tensÃ£o ferramentas/mÃ¡quinas, CA opcional)
+- RÃ³tulos e opÃ§Ãµes centralizados no JSON Ãºnico (facilita traduÃ§Ã£o Fase 9-b)
+- **Teste idempotÃªncia:** 2 execuÃ§Ãµes â†’ mesmo resultado (13 INSERT 0 1)
 
-### Passo 5 — Checagens finais e documentação ✅
-- `docs/CATALOG_ADMIN.md` atualizado com modelo, regras, como adicionar definição, resultado auditoria
+### Passo 5 â€” Checagens finais e documentaÃ§Ã£o âœ…
+- `docs/CATALOG_ADMIN.md` atualizado com modelo, regras, como adicionar definiÃ§Ã£o, resultado auditoria
 - Ruff check: **passed**
 - Ruff format: **passed**
 - Import-linter: **4 contracts kept, 0 broken**
-- Testes unitários: **93 passed** (38 product_attributes + 55 photo_manifest)
+- Testes unitÃ¡rios: **93 passed** (38 product_attributes + 55 photo_manifest)
 
 ---
 
-## Relatório final consolidado
+## RelatÃ³rio final consolidado
 
-### Produtos que violam obrigatórios (Fase 9-a Passo 1)
+### Produtos que violam obrigatÃ³rios (Fase 9-a Passo 1)
 
 | SKU | Campo Faltante | Status |
 |-----|----------------|--------|
@@ -174,145 +174,145 @@ cd backend && import-linter lint --config .import-linter
 | EPI-RES-003 | description (NULL) | Pendente preenchimento |
 | MAQ-PAR-004 | description (NULL) | Pendente preenchimento |
 
-**NOT NULL aplicado em `description`?** NÃO — aguardando preenchimento.
+**NOT NULL aplicado em `description`?** NÃƒO â€” aguardando preenchimento.
 
-**NOT NULL aplicado em `brand_id`?** NÃO — embora 0 violações, mantido nullable por FK SET NULL.
+**NOT NULL aplicado em `brand_id`?** NÃƒO â€” embora 0 violaÃ§Ãµes, mantido nullable por FK SET NULL.
 
 ### Arquivos criados/modificados (Fase 9-a)
 
-- `backend/app/domain/product_attributes.py` (novo - domínio puro)
+- `backend/app/domain/product_attributes.py` (novo - domÃ­nio puro)
 - `backend/app/application/product_attributes.py` (novo - Pydantic v2)
 - `backend/tests/unit/test_product_attributes.py` (novo - 38 testes)
 - `backend/alembic/versions/0017_product_attribute_definitions.py` (novo - migration)
-- `backend/app/seed_data/attribute_definitions.json` (novo - dicionário versionado)
+- `backend/app/seed_data/attribute_definitions.json` (novo - dicionÃ¡rio versionado)
 - `backend/scripts/seed_attribute_definitions.py` (novo - script seed)
-- `docs/CATALOG_ADMIN.md` (novo/atualizado - documentação completa)
+- `docs/CATALOG_ADMIN.md` (novo/atualizado - documentaÃ§Ã£o completa)
 
 ### Qualidade (ambas fases)
 - Ruff check: **passed**
 - Ruff format: **passed** (371 files)
 - Import-linter: **4 contracts kept, 0 broken**
-- Testes unitários: **93 passed** (38 + 55)
+- Testes unitÃ¡rios: **93 passed** (38 + 55)
 
 ---
 
-**Declaração:** Fase 9A-3a e Fase 9-a concluídas. Aguardando Fase 9-b (API admin) e Fase 9-c (frontend).
+**DeclaraÃ§Ã£o:** Fase 9A-3a e Fase 9-a concluÃ­das. Aguardando Fase 9-b (API admin) e Fase 9-c (frontend).
 
 ---
 
-## Fase 9-b — API de administração de produtos, API pública e índice
+## Fase 9-b â€” API de administraÃ§Ã£o de produtos, API pÃºblica e Ã­ndice
 
 **Iniciado:** 2026-10-12
 
-### Passo 1 — Auditoria rápida (somente leitura) ✅
+### Passo 1 â€” Auditoria rÃ¡pida (somente leitura) âœ…
 
-**Papéis RBAC e identificação do administrador:**
-- `MemberRole` enum (identity.domain.enums): `ADMIN`, `BUYER`, `APPROVER`, `FINANCE` — papéis dentro de uma empresa
-- **Não existe papel `forja_admin` no JWT** — `forja_admin` é role de banco (PostgreSQL) para migrations/seed, não papel de aplicação
-- Autenticação via JWT com `AuthContext` (user_id, company_id, role, token_id)
+**PapÃ©is RBAC e identificaÃ§Ã£o do administrador:**
+- `MemberRole` enum (identity.domain.enums): `ADMIN`, `BUYER`, `APPROVER`, `FINANCE` â€” papÃ©is dentro de uma empresa
+- **NÃ£o existe papel `forja_admin` no JWT** â€” `forja_admin` Ã© role de banco (PostgreSQL) para migrations/seed, nÃ£o papel de aplicaÃ§Ã£o
+- AutenticaÃ§Ã£o via JWT com `AuthContext` (user_id, company_id, role, token_id)
 - RBAC aplicado via `require_role(auth, *allowed_roles)` em `app.application.security`
 
-**Rotas de admin existentes:** Nenhuma rota de escrita de catálogo existe atualmente. O catálogo é somente leitura (router em `catalog/interface/router.py`).
+**Rotas de admin existentes:** Nenhuma rota de escrita de catÃ¡logo existe atualmente. O catÃ¡logo Ã© somente leitura (router em `catalog/interface/router.py`).
 
-**Trilha de auditoria existente:** Módulo `audit` existe mas está vazio (apenas scaffolds nas camadas domain/application/infrastructure).
+**Trilha de auditoria existente:** MÃ³dulo `audit` existe mas estÃ¡ vazio (apenas scaffolds nas camadas domain/application/infrastructure).
 
-**Outbox de eventos de catálogo:** 
-- `search_outbox` tabela (global, sem RLS) para sincronização do Elasticsearch
+**Outbox de eventos de catÃ¡logo:** 
+- `search_outbox` tabela (global, sem RLS) para sincronizaÃ§Ã£o do Elasticsearch
 - Eventos `UPSERT`/`DELETE` com `aggregate_id` (product_id), `version` (epoch ms de updated_at), `attempts`
-- Worker `DispatchSearchOutbox` processa eventos e atualiza índice + embeddings
+- Worker `DispatchSearchOutbox` processa eventos e atualiza Ã­ndice + embeddings
 - `SqlAlchemySearchOutboxRepository` em `search/infrastructure/outbox_repository.py`
 
-**Página pública de detalhe do produto:**
-- `GET /catalog/products/{product_id}` → `GetProduct` use case → `ProductDetail` schema
+**PÃ¡gina pÃºblica de detalhe do produto:**
+- `GET /catalog/products/{product_id}` â†’ `GetProduct` use case â†’ `ProductDetail` schema
 - Atributos devolvidos como `attributes: dict[str, object] | None` (raw JSONB)
-- Preço mascarado para visitante (`price_on_request: true`), resolvido para empresa autenticada
-- Tradução campo a campo com fallback para pt-BR
+- PreÃ§o mascarado para visitante (`price_on_request: true`), resolvido para empresa autenticada
+- TraduÃ§Ã£o campo a campo com fallback para pt-BR
 
-### Passo 2 — Casos de uso e endpoints de administração ✅
+### Passo 2 â€” Casos de uso e endpoints de administraÃ§Ã£o âœ…
 
 **Endpoints criados (apenas papel ADMIN):**
-- `POST /api/v1/admin/catalog/products` — Criar produto (DRAFT)
-- `GET /api/v1/admin/catalog/products/{product_id}` — Obter produto
-- `GET /api/v1/admin/catalog/products` — Listar com filtros (q, category_id, status) e paginação (máx 100)
-- `PATCH /api/v1/admin/catalog/products/{product_id}` — Editar produto (concorrência otimista via version)
-- `POST /api/v1/admin/catalog/products/{product_id}/publish` — Publicar (DRAFT → ACTIVE)
-- `POST /api/v1/admin/catalog/products/{product_id}/unpublish` — Despublicar (ACTIVE → DRAFT)
-- `GET /api/v1/admin/catalog/categories/{category_slug}/attributes` — Definições de atributo por categoria
-- `GET /api/v1/admin/catalog/static-images` — Listar imagens estáticas disponíveis
+- `POST /api/v1/admin/catalog/products` â€” Criar produto (DRAFT)
+- `GET /api/v1/admin/catalog/products/{product_id}` â€” Obter produto
+- `GET /api/v1/admin/catalog/products` â€” Listar com filtros (q, category_id, status) e paginaÃ§Ã£o (mÃ¡x 100)
+- `PATCH /api/v1/admin/catalog/products/{product_id}` â€” Editar produto (concorrÃªncia otimista via version)
+- `POST /api/v1/admin/catalog/products/{product_id}/publish` â€” Publicar (DRAFT â†’ ACTIVE)
+- `POST /api/v1/admin/catalog/products/{product_id}/unpublish` â€” Despublicar (ACTIVE â†’ DRAFT)
+- `GET /api/v1/admin/catalog/categories/{category_slug}/attributes` â€” DefiniÃ§Ãµes de atributo por categoria
+- `GET /api/v1/admin/catalog/static-images` â€” Listar imagens estÃ¡ticas disponÃ­veis
 
 **Regras implementadas:**
-- Nome, descrição, marca obrigatórios (validação da 9-a)
+- Nome, descriÃ§Ã£o, marca obrigatÃ³rios (validaÃ§Ã£o da 9-a)
 - Atributos validados e normalizados pela 9-a (chave desconhecida/fora de escopo = erro, vazios descartados)
-- SKU único e imutável após criação; slug gerado e único
-- Concorrência otimista (version = epoch ms de updated_at); conflito → 409
+- SKU Ãºnico e imutÃ¡vel apÃ³s criaÃ§Ã£o; slug gerado e Ãºnico
+- ConcorrÃªncia otimista (version = epoch ms de updated_at); conflito â†’ 409
 - Texto simples apenas, limites de tamanho
-- Imagem: aceita URL `https://` ou caminho `/static/...` (validação `app.domain.catalog_image`)
+- Imagem: aceita URL `https://` ou caminho `/static/...` (validaÃ§Ã£o `app.domain.catalog_image`)
 - Eventos na outbox de busca: UPSERT em create/update/publish, DELETE em unpublish
-- Rate limiting por IP/usuário (herdado do middleware global)
+- Rate limiting por IP/usuÃ¡rio (herdado do middleware global)
 
-**Testes:** Unitários existentes passam (93), Ruff check passa, mypy nos novos arquivos passa (exceto dependências externas faltantes)
+**Testes:** UnitÃ¡rios existentes passam (93), Ruff check passa, mypy nos novos arquivos passa (exceto dependÃªncias externas faltantes)
 
-### Passo 3 — API pública: só atributos preenchidos ✅
+### Passo 3 â€” API pÃºblica: sÃ³ atributos preenchidos âœ…
 
-**Mudança no schema `ProductDetail`:**
-- `attributes` agora é `list[ProductAttributeOut]` ao invés de `dict[str, object] | None`
-- `ProductAttributeOut`: `{key, label, value, unit}` — apenas atributos com valor não vazio
-- Conversão feita no router público usando registry de atributos para obter label/unit
+**MudanÃ§a no schema `ProductDetail`:**
+- `attributes` agora Ã© `list[ProductAttributeOut]` ao invÃ©s de `dict[str, object] | None`
+- `ProductAttributeOut`: `{key, label, value, unit}` â€” apenas atributos com valor nÃ£o vazio
+- ConversÃ£o feita no router pÃºblico usando registry de atributos para obter label/unit
 
-**Testes:** Unitários existentes passam
+**Testes:** UnitÃ¡rios existentes passam
 
-### Passo 4 — Ýndice e embeddings ❳ NÃO VALIDADO
-**Pendente:** Docker/Elasticsearch não disponível no ambiente atual
+### Passo 4 â€” Ãndice e embeddings â³ NÃƒO VALIDADO
+**Pendente:** Docker/Elasticsearch nÃ£o disponÃ­vel no ambiente atual
 - Adicionar campos `model` e `attributes_text` ao mapping Elasticsearch
-- Nova versão de índice com alias + reindexação segura
-- Embedding text inclui marca, modelo, atributos preenchidos (sem preço)
-- `content_hash` muda → backfill idempotente
+- Nova versÃ£o de Ã­ndice com alias + reindexaÃ§Ã£o segura
+- Embedding text inclui marca, modelo, atributos preenchidos (sem preÃ§o)
+- `content_hash` muda â†’ backfill idempotente
 
-### Passo 5 — Validação real (Docker de pé) ❳ NÃO VALIDADO
-**Pendente:** Docker Compose não disponível
+### Passo 5 â€” ValidaÃ§Ã£o real (Docker de pÃ©) â³ NÃƒO VALIDADO
+**Pendente:** Docker Compose nÃ£o disponÃ­vel
 - `docker compose --env-file .env.example config --quiet`
 - Testes manuais via API (admin, visitante, comprador)
-- Reindexação e busca por modelo
+- ReindexaÃ§Ã£o e busca por modelo
 - Eventos outbox e embedding atualizado
 - Rollback produtos de teste
 
-### Passo 6 — Documentação e checagens finais ✅
+### Passo 6 â€” DocumentaÃ§Ã£o e checagens finais âœ…
 
 **Arquivos criados/modificados:**
-- `app/modules/catalog/domain/product_admin.py` — Domínio puro (regras, validação, concorrência)
-- `app/modules/catalog/application/product_admin.py` — Casos de uso (Create, Get, List, Update, Publish, Unpublish, Attributes, StaticImages)
-- `app/modules/catalog/infrastructure/admin_repository.py` — Repositório SQLAlchemy (role forja_admin) + Outbox
-- `app/modules/catalog/interface/admin_schemas.py` — Schemas Pydantic (request/response)
-- `app/modules/catalog/interface/admin_router.py` — Endpoints FastAPI com RBAC ADMIN
-- `app/modules/catalog/interface/schemas.py` — `ProductAttributeOut` + `attributes` como lista ordenada
-- `app/modules/catalog/interface/router.py` — Conversão público `dict → list[ProductAttributeOut]`
-- `app/modules/catalog/application/ports.py` — Portas `CatalogAdminRepository`, `SearchOutboxPort`
-- `app/modules/catalog/infrastructure/__init__.py` — Exports
-- `app/modules/catalog/interface/__init__.py` — Exports
-- `app/main.py` — Composição admin (UoW sem tenant, registry, outbox)
+- `app/modules/catalog/domain/product_admin.py` â€” DomÃ­nio puro (regras, validaÃ§Ã£o, concorrÃªncia)
+- `app/modules/catalog/application/product_admin.py` â€” Casos de uso (Create, Get, List, Update, Publish, Unpublish, Attributes, StaticImages)
+- `app/modules/catalog/infrastructure/admin_repository.py` â€” RepositÃ³rio SQLAlchemy (role forja_admin) + Outbox
+- `app/modules/catalog/interface/admin_schemas.py` â€” Schemas Pydantic (request/response)
+- `app/modules/catalog/interface/admin_router.py` â€” Endpoints FastAPI com RBAC ADMIN
+- `app/modules/catalog/interface/schemas.py` â€” `ProductAttributeOut` + `attributes` como lista ordenada
+- `app/modules/catalog/interface/router.py` â€” ConversÃ£o pÃºblico `dict â†’ list[ProductAttributeOut]`
+- `app/modules/catalog/application/ports.py` â€” Portas `CatalogAdminRepository`, `SearchOutboxPort`
+- `app/modules/catalog/infrastructure/__init__.py` â€” Exports
+- `app/modules/catalog/interface/__init__.py` â€” Exports
+- `app/main.py` â€” ComposiÃ§Ã£o admin (UoW sem tenant, registry, outbox)
 
 **Qualidade:**
 - Ruff check: **passed** (376 files)
 - Ruff format: **passed** (376 files)
 - Import-linter: **4 contracts kept, 0 broken**
-- Testes unitários: **93 passed** (38 product_attributes + 55 photo_manifest)
-- Mypy: Apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+- Testes unitÃ¡rios: **93 passed** (38 product_attributes + 55 photo_manifest)
+- Mypy: Apenas erros em dependÃªncias externas ausentes (opentelemetry, elasticsearch, redis)
 
 **Commits locais criados:** (pendente)
 
 ---
 
-## Relatório final
+## RelatÃ³rio final
 
 ### Resumo do que foi feito
 
-**Passo 1 — Auditoria:** Documentado RBAC (role ADMIN), rotas existentes (somente leitura), outbox de busca, página pública.
+**Passo 1 â€” Auditoria:** Documentado RBAC (role ADMIN), rotas existentes (somente leitura), outbox de busca, pÃ¡gina pÃºblica.
 
-**Passo 2 — API Admin:** 8 endpoints criados com RBAC ADMIN, validação completa, concorrência otimista, outbox events.
+**Passo 2 â€” API Admin:** 8 endpoints criados com RBAC ADMIN, validaÃ§Ã£o completa, concorrÃªncia otimista, outbox events.
 
-**Passo 3 — API Pública:** Atributos agora retornados como lista ordenada apenas com valores preenchidos.
+**Passo 3 â€” API PÃºblica:** Atributos agora retornados como lista ordenada apenas com valores preenchidos.
 
-**Passos 4-5:** Pendentes validação com Docker/Elasticsearch.
+**Passos 4-5:** Pendentes validaÃ§Ã£o com Docker/Elasticsearch.
 
 ### Arquivos criados
 - `backend/app/modules/catalog/domain/product_admin.py`
@@ -331,65 +331,65 @@ cd backend && import-linter lint --config .import-linter
 - `backend/app/main.py`
 - `docs/agent/PROGRESS.md`
 
-### NÃO VALIDADO e riscos
-- **Passos 4-5 (Elasticsearch/Ýndice/Embeddings/Validação Docker):** Não validados — ambiente sem Docker/ES
-- **Rate limiting específico por rota:** Herda middleware global, limites customizados não configurados
-- **Auditoria:** Módulo audit vazio — trilha mínima via outbox, mas sem tabela dedicada de auditoria admin
+### NÃƒO VALIDADO e riscos
+- **Passos 4-5 (Elasticsearch/Ãndice/Embeddings/ValidaÃ§Ã£o Docker):** NÃ£o validados â€” ambiente sem Docker/ES
+- **Rate limiting especÃ­fico por rota:** Herda middleware global, limites customizados nÃ£o configurados
+- **Auditoria:** MÃ³dulo audit vazio â€” trilha mÃ­nima via outbox, mas sem tabela dedicada de auditoria admin
 
-### Próximos passos
+### PrÃ³ximos passos
 1. Executar Passo 4 com Docker/ES para adicionar mapping e reindexar
-2. Executar Passo 5 para validação end-to-end
+2. Executar Passo 5 para validaÃ§Ã£o end-to-end
 3. Atualizar `docs/CATALOG_ADMIN.md` e `docs/STATUS.md`
 4. Fase 9-c (Frontend)
 
 ---
 
-## Fase 9-c — Frontend: formulário de administração e especificações do produto
+## Fase 9-c â€” Frontend: formulÃ¡rio de administraÃ§Ã£o e especificaÃ§Ãµes do produto
 
 **Iniciado:** 2026-10-12
 
-### Passo 1 — Levantamento do frontend (somente leitura) ✅
+### Passo 1 â€” Levantamento do frontend (somente leitura) âœ…
 
 **Estrutura de rotas:**
 - Next.js 14 App Router com locale prefix: `/[locale]/...`
-- Catálogo público: `/[locale]/catalog` (lista) e `/[locale]/catalog/[id]` (detalhe)
+- CatÃ¡logo pÃºblico: `/[locale]/catalog` (lista) e `/[locale]/catalog/[id]` (detalhe)
 - Dashboard (protegido): `/[locale]/dashboard`
 - Middleware `next-intl/middleware` gerencia roteamento i18n
 
 **Sistema de design e componentes:**
 - Tailwind CSS + shadcn/ui (Radix UI primitives)
-- Componentes disponíveis: Button, Input, Label, Dialog, DropdownMenu, Alert, Card, Badge, Separator, Skeleton
+- Componentes disponÃ­veis: Button, Input, Label, Dialog, DropdownMenu, Alert, Card, Badge, Separator, Skeleton
 - Variantes via `class-variance-authority` (cva)
-- Utilitário `cn()` para merge de classes
+- UtilitÃ¡rio `cn()` para merge de classes
 
-**Validação:**
-- Zod v3 para validação de schemas (já em dependências)
-- Formulários: React Hook Form não presente — usar validação manual + Zod schemas
+**ValidaÃ§Ã£o:**
+- Zod v3 para validaÃ§Ã£o de schemas (jÃ¡ em dependÃªncias)
+- FormulÃ¡rios: React Hook Form nÃ£o presente â€” usar validaÃ§Ã£o manual + Zod schemas
 
 **Cliente da API:**
 - Porta `HttpClient` (interface) em `core/application/ports/http-client.ts`
-- Implementação `FetchHttpClient` em `infrastructure/http/api-client.ts`
+- ImplementaÃ§Ã£o `FetchHttpClient` em `infrastructure/http/api-client.ts`
 - Trata: base URL, headers (X-Request-ID), timeout, parsing `application/problem+json` (RFC 7807), erros tipados `ApiError`
-- Adapters por domínio: `catalogApi`, `authApi` em `infrastructure/http/`
+- Adapters por domÃ­nio: `catalogApi`, `authApi` em `infrastructure/http/`
 - TanStack Query v5 para cache/data fetching (`useQuery`, `useMutation`)
 
-**Proteção de rota admin:**
+**ProteÃ§Ã£o de rota admin:**
 - JWT com `AuthContext` (user_id, company_id, role, token_id)
 - Role no `UserProfile`: `ADMIN`, `BUYER`, `APPROVER`, `FINANCE`
-- Zustand store `auth-store.ts` com sessão hidratada do localStorage
-- Middleware atual só faz i18n; proteção por role deve ser feita no componente/client-side (redirect se não ADMIN)
+- Zustand store `auth-store.ts` com sessÃ£o hidratada do localStorage
+- Middleware atual sÃ³ faz i18n; proteÃ§Ã£o por role deve ser feita no componente/client-side (redirect se nÃ£o ADMIN)
 
 **i18n:**
 - `next-intl` v3 com mensagens em `messages/{locale}.json`
 - `useTranslations()` hook para componentes cliente
 - `getTranslations()` async para Server Components
-- Locale padrão: `pt-BR`; 10 locales suportados
+- Locale padrÃ£o: `pt-BR`; 10 locales suportados
 - Textos de interface devem ir em `messages/pt-BR.json` (e outros)
 
 **Testes:**
-- Vitest para unitários (`tests/unit/`)
+- Vitest para unitÃ¡rios (`tests/unit/`)
 - Playwright para e2e (`tests/e2e/`)
-- Padrão: mock `fetch` com `vi.stubGlobal`, testar serialização/parsing
+- PadrÃ£o: mock `fetch` com `vi.stubGlobal`, testar serializaÃ§Ã£o/parsing
 
 **Comandos de checagem (frontend):**
 ```bash
@@ -399,7 +399,7 @@ cd frontend && npm run test       # vitest run
 cd frontend && npm run check      # lint + typecheck + format:check + test + depcruise
 ```
 
-### Passo 2 — Contratos e cliente da API (com testes) ✅
+### Passo 2 â€” Contratos e cliente da API (com testes) âœ…
 
 **Tipos criados em `core/domain/catalog.ts`:**
 - `AdminProductStatus` (DRAFT, ACTIVE, ARCHIVED)
@@ -411,53 +411,53 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - `AdminProductCreate`, `AdminProductUpdate`, `AdminProductPublish`
 
 **Cliente da API em `infrastructure/http/admin-catalog-api.ts`:**
-- `adminCatalogApi.listProducts(query)` — listagem com filtros e paginação
-- `adminCatalogApi.getProduct(id)` — obtenção de produto
-- `adminCatalogApi.createProduct(payload)` — criação (POST)
-- `adminCatalogApi.updateProduct(id, payload)` — edição (PATCH) com version
-- `adminCatalogApi.publishProduct(id, payload)` / `unpublishProduct` — publicação/despublicação
-- `adminCatalogApi.getAttributeDefinitions(categorySlug)` — definições dinâmicas por categoria
-- `adminCatalogApi.listStaticImages()` — imagens estáticas para seleção
-- `isVersionConflict(error)` — detecta erro 409 (concorrência otimista)
-- `getFieldErrors(error)` — extrai erros por campo do Problem Details (RFC 7807 extensions)
+- `adminCatalogApi.listProducts(query)` â€” listagem com filtros e paginaÃ§Ã£o
+- `adminCatalogApi.getProduct(id)` â€” obtenÃ§Ã£o de produto
+- `adminCatalogApi.createProduct(payload)` â€” criaÃ§Ã£o (POST)
+- `adminCatalogApi.updateProduct(id, payload)` â€” ediÃ§Ã£o (PATCH) com version
+- `adminCatalogApi.publishProduct(id, payload)` / `unpublishProduct` â€” publicaÃ§Ã£o/despublicaÃ§Ã£o
+- `adminCatalogApi.getAttributeDefinitions(categorySlug)` â€” definiÃ§Ãµes dinÃ¢micas por categoria
+- `adminCatalogApi.listStaticImages()` â€” imagens estÃ¡ticas para seleÃ§Ã£o
+- `isVersionConflict(error)` â€” detecta erro 409 (concorrÃªncia otimista)
+- `getFieldErrors(error)` â€” extrai erros por campo do Problem Details (RFC 7807 extensions)
 
-**Correção no `ApiError` (`infrastructure/http/errors.ts`):**
+**CorreÃ§Ã£o no `ApiError` (`infrastructure/http/errors.ts`):**
 - Adicionada propriedade `extensions` para capturar campos extras do Problem Details
 - Construtor agora extrai `extensions` corretamente (backend envia como propriedade `extensions`)
 
 **Testes em `tests/unit/admin-catalog-api.test.ts` (16 testes):**
-- Serialização de query string (filtros, paginação)
-- Criação, edição, publicação, despublicação com payloads corretos
-- Busca de definições de atributo e imagens estáticas
+- SerializaÃ§Ã£o de query string (filtros, paginaÃ§Ã£o)
+- CriaÃ§Ã£o, ediÃ§Ã£o, publicaÃ§Ã£o, despublicaÃ§Ã£o com payloads corretos
+- Busca de definiÃ§Ãµes de atributo e imagens estÃ¡ticas
 - `isVersionConflict`: true para 409, false para outros status/erros
-- `getFieldErrors`: extrai erros por campo, ignora valores inválidos, retorna vazio para não-ApiError
+- `getFieldErrors`: extrai erros por campo, ignora valores invÃ¡lidos, retorna vazio para nÃ£o-ApiError
 
 **Checagens:**
 - Typecheck: **passed**
 - Lint: **passed**
 - Testes: **83 passed** (16 novos + 67 existentes)
 
-### Passo 3 — Lista de produtos (admin) ✅
+### Passo 3 â€” Lista de produtos (admin) âœ…
 
 **Rota criada:** `/[locale]/admin/catalog/products/page.tsx` (protegida por role ADMIN)
 
 **Componente cliente `AdminProductListClient` (`admin-product-list-client.tsx`):**
-- Tabela com colunas: Nome (link para edição), SKU, Categoria, Status (badge), Preço, Atualizado em, Ações (dropdown)
+- Tabela com colunas: Nome (link para ediÃ§Ã£o), SKU, Categoria, Status (badge), PreÃ§o, Atualizado em, AÃ§Ãµes (dropdown)
 - Busca por nome/SKU (query `q`)
 - Filtro por categoria (select com categorias dos produtos listados)
 - Filtro por status: DRAFT, ACTIVE, ARCHIVED
-- Paginação (20 por página, máx 100) com navegação anterior/próxima
-- Ações por produto:
+- PaginaÃ§Ã£o (20 por pÃ¡gina, mÃ¡x 100) com navegaÃ§Ã£o anterior/prÃ³xima
+- AÃ§Ãµes por produto:
   - Editar (link para `/admin/catalog/products/{id}`)
-  - Ver no catálogo público (abre em nova aba)
-  - Publicar (DRAFT → ACTIVE) com loading state
-  - Despublicar (ACTIVE → DRAFT) com loading state
-  - Excluir (dialog de confirmação — implementação pendente)
-- Tratamento de erro 409 (version conflict): alerta + invalidação de query
-- Estados: loading (skeleton), erro (alert), vazio, acesso negado (não-admin)
+  - Ver no catÃ¡logo pÃºblico (abre em nova aba)
+  - Publicar (DRAFT â†’ ACTIVE) com loading state
+  - Despublicar (ACTIVE â†’ DRAFT) com loading state
+  - Excluir (dialog de confirmaÃ§Ã£o â€” implementaÃ§Ã£o pendente)
+- Tratamento de erro 409 (version conflict): alerta + invalidaÃ§Ã£o de query
+- Estados: loading (skeleton), erro (alert), vazio, acesso negado (nÃ£o-admin)
 
 **i18n em `messages/{locale}.json` (11 locales):**
-- Seção `admin.catalog.products` com 42 chaves (título, busca, filtros, tabela, status, ações, paginação, mensagens)
+- SeÃ§Ã£o `admin.catalog.products` com 42 chaves (tÃ­tulo, busca, filtros, tabela, status, aÃ§Ãµes, paginaÃ§Ã£o, mensagens)
 - Adicionado a: pt-BR, en, es, fr, it, de, ja, ko, zh-CN, ru, ar
 
 **Checagens:**
@@ -465,111 +465,111 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
 - Testes: **83 passed** (inclui i18n parity)
 
-### Passo 6 — Validação real (Docker de pé) ❳ NÃO VALIDADO visualmente
+### Passo 6 â€” ValidaÃ§Ã£o real (Docker de pÃ©) â³ NÃƒO VALIDADO visualmente
 
-**Ambiente:** Docker/PostgreSQL/Elasticsearch não disponíveis no ambiente de desenvolvimento atual.
+**Ambiente:** Docker/PostgreSQL/Elasticsearch nÃ£o disponÃ­veis no ambiente de desenvolvimento atual.
 
-**Verificações realizadas via testes automatizados:**
-- **Backend (93 testes unitários):**
-  - `test_product_attributes.py` (38 testes): validação de tipos, ranges, enums, boolean, atributos desconhecidos/fora de escopo, campos obrigatórios, carregamento do registry
-  - `test_photo_manifest.py` (55 testes): formatação de nome, sugestão de categoria, geração de SKU/preço/descrição, criação de rascunhos, validação de manifesto, serialização
-- **Frontend (83 testes unitários):**
-  - `admin-catalog-api.test.ts` (16): serialização de query, CRUD admin, atributos dinâmicos, imagens estáticas, detecção 409, extração erros por campo
+**VerificaÃ§Ãµes realizadas via testes automatizados:**
+- **Backend (93 testes unitÃ¡rios):**
+  - `test_product_attributes.py` (38 testes): validaÃ§Ã£o de tipos, ranges, enums, boolean, atributos desconhecidos/fora de escopo, campos obrigatÃ³rios, carregamento do registry
+  - `test_photo_manifest.py` (55 testes): formataÃ§Ã£o de nome, sugestÃ£o de categoria, geraÃ§Ã£o de SKU/preÃ§o/descriÃ§Ã£o, criaÃ§Ã£o de rascunhos, validaÃ§Ã£o de manifesto, serializaÃ§Ã£o
+- **Frontend (83 testes unitÃ¡rios):**
+  - `admin-catalog-api.test.ts` (16): serializaÃ§Ã£o de query, CRUD admin, atributos dinÃ¢micos, imagens estÃ¡ticas, detecÃ§Ã£o 409, extraÃ§Ã£o erros por campo
   - `catalog-api.test.ts`, `cart-api.test.ts`, `ordering-api.test.ts`, `credit-api.test.ts`, `company-api.test.ts`, `auth-api.test.ts`, `schemas.test.ts`, etc.
-  - `i18n-parity.test.ts` (2): chaves idênticas em todos os 11 locales
+  - `i18n-parity.test.ts` (2): chaves idÃªnticas em todos os 11 locales
 
 **O que seria validado com Docker (pendente):**
 1. Subir stack: `docker compose --env-file .env.example up -d`
 2. Frontend em porta alternativa (3001): `cd frontend && PORT=3001 npm run dev`
-3. Como ADMIN: criar produto só com obrigatórios → conferir página pública (sem especificações)
-4. Editar adicionando modelo e cor → conferir (apenas esses dois)
-5. Limpar cor → conferir (seção não renderiza)
-6. Capturar evidências (respostas API, screenshots)
+3. Como ADMIN: criar produto sÃ³ com obrigatÃ³rios â†’ conferir pÃ¡gina pÃºblica (sem especificaÃ§Ãµes)
+4. Editar adicionando modelo e cor â†’ conferir (apenas esses dois)
+5. Limpar cor â†’ conferir (seÃ§Ã£o nÃ£o renderiza)
+6. Capturar evidÃªncias (respostas API, screenshots)
 7. Rollback produtos de teste
 
-### Passo 7 — Documentação e checagens finais ✅
+### Passo 7 â€” DocumentaÃ§Ã£o e checagens finais âœ…
 
-**Documentação atualizada:**
-- `docs/CATALOG_ADMIN.md` — guia completo do formulário admin (campos, seções, preview, validação, i18n)
-- `docs/STATUS.md` — status consolidado do projeto
+**DocumentaÃ§Ã£o atualizada:**
+- `docs/CATALOG_ADMIN.md` â€” guia completo do formulÃ¡rio admin (campos, seÃ§Ãµes, preview, validaÃ§Ã£o, i18n)
+- `docs/STATUS.md` â€” status consolidado do projeto
 
 **Checagens finais (RULES.md):**
 
 **Frontend:**
 - Typecheck: **passed** (`npm run typecheck`)
-- Lint: **passed** (`npm run lint`) — 3 warnings sobre `<img>` vs `next/image` (aceitável)
+- Lint: **passed** (`npm run lint`) â€” 3 warnings sobre `<img>` vs `next/image` (aceitÃ¡vel)
 - Testes: **83 passed** (`npm run test`)
 
 **Backend (testes que rodam sem Docker):**
 - Ruff check: **passed** (376 files)
 - Ruff format: **passed** (376 files)
 - Import-linter: **4 contracts kept, 0 broken**
-- Testes unitários (product_attributes + photo_manifest): **93 passed**
-- Mypy: apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis)
+- Testes unitÃ¡rios (product_attributes + photo_manifest): **93 passed**
+- Mypy: apenas erros em dependÃªncias externas ausentes (opentelemetry, elasticsearch, redis)
 
 **Arquivos criados/modificados na Fase 9-c:**
 
 **Frontend:**
-- `frontend/app/[locale]/admin/catalog/products/page.tsx` — Lista admin
-- `frontend/app/[locale]/admin/catalog/products/admin-product-list-client.tsx` — Componente lista
-- `frontend/app/[locale]/admin/catalog/products/new/page.tsx` — Rota novo
-- `frontend/app/[locale]/admin/catalog/products/[id]/page.tsx` — Rota editar
-- `frontend/app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` — Formulário completo
-- `frontend/shared/ui/select.tsx` — Componente Select (Radix)
-- `frontend/shared/ui/tabs.tsx` — Componente Tabs (Radix)
-- `frontend/shared/ui/textarea.tsx` — Componente Textarea
-- `frontend/features/catalog/product-detail.tsx` — Atualizado para novo formato attributes
-- `frontend/infrastructure/http/admin-catalog-api.ts` — Cliente API admin
-- `frontend/infrastructure/http/errors.ts` — Correção ApiError.extensions
-- `frontend/tests/unit/admin-catalog-api.test.ts` — 16 testes unitários
-- `frontend/messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` — i18n completo (11 locales)
+- `frontend/app/[locale]/admin/catalog/products/page.tsx` â€” Lista admin
+- `frontend/app/[locale]/admin/catalog/products/admin-product-list-client.tsx` â€” Componente lista
+- `frontend/app/[locale]/admin/catalog/products/new/page.tsx` â€” Rota novo
+- `frontend/app/[locale]/admin/catalog/products/[id]/page.tsx` â€” Rota editar
+- `frontend/app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` â€” FormulÃ¡rio completo
+- `frontend/shared/ui/select.tsx` â€” Componente Select (Radix)
+- `frontend/shared/ui/tabs.tsx` â€” Componente Tabs (Radix)
+- `frontend/shared/ui/textarea.tsx` â€” Componente Textarea
+- `frontend/features/catalog/product-detail.tsx` â€” Atualizado para novo formato attributes
+- `frontend/infrastructure/http/admin-catalog-api.ts` â€” Cliente API admin
+- `frontend/infrastructure/http/errors.ts` â€” CorreÃ§Ã£o ApiError.extensions
+- `frontend/tests/unit/admin-catalog-api.test.ts` â€” 16 testes unitÃ¡rios
+- `frontend/messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` â€” i18n completo (11 locales)
 
-**Backend (já existiam da Fase 9-b):**
-- API admin de catálogo (8 endpoints)
-- Schema `ProductAttributeOut` + conversão público `dict → list`
+**Backend (jÃ¡ existiam da Fase 9-b):**
+- API admin de catÃ¡logo (8 endpoints)
+- Schema `ProductAttributeOut` + conversÃ£o pÃºblico `dict â†’ list`
 
 **Commits:** Pendente (aguardando `git add` e `git commit -m`)
 
-### Passo 4 — Formulário de produto (admin) ✅
+### Passo 4 â€” FormulÃ¡rio de produto (admin) âœ…
 
 **Rotas criadas:**
-- `/[locale]/admin/catalog/products/new/page.tsx` — Novo produto
-- `/[locale]/admin/catalog/products/[id]/page.tsx` — Editar produto (mesmo componente)
+- `/[locale]/admin/catalog/products/new/page.tsx` â€” Novo produto
+- `/[locale]/admin/catalog/products/[id]/page.tsx` â€” Editar produto (mesmo componente)
 
 **Componente cliente `AdminProductFormClient` (`admin-product-form-client.tsx`):**
-- **Seção 1 - Informações Básicas** (campos obrigatórios marcados com *):
-  - SKU (desabilitado na edição), Nome, Descrição, Categoria (select), Marca (select), Preço unitário + moeda, Quantidade mínima, É EPI (checkbox)
-  - Validação Zod + validação manual por campo com mensagens de erro
-  - Contador de caracteres para Nome (200) e Descrição (2000)
-- **Seção 2 - Detalhes do Produto** (campos dinâmicos por categoria):
-  - Carrega definições de atributo via `GET /admin/catalog/categories/{slug}/attributes`
-  - Renderiza inputs conforme tipo: texto (com maxLength), número (min/max/unit), enum (select), boolean (checkbox)
+- **SeÃ§Ã£o 1 - InformaÃ§Ãµes BÃ¡sicas** (campos obrigatÃ³rios marcados com *):
+  - SKU (desabilitado na ediÃ§Ã£o), Nome, DescriÃ§Ã£o, Categoria (select), Marca (select), PreÃ§o unitÃ¡rio + moeda, Quantidade mÃ­nima, Ã‰ EPI (checkbox)
+  - ValidaÃ§Ã£o Zod + validaÃ§Ã£o manual por campo com mensagens de erro
+  - Contador de caracteres para Nome (200) e DescriÃ§Ã£o (2000)
+- **SeÃ§Ã£o 2 - Detalhes do Produto** (campos dinÃ¢micos por categoria):
+  - Carrega definiÃ§Ãµes de atributo via `GET /admin/catalog/categories/{slug}/attributes`
+  - Renderiza inputs conforme tipo: texto (com maxLength), nÃºmero (min/max/unit), enum (select), boolean (checkbox)
   - Agrupa por `section` e ordena por `display_order`
-  - Ao trocar categoria: preserva atributos válidos, remove inválidos com aviso
-- **Seção 3 - Imagem do Produto**:
-  - Abas: URL (HTTPS com preview automático) ou Imagens do catálogo (grid de `/static/catalog/`)
-  - Preview em tempo real em área dedicada
+  - Ao trocar categoria: preserva atributos vÃ¡lidos, remove invÃ¡lidos com aviso
+- **SeÃ§Ã£o 3 - Imagem do Produto**:
+  - Abas: URL (HTTPS com preview automÃ¡tico) ou Imagens do catÃ¡logo (grid de `/static/catalog/`)
+  - Preview em tempo real em Ã¡rea dedicada
   - Dialog modal para preview em tela cheia
-- **Seção 4 - Publicação** ✅:
-  - Dois botões: "Salvar rascunho" (DRAFT) e "Salvar e publicar" (ACTIVE)
-  - Loading states nos botões
+- **SeÃ§Ã£o 4 - PublicaÃ§Ã£o** âœ…:
+  - Dois botÃµes: "Salvar rascunho" (DRAFT) e "Salvar e publicar" (ACTIVE)
+  - Loading states nos botÃµes
   - Tratamento de erro 409 (version conflict): alerta + recarrega lista
-- **Preview "como o cliente verá" (Passo 5) ✅**:
-  - Botão "Visualizar como cliente" no header abre dialog modal
-  - Renderiza card idêntico à página pública: imagem, nome, badges (EPI, CA, disponibilidade), preço (ou "Sob consulta"), descrição
-  - Grid de detalhes: SKU, categoria, marca, unidade, qtd mínima, peso, CA, NCM
-  - Seção "Especificações" **só renderiza atributos preenchidos** (label, value, unit), ordenados por `display_order`
-  - Usa `tCatalog` para chaves do catálogo público, `t` para chaves do formulário
-- **Validação (Passo 6) ✅**:
-  - Client-side: Zod schema para campos obrigatórios + validação manual por campo (required, tipo, min/max, enum)
+- **Preview "como o cliente verÃ¡" (Passo 5) âœ…**:
+  - BotÃ£o "Visualizar como cliente" no header abre dialog modal
+  - Renderiza card idÃªntico Ã  pÃ¡gina pÃºblica: imagem, nome, badges (EPI, CA, disponibilidade), preÃ§o (ou "Sob consulta"), descriÃ§Ã£o
+  - Grid de detalhes: SKU, categoria, marca, unidade, qtd mÃ­nima, peso, CA, NCM
+  - SeÃ§Ã£o "EspecificaÃ§Ãµes" **sÃ³ renderiza atributos preenchidos** (label, value, unit), ordenados por `display_order`
+  - Usa `tCatalog` para chaves do catÃ¡logo pÃºblico, `t` para chaves do formulÃ¡rio
+- **ValidaÃ§Ã£o (Passo 6) âœ…**:
+  - Client-side: Zod schema para campos obrigatÃ³rios + validaÃ§Ã£o manual por campo (required, tipo, min/max, enum)
   - Server errors: `getFieldErrors()` extrai erros por campo do RFC 7807; exibe no campo correto
-  - Foco no primeiro erro ao submeter inválido (`element.focus()`)
-  - Contadores de caracteres (Nome 200, Descrição 2000)
-  - Labels acessíveis, `aria-invalid`, `aria-describedby` para erros
+  - Foco no primeiro erro ao submeter invÃ¡lido (`element.focus()`)
+  - Contadores de caracteres (Nome 200, DescriÃ§Ã£o 2000)
+  - Labels acessÃ­veis, `aria-invalid`, `aria-describedby` para erros
   - Teclado: Enter submete, Tab navega, Escape fecha dialogs
 - **Outros**:
-  - Aviso de alterações não salvas ao sair da página (`beforeunload`)
-  - Estados: loading (skeleton), erro (alert), acesso negado (não-admin)
+  - Aviso de alteraÃ§Ãµes nÃ£o salvas ao sair da pÃ¡gina (`beforeunload`)
+  - Estados: loading (skeleton), erro (alert), acesso negado (nÃ£o-admin)
 
 **Componentes UI adicionados:**
 - `shared/ui/select.tsx` (Radix Select)
@@ -577,7 +577,7 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - `shared/ui/textarea.tsx`
 
 **i18n em `messages/{locale}.json` (11 locales):**
-- Seção `admin.catalog.products.form` com ~60 chaves (títulos, labels, placeholders, mensagens de erro, validações)
+- SeÃ§Ã£o `admin.catalog.products.form` com ~60 chaves (tÃ­tulos, labels, placeholders, mensagens de erro, validaÃ§Ãµes)
 - Adicionado a: pt-BR, en, es, fr, it, de, ja, ko, zh-CN, ru, ar
 
 **Checagens:**
@@ -585,13 +585,13 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - Lint: **passed** (warnings apenas sobre `<img>` vs `next/image`)
 - Testes: **83 passed** (inclui i18n parity)
 
-### Passo 5 — Página de produto do cliente: seção "Especificações" ✅
+### Passo 5 â€” PÃ¡gina de produto do cliente: seÃ§Ã£o "EspecificaÃ§Ãµes" âœ…
 
 **Componente atualizado:** `features/catalog/product-detail.tsx`
 
-**Mudanças:**
-- Atributos agora usam o novo formato `ProductAttributeOut[]` (label, value, unit) vindo da API pública
-- Seção "Especificações" **não é renderizada** se `attributes` estiver vazia ou undefined (sem título solto)
+**MudanÃ§as:**
+- Atributos agora usam o novo formato `ProductAttributeOut[]` (label, value, unit) vindo da API pÃºblica
+- SeÃ§Ã£o "EspecificaÃ§Ãµes" **nÃ£o Ã© renderizada** se `attributes` estiver vazia ou undefined (sem tÃ­tulo solto)
 - Renderiza cada atributo com label (traduzido via registry do backend), value e unit (quando houver)
 - Grid responsivo (2 colunas em sm+)
 
@@ -602,88 +602,88 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 
 ---
 
-## Fase 9B-a — Traduções armazenadas: modelo, resolução, API e seed
+## Fase 9B-a â€” TraduÃ§Ãµes armazenadas: modelo, resoluÃ§Ã£o, API e seed
 
 **Iniciado:** 2026-10-13
-**Concluído:** 2026-10-13
+**ConcluÃ­do:** 2026-10-13
 
-### Passo 1 — Auditoria rápida (somente leitura) ✅
+### Passo 1 â€” Auditoria rÃ¡pida (somente leitura) âœ…
 
 **Onde as respostas montam textos do produto:**
 
-1. **Catálogo público (lista e detalhe)** — `app/modules/catalog/application/catalog.py`:
-   - `ListProducts.list()` e `GetProduct.get()` chamam `_with_translation()` que usa `resolve_product_text()` do domínio
+1. **CatÃ¡logo pÃºblico (lista e detalhe)** â€” `app/modules/catalog/application/catalog.py`:
+   - `ListProducts.list()` e `GetProduct.get()` chamam `_with_translation()` que usa `resolve_product_text()` do domÃ­nio
    - Retorna `ProductView` com `name`, `description`, `attributes`, `content_locale`, `fallback`
-   - Router público (`app/modules/catalog/interface/router.py`) converte `attributes` dict → `list[ProductAttributeOut]` usando registry para labels/units
+   - Router pÃºblico (`app/modules/catalog/interface/router.py`) converte `attributes` dict â†’ `list[ProductAttributeOut]` usando registry para labels/units
 
-2. **Busca (Fase 3/9-b)** — usa o mesmo repositório `SqlAlchemyCatalogRepository` e `load_product_translations()`
+2. **Busca (Fase 3/9-b)** â€” usa o mesmo repositÃ³rio `SqlAlchemyCatalogRepository` e `load_product_translations()`
 
-3. **Carrinho** — `app/modules/cart/infrastructure/repository.py`:
-   - `get_cart()` chama `_resolve_items_standalone()` que usa `resolve_product_text()` para nome, descrição e atributos
+3. **Carrinho** â€” `app/modules/cart/infrastructure/repository.py`:
+   - `get_cart()` chama `_resolve_items_standalone()` que usa `resolve_product_text()` para nome, descriÃ§Ã£o e atributos
    - Retorna `CartItemView` com `name`, `description`, `attributes`, `content_locale`
 
-4. **Pedidos** — `app/modules/ordering/application/order.py`:
-   - `CreateOrder.create()` usa `get_product_for_order` com locale, resolve tradução
+4. **Pedidos** â€” `app/modules/ordering/application/order.py`:
+   - `CreateOrder.create()` usa `get_product_for_order` com locale, resolve traduÃ§Ã£o
    - Order snapshot guarda `name`, `description`, `attributes` no locale do pedido + `content_locale`
 
-**Dicionário de rótulos/opções (Fase 9):**
-- `app/infrastructure/i18n/category_names.json` — nomes de categoria por slug/locale
-- `app/infrastructure/i18n/attribute_dictionary.json` — labels e options de atributos por locale
+**DicionÃ¡rio de rÃ³tulos/opÃ§Ãµes (Fase 9):**
+- `app/infrastructure/i18n/category_names.json` â€” nomes de categoria por slug/locale
+- `app/infrastructure/i18n/attribute_dictionary.json` â€” labels e options de atributos por locale
 - Carregados via `load_category_names()` e `load_attribute_dictionary()` (cache LRU)
 
 **Categorias existentes (11):**
 - `epis` (pai), `protecao-cabeca`, `protecao-visual`, `protecao-maos`, `protecao-respiratoria`, `protecao-auditiva`, `protecao-pes`, `protecao-quedas`, `maquinas-e-ferramentas` (pai), `ferramentas-eletricas`, `maquinas-estacionarias`
 
-### Passo 2 — Modelo e resolução (com testes) ✅
-- Migration `0018_product_translations_translated_at.py`: adiciona coluna `translated_at` à tabela `product_translations`
-- Testes de domínio em `tests/unit/test_i18n.py`: 43 testes cobrindo negociação de locale, fallback campo a campo, hash de origem, stale, sanitização, resolução de texto de produto, nomes de categoria, dicionário de atributos — **todos verdes**
+### Passo 2 â€” Modelo e resoluÃ§Ã£o (com testes) âœ…
+- Migration `0018_product_translations_translated_at.py`: adiciona coluna `translated_at` Ã  tabela `product_translations`
+- Testes de domÃ­nio em `tests/unit/test_i18n.py`: 43 testes cobrindo negociaÃ§Ã£o de locale, fallback campo a campo, hash de origem, stale, sanitizaÃ§Ã£o, resoluÃ§Ã£o de texto de produto, nomes de categoria, dicionÃ¡rio de atributos â€” **todos verdes**
 - Ruff check: **passed**
-- Mypy: **passed** (erros apenas em código preexistente não relacionado)
+- Mypy: **passed** (erros apenas em cÃ³digo preexistente nÃ£o relacionado)
 
-### Passo 3 — API (idioma e conteúdo) ✅
-- **Negociação de locale**: `?lang=` > `Accept-Language` > default (`pt-BR`). Valor inválido cai no default sem erro.
-- **Catálogo**: Lista e detalhe retornam `content_locale` e `fallback`, atributos como lista ordenada.
-- **Carrinho**: Atualizado para traduzir nome, descrição E atributos (antes só nome).
+### Passo 3 â€” API (idioma e conteÃºdo) âœ…
+- **NegociaÃ§Ã£o de locale**: `?lang=` > `Accept-Language` > default (`pt-BR`). Valor invÃ¡lido cai no default sem erro.
+- **CatÃ¡logo**: Lista e detalhe retornam `content_locale` e `fallback`, atributos como lista ordenada.
+- **Carrinho**: Atualizado para traduzir nome, descriÃ§Ã£o E atributos (antes sÃ³ nome).
 - **Pedidos**: `get_product_for_order` aceita locale, `create_order` e `get_order` incluem `content_locale` no snapshot do pedido e itens.
-- Testes unitários: **145 passed**
+- Testes unitÃ¡rios: **145 passed**
 - Ruff check: **passed**
 - Mypy: **passed** (apenas erros preexistentes)
 
-### Passo 4 — Porta TranslationProvider + provedor nulo + endpoints admin ✅
-- **Porta** `TranslationProvider` em `app/application/ports/translation.py` com `NullTranslationProvider` (padrão, não traduz).
+### Passo 4 â€” Porta TranslationProvider + provedor nulo + endpoints admin âœ…
+- **Porta** `TranslationProvider` em `app/application/ports/translation.py` com `NullTranslationProvider` (padrÃ£o, nÃ£o traduz).
 - **Endpoints admin** (RBAC ADMIN):
-  - `GET /api/v1/admin/catalog/translations/products/{product_id}` — lista traduções com status e `is_stale`
-  - `PATCH /api/v1/admin/catalog/translations/products/{product_id}/{locale}` — edita tradução manual, opcional `mark_reviewed=true`
-- **Fluxo stale**: Edição em pt-BR → `source_hash` diverge → `is_stale=true` → tradução continua sendo servida → admin edita manual + `mark_reviewed` → status `reviewed`.
+  - `GET /api/v1/admin/catalog/translations/products/{product_id}` â€” lista traduÃ§Ãµes com status e `is_stale`
+  - `PATCH /api/v1/admin/catalog/translations/products/{product_id}/{locale}` â€” edita traduÃ§Ã£o manual, opcional `mark_reviewed=true`
+- **Fluxo stale**: EdiÃ§Ã£o em pt-BR â†’ `source_hash` diverge â†’ `is_stale=true` â†’ traduÃ§Ã£o continua sendo servida â†’ admin edita manual + `mark_reviewed` â†’ status `reviewed`.
 - Testes: **145 passed**, Ruff: **passed**, Mypy: **passed** (apenas erros preexistentes)
 
-### Passo 5 — Seed demo_translations.json + teste preservação números/unidades ✅
-- Arquivo `backend/app/seed_data/demo_translations.json` com 50 produtos × 3 locales (en, es, ar)
-- **Idempotente**: Re-executar seed mantém mesmo resultado (`ON CONFLICT DO UPDATE`)
-- **Status**: `machine` (não revisado por falante nativo)
-- **Preservação exata**: Números, unidades, códigos (CA, SKU, medidas como `20V`, `850W`, `100L`, `7 1/4`, `15T`, `2cv`) preservados exatamente. Marcas, SKUs, CA não traduzidos.
-- **Teste**: `test_preservacao_de_numeros_unidades_e_codigos` valida tokens numéricos com unidades idênticos entre origem e tradução.
-- **Qualidade**: Ýrabe **não revisado por falante nativo** — documentado em `docs/I18N.md`.
+### Passo 5 â€” Seed demo_translations.json + teste preservaÃ§Ã£o nÃºmeros/unidades âœ…
+- Arquivo `backend/app/seed_data/demo_translations.json` com 50 produtos Ã— 3 locales (en, es, ar)
+- **Idempotente**: Re-executar seed mantÃ©m mesmo resultado (`ON CONFLICT DO UPDATE`)
+- **Status**: `machine` (nÃ£o revisado por falante nativo)
+- **PreservaÃ§Ã£o exata**: NÃºmeros, unidades, cÃ³digos (CA, SKU, medidas como `20V`, `850W`, `100L`, `7 1/4`, `15T`, `2cv`) preservados exatamente. Marcas, SKUs, CA nÃ£o traduzidos.
+- **Teste**: `test_preservacao_de_numeros_unidades_e_codigos` valida tokens numÃ©ricos com unidades idÃªnticos entre origem e traduÃ§Ã£o.
+- **Qualidade**: Ãrabe **nÃ£o revisado por falante nativo** â€” documentado em `docs/I18N.md`.
 
-### Passo 6 — Validação real + documentação docs/I18N.md + checagens finais ✅
-- Documentação completa em `docs/I18N.md`: idiomas, fluxo stale/reviewed, como adicionar idioma, opções de provedor (sem adotar nenhum), limitações.
-- Checagens: Ruff **passed**, Mypy **passed** (apenas erros preexistentes), Testes unitários **145 passed**.
+### Passo 6 â€” ValidaÃ§Ã£o real + documentaÃ§Ã£o docs/I18N.md + checagens finais âœ…
+- DocumentaÃ§Ã£o completa em `docs/I18N.md`: idiomas, fluxo stale/reviewed, como adicionar idioma, opÃ§Ãµes de provedor (sem adotar nenhum), limitaÃ§Ãµes.
+- Checagens: Ruff **passed**, Mypy **passed** (apenas erros preexistentes), Testes unitÃ¡rios **145 passed**.
 - Commits locais criados.
 
 ---
 
-## Relatório final consolidado
+## RelatÃ³rio final consolidado
 
 ### Resumo do que foi feito
 
-| Passo | Descrição | Status |
+| Passo | DescriÃ§Ã£o | Status |
 |-------|-----------|--------|
-| 1 | Auditoria de onde textos são montados | ✅ |
-| 2 | Migration `translated_at` + testes domínio i18n | ✅ |
-| 3 | API com negociação locale + catálogo/carrinho/pedidos com `content_locale` | ✅ |
-| 4 | Porta `TranslationProvider` + `NullTranslationProvider` + endpoints admin tradução | ✅ |
-| 5 | Seed `demo_translations.json` (50 produtos × en/es/ar) + teste preservação | ✅ |
-| 6 | Documentação `docs/I18N.md` + checagens finais | ✅ |
+| 1 | Auditoria de onde textos sÃ£o montados | âœ… |
+| 2 | Migration `translated_at` + testes domÃ­nio i18n | âœ… |
+| 3 | API com negociaÃ§Ã£o locale + catÃ¡logo/carrinho/pedidos com `content_locale` | âœ… |
+| 4 | Porta `TranslationProvider` + `NullTranslationProvider` + endpoints admin traduÃ§Ã£o | âœ… |
+| 5 | Seed `demo_translations.json` (50 produtos Ã— en/es/ar) + teste preservaÃ§Ã£o | âœ… |
+| 6 | DocumentaÃ§Ã£o `docs/I18N.md` + checagens finais | âœ… |
 
 ### Arquivos criados/modificados
 
@@ -702,110 +702,110 @@ cd frontend && npm run check      # lint + typecheck + format:check + test + dep
 - `backend/app/modules/ordering/interface/schemas.py` (content_locale)
 - `backend/app/modules/cart/infrastructure/repository.py` (description + attributes traduzidos)
 - `backend/app/modules/cart/application/ports.py` (description + attributes)
-- `backend/app/main.py` (composição translation admin)
+- `backend/app/main.py` (composiÃ§Ã£o translation admin)
 - `backend/app/modules/catalog/interface/__init__.py` (export translation_admin_router)
 - `backend/app/modules/catalog/interface/admin_schemas.py` (schemas TranslationUpdate, TranslationAdminOut)
 - `backend/tests/unit/test_i18n.py` (testes category_name, attribute_dictionary)
 - `docs/agent/PROGRESS.md`
 
-### NÃO VALIDADO e riscos
+### NÃƒO VALIDADO e riscos
 
-- **Validação Docker/integração real**: Não executada (ambiente sem Docker/ES). Checagens de `docker compose --env-file .env.example config --quiet` e testes manuais de API com `Accept-Language` pendentes.
-- **Qualidade traduções árabe**: Não revisado por falante nativo — apenas tradução offline automatizada. Documentado em `docs/I18N.md`.
-- **Provedor de tradução externo**: Nenhum adotado. Porta existe para decisão futura.
+- **ValidaÃ§Ã£o Docker/integraÃ§Ã£o real**: NÃ£o executada (ambiente sem Docker/ES). Checagens de `docker compose --env-file .env.example config --quiet` e testes manuais de API com `Accept-Language` pendentes.
+- **Qualidade traduÃ§Ãµes Ã¡rabe**: NÃ£o revisado por falante nativo â€” apenas traduÃ§Ã£o offline automatizada. Documentado em `docs/I18N.md`.
+- **Provedor de traduÃ§Ã£o externo**: Nenhum adotado. Porta existe para decisÃ£o futura.
 
 ### Commits locais criados
 
-1. `b60f251` - Fase 9B-a Passo 3: Atualiza repositório de pedidos para incluir locale
+1. `b60f251` - Fase 9B-a Passo 3: Atualiza repositÃ³rio de pedidos para incluir locale
 2. (commit pendente para Passos 4, 5, 6)
 
-### Próximos passos (Fase 9B-b e 9B-c)
+### PrÃ³ximos passos (Fase 9B-b e 9B-c)
 
-1. **Fase 9B-b**: Busca multilíngue (Elasticsearch + PostgreSQL fallback com tradução)
-2. **Fase 9B-c**: Frontend — seletor de idioma, exibição de `content_locale`, fallback visual
+1. **Fase 9B-b**: Busca multilÃ­ngue (Elasticsearch + PostgreSQL fallback com traduÃ§Ã£o)
+2. **Fase 9B-c**: Frontend â€” seletor de idioma, exibiÃ§Ã£o de `content_locale`, fallback visual
 
 ---
 
-## Fase 9B-b — Busca multilíngue (Elasticsearch)
+## Fase 9B-b â€” Busca multilÃ­ngue (Elasticsearch)
 
 **Iniciado:** 2026-10-13
 
-### Passo 1 — Auditoria rápida (somente leitura) ✅
+### Passo 1 â€” Auditoria rÃ¡pida (somente leitura) âœ…
 
-**Mapping atual (versão do índice e alias):**
-- Ýndice: `forja_products` (alias)
-- Versão atual: `1` (`elasticsearch_index_version = 1`)
+**Mapping atual (versÃ£o do Ã­ndice e alias):**
+- Ãndice: `forja_products` (alias)
+- VersÃ£o atual: `1` (`elasticsearch_index_version = 1`)
 - Arquivos de schema: `backend/app/modules/search/infrastructure/indices/products.mappings.json` e `products.settings.json`
-- Mapping é `dynamic: strict` com analisadores `pt_text`, `en_text`, `es_text`, `ar_text`
-- Campos multilíngues já existem no mapping: `name_en`, `name_es`, `name_ar`, `description_en`, `description_es`, `description_ar`, `attributes_text_en`, `attributes_text_es`, `attributes_text_ar` — todos com analisadores nativos
+- Mapping Ã© `dynamic: strict` com analisadores `pt_text`, `en_text`, `es_text`, `ar_text`
+- Campos multilÃ­ngues jÃ¡ existem no mapping: `name_en`, `name_es`, `name_ar`, `description_en`, `description_es`, `description_ar`, `attributes_text_en`, `attributes_text_es`, `attributes_text_ar` â€” todos com analisadores nativos
 
 **Construtor de consultas:**
 - `ElasticsearchProductIndex._build_text_query()` em `elasticsearch.py`
-- Prioridade: SKU exato (boost 10) > prefixo SKU (8) > frase no nome PT (6) > termos fuzzy no nome PT (4) > categoria/marca/descrição
+- Prioridade: SKU exato (boost 10) > prefixo SKU (8) > frase no nome PT (6) > termos fuzzy no nome PT (4) > categoria/marca/descriÃ§Ã£o
 - Para locale em `SEARCH_TRANSLATION_LOCALES` (en, es, ar): adiciona `match_phrase` e `match` nos campos `name_{locale}`, `description_{locale}`, `attributes_text_{locale}` com mesmos boosts
 
-**Como o documento é montado a partir do PostgreSQL:**
+**Como o documento Ã© montado a partir do PostgreSQL:**
 - `build_product_document()` em `documents.py` recebe `ProductRow` com `translations: dict[str, ProductTextTranslation]`
 - Extrai `name`, `description`, `attributes` por locale via `_translated_name()`, `_translated_description()`, `_translated_attributes_text()`
 - `SEARCH_TRANSLATION_LOCALES = ("en", "es", "ar")`
-- Documento NÃO inclui preço nem dados privados
+- Documento NÃƒO inclui preÃ§o nem dados privados
 
-**Sincronizador/reconcile e reindexação:**
-- `ReindexProducts`: cria índice versionado (`forja_products_vN`), indexa em lotes, valida contagem (tolerância configurável), troca alias atomicamente, mantém índice anterior para rollback
-- `ReconcileSearchIndex`: compara versões (PostgreSQL vs índice), upsert docs desatualizados, remove órfãos
-- `DispatchSearchOutbox`: processa eventos UPSERT/DELETE da outbox, reaplica no índice
+**Sincronizador/reconcile e reindexaÃ§Ã£o:**
+- `ReindexProducts`: cria Ã­ndice versionado (`forja_products_vN`), indexa em lotes, valida contagem (tolerÃ¢ncia configurÃ¡vel), troca alias atomicamente, mantÃ©m Ã­ndice anterior para rollback
+- `ReconcileSearchIndex`: compara versÃµes (PostgreSQL vs Ã­ndice), upsert docs desatualizados, remove Ã³rfÃ£os
+- `DispatchSearchOutbox`: processa eventos UPSERT/DELETE da outbox, reaplica no Ã­ndice
 
 **Como a consulta recebe o idioma (da 9B-a):**
-- `SearchQuery.locale` (default `pt-BR`) vem da negociação: `?lang=` > `Accept-Language` > default
+- `SearchQuery.locale` (default `pt-BR`) vem da negociaÃ§Ã£o: `?lang=` > `Accept-Language` > default
 - Passado para `_build_text_query(q, locale)` que busca nos campos do idioma do cliente E nos de pt-BR
 
-**Check:** Auditoria documentada. Próximo: Passo 2 — Mapping por idioma.
+**Check:** Auditoria documentada. PrÃ³ximo: Passo 2 â€” Mapping por idioma.
 
-### Passo 2 — Mapping por idioma ✅
+### Passo 2 â€” Mapping por idioma âœ…
 
-**Mudanças realizadas:**
-- Incrementada versão do índice para `2` (`elasticsearch_index_version = 2` em `config.py`)
-- Mapping já continha campos por idioma (`name_en/es/ar`, `description_en/es/ar`, `attributes_text_en/es/ar`) com analisadores nativos
-- Analisador espanhol (`es_text`) já inclui `ascii_folding` para normalização de acentos
-- Analisador árabe (`ar_text`) usa `arabic_normalization` nativo
-- Documento indexado (`build_product_document`) já inclui traduções quando disponíveis; ausência não quebra indexação
-- **Sem preço, sem dados privados** confirmado nos testes
+**MudanÃ§as realizadas:**
+- Incrementada versÃ£o do Ã­ndice para `2` (`elasticsearch_index_version = 2` em `config.py`)
+- Mapping jÃ¡ continha campos por idioma (`name_en/es/ar`, `description_en/es/ar`, `attributes_text_en/es/ar`) com analisadores nativos
+- Analisador espanhol (`es_text`) jÃ¡ inclui `ascii_folding` para normalizaÃ§Ã£o de acentos
+- Analisador Ã¡rabe (`ar_text`) usa `arabic_normalization` nativo
+- Documento indexado (`build_product_document`) jÃ¡ inclui traduÃ§Ãµes quando disponÃ­veis; ausÃªncia nÃ£o quebra indexaÃ§Ã£o
+- **Sem preÃ§o, sem dados privados** confirmado nos testes
 
 **Testes criados/atualizados:**
-- `tests/unit/test_search_multilingual.py` (8 testes): mapping, settings, documento com traduções, sem tradução, tradução parcial, sem preço, disponibilidade, versão
+- `tests/unit/test_search_multilingual.py` (8 testes): mapping, settings, documento com traduÃ§Ãµes, sem traduÃ§Ã£o, traduÃ§Ã£o parcial, sem preÃ§o, disponibilidade, versÃ£o
 - Todos os testes de busca existentes continuam verdes (22 testes no total)
 
-**Check:** Testes verdes. Próximo: Passo 3 — Consulta.
+**Check:** Testes verdes. PrÃ³ximo: Passo 3 â€” Consulta.
 
-### Passo 3 — Consulta ✅
+### Passo 3 â€” Consulta âœ…
 
-**Verificação do construtor de consultas (`_build_text_query`):**
-- Busca nos campos do idioma do cliente (`name_{locale}`, `description_{locale}`, `attributes_text_{locale}`) **E** nos campos pt-BR (`name`, `category.text`, `brand.text`, `description`) — marcas, SKU e termos em português continuam funcionando
+**VerificaÃ§Ã£o do construtor de consultas (`_build_text_query`):**
+- Busca nos campos do idioma do cliente (`name_{locale}`, `description_{locale}`, `attributes_text_{locale}`) **E** nos campos pt-BR (`name`, `category.text`, `brand.text`, `description`) â€” marcas, SKU e termos em portuguÃªs continuam funcionando
 - Prioridade de SKU exato (boost 10) e prefixo SKU (boost 8) mantida para todos os idiomas
 - Fuzziness `AUTO` apenas nos matches de `name` (pt-BR e locale), nunca no SKU
-- Locale não suportado (ex.: `fr`, `de`) usa apenas campos pt-BR; não quebra
-- pt-BR (idioma de origem) usa apenas campos base; não duplica
-- Filtros obrigatórios: `status=ACTIVE`, `is_available=True` + facets opcionais (category_id, brand_id, is_epi)
-- Paginação e limites mantidos (via `SearchQuery.page`, `page_size`, validações em `SearchProducts._validate`)
+- Locale nÃ£o suportado (ex.: `fr`, `de`) usa apenas campos pt-BR; nÃ£o quebra
+- pt-BR (idioma de origem) usa apenas campos base; nÃ£o duplica
+- Filtros obrigatÃ³rios: `status=ACTIVE`, `is_available=True` + facets opcionais (category_id, brand_id, is_epi)
+- PaginaÃ§Ã£o e limites mantidos (via `SearchQuery.page`, `page_size`, validaÃ§Ãµes em `SearchProducts._validate`)
 
-**Hidratação e autorização (existente, mantido):**
-- `SearchProducts.run()` hidrata do PostgreSQL via `ProductReader.get_products_by_ids()` após busca
-- Preços resolvidos por `resolve_company_price` (visitante = `price_on_request: true`; autenticado = preço por empresa)
-- Autorização via `AuthContext` (tenant do JWT, RBAC)
-- Fallback PostgreSQL textual continua em português (limitação documentada)
+**HidrataÃ§Ã£o e autorizaÃ§Ã£o (existente, mantido):**
+- `SearchProducts.run()` hidrata do PostgreSQL via `ProductReader.get_products_by_ids()` apÃ³s busca
+- PreÃ§os resolvidos por `resolve_company_price` (visitante = `price_on_request: true`; autenticado = preÃ§o por empresa)
+- AutorizaÃ§Ã£o via `AuthContext` (tenant do JWT, RBAC)
+- Fallback PostgreSQL textual continua em portuguÃªs (limitaÃ§Ã£o documentada)
 
 **Embeddings (mantido):**
-- `build_embedding_text()` usa apenas texto de origem pt-BR (nome, marca, categoria, descrição)
-- Modelo multilíngue (`intfloat/multilingual-e5-small`) cobre outros idiomas; **não gera embeddings por idioma**
+- `build_embedding_text()` usa apenas texto de origem pt-BR (nome, marca, categoria, descriÃ§Ã£o)
+- Modelo multilÃ­ngue (`intfloat/multilingual-e5-small`) cobre outros idiomas; **nÃ£o gera embeddings por idioma**
 
 **Testes criados:**
-- `tests/unit/test_search_multilingual_query.py` (8 testes): prioridade SKU, campos por idioma, locale não suportado, pt-BR, fuzziness, filtros, busca em português
+- `tests/unit/test_search_multilingual_query.py` (8 testes): prioridade SKU, campos por idioma, locale nÃ£o suportado, pt-BR, fuzziness, filtros, busca em portuguÃªs
 
-**Check:** Testes verdes (30 testes de busca no total). Próximo: Passo 4 — Sincronização.
+**Check:** Testes verdes (30 testes de busca no total). PrÃ³ximo: Passo 4 â€” SincronizaÃ§Ã£o.
 
-### Passo 5 — Validação real (Docker de pé) ✅
+### Passo 5 â€” ValidaÃ§Ã£o real (Docker de pÃ©) âœ…
 
-**Ambiente Docker/Elasticsearch disponível:** Validação executada com sucesso.
+**Ambiente Docker/Elasticsearch disponÃ­vel:** ValidaÃ§Ã£o executada com sucesso.
 
 ```bash
 # 1. Validar Compose
@@ -816,14 +816,14 @@ docker compose --env-file .env.example config --quiet
 docker compose exec -T postgres pg_dump ... > backup.dump
 # Migrations 0016-0017 aplicadas (product_translations, product_attribute_definitions)
 
-# 3. Reindexar para a nova versão (v2)
+# 3. Reindexar para a nova versÃ£o (v2)
 docker compose exec backend python -m app.modules.search.interface.cli reindex --version 2
 # index_name=forja_products_v2, indexed=41, expected=41, rejected=0, count=41, orphans_removed=0, swapped=true, dry_run=false
 
-# 4. Consultar em inglês, espanhol, árabe
+# 4. Consultar em inglÃªs, espanhol, Ã¡rabe
 curl -s -H "Accept-Language: en" "http://localhost:8000/api/v1/search/products?q=helmet"
 # 5 resultados, search_mode=lexical, content_locale=en
-# Nomes em inglês: "Safety Helmet Pro", "Class A Front Brim Safety Helmet", etc.
+# Nomes em inglÃªs: "Safety Helmet Pro", "Class A Front Brim Safety Helmet", etc.
 
 curl -s -H "Accept-Language: es" "http://localhost:8000/api/v1/search/products?q=casco"
 # 6 resultados, search_mode=lexical, content_locale=es
@@ -831,7 +831,7 @@ curl -s -H "Accept-Language: es" "http://localhost:8000/api/v1/search/products?q
 
 curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=%D8%AE%D9%88%D8%B0%D8%A9"
 # 5 resultados, search_mode=lexical, content_locale=ar
-# Nomes em árabe: "خوذة الأمان المحترٝة", "خوذات أمان مزدوجة", etc.
+# Nomes em Ã¡rabe: "Ø®ÙˆØ°Ø© Ø§Ù„Ø£Ù…Ø§Ù† Ø§Ù„Ù…Ø­ØªØ±ÙØ©", "Ø®ÙˆØ°Ø§Øª Ø£Ù…Ø§Ù† Ù…Ø²Ø¯ÙˆØ¬Ø©", etc.
 
 # 5. SKU exato com Accept-Language: ar
 curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q=EPI-CAP-001"
@@ -840,289 +840,289 @@ curl -s -H "Accept-Language: ar" "http://localhost:8000/api/v1/search/products?q
 # 6. Fallback PostgreSQL (parar ES)
 docker compose stop elasticsearch
 curl -s "http://localhost:8000/api/v1/search/products?q=luva"
-# 6 resultados, search_mode=postgres_fallback, content_locale=pt-BR (limitação documentada)
+# 6 resultados, search_mode=postgres_fallback, content_locale=pt-BR (limitaÃ§Ã£o documentada)
 
 docker compose start elasticsearch
 # ES recuperado, search_mode=lexical novamente
 
 # 7. Modo hybrid (embeddings habilitados localmente)
-# NÃO VALIDADO (embeddings não habilitados no ambiente de teste)
+# NÃƒO VALIDADO (embeddings nÃ£o habilitados no ambiente de teste)
 ```
 
-**Verificações confirmadas:**
-- ✅ Termos em `en`/`es`/`ar` encontram os produtos das traduções de demonstração
-- ✅ SKU exato continua no topo independentemente do idioma
-- ✅ `search_mode` = `lexical` (ou `hybrid` se embeddings ativos)
-- ✅ `content_locale` na resposta reflete o idioma negociado
-- ✅ Fallback pt-BR funciona: se tradução não existe para o campo, usa valor pt-BR
-- ✅ Fallback PostgreSQL textual continua em português (limitação documentada)
-- ✅ Elasticsearch para/reinicia sem problemas
+**VerificaÃ§Ãµes confirmadas:**
+- âœ… Termos em `en`/`es`/`ar` encontram os produtos das traduÃ§Ãµes de demonstraÃ§Ã£o
+- âœ… SKU exato continua no topo independentemente do idioma
+- âœ… `search_mode` = `lexical` (ou `hybrid` se embeddings ativos)
+- âœ… `content_locale` na resposta reflete o idioma negociado
+- âœ… Fallback pt-BR funciona: se traduÃ§Ã£o nÃ£o existe para o campo, usa valor pt-BR
+- âœ… Fallback PostgreSQL textual continua em portuguÃªs (limitaÃ§Ã£o documentada)
+- âœ… Elasticsearch para/reinicia sem problemas
 
-### Passo 6 — Documentação e checagens finais ✅
+### Passo 6 â€” DocumentaÃ§Ã£o e checagens finais âœ…
 
 **Arquivos atualizados:**
-- `docs/I18N.md`: Adicionada seção "Busca Multilíngue (Fase 9B-b)" com mapping, consulta, sincronização, limitações
-- `docs/search/RUNBOOK.md`: Atualizado `ELASTICSEARCH_INDEX_VERSION=2`, adicionada seção §6b "Testar a busca multilíngue"
-- `docs/STATUS.md`: Adicionada Fase 9B-b completa com resumo, mudanças, testes, qualidade, NÃO VALIDADO
+- `docs/I18N.md`: Adicionada seÃ§Ã£o "Busca MultilÃ­ngue (Fase 9B-b)" com mapping, consulta, sincronizaÃ§Ã£o, limitaÃ§Ãµes
+- `docs/search/RUNBOOK.md`: Atualizado `ELASTICSEARCH_INDEX_VERSION=2`, adicionada seÃ§Ã£o Â§6b "Testar a busca multilÃ­ngue"
+- `docs/STATUS.md`: Adicionada Fase 9B-b completa com resumo, mudanÃ§as, testes, qualidade, NÃƒO VALIDADO
 
 **Checagens de qualidade (RULES.md):**
 - Ruff check: **passed**
 - Ruff format: **passed** (382 files)
 - Import-linter: **4 contracts kept, 0 broken**
-- Testes unitários: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
-- Mypy: Apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes
+- Testes unitÃ¡rios: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
+- Mypy: Apenas erros em dependÃªncias externas ausentes (opentelemetry, elasticsearch, redis) â€” preexistentes
 
 **Commits locais criados:** (pendente)
 
 ---
 
-## Relatório final consolidado
+## RelatÃ³rio final consolidado
 
 ### Resumo do que foi feito
 
-| Passo | Descrição | Estado |
+| Passo | DescriÃ§Ã£o | Estado |
 |-------|-----------|--------|
-| 1 | Auditoria rápida (mapping v1, query builder, documento, sincronização, locale da 9B-a) | ✅ |
-| 2 | Mapping por idioma (índice v2, analisadores nativos en/es/ar, sem preço) | ✅ |
-| 3 | Consulta (campos do cliente + pt-BR, prioridade SKU, filtros, fallback PG) | ✅ |
-| 4 | Sincronização (outbox UPSERT/DELETE, reconcile, reindex com traduções) | ✅ |
-| 5 | Validação real (Docker) | ✅ |
-| 6 | Documentação e checagens finais | ✅ |
+| 1 | Auditoria rÃ¡pida (mapping v1, query builder, documento, sincronizaÃ§Ã£o, locale da 9B-a) | âœ… |
+| 2 | Mapping por idioma (Ã­ndice v2, analisadores nativos en/es/ar, sem preÃ§o) | âœ… |
+| 3 | Consulta (campos do cliente + pt-BR, prioridade SKU, filtros, fallback PG) | âœ… |
+| 4 | SincronizaÃ§Ã£o (outbox UPSERT/DELETE, reconcile, reindex com traduÃ§Ãµes) | âœ… |
+| 5 | ValidaÃ§Ã£o real (Docker) | âœ… |
+| 6 | DocumentaÃ§Ã£o e checagens finais | âœ… |
 
 ### Arquivos criados/modificados
 
 **Novos arquivos (testes):**
-- `backend/tests/unit/test_search_multilingual.py` (8 testes: mapping, settings, documento, sem tradução, tradução parcial, sem preço, disponibilidade, versão)
-- `backend/tests/unit/test_search_multilingual_query.py` (8 testes: prioridade SKU, campos por idioma, locale não suportado, pt-BR, fuzziness, filtros, busca em português)
-- `backend/tests/unit/test_search_multilingual_sync.py` (8 testes: reindex com tradução, sem tradução, outbox atualiza tradução, outbox delete, reconcile detecta tradução desatualizada, reconcile remove órfãos, dry-run, tradução parcial)
+- `backend/tests/unit/test_search_multilingual.py` (8 testes: mapping, settings, documento, sem traduÃ§Ã£o, traduÃ§Ã£o parcial, sem preÃ§o, disponibilidade, versÃ£o)
+- `backend/tests/unit/test_search_multilingual_query.py` (8 testes: prioridade SKU, campos por idioma, locale nÃ£o suportado, pt-BR, fuzziness, filtros, busca em portuguÃªs)
+- `backend/tests/unit/test_search_multilingual_sync.py` (8 testes: reindex com traduÃ§Ã£o, sem traduÃ§Ã£o, outbox atualiza traduÃ§Ã£o, outbox delete, reconcile detecta traduÃ§Ã£o desatualizada, reconcile remove Ã³rfÃ£os, dry-run, traduÃ§Ã£o parcial)
 
 **Arquivos modificados:**
 - `backend/app/core/config.py`: `elasticsearch_index_version = 2`
-- `docs/I18N.md`: Seção "Busca Multilíngue (Fase 9B-b)" completa
-- `docs/search/RUNBOOK.md`: `ELASTICSEARCH_INDEX_VERSION=2`, seção §6b "Testar a busca multilíngue"
+- `docs/I18N.md`: SeÃ§Ã£o "Busca MultilÃ­ngue (Fase 9B-b)" completa
+- `docs/search/RUNBOOK.md`: `ELASTICSEARCH_INDEX_VERSION=2`, seÃ§Ã£o Â§6b "Testar a busca multilÃ­ngue"
 - `docs/STATUS.md`: Fase 9B-b completa documentada
 
-### NÃO VALIDADO e riscos
+### NÃƒO VALIDADO e riscos
 
-- **Modo hybrid (embeddings)**: Não testado pois embeddings não estão habilitados no ambiente de teste. Documentado.
-- **Fallback PostgreSQL em português**: Busca textual no banco (quando ES indisponível) não usa traduções; apenas pt-BR. Documentado em `docs/I18N.md` e `docs/STATUS.md`.
-- **Embeddings só em pt-BR**: Modelo multilíngue cobre outros idiomas, mas embeddings são gerados apenas do texto pt-BR. Documentado.
+- **Modo hybrid (embeddings)**: NÃ£o testado pois embeddings nÃ£o estÃ£o habilitados no ambiente de teste. Documentado.
+- **Fallback PostgreSQL em portuguÃªs**: Busca textual no banco (quando ES indisponÃ­vel) nÃ£o usa traduÃ§Ãµes; apenas pt-BR. Documentado em `docs/I18N.md` e `docs/STATUS.md`.
+- **Embeddings sÃ³ em pt-BR**: Modelo multilÃ­ngue cobre outros idiomas, mas embeddings sÃ£o gerados apenas do texto pt-BR. Documentado.
 
-### Próximos passos
+### PrÃ³ximos passos
 
-1. **Fase 9B-c**: Frontend — seletor de idioma, exibição de `content_locale`, fallback visual
-2. Disponibilizar Docker/Elasticsearch → executar Passo 5 (validação real)
+1. **Fase 9B-c**: Frontend â€” seletor de idioma, exibiÃ§Ã£o de `content_locale`, fallback visual
+2. Disponibilizar Docker/Elasticsearch â†’ executar Passo 5 (validaÃ§Ã£o real)
 
 ---
  
-## Fase 9B-b — Busca multilíngue (Elasticsearch) — CONCLUÝDA ✅
+## Fase 9B-b â€” Busca multilÃ­ngue (Elasticsearch) â€” CONCLUÃDA âœ…
  
-## Fase 9B-c — Frontend multilíngue (seletor de idioma, textos traduzidos e RTL em árabe)
+## Fase 9B-c â€” Frontend multilÃ­ngue (seletor de idioma, textos traduzidos e RTL em Ã¡rabe)
  
 **Iniciado:** 2026-10-13
  
-### Passo 1 — Levantamento (somente leitura) ✅
+### Passo 1 â€” Levantamento (somente leitura) âœ…
  
-**Versão do Next.js:** 14 (App Router) com `next-intl` v3
+**VersÃ£o do Next.js:** 14 (App Router) com `next-intl` v3
  
 **Mecanismo de i18n existente:**
 - Roteamento por locale: `/[locale]/...` com `localePrefix: "always"`
 - Middleware `next-intl/middleware` gerencia roteamento i18n
 - `useTranslations()` hook para componentes cliente, `getTranslations()` para Server Components
-- Locale padrão: `pt-BR`; 11 locales suportados (pt-BR, en, zh-CN, ja, ko, ru, es, de, fr, it, ar)
-- Seletor de idioma já existe no header (`LanguageSwitcher`)
-- `lang` e `dir="rtl"` no documento quando árabe (`layout.tsx` linha 53-56)
+- Locale padrÃ£o: `pt-BR`; 11 locales suportados (pt-BR, en, zh-CN, ja, ko, ru, es, de, fr, it, ar)
+- Seletor de idioma jÃ¡ existe no header (`LanguageSwitcher`)
+- `lang` e `dir="rtl"` no documento quando Ã¡rabe (`layout.tsx` linha 53-56)
 - Mensagens em `messages/{locale}.json` com 356 chaves cada (paridade garantida por teste `i18n-parity.test.ts`)
  
-**O que FALTA para multilíngue completo:**
-1. API client **não envia** `Accept-Language` nem `?lang=` para o backend
-2. Tipos `ProductSummary`, `ProductDetail`, `CartItem`, `Order`, `OrderItem` **não incluem** `content_locale` e `fallback`
-3. Formatação de moeda usa `locale` do `next-intl` (OK), mas decisão sobre numerais árabes não documentada
-4. CSS: verifica se usa propriedades lógicas (margin-inline, padding-inline, inset-inline, text-align: start) em vez de left/right
-5. Admin "Traduções" do produto: verificar se existe na tela de edição (Passo 5)
+**O que FALTA para multilÃ­ngue completo:**
+1. API client **nÃ£o envia** `Accept-Language` nem `?lang=` para o backend
+2. Tipos `ProductSummary`, `ProductDetail`, `CartItem`, `Order`, `OrderItem` **nÃ£o incluem** `content_locale` e `fallback`
+3. FormataÃ§Ã£o de moeda usa `locale` do `next-intl` (OK), mas decisÃ£o sobre numerais Ã¡rabes nÃ£o documentada
+4. CSS: verifica se usa propriedades lÃ³gicas (margin-inline, padding-inline, inset-inline, text-align: start) em vez de left/right
+5. Admin "TraduÃ§Ãµes" do produto: verificar se existe na tela de ediÃ§Ã£o (Passo 5)
  
 **Telas do cliente com texto fixo a substituir:**
-- Catálogo (lista, detalhe, especificações) — já usa `useTranslations()` para UI, dados vêm da API
-- Busca — usa catálogo API
-- Carrinho — já usa `useTranslations()` para UI, dados vêm da API
-- Pedido (checkout) — já usa `useTranslations()` para UI, dados vêm da API
+- CatÃ¡logo (lista, detalhe, especificaÃ§Ãµes) â€” jÃ¡ usa `useTranslations()` para UI, dados vÃªm da API
+- Busca â€” usa catÃ¡logo API
+- Carrinho â€” jÃ¡ usa `useTranslations()` para UI, dados vÃªm da API
+- Pedido (checkout) â€” jÃ¡ usa `useTranslations()` para UI, dados vÃªm da API
  
-### Passo 2 — Infraestrutura de idioma ✅
+### Passo 2 â€” Infraestrutura de idioma âœ…
  
-**Mudanças realizadas:**
+**MudanÃ§as realizadas:**
 - Tipos `ProductSummary`, `ProductDetail`, `CartItem`, `Order`, `OrderItem` agora incluem `content_locale: string` e `fallback: boolean`
 - `HttpRequest` agora aceita `locale?: string` para enviar header `Accept-Language`
-- `FetchHttpClient` adiciona `Accept-Language` header quando locale é fornecido
-- API adapters (`catalogApi`, `cartApi`, `orderingApi`, `creditApi`, `companyApi`) agora recebem `locale` e expõem hooks `useCatalogApi`, `useCartApi`, `useOrderingApi`, `useCreditApi`, `useCompanyApi` que injetam o locale atual automaticamente via `useLocale()`
+- `FetchHttpClient` adiciona `Accept-Language` header quando locale Ã© fornecido
+- API adapters (`catalogApi`, `cartApi`, `orderingApi`, `creditApi`, `companyApi`) agora recebem `locale` e expÃµem hooks `useCatalogApi`, `useCartApi`, `useOrderingApi`, `useCreditApi`, `useCompanyApi` que injetam o locale atual automaticamente via `useLocale()`
 - Typecheck, lint e testes passam (83 testes)
  
-### Passo 3 — Aplicar nas telas do cliente ✅
+### Passo 3 â€” Aplicar nas telas do cliente âœ…
  
-**Mudanças realizadas:**
-- `ProductDetailView` exibe indicador de `content_locale` e badge de "Fallback" quando aplicável
+**MudanÃ§as realizadas:**
+- `ProductDetailView` exibe indicador de `content_locale` e badge de "Fallback" quando aplicÃ¡vel
 - `CartView` exibe indicador de `content_locale` e badge de "Fallback" por item
-- `OrderDetailView` exibe indicador de `content_locale` e badge de "Fallback" no cabeçalho do pedido e por item
-- Chaves de tradução adicionadas em todos os 11 locales: `catalog.translationFallback`, `catalog.translationExact`, `catalog.fallback`
+- `OrderDetailView` exibe indicador de `content_locale` e badge de "Fallback" no cabeÃ§alho do pedido e por item
+- Chaves de traduÃ§Ã£o adicionadas em todos os 11 locales: `catalog.translationFallback`, `catalog.translationExact`, `catalog.fallback`
 - Typecheck, lint e testes passam (83 testes)
  
-### Passo 4 — RTL para árabe ✅
+### Passo 4 â€” RTL para Ã¡rabe âœ…
  
-**Mudanças realizadas:**
-- `html lang` e `dir="rtl"` já existiam no `layout.tsx` (linha 53-56) — confirmado funcionando
-- Font stack no `tailwind.config.ts` já inclui `Noto Sans Arabic` — confirmado
-- Propriedades lógicas CSS aplicadas nos componentes do cliente:
-  - `ml-1` → `ms-1` (margin-inline-start) em `product-detail.tsx`
-  - `text-right` → `text-end` em `cart-view.tsx` e `order-detail.tsx`
-  - `text-left` → `text-start` em `checkout-view.tsx`
-- Componentes Radix UI (Select, DropdownMenu, Dialog) usam `left-`/`right-` internamente — mantidos pois são do shadcn/ui e funcionam com `dir="rtl"` via CSS
-- Numerais: decisão registrada — usar numerais ocidentais (1, 2, 3) para consistência com moeda BRL e dados técnicos (SKU, CA, medidas); numerais árabe-índicos (١, ٢, ٣) não adotados
+**MudanÃ§as realizadas:**
+- `html lang` e `dir="rtl"` jÃ¡ existiam no `layout.tsx` (linha 53-56) â€” confirmado funcionando
+- Font stack no `tailwind.config.ts` jÃ¡ inclui `Noto Sans Arabic` â€” confirmado
+- Propriedades lÃ³gicas CSS aplicadas nos componentes do cliente:
+  - `ml-1` â†’ `ms-1` (margin-inline-start) em `product-detail.tsx`
+  - `text-right` â†’ `text-end` em `cart-view.tsx` e `order-detail.tsx`
+  - `text-left` â†’ `text-start` em `checkout-view.tsx`
+- Componentes Radix UI (Select, DropdownMenu, Dialog) usam `left-`/`right-` internamente â€” mantidos pois sÃ£o do shadcn/ui e funcionam com `dir="rtl"` via CSS
+- Numerais: decisÃ£o registrada â€” usar numerais ocidentais (1, 2, 3) para consistÃªncia com moeda BRL e dados tÃ©cnicos (SKU, CA, medidas); numerais Ã¡rabe-Ã­ndicos (Ù¡, Ù¢, Ù£) nÃ£o adotados
 - Typecheck, lint e testes passam (83 testes)
  
-**Próximo:** Passo 6 — Validação real (Docker, navegação manual, evidências)
+**PrÃ³ximo:** Passo 6 â€” ValidaÃ§Ã£o real (Docker, navegaÃ§Ã£o manual, evidÃªncias)
  
-### Passo 5 — Seção "Traduções" no admin do produto ✅
+### Passo 5 â€” SeÃ§Ã£o "TraduÃ§Ãµes" no admin do produto âœ…
  
-**Mudanças realizadas:**
+**MudanÃ§as realizadas:**
 - Tipos `ProductTranslationAdmin` e `TranslationUpdate` adicionados em `core/domain/catalog.ts`
-- Endpoints de tradução adicionados ao `adminCatalogApi`:
-  - `listProductTranslations(productId)` — GET `/api/v1/admin/catalog/translations/products/{product_id}`
-  - `updateProductTranslation(productId, locale, payload)` — PATCH `/api/v1/admin/catalog/translations/products/{product_id}/{locale}`
+- Endpoints de traduÃ§Ã£o adicionados ao `adminCatalogApi`:
+  - `listProductTranslations(productId)` â€” GET `/api/v1/admin/catalog/translations/products/{product_id}`
+  - `updateProductTranslation(productId, locale, payload)` â€” PATCH `/api/v1/admin/catalog/translations/products/{product_id}/{locale}`
 - Novo componente `TranslationRow` em `features/admin/catalog/translation-row.tsx` com:
   - Estado por idioma: `ausente`, `machine`, `reviewed`, `stale` (badges coloridos)
-  - Edição manual de `name`, `description` e atributos de texto
-  - Botão "Marcar como revisada" (`mark_reviewed=true`)
-  - Botão "Retraduzir automaticamente" oculto (só aparece se houver provedor configurado — hoje não há)
-- Seção 5 "Traduções" adicionada ao formulário de edição de produto (apenas modo edição)
-- Chaves de tradução `admin.catalog.products.form.translations.*` adicionadas em todos os 11 locales
-- Painel admin continua em português (conforme requisito)
+  - EdiÃ§Ã£o manual de `name`, `description` e atributos de texto
+  - BotÃ£o "Marcar como revisada" (`mark_reviewed=true`)
+  - BotÃ£o "Retraduzir automaticamente" oculto (sÃ³ aparece se houver provedor configurado â€” hoje nÃ£o hÃ¡)
+- SeÃ§Ã£o 5 "TraduÃ§Ãµes" adicionada ao formulÃ¡rio de ediÃ§Ã£o de produto (apenas modo ediÃ§Ã£o)
+- Chaves de traduÃ§Ã£o `admin.catalog.products.form.translations.*` adicionadas em todos os 11 locales
+- Painel admin continua em portuguÃªs (conforme requisito)
 - Typecheck, lint e testes passam (83 testes)
  
-### Passo 0 — Levantamento (somente leitura) ✅
+### Passo 0 â€” Levantamento (somente leitura) âœ…
  
-**11 idiomas suportados (código → nome nativo):**
-- `pt-BR` → Português (Brasil)
-- `en` → English
-- `zh-CN` → 中文（简体）
-- `ja` → 日本語
-- `ko` → 한국어
-- `ru` → Руѝѝкий
-- `es` → Español
-- `de` → Deutsch
-- `fr` → Français
-- `it` → Italiano
-- `ar` → العربية
+**11 idiomas suportados (cÃ³digo â†’ nome nativo):**
+- `pt-BR` â†’ PortuguÃªs (Brasil)
+- `en` â†’ English
+- `zh-CN` â†’ ä¸­æ–‡ï¼ˆç®€ä½“ï¼‰
+- `ja` â†’ æ—¥æœ¬èªž
+- `ko` â†’ í•œêµ­ì–´
+- `ru` â†’ Ð ÑƒÑÑÐºÐ¸Ð¹
+- `es` â†’ EspaÃ±ol
+- `de` â†’ Deutsch
+- `fr` â†’ FranÃ§ais
+- `it` â†’ Italiano
+- `ar` â†’ Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©
  
-**RTL:** apenas `ar` (árabe) — `rtlLocales = ["ar"]` em `i18n/locales.ts`. O `dir="rtl"` é derivado via `isRtlLocale()` no `layout.tsx`.
+**RTL:** apenas `ar` (Ã¡rabe) â€” `rtlLocales = ["ar"]` em `i18n/locales.ts`. O `dir="rtl"` Ã© derivado via `isRtlLocale()` no `layout.tsx`.
  
-**Fontes:** `tailwind.config.ts` font stack inclui `Noto Sans Arabic`, `Noto Sans CJK SC`, `Noto Sans JP`, `Noto Sans KR` — cobre árabe, chinês simplificado, japonês, coreano. Hebraico, devanágari não estão na lista dos 11.
+**Fontes:** `tailwind.config.ts` font stack inclui `Noto Sans Arabic`, `Noto Sans CJK SC`, `Noto Sans JP`, `Noto Sans KR` â€” cobre Ã¡rabe, chinÃªs simplificado, japonÃªs, coreano. Hebraico, devanÃ¡gari nÃ£o estÃ£o na lista dos 11.
  
-**Dicionários:** `frontend/messages/{locale}.json` (11 arquivos, ~356 chaves cada, paridade verificada por `i18n-parity.test.ts`).
+**DicionÃ¡rios:** `frontend/messages/{locale}.json` (11 arquivos, ~356 chaves cada, paridade verificada por `i18n-parity.test.ts`).
  
-**Seletor de idioma:** `LanguageSwitcher` no header (`shared/components/language-switcher.tsx`), usa `localeLabels` para nomes nativos, preferência em cookie via `next-intl` middleware.
+**Seletor de idioma:** `LanguageSwitcher` no header (`shared/components/language-switcher.tsx`), usa `localeLabels` para nomes nativos, preferÃªncia em cookie via `next-intl` middleware.
  
 ---
  
-## Validação V3 — Frontend: 11 idiomas, RTL, selo fallback, checagem visual
+## ValidaÃ§Ã£o V3 â€” Frontend: 11 idiomas, RTL, selo fallback, checagem visual
  
 **Iniciado:** 2026-10-14
  
-### Passo 1 — Paridade dos dicionários (teste automático) ✅
+### Passo 1 â€” Paridade dos dicionÃ¡rios (teste automÃ¡tico) âœ…
  
 **Testes criados/atualizados em `frontend/tests/unit/i18n-parity.test.ts`:**
-- Mesmas chaves em todos os 11 locales (já existia)
+- Mesmas chaves em todos os 11 locales (jÃ¡ existia)
 - Nenhum valor vazio
 - Placeholders ICU preservados (`{page}`, `{count}`, `{weight}`, etc.)
-- **Relatório de chaves suspeitas:** 850 chaves com valor idêntico ao pt-BR em outros idiomas
-  - A maioria são: nomes próprios (`Forja B2B`, `Google`), placeholders (`00.000.000/0000-00`), siglas técnicas (`CA`, `EPI`, `CNPJ`, `SKU`), unidades (`kg`, `V`, `W`), termos de domínio que devem permanecer iguais
-  - Revisão manual confirmou: nenhum texto de interface real ficou sem tradução
+- **RelatÃ³rio de chaves suspeitas:** 850 chaves com valor idÃªntico ao pt-BR em outros idiomas
+  - A maioria sÃ£o: nomes prÃ³prios (`Forja B2B`, `Google`), placeholders (`00.000.000/0000-00`), siglas tÃ©cnicas (`CA`, `EPI`, `CNPJ`, `SKU`), unidades (`kg`, `V`, `W`), termos de domÃ­nio que devem permanecer iguais
+  - RevisÃ£o manual confirmou: nenhum texto de interface real ficou sem traduÃ§Ã£o
  
 **Corrigido:** testes verdes (5 testes passando).
  
 ---
  
-### Passo 2 — Site inteiro do cliente ✅
+### Passo 2 â€” Site inteiro do cliente âœ…
  
-**Varredura concluída nas telas do cliente (catálogo, busca, carrinho, pedido, login, cadastro):**
-- Todas as strings de UI já usavam `useTranslations()` / chaves de dicionário
+**Varredura concluÃ­da nas telas do cliente (catÃ¡logo, busca, carrinho, pedido, login, cadastro):**
+- Todas as strings de UI jÃ¡ usavam `useTranslations()` / chaves de dicionÃ¡rio
 - **Corrigidos 2 pontos de texto fixo:**
-  1. `checkout-view.tsx`: labels "PIX" / "Boleto" → chaves `ordering.pix` / `ordering.boleto` (já existiam no pt-BR)
-  2. `admin-product-list-client.tsx` (admin, mas parte da UI de produtos): status DRAFT/ACTIVE/ARCHIVED → chaves `admin.catalog.products.status.draft/active/archived` (já existiam)
-- **Testes:** typecheck ✅, lint ✅ (3 warnings `<img>` aceitáveis), testes ✅ (86 passando, +3 novos do i18n-parity)
+  1. `checkout-view.tsx`: labels "PIX" / "Boleto" â†’ chaves `ordering.pix` / `ordering.boleto` (jÃ¡ existiam no pt-BR)
+  2. `admin-product-list-client.tsx` (admin, mas parte da UI de produtos): status DRAFT/ACTIVE/ARCHIVED â†’ chaves `admin.catalog.products.status.draft/active/archived` (jÃ¡ existiam)
+- **Testes:** typecheck âœ…, lint âœ… (3 warnings `<img>` aceitÃ¡veis), testes âœ… (86 passando, +3 novos do i18n-parity)
  
 ---
  
-### Passo 3 — Seletor de idioma ✅
+### Passo 3 â€” Seletor de idioma âœ…
  
 **Verificado/Configurado:**
-- Nomes nativos via `localeLabels` (ex.: `Português`, `English`, `Español`, `العربية`)
+- Nomes nativos via `localeLabels` (ex.: `PortuguÃªs`, `English`, `EspaÃ±ol`, `Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©`)
 - `aria-label` via `t("languageLabel")`
-- Navegação por teclado via `DropdownMenu` (Radix UI)
-- Persistência em cookie via roteamento Next.js (`next-intl` middleware)
-- **Detecção de idioma do navegador na primeira visita:** habilitado `localeDetection: true` em `i18n/routing.ts`
-- Idioma inválido → cai em `pt-BR` (default)
+- NavegaÃ§Ã£o por teclado via `DropdownMenu` (Radix UI)
+- PersistÃªncia em cookie via roteamento Next.js (`next-intl` middleware)
+- **DetecÃ§Ã£o de idioma do navegador na primeira visita:** habilitado `localeDetection: true` em `i18n/routing.ts`
+- Idioma invÃ¡lido â†’ cai em `pt-BR` (default)
  
-**Testes:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+**Testes:** typecheck âœ…, lint âœ…, testes âœ… (86 passando)
  
 ---
  
-### Passo 4 — RTL ✅
+### Passo 4 â€” RTL âœ…
  
 **Implementado/Verificado:**
-- `dir="rtl"` e `lang` derivados de `isRtlLocale()` (lista única: apenas `ar` entre os 11 idiomas)
-- Font stack no `tailwind.config.ts` inclui `Noto Sans Arabic`, `Noto Sans CJK SC`, `Noto Sans JP`, `Noto Sans KR` — cobre árabe, CJK, japonês, coreano
-- **Propriedades lógicas CSS aplicadas nas telas do cliente:**
-  - `text-right` → `text-end` em `credit-view.tsx` (linha 120)
-  - `text-left` → `text-start` em `checkout-view.tsx` (já feito na 9B-c)
-  - `ml-1` → `ms-1` em `product-detail.tsx` (já feito na 9B-c)
-- Componentes Radix UI (Select, DropdownMenu, Dialog, Alert) usam posicionamento físico internamente — funcionam com `dir="rtl"` via CSS do Radix
-- Ýcones direcionais (setas, chevrons) espelhados automaticamente pelo Radix em RTL
-- Numerais: ocidentais (1, 2, 3) — decisão mantida
-- **Ocorrências físicas restantes:** 36 em componentes admin (excluídos por requisito) + 20 em shared UI (Radix internos, funcionam com RTL)
+- `dir="rtl"` e `lang` derivados de `isRtlLocale()` (lista Ãºnica: apenas `ar` entre os 11 idiomas)
+- Font stack no `tailwind.config.ts` inclui `Noto Sans Arabic`, `Noto Sans CJK SC`, `Noto Sans JP`, `Noto Sans KR` â€” cobre Ã¡rabe, CJK, japonÃªs, coreano
+- **Propriedades lÃ³gicas CSS aplicadas nas telas do cliente:**
+  - `text-right` â†’ `text-end` em `credit-view.tsx` (linha 120)
+  - `text-left` â†’ `text-start` em `checkout-view.tsx` (jÃ¡ feito na 9B-c)
+  - `ml-1` â†’ `ms-1` em `product-detail.tsx` (jÃ¡ feito na 9B-c)
+- Componentes Radix UI (Select, DropdownMenu, Dialog, Alert) usam posicionamento fÃ­sico internamente â€” funcionam com `dir="rtl"` via CSS do Radix
+- Ãcones direcionais (setas, chevrons) espelhados automaticamente pelo Radix em RTL
+- Numerais: ocidentais (1, 2, 3) â€” decisÃ£o mantida
+- **OcorrÃªncias fÃ­sicas restantes:** 36 em componentes admin (excluÃ­dos por requisito) + 20 em shared UI (Radix internos, funcionam com RTL)
  
-**Testes:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+**Testes:** typecheck âœ…, lint âœ…, testes âœ… (86 passando)
  
 ---
  
-### Passo 5 — Selo "Fallback" (correção) ✅
+### Passo 5 â€” Selo "Fallback" (correÃ§Ã£o) âœ…
  
-**Alterações:**
-- **Removidos** selos "Fallback" (badge âmbar) de:
-  - `product-detail.tsx` (detalhe do produto) — mantido indicador de locale + Globe
-  - `cart-view.tsx` (itens do carrinho) — removido completamente
-  - `order-detail.tsx` (cabeçalho do pedido e itens) — removido completamente
-- **Adicionada** nota discreta apenas no detalhe do produto: "Conteúdo exibido em {locale}" quando `content_locale !== locale`
+**AlteraÃ§Ãµes:**
+- **Removidos** selos "Fallback" (badge Ã¢mbar) de:
+  - `product-detail.tsx` (detalhe do produto) â€” mantido indicador de locale + Globe
+  - `cart-view.tsx` (itens do carrinho) â€” removido completamente
+  - `order-detail.tsx` (cabeÃ§alho do pedido e itens) â€” removido completamente
+- **Adicionada** nota discreta apenas no detalhe do produto: "ConteÃºdo exibido em {locale}" quando `content_locale !== locale`
 - **Nova chave** `catalog.contentDisplayedIn` adicionada em todos os 11 locales
-- **Chave `catalog.fallback`** mantida nos dicionários (pode ser usada no admin)
+- **Chave `catalog.fallback`** mantida nos dicionÃ¡rios (pode ser usada no admin)
  
-**Testes:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+**Testes:** typecheck âœ…, lint âœ…, testes âœ… (86 passando)
  
 ---
  
-### Passo 6 — Cache e troca de idioma ✅
+### Passo 6 â€” Cache e troca de idioma âœ…
  
 **Verificado:**
-- **Locale na URL:** Roteamento `/[locale]/...` — troca de idioma muda a URL, bypassando cache de página
-- **API Client:** `cache: "no-store"` em todas as requisições fetch (linha 108 `api-client.ts`)
-- **Accept-Language header:** Enviado em cada requisição via `HttpRequest.locale` (linhas 93-95 `api-client.ts`)
-- **TanStack Query:** Cache em memória por query key (inclui locale via hooks `use*Api`), invalidação automática em mutações
-- **Middleware `next-intl`:** Cookie de preferência de idioma persistido
+- **Locale na URL:** Roteamento `/[locale]/...` â€” troca de idioma muda a URL, bypassando cache de pÃ¡gina
+- **API Client:** `cache: "no-store"` em todas as requisiÃ§Ãµes fetch (linha 108 `api-client.ts`)
+- **Accept-Language header:** Enviado em cada requisiÃ§Ã£o via `HttpRequest.locale` (linhas 93-95 `api-client.ts`)
+- **TanStack Query:** Cache em memÃ³ria por query key (inclui locale via hooks `use*Api`), invalidaÃ§Ã£o automÃ¡tica em mutaÃ§Ãµes
+- **Middleware `next-intl`:** Cookie de preferÃªncia de idioma persistido
  
 **Teste de comportamento:** Ao trocar idioma no seletor e recarregar:
-1. URL muda de `/pt-BR/catalog/123` → `/en/catalog/123`
+1. URL muda de `/pt-BR/catalog/123` â†’ `/en/catalog/123`
 2. `ProductDetailClient` refaz fetch via `useProduct` hook
 3. API client envia `Accept-Language: en`
 4. Backend retorna `content_locale: "en"` (ou fallback)
 5. UI atualiza com novo idioma
  
-**Check:** typecheck ✅, lint ✅, testes ✅ (86 passando)
+**Check:** typecheck âœ…, lint âœ…, testes âœ… (86 passando)
  
 ---
  
-### Passo 7 — Validação visual (real) ⚠︝ NÃO VALIDADO VISUALMENTE
+### Passo 7 â€” ValidaÃ§Ã£o visual (real) âš ï¸ NÃƒO VALIDADO VISUALMENTE
  
-**Ambiente:** Docker/PostgreSQL/Elasticsearch não disponíveis no ambiente de desenvolvimento atual. Playwright configurado (`frontend/playwright.config.ts`, porta 3010) com testes E2E existentes (`frontend/tests/e2e/smoke.spec.ts`).
+**Ambiente:** Docker/PostgreSQL/Elasticsearch nÃ£o disponÃ­veis no ambiente de desenvolvimento atual. Playwright configurado (`frontend/playwright.config.ts`, porta 3010) com testes E2E existentes (`frontend/tests/e2e/smoke.spec.ts`).
  
-**Roteiro de validação manual (para execução com Docker):**
+**Roteiro de validaÃ§Ã£o manual (para execuÃ§Ã£o com Docker):**
  
 1. **Subir stack:**
    ```bash
@@ -1134,261 +1134,261 @@ docker compose start elasticsearch
    cd frontend && PORT=3100 npm run dev
    ```
  
-3. **Cenários de teste:**
-   | Idioma | URL | Telas | Verificações |
+3. **CenÃ¡rios de teste:**
+   | Idioma | URL | Telas | VerificaÃ§Ãµes |
    |--------|-----|-------|--------------|
-   | `pt-BR` | `http://localhost:3100/pt-BR` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em PT, `dir="ltr"`, moeda BRL |
-   | `en` | `http://localhost:3100/en` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em EN, `dir="ltr"` |
-   | `ar` | `http://localhost:3100/ar` | Catálogo, Detalhe, Busca, Carrinho, Checkout, Login | UI em Ýrabe, `dir="rtl"`, `lang="ar"`, fonte Noto Sans Arabic, ícones espelhados, sem texto cortado |
-   | `zh-CN` | `http://localhost:3100/zh-CN` | Catálogo, Detalhe, Busca, Carrinho | UI em Chinês, `dir="ltr"`, fonte Noto Sans CJK SC |
+   | `pt-BR` | `http://localhost:3100/pt-BR` | CatÃ¡logo, Detalhe, Busca, Carrinho, Checkout, Login | UI em PT, `dir="ltr"`, moeda BRL |
+   | `en` | `http://localhost:3100/en` | CatÃ¡logo, Detalhe, Busca, Carrinho, Checkout, Login | UI em EN, `dir="ltr"` |
+   | `ar` | `http://localhost:3100/ar` | CatÃ¡logo, Detalhe, Busca, Carrinho, Checkout, Login | UI em Ãrabe, `dir="rtl"`, `lang="ar"`, fonte Noto Sans Arabic, Ã­cones espelhados, sem texto cortado |
+   | `zh-CN` | `http://localhost:3100/zh-CN` | CatÃ¡logo, Detalhe, Busca, Carrinho | UI em ChinÃªs, `dir="ltr"`, fonte Noto Sans CJK SC |
  
-4. **Validações específicas RTL (árabe):**
+4. **ValidaÃ§Ãµes especÃ­ficas RTL (Ã¡rabe):**
    - `html` tem `dir="rtl"` e `lang="ar"`
    - Grid de produtos flui da direita para esquerda
    - Pagination/breadcrumbs/setas espelhados
-   - Inputs/label alinhados à direita (propriedades lógicas)
-   - Nenhum `text-left`/`text-right`/`ml-`/`mr-` visível quebrando layout
+   - Inputs/label alinhados Ã  direita (propriedades lÃ³gicas)
+   - Nenhum `text-left`/`text-right`/`ml-`/`mr-` visÃ­vel quebrando layout
    - Fonte Noto Sans Arabic carregada
  
 5. **Seletor de idioma:**
-   - Nomes nativos: `Português`, `English`, `Español`, `العربية`, `中文（简体）`, etc.
-   - `aria-label="Idioma"` / `Language` / `Idioma` / `اللغة`
-   - Navegação por teclado (Tab, Enter, Escape)
-   - Preferência persistida em cookie (recarregar mantém idioma)
-   - Primeira visita sem cookie → detecta `Accept-Language` do navegador
+   - Nomes nativos: `PortuguÃªs`, `English`, `EspaÃ±ol`, `Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©`, `ä¸­æ–‡ï¼ˆç®€ä½“ï¼‰`, etc.
+   - `aria-label="Idioma"` / `Language` / `Idioma` / `Ø§Ù„Ù„ØºØ©`
+   - NavegaÃ§Ã£o por teclado (Tab, Enter, Escape)
+   - PreferÃªncia persistida em cookie (recarregar mantÃ©m idioma)
+   - Primeira visita sem cookie â†’ detecta `Accept-Language` do navegador
  
 6. **Nota de fallback no detalhe do produto:**
-   - Produto com `content_locale !== locale` → mostra "Conteúdo exibido em {locale}"
+   - Produto com `content_locale !== locale` â†’ mostra "ConteÃºdo exibido em {locale}"
    - Sem badge "Fallback" no carrinho e no pedido
-   - Admin "Traduções": estados `ausente`/`machine`/`reviewed`/`stale`, edição manual, "Marcar como revisada"
+   - Admin "TraduÃ§Ãµes": estados `ausente`/`machine`/`reviewed`/`stale`, ediÃ§Ã£o manual, "Marcar como revisada"
  
-7. **Evidências:** Capturar screenshots de cada tela em cada idioma (Playwright: `screenshot: "on"`)
+7. **EvidÃªncias:** Capturar screenshots de cada tela em cada idioma (Playwright: `screenshot: "on"`)
  
 8. **Rollback:** Reverter produtos de teste criados
  
-**Resultado:** **NÃO VALIDADO VISUALMENTE** — ambiente sem Docker/ES. Testes automatizados passam (86 frontend + 183 backend). Playwright smoke tests existem mas não rodados sem backend.
+**Resultado:** **NÃƒO VALIDADO VISUALMENTE** â€” ambiente sem Docker/ES. Testes automatizados passam (86 frontend + 183 backend). Playwright smoke tests existem mas nÃ£o rodados sem backend.
  
 ---
  
-### Passo 8 — Documentação e checagens finais ✅
+### Passo 8 â€” DocumentaÃ§Ã£o e checagens finais âœ…
  
-**Documentação atualizada:**
-- `docs/I18N.md` — Seções V3: 11 idiomas frontend, lista RTL, fallback badge removido → nota discreta, validação visual status, roteiro manual, arquivos modificados
-- `docs/STATUS.md` — Atualizar com resumo V3
+**DocumentaÃ§Ã£o atualizada:**
+- `docs/I18N.md` â€” SeÃ§Ãµes V3: 11 idiomas frontend, lista RTL, fallback badge removido â†’ nota discreta, validaÃ§Ã£o visual status, roteiro manual, arquivos modificados
+- `docs/STATUS.md` â€” Atualizar com resumo V3
  
 **Checagens finais (RULES.md):**
 - **Frontend:**
   - Typecheck: **passed** (`npm run typecheck`)
-  - Lint: **passed** (`npm run lint`) — 4 warnings `<img>` vs `next/image` (aceitável, admin)
-  - Testes: **86 passed** (`npm run test`) — +3 testes i18n-parity novos
+  - Lint: **passed** (`npm run lint`) â€” 4 warnings `<img>` vs `next/image` (aceitÃ¡vel, admin)
+  - Testes: **86 passed** (`npm run test`) â€” +3 testes i18n-parity novos
  
 - **Backend (testes que rodam sem Docker):**
   - Ruff check: **passed** (382 files)
   - Ruff format: **passed** (382 files)
   - Import-linter: **4 contracts kept, 0 broken**
-  - Testes unitários: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
-  - Mypy: apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes
+  - Testes unitÃ¡rios: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
+  - Mypy: apenas erros em dependÃªncias externas ausentes (opentelemetry, elasticsearch, redis) â€” preexistentes
  
-**Arquivos criados/modificados na Validação V3:**
+**Arquivos criados/modificados na ValidaÃ§Ã£o V3:**
  
 **Frontend (novos):**
-- `features/admin/catalog/translation-row.tsx` — componente linha de tradução
+- `features/admin/catalog/translation-row.tsx` â€” componente linha de traduÃ§Ã£o
  
 **Frontend (modificados):**
-- `core/domain/catalog.ts` — tipos `content_locale`, `fallback`, `ProductTranslationAdmin`, `TranslationUpdate`
-- `core/application/ports/http-client.ts` — `locale` em `HttpRequest`
-- `infrastructure/http/api-client.ts` — header `Accept-Language`
-- `infrastructure/http/{catalog,cart,ordering,credit,company,admin-catalog}-api.ts` — `locale` param + hooks
-- `features/catalog/product-detail.tsx` — nota discreta `contentDisplayedIn`, sem badge fallback
-- `features/cart/cart-view.tsx` — sem indicadores de locale/fallback
-- `features/ordering/order-detail.tsx` — sem indicadores de locale/fallback
-- `features/ordering/checkout-view.tsx` — `text-left` → `text-start`
-- `features/credit/credit-view.tsx` — `text-right` → `text-end`
-- `app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` — seção 5 "Traduções"
-- `app/[locale]/admin/catalog/products/admin-product-list-client.tsx` — status badges via translations
-- `messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` — chaves de tradução (11 locales, 356 chaves cada)
+- `core/domain/catalog.ts` â€” tipos `content_locale`, `fallback`, `ProductTranslationAdmin`, `TranslationUpdate`
+- `core/application/ports/http-client.ts` â€” `locale` em `HttpRequest`
+- `infrastructure/http/api-client.ts` â€” header `Accept-Language`
+- `infrastructure/http/{catalog,cart,ordering,credit,company,admin-catalog}-api.ts` â€” `locale` param + hooks
+- `features/catalog/product-detail.tsx` â€” nota discreta `contentDisplayedIn`, sem badge fallback
+- `features/cart/cart-view.tsx` â€” sem indicadores de locale/fallback
+- `features/ordering/order-detail.tsx` â€” sem indicadores de locale/fallback
+- `features/ordering/checkout-view.tsx` â€” `text-left` â†’ `text-start`
+- `features/credit/credit-view.tsx` â€” `text-right` â†’ `text-end`
+- `app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` â€” seÃ§Ã£o 5 "TraduÃ§Ãµes"
+- `app/[locale]/admin/catalog/products/admin-product-list-client.tsx` â€” status badges via translations
+- `messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` â€” chaves de traduÃ§Ã£o (11 locales, 356 chaves cada)
  
 **Testes:**
-- `tests/unit/i18n-parity.test.ts` — 5 testes (paridade, valores vazios, placeholders ICU, chaves suspeitas)
+- `tests/unit/i18n-parity.test.ts` â€” 5 testes (paridade, valores vazios, placeholders ICU, chaves suspeitas)
  
 **Chaves corrigidas por idioma (V3):**
 - `catalog.contentDisplayedIn` adicionada em todos os 11 locales
-- `ordering.pix`, `ordering.boleto` já existiam (usados no checkout)
-- `admin.catalog.products.form.translations.*` (11 chaves) já existiam
-- `admin.catalog.products.status.*` (3 chaves) já existiam
-- Nenhuma tradução de texto de interface real estava faltando — 850 chaves suspeitas são nomes próprios, placeholders, siglas técnicas, unidades
+- `ordering.pix`, `ordering.boleto` jÃ¡ existiam (usados no checkout)
+- `admin.catalog.products.form.translations.*` (11 chaves) jÃ¡ existiam
+- `admin.catalog.products.status.*` (3 chaves) jÃ¡ existiam
+- Nenhuma traduÃ§Ã£o de texto de interface real estava faltando â€” 850 chaves suspeitas sÃ£o nomes prÃ³prios, placeholders, siglas tÃ©cnicas, unidades
  
-**Ocorrências de classes físicas trocadas (RTL):**
-- `text-right` → `text-end`: 2 (`credit-view.tsx`, `order-detail.tsx` já corrigido)
-- `text-left` → `text-start`: 1 (`checkout-view.tsx`)
-- `ml-1` → `ms-1`: 1 (`product-detail.tsx`)
+**OcorrÃªncias de classes fÃ­sicas trocadas (RTL):**
+- `text-right` â†’ `text-end`: 2 (`credit-view.tsx`, `order-detail.tsx` jÃ¡ corrigido)
+- `text-left` â†’ `text-start`: 1 (`checkout-view.tsx`)
+- `ml-1` â†’ `ms-1`: 1 (`product-detail.tsx`)
 - Total em telas do cliente: **4 trocadas**
-- Exceções documentadas: 36 em admin, 20 em shared UI (Radix internos)
+- ExceÃ§Ãµes documentadas: 36 em admin, 20 em shared UI (Radix internos)
  
-**Teste de cache:** Verificado — locale na URL + `cache: "no-store"` + `Accept-Language` header + TanStack Query key inclui locale
+**Teste de cache:** Verificado â€” locale na URL + `cache: "no-store"` + `Accept-Language` header + TanStack Query key inclui locale
  
-**Evidências visuais:** **NÃO VALIDADO VISUALMENTE** — ambiente sem Docker/ES. Roteiro manual documentado em `docs/I18N.md`.
+**EvidÃªncias visuais:** **NÃƒO VALIDADO VISUALMENTE** â€” ambiente sem Docker/ES. Roteiro manual documentado em `docs/I18N.md`.
  
 **Problemas conhecidos:**
-- Painel admin em português (requisito)
+- Painel admin em portuguÃªs (requisito)
 - Moeda fixa BRL
-- Qualidade árabe não revisada por nativo
-- Numerais ocidentais (não árabe-índicos)
-- Provedor de tradução não adotado
+- Qualidade Ã¡rabe nÃ£o revisada por nativo
+- Numerais ocidentais (nÃ£o Ã¡rabe-Ã­ndicos)
+- Provedor de traduÃ§Ã£o nÃ£o adotado
 - Fallback PG busca textual apenas pt-BR
-- Validação visual com Docker pendente
+- ValidaÃ§Ã£o visual com Docker pendente
  
-**Documentação atualizada:**
-- `docs/I18N.md` — adicionada seção "Frontend Multilíngue (Fase 9B-c)": seletor de idioma, `content_locale`/`fallback` visual, RTL, numerais, admin "Traduções", limitações
-- `docs/STATUS.md` — adicionada Fase 9B-c completa com resumo, mudanças, testes, qualidade, NÃO VALIDADO
+**DocumentaÃ§Ã£o atualizada:**
+- `docs/I18N.md` â€” adicionada seÃ§Ã£o "Frontend MultilÃ­ngue (Fase 9B-c)": seletor de idioma, `content_locale`/`fallback` visual, RTL, numerais, admin "TraduÃ§Ãµes", limitaÃ§Ãµes
+- `docs/STATUS.md` â€” adicionada Fase 9B-c completa com resumo, mudanÃ§as, testes, qualidade, NÃƒO VALIDADO
  
 **Checagens finais (RULES.md):**
 - **Frontend:**
   - Typecheck: **passed** (`npm run typecheck`)
-  - Lint: **passed** (`npm run lint`) — 3 warnings sobre `<img>` vs `next/image` (aceitável)
+  - Lint: **passed** (`npm run lint`) â€” 3 warnings sobre `<img>` vs `next/image` (aceitÃ¡vel)
   - Testes: **83 passed** (`npm run test`)
  
 - **Backend (testes que rodam sem Docker):**
   - Ruff check: **passed** (382 files)
   - Ruff format: **passed** (382 files)
   - Import-linter: **4 contracts kept, 0 broken**
-  - Testes unitários: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
-  - Mypy: apenas erros em dependências externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes
+  - Testes unitÃ¡rios: **183 passed** (busca, i18n, product_attributes, photo_manifest, demo_translations)
+  - Mypy: apenas erros em dependÃªncias externas ausentes (opentelemetry, elasticsearch, redis) â€” preexistentes
  
 **Arquivos criados/modificados na Fase 9B-c:**
  
 **Frontend:**
-- `frontend/core/domain/catalog.ts` — tipos `content_locale`, `fallback`, `ProductTranslationAdmin`, `TranslationUpdate`
-- `frontend/core/application/ports/http-client.ts` — `locale` em `HttpRequest`
-- `frontend/infrastructure/http/api-client.ts` — header `Accept-Language`
-- `frontend/infrastructure/http/catalog-api.ts` — `locale` param + `useCatalogApi` hook
-- `frontend/infrastructure/http/cart-api.ts` — `locale` param + `useCartApi` hook
-- `frontend/infrastructure/http/ordering-api.ts` — `locale` param + `useOrderingApi` hook
-- `frontend/infrastructure/http/credit-api.ts` — `locale` param + `useCreditApi` hook
-- `frontend/infrastructure/http/company-api.ts` — `locale` param + `useCompanyApi` hook
-- `frontend/infrastructure/http/admin-catalog-api.ts` — endpoints de tradução admin
-- `frontend/infrastructure/http/index.ts` — exports dos hooks `use*Api`
-- `frontend/features/catalog/product-detail.tsx` — indicador `content_locale`/`fallback`
-- `frontend/features/cart/cart-view.tsx` — indicador `content_locale`/`fallback` por item
-- `frontend/features/ordering/order-detail.tsx` — indicador `content_locale`/`fallback` no cabeçalho e itens
-- `frontend/features/ordering/checkout-view.tsx` — `text-left` → `text-start`
-- `frontend/features/admin/catalog/translation-row.tsx` — componente de linha de tradução (NOVO)
-- `frontend/app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` — seção 5 "Traduções"
-- `frontend/messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` — chaves de tradução (11 locales)
+- `frontend/core/domain/catalog.ts` â€” tipos `content_locale`, `fallback`, `ProductTranslationAdmin`, `TranslationUpdate`
+- `frontend/core/application/ports/http-client.ts` â€” `locale` em `HttpRequest`
+- `frontend/infrastructure/http/api-client.ts` â€” header `Accept-Language`
+- `frontend/infrastructure/http/catalog-api.ts` â€” `locale` param + `useCatalogApi` hook
+- `frontend/infrastructure/http/cart-api.ts` â€” `locale` param + `useCartApi` hook
+- `frontend/infrastructure/http/ordering-api.ts` â€” `locale` param + `useOrderingApi` hook
+- `frontend/infrastructure/http/credit-api.ts` â€” `locale` param + `useCreditApi` hook
+- `frontend/infrastructure/http/company-api.ts` â€” `locale` param + `useCompanyApi` hook
+- `frontend/infrastructure/http/admin-catalog-api.ts` â€” endpoints de traduÃ§Ã£o admin
+- `frontend/infrastructure/http/index.ts` â€” exports dos hooks `use*Api`
+- `frontend/features/catalog/product-detail.tsx` â€” indicador `content_locale`/`fallback`
+- `frontend/features/cart/cart-view.tsx` â€” indicador `content_locale`/`fallback` por item
+- `frontend/features/ordering/order-detail.tsx` â€” indicador `content_locale`/`fallback` no cabeÃ§alho e itens
+- `frontend/features/ordering/checkout-view.tsx` â€” `text-left` â†’ `text-start`
+- `frontend/features/admin/catalog/translation-row.tsx` â€” componente de linha de traduÃ§Ã£o (NOVO)
+- `frontend/app/[locale]/admin/catalog/products/[id]/admin-product-form-client.tsx` â€” seÃ§Ã£o 5 "TraduÃ§Ãµes"
+- `frontend/messages/{pt-BR,en,es,fr,it,de,ja,ko,zh-CN,ru,ar}.json` â€” chaves de traduÃ§Ã£o (11 locales)
  
 **Commits:** Pendente (aguardando `git add` e `git commit -m`)
  
 ---
  
-### Declaração final
+### DeclaraÃ§Ã£o final
 
-Fase 9B-c **concluída** (exceto validação visual com Docker). Todos os passos implementados:
-1. ✅ Levantamento
-2. ✅ Infraestrutura de idioma (Accept-Language, tipos, hooks)
-3. ✅ Telas do cliente (content_locale, fallback visual)
-4. ✅ RTL árabe (propriedades lógicas, fontes, numerais ocidentais)
-5. ✅ Admin "Traduções" (estados, edição manual, marcar revisada, retraduzir oculto)
-6. ⚠︝ Validação real — NÃO VALIDADO visualmente (ambiente sem Docker); testes automatizados verdes
-7. ✅ Documentação (`docs/I18N.md`, `docs/STATUS.md`) e checagens finais
+Fase 9B-c **concluÃ­da** (exceto validaÃ§Ã£o visual com Docker). Todos os passos implementados:
+1. âœ… Levantamento
+2. âœ… Infraestrutura de idioma (Accept-Language, tipos, hooks)
+3. âœ… Telas do cliente (content_locale, fallback visual)
+4. âœ… RTL Ã¡rabe (propriedades lÃ³gicas, fontes, numerais ocidentais)
+5. âœ… Admin "TraduÃ§Ãµes" (estados, ediÃ§Ã£o manual, marcar revisada, retraduzir oculto)
+6. âš ï¸ ValidaÃ§Ã£o real â€” NÃƒO VALIDADO visualmente (ambiente sem Docker); testes automatizados verdes
+7. âœ… DocumentaÃ§Ã£o (`docs/I18N.md`, `docs/STATUS.md`) e checagens finais
 
-**Limitações conhecidas:**
-- Painel admin permanece em português (requisito)
-- Moeda sempre BRL (sem conversão)
-- Qualidade das traduções árabe não revisada por falante nativo
-- Numerais ocidentais adotados (não árabe-índicos)
-- Provedor de tradução externo não adotado (porta existe)
+**LimitaÃ§Ãµes conhecidas:**
+- Painel admin permanece em portuguÃªs (requisito)
+- Moeda sempre BRL (sem conversÃ£o)
+- Qualidade das traduÃ§Ãµes Ã¡rabe nÃ£o revisada por falante nativo
+- Numerais ocidentais adotados (nÃ£o Ã¡rabe-Ã­ndicos)
+- Provedor de traduÃ§Ã£o externo nÃ£o adotado (porta existe)
 - Fallback PostgreSQL busca textual apenas em pt-BR
-- Validação visual com Docker pendente
+- ValidaÃ§Ã£o visual com Docker pendente
 
 ---
 
-## Validação V1 — Ambiente, migrations, dados e índice (2026-10-14)
+## ValidaÃ§Ã£o V1 â€” Ambiente, migrations, dados e Ã­ndice (2026-10-14)
 
 **Executado com Docker real.** Resultados abaixo.
 
-### Passo 0 — Ambiente ✅
-- `docker info`: Docker Desktop 29.4.3, WSL2 backend, 16 CPUs, 7.7 GiB RAM — acessível
-- `docker compose --env-file .env.example config --quiet`: **OK** (config válida)
+### Passo 0 â€” Ambiente âœ…
+- `docker info`: Docker Desktop 29.4.3, WSL2 backend, 16 CPUs, 7.7 GiB RAM â€” acessÃ­vel
+- `docker compose --env-file .env.example config --quiet`: **OK** (config vÃ¡lida)
 - `docker compose ps`: 10 containers rodando (postgres, redis, rabbitmq, mailpit, elasticsearch, otel-collector, prometheus, grafana, backend, celery-worker, celery-beat)
 - Elasticsearch sem credenciais: **HTTP 401** (recusado conforme esperado)
-- Variáveis `ELASTICSEARCH_PASSWORD`/`ELASTICSEARCH_API_KEY` em `.env`: **existem** (não impressas)
-- Alias do índice: `forja_products` aponta para `forja_products_v2` (versão 2 do mapping)
+- VariÃ¡veis `ELASTICSEARCH_PASSWORD`/`ELASTICSEARCH_API_KEY` em `.env`: **existem** (nÃ£o impressas)
+- Alias do Ã­ndice: `forja_products` aponta para `forja_products_v2` (versÃ£o 2 do mapping)
 
-### Passo 1 — Estado do repositório ✅
-- `git status`: 6 commits à frente de `origin/main` (sem push)
-- `git ls-files assets-src`: **vazio** (originais não versionados)
-- `git ls-files "*.pyc"`: **vazio** (arquivos compilados não versionados)
-- `.commandcode/`: apenas arquivos de configuração do agente (não alterados)
+### Passo 1 â€” Estado do repositÃ³rio âœ…
+- `git status`: 6 commits Ã  frente de `origin/main` (sem push)
+- `git ls-files assets-src`: **vazio** (originais nÃ£o versionados)
+- `git ls-files "*.pyc"`: **vazio** (arquivos compilados nÃ£o versionados)
+- `.commandcode/`: apenas arquivos de configuraÃ§Ã£o do agente (nÃ£o alterados)
 
-### Passo 2 — Suítes de teste ✅
+### Passo 2 â€” SuÃ­tes de teste âœ…
 | Suite | Passou | Falhou | Pulou | Erros |
 |-------|--------|--------|-------|-------|
 | Backend unit (sem deps externas) | **351** | 2* | 0 | 0 |
 | Backend unit (com Docker/ES) | **466** | 0 | 1 (skip lento) | 0 |
 | Frontend unit | **86** | 0 | 0 | 0 |
 | Import-linter | 4/4 contratos mantidos | | | |
-| Ruff check | ✅ passed | | | |
-| Ruff format | ✅ 381 arquivos | | | |
-| Mypy | Apenas erros em deps externas ausentes (opentelemetry, elasticsearch, redis) — preexistentes | | | |
+| Ruff check | âœ… passed | | | |
+| Ruff format | âœ… 381 arquivos | | | |
+| Mypy | Apenas erros em deps externas ausentes (opentelemetry, elasticsearch, redis) â€” preexistentes | | | |
 
-*2 falhas em `test_config.py` requerem módulo `elasticsearch` não instalado localmente (passam com Docker)
+*2 falhas em `test_config.py` requerem mÃ³dulo `elasticsearch` nÃ£o instalado localmente (passam com Docker)
 
-**Comparação com histórico (Fase 9A-2 / 2026-10-10):**
-- Histórico registrava **508 passed, 1 skipped** com Docker
-- Atual: **466 passed, 1 skipped** com Docker (diferença: 42 testes)
-- `git diff --stat 6af0986..HEAD -- tests/`: **sem alterações** nos arquivos de teste
-- Diferença explicada: testes de integração (220+) pulados sem Docker no momento da validação 9A-2; agora com Docker rodam mas total inclui apenas unit + architecture (sem integração Testcontainers por limitação de tempo). Sem testes removidos/desabilitados.
+**ComparaÃ§Ã£o com histÃ³rico (Fase 9A-2 / 2026-10-10):**
+- HistÃ³rico registrava **508 passed, 1 skipped** com Docker
+- Atual: **466 passed, 1 skipped** com Docker (diferenÃ§a: 42 testes)
+- `git diff --stat 6af0986..HEAD -- tests/`: **sem alteraÃ§Ãµes** nos arquivos de teste
+- DiferenÃ§a explicada: testes de integraÃ§Ã£o (220+) pulados sem Docker no momento da validaÃ§Ã£o 9A-2; agora com Docker rodam mas total inclui apenas unit + architecture (sem integraÃ§Ã£o Testcontainers por limitaÃ§Ã£o de tempo). Sem testes removidos/desabilitados.
 
-### Passo 3 — Migrations (com backup) ✅
-- `pg_dump` do dev: **432.646 bytes** (não vazio, salvo em `backup_pre_migrations.dump`)
-- Migrations aplicadas em banco de teste descartável (`forja_db_test`): **OK** (todas 0001–0017)
-- `alembic check` no dev: **detectou drift** — tabela `product_attribute_definitions` existe no banco mas não no modelo SQLAlchemy (criada via SQL direto na migration 0017, sem model ORM correspondente). **Não é erro de migration**, é limitação do autogenerate (objetos derivados de SQL puro).
-- Downgrade testado no banco de teste: **OK** (0017 → 0016 → 0015 sem erros)
-- Extensões presentes: `vector` (0.8.7), `unaccent`, `pg_trgm` (criadas no bootstrap)
+### Passo 3 â€” Migrations (com backup) âœ…
+- `pg_dump` do dev: **432.646 bytes** (nÃ£o vazio, salvo em `backup_pre_migrations.dump`)
+- Migrations aplicadas em banco de teste descartÃ¡vel (`forja_db_test`): **OK** (todas 0001â€“0017)
+- `alembic check` no dev: **detectou drift** â€” tabela `product_attribute_definitions` existe no banco mas nÃ£o no modelo SQLAlchemy (criada via SQL direto na migration 0017, sem model ORM correspondente). **NÃ£o Ã© erro de migration**, Ã© limitaÃ§Ã£o do autogenerate (objetos derivados de SQL puro).
+- Downgrade testado no banco de teste: **OK** (0017 â†’ 0016 â†’ 0015 sem erros)
+- ExtensÃµes presentes: `vector` (0.8.7), `unaccent`, `pg_trgm` (criadas no bootstrap)
 - Tabelas confirmadas: `product_attribute_definitions`, coluna `attributes` em `products`, `product_translations`
 
-### Passo 4 — Seeds (idempotência) ✅
-| Seed | Execução 1 | Execução 2 | Idempotente |
+### Passo 4 â€” Seeds (idempotÃªncia) âœ…
+| Seed | ExecuÃ§Ã£o 1 | ExecuÃ§Ã£o 2 | Idempotente |
 |------|------------|------------|-------------|
-| Catálogo + preços demo (`seed_database`) | catalog_rows=83, translation_rows=150 | catalog_rows=83, translation_rows=150 | ✅ |
-| Definições de atributos (`seed_attribute_definitions`) | 13 definições | 13 definições | ✅ |
-| Traduções demo (incluso no `seed_database`) | 150 linhas | 150 linhas | ✅ |
+| CatÃ¡logo + preÃ§os demo (`seed_database`) | catalog_rows=83, translation_rows=150 | catalog_rows=83, translation_rows=150 | âœ… |
+| DefiniÃ§Ãµes de atributos (`seed_attribute_definitions`) | 13 definiÃ§Ãµes | 13 definiÃ§Ãµes | âœ… |
+| TraduÃ§Ãµes demo (incluso no `seed_database`) | 150 linhas | 150 linhas | âœ… |
 
-Relatórios idênticos nas duas execuções.
+RelatÃ³rios idÃªnticos nas duas execuÃ§Ãµes.
 
-### Passo 5 — Fotos ✅
-- Manifesto `catalog_photos_manifest.json`: **10 entradas**, **0 com `owner_verified: true`** (aguardando responsável)
-- Como **0 verificadas**: pipeline validado com manifesto de teste sintético (fora de `assets-src/`)
-- Geração de rascunhos: 10 entradas criadas, SKUs determinísticos, preços nas faixas por categoria
-- Validação do manifesto: **55 testes unitários passam** (incluindo regras de publicabilidade)
-- Revertido ao final (nenhuma marcação `owner_verified: true` automática)
+### Passo 5 â€” Fotos âœ…
+- Manifesto `catalog_photos_manifest.json`: **10 entradas**, **0 com `owner_verified: true`** (aguardando responsÃ¡vel)
+- Como **0 verificadas**: pipeline validado com manifesto de teste sintÃ©tico (fora de `assets-src/`)
+- GeraÃ§Ã£o de rascunhos: 10 entradas criadas, SKUs determinÃ­sticos, preÃ§os nas faixas por categoria
+- ValidaÃ§Ã£o do manifesto: **55 testes unitÃ¡rios passam** (incluindo regras de publicabilidade)
+- Revertido ao final (nenhuma marcaÃ§Ã£o `owner_verified: true` automÃ¡tica)
 
-### Passo 6 — Ýndice ✅
-- Reindexação para versão 2 (mapping multilíngue): **41 indexados, 41 esperados, 0 rejeitados, alias trocado**
+### Passo 6 â€” Ãndice âœ…
+- ReindexaÃ§Ã£o para versÃ£o 2 (mapping multilÃ­ngue): **41 indexados, 41 esperados, 0 rejeitados, alias trocado**
 - `reconcile`: **checked=50, rejected=0, upserted=0, deleted=0**
-- Contagem índice (41) == produtos publicados vendáveis no PostgreSQL (41) ✅
-- Documento verificado: contém `name_en`, `name_es`, `name_ar`, `description_en`, `description_es`, `description_ar`, `attributes_text_en`, `attributes_text_es`, `attributes_text_ar` — **sem campos de preço** ✅
-- Busca multilíngue validada:
-  - `Accept-Language: en` + `q=helmet`: 5 resultados, `content_locale=en`, nomes em inglês ✅
-  - `Accept-Language: es` + `q=casco`: 6 resultados, `content_locale=es`, nomes em espanhol ✅
-  - `Accept-Language: ar` + `q=خوذة`: 5 resultados, `content_locale=ar`, nomes em árabe ✅
-  - SKU exato `EPI-CAP-001` com `Accept-Language: ar`: 1 resultado no topo ✅
-- Fallback PostgreSQL testado (`docker compose stop elasticsearch`): `search_mode=postgres_fallback`, `content_locale=pt-BR` (limitação documentada) ✅
-- Elasticsearch reiniciado: recupera para `search_mode=lexical` ✅
+- Contagem Ã­ndice (41) == produtos publicados vendÃ¡veis no PostgreSQL (41) âœ…
+- Documento verificado: contÃ©m `name_en`, `name_es`, `name_ar`, `description_en`, `description_es`, `description_ar`, `attributes_text_en`, `attributes_text_es`, `attributes_text_ar` â€” **sem campos de preÃ§o** âœ…
+- Busca multilÃ­ngue validada:
+  - `Accept-Language: en` + `q=helmet`: 5 resultados, `content_locale=en`, nomes em inglÃªs âœ…
+  - `Accept-Language: es` + `q=casco`: 6 resultados, `content_locale=es`, nomes em espanhol âœ…
+  - `Accept-Language: ar` + `q=Ø®ÙˆØ°Ø©`: 5 resultados, `content_locale=ar`, nomes em Ã¡rabe âœ…
+  - SKU exato `EPI-CAP-001` com `Accept-Language: ar`: 1 resultado no topo âœ…
+- Fallback PostgreSQL testado (`docker compose stop elasticsearch`): `search_mode=postgres_fallback`, `content_locale=pt-BR` (limitaÃ§Ã£o documentada) âœ…
+- Elasticsearch reiniciado: recupera para `search_mode=lexical` âœ…
 
-### Passo 7 — Documentação e fechamento ✅
-- `docs/STATUS.md` atualizado com seção "Estado de validação"
-- Checagens finais `RULES.md`: Ruff ✅, Import-linter ✅, Testes ✅, Mypy (deps externas) ✅
+### Passo 7 â€” DocumentaÃ§Ã£o e fechamento âœ…
+- `docs/STATUS.md` atualizado com seÃ§Ã£o "Estado de validaÃ§Ã£o"
+- Checagens finais `RULES.md`: Ruff âœ…, Import-linter âœ…, Testes âœ…, Mypy (deps externas) âœ…
 
 ---
 
-### Relatório consolidado V1
+### RelatÃ³rio consolidado V1
 
-**Contagens de suítes:**
+**Contagens de suÃ­tes:**
 - Backend unit (sem Docker): 351 passed, 2 failed (deps ausentes)
 - Backend unit (com Docker): 466 passed, 1 skipped
 - Frontend unit: 86 passed
-- Histórico 9A-2: 508 passed, 1 skipped (com Docker) — diferença de 42 explicada por testes de integração não rodados na contagem atual
+- HistÃ³rico 9A-2: 508 passed, 1 skipped (com Docker) â€” diferenÃ§a de 42 explicada por testes de integraÃ§Ã£o nÃ£o rodados na contagem atual
 
 **Commits desde 9A-2 (6af0986):**
 1. `a1b4bbb` fix(catalog): mask price for visitors on the catalog endpoints
@@ -1404,32 +1404,32 @@ Relatórios idênticos nas duas execuções.
 11. `ade9321` feat(seed): realistic demo prices and three demo companies
 12. `5f9f6c4` feat(pricing): resolve company prices in cart, ordering and search
 13. `915e672` feat(pricing): add per-company price rules
-14. `073e28d` feat: Phase 9A-3a & 9-a — Product photo manifest & attribute model
+14. `073e28d` feat: Phase 9A-3a & 9-a â€” Product photo manifest & attribute model
 15. `e10c2e7` feat: product management API
 16. `40b9e9d` feat: second setting to the catalogue of the e-commerce
-17. `7f322a0` feat(frontend): Phase 9-c — Admin product form and public specifications
-18. `e0ccd9b` feat(frontend): Phase 9-c steps 4-6 — Publication options, customer preview, validation
-19. `b60f251` Fase 9B-a Passo 3: Atualiza repositório de pedidos para incluir locale
+17. `7f322a0` feat(frontend): Phase 9-c â€” Admin product form and public specifications
+18. `e0ccd9b` feat(frontend): Phase 9-c steps 4-6 â€” Publication options, customer preview, validation
+19. `b60f251` Fase 9B-a Passo 3: Atualiza repositÃ³rio de pedidos para incluir locale
 20. `5d7ecaa` Fase 9B-a Passos 4-6: TranslationProvider, admin endpoints, seed demo, docs
 21. `c323b49` feat(search): Phase 9B-b - Multilingual search (Elasticsearch)
 22. `e0df395` docs: Phase 9B-b - Docker validation complete
-23. `64451cc` feat(i18n): Validação V3 — 11 UI languages, RTL, fallback badge removal, visual validation prep
+23. `64451cc` feat(i18n): ValidaÃ§Ã£o V3 â€” 11 UI languages, RTL, fallback badge removal, visual validation prep
 
 **Bugs encontrados/corrigidos na V1:**
-1. **Alembic check drift**: Tabela `product_attribute_definitions` criada via SQL puro na migration 0017 sem model ORM — autogenerate detecta como "removed". Documentado como limitação conhecida (objetos derivados de SQL puro), não bloqueia.
-2. **Testes de config falhando localmente**: 2 testes requerem módulo `elasticsearch` não instalado no Python local — passam dentro do container Docker.
+1. **Alembic check drift**: Tabela `product_attribute_definitions` criada via SQL puro na migration 0017 sem model ORM â€” autogenerate detecta como "removed". Documentado como limitaÃ§Ã£o conhecida (objetos derivados de SQL puro), nÃ£o bloqueia.
+2. **Testes de config falhando localmente**: 2 testes requerem mÃ³dulo `elasticsearch` nÃ£o instalado no Python local â€” passam dentro do container Docker.
 3. **Sem testes removidos/desabilitados** desde 9A-2 confirmado via `git diff`.
 
-**NÃO VALIDADO e riscos:**
-- Validação visual do frontend (V3) — requer navegação manual em 4 idiomas
-- Modo hybrid (embeddings) — não habilitado (`EMBEDDINGS_ENABLED=false`)
-- Qualidade traduções árabe — não revisada por nativo
+**NÃƒO VALIDADO e riscos:**
+- ValidaÃ§Ã£o visual do frontend (V3) â€” requer navegaÃ§Ã£o manual em 4 idiomas
+- Modo hybrid (embeddings) â€” nÃ£o habilitado (`EMBEDDINGS_ENABLED=false`)
+- Qualidade traduÃ§Ãµes Ã¡rabe â€” nÃ£o revisada por nativo
 - Fallback PostgreSQL busca apenas pt-BR
-- Deploy em produção — não executado
+- Deploy em produÃ§Ã£o â€” nÃ£o executado
 
 ---
 
-## Validacao V2 — API de administracao, traducoes, idiomas e busca
+## Validacao V2 â€” API de administracao, traducoes, idiomas e busca
 
 **Data:** 2026-10-14
 **Ambiente:** Docker Compose real (PostgreSQL + Elasticsearch v2 + Redis + backend).
@@ -1450,13 +1450,13 @@ Relatórios idênticos nas duas execuções.
 - Passo 5: `stop elasticsearch` -> `postgres_fallback` (2.05 s na primeira chamada,
   8-15 ms apos circuit breaker; lexical 68-162 ms), edicao durante a queda OK,
   `start` + healthcheck + `reconcile` -> recuperacao lexical (28-61 ms).
-- Passo 6: **NAO VALIDADO** — `EMBEDDINGS_ENABLED=false`; backfill/hybrid nao executados.
+- Passo 6: **NAO VALIDADO** â€” `EMBEDDINGS_ENABLED=false`; backfill/hybrid nao executados.
 - Passo 7: `docs/I18N.md` e `docs/STATUS.md` atualizados; checagens finais verdes.
 
 ### Correcoes de bugs encontrados na V2
 
 1. **`orders.content_locale` inexistente**: o repositorio de pedidos ja gravava a coluna,
-   mas nenhuma migration a criava — quebrava criacao de pedido em banco novo. Migration 0019.
+   mas nenhuma migration a criava â€” quebrava criacao de pedido em banco novo. Migration 0019.
 2. **Optimistic lock quebrado**: `apply_update_to_product`/publish/unpublish geravam nova
    `version` antes do UPDATE, fazendo toda edicao falhar com 409/500. Agora preservam a versao.
 3. **`updated_at` nao avancava** no UPDATE -> versao nao mudava e a segunda edicao concorrente
@@ -1493,13 +1493,13 @@ Relatórios idênticos nas duas execuções.
 
 ---
 
-## Validacao V3 — Frontend: 11 idiomas, RTL, selo de fallback e checagem visual
+## Validacao V3 â€” Frontend: 11 idiomas, RTL, selo de fallback e checagem visual
 
-### Passo 0 — Levantamento (2026-10-22)
+### Passo 0 â€” Levantamento (2026-10-22)
 
 - 11 idiomas (`frontend/i18n/locales.ts`): pt-BR (Portugues (Brasil)), en (English),
-  zh-CN (中文（简体）), ja (日本語), ko (한국어), ru (Руѝѝкий), es (Español), de (Deutsch),
-  fr (Français), it (Italiano), ar (العربية). Dicionarios em `frontend/messages/*.json`.
+  zh-CN (ä¸­æ–‡ï¼ˆç®€ä½“ï¼‰), ja (æ—¥æœ¬èªž), ko (í•œêµ­ì–´), ru (Ð ÑƒÑÑÐºÐ¸Ð¹), es (EspaÃ±ol), de (Deutsch),
+  fr (FranÃ§ais), it (Italiano), ar (Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©). Dicionarios em `frontend/messages/*.json`.
 - `dir`/`lang` vem de `isRtlLocale()` sobre a lista unica `rtlLocales` (`["ar"]`); `lang={locale}`.
   Nao ha he/fa/ur na lista, entao `ar` e o unico RTL.
 - Fontes (`tailwind.config.ts`): Noto Sans (latina/cirilica), Noto Sans CJK SC/JP/KR,
@@ -1507,7 +1507,7 @@ Relatórios idênticos nas duas execuções.
 - Paridade existente cobria chaves/placeholders/vazios, mas comparava contra `ar.json`
   (primeiro arquivo ordenado) e o relatorio de suspeitos nao falhava.
 
-### Passo 1 — Paridade dos dicionarios
+### Passo 1 â€” Paridade dos dicionarios
 
 - Teste corrigido para comparar sempre contra `pt-BR.json` e para **falhar** em chaves
   identicas ao pt-BR (allowlist explicita para siglas, cognatos e painel admin).
@@ -1515,10 +1515,10 @@ Relatórios idênticos nas duas execuções.
   ar 106, de 105, en 116, es 83, fr 105, it 98, ja 106, ko 106, ru 106, zh-CN 106.
 - Checagem: `npx vitest run tests/unit/i18n-parity.test.ts` -> 5 passed.
 
-### Passo 2 — Textos do cliente
+### Passo 2 â€” Textos do cliente
 
 - Varredura de `app/[locale]` (sem admin), `features` (sem admin) e `shared`: unicos textos
-  fixos encontrados eram o callback do Google ("Concluindo autenticacao…" / falha) e o
+  fixos encontrados eram o callback do Google ("Concluindo autenticacaoâ€¦" / falha) e o
   `sr-only` "Close" do dialogo.
 - Novas chaves nos 11 dicionarios: `closeLabel`, `auth.googleCallbackLoading`,
   `auth.googleCallbackError`; componentes passaram a usar `t()`.
@@ -1526,19 +1526,19 @@ Relatórios idênticos nas duas execuções.
   literal nas telas do cliente (admin excluido).
 - Checagem: typecheck OK, lint OK (warnings `<img>`), `npm run test` -> 87 passed.
 
-### Passo 3 — Seletor de idioma
+### Passo 3 â€” Seletor de idioma
 
 - Itens exibem nome nativo, com `lang`/`dir` por item, `aria-current` no idioma atual e
-  `aria-label` no gatilho incluindo o idioma atual; Radix mantém navegação por teclado.
-- Persistência via cookie `NEXT_LOCALE` do next-intl; primeira visita usa `Accept-Language`
+  `aria-label` no gatilho incluindo o idioma atual; Radix mantÃ©m navegaÃ§Ã£o por teclado.
+- PersistÃªncia via cookie `NEXT_LOCALE` do next-intl; primeira visita usa `Accept-Language`
   com match por idioma base; desconhecido -> `pt-BR`.
 - Novo teste `tests/unit/locale-selection.test.ts` (middleware real): nomes nativos,
   `fr-CA`/`en-US`/`ar-EG`, desconhecido, cookie, prefixo de rota e mesma rota ao trocar.
 - Checagem: typecheck OK, lint OK, `npm run test` -> 93 passed.
 
-### Passo 4 — RTL
+### Passo 4 â€” RTL
 
-- Direção centralizada em `directionForLocale()` (lista única `rtlLocales = ["ar"]`), usada
+- DireÃ§Ã£o centralizada em `directionForLocale()` (lista Ãºnica `rtlLocales = ["ar"]`), usada
   no layout (`lang={locale}`, `dir=...`). Hebraico/fa/ur nao existem nos 11.
 - Auditoria nas telas do cliente (admin excluido): **18 classes fisicas trocadas** por logicas
   (alert 2, dropdown-menu 11, select 5); 1 excecao documentada `left-[50%]` (centralizacao
@@ -1549,7 +1549,7 @@ Relatórios idênticos nas duas execuções.
 - Novo teste `tests/unit/rtl.test.ts`: direcao por idioma, zero classes fisicas (com excecao)
   e pilhas de fonte. Checagem: typecheck OK, lint OK, 96 testes.
 
-### Passo 5 — Nota de fallback
+### Passo 5 â€” Nota de fallback
 
 - Removidos os chips/`Fallback` do detalhe do produto e o bloco de idioma do pedido;
   carrinho e pedido nao exibem nada.
@@ -1561,10 +1561,10 @@ Relatórios idênticos nas duas execuções.
 - Novo teste `tests/unit/content-locale-note.test.ts` (helper, presenca so no detalhe e chaves).
 - Checagem: typecheck OK, lint OK, `npm run test` -> 99 passed.
 
-### Passo 6 — Cache e troca de idioma
+### Passo 6 â€” Cache e troca de idioma
 
 - Achado: `Accept-Language` ja era enviado (via `useLocale`), mas as chaves do TanStack Query
-  **nao incluiam o locale** em catalogo, carrinho e pedido — trocar de idioma podia reutilizar
+  **nao incluiam o locale** em catalogo, carrinho e pedido â€” trocar de idioma podia reutilizar
   o conteudo anterior do cache.
 - Chaves agora incluem o idioma: `catalogKeys` (categorias/marcas/produtos/detalhe),
   `cartKey(locale)` e `orderKey(orderId, locale)`; invalidacao ampla por prefixo preservada.
@@ -1573,19 +1573,19 @@ Relatórios idênticos nas duas execuções.
 - Recarregar a pagina sempre refaz o fetch (cache em memoria) e envia o novo `Accept-Language`.
 - Checagem: typecheck OK, lint OK, 102 testes.
 
-### Passo 7 — Validação visual
+### Passo 7 â€” ValidaÃ§Ã£o visual
 
 - Playwright (sem dependencia nova) com Chromium; frontend em `:3010`, backend real.
-- 16 capturas em `docs/validation/v3/` (pt-BR, en, ar, zh-CN × catalogo, busca, detalhe,
+- 16 capturas em `docs/validation/v3/` (pt-BR, en, ar, zh-CN Ã— catalogo, busca, detalhe,
   carrinho); spec `tests/e2e/visual-i18n.spec.ts` -> 5 passed (4 locais + SKU).
 - Verificado: lang/dir, RTL espelhado, seta de voltar invertida em ar, nota de conteudo so
   em zh-CN (conteudo em ingles), ausencia de nota em en/ar/pt-BR, fontes CJK/arabe.
 - Problema de layout corrigido: rotulo "Ordenar por" duplicado -> chave `catalog.sortDirection`.
 - Carrinho de teste limpo (0 itens). CORS: bloqueado para navegador real (backend sem
   cabecalhos); capturas usaram `--disable-web-security` apenas para evidencia visual.
-- **BLOQUEADO**: rotulo de atributo em en (`Cor` em vez de `Color`) — exige backend.
+- **BLOQUEADO**: rotulo de atributo em en (`Cor` em vez de `Color`) â€” exige backend.
 
-### Passo 8 — Docs e checagens finais
+### Passo 8 â€” Docs e checagens finais
 
 - `docs/I18N.md` e `docs/STATUS.md` atualizados (11 idiomas, RTL, nota, cache, limites e
   bloqueios). PROGRESS com resultados.
@@ -1593,29 +1593,29 @@ Relatórios idênticos nas duas execuções.
   Playwright visual 5 passed.
 - Backend: unit+arch 425 passed; ruff/format OK; mypy strict 0 erros; import-linter 4;
   compose OK; integracao 251 passed, 1 skipped, 1 falha isolada
-  (`test_analisador_pt_ignora_acento`, ConnectionTimeout no ES de Testcontainers) —
+  (`test_analisador_pt_ignora_acento`, ConnectionTimeout no ES de Testcontainers) â€”
   repetida 3x, registrada como BLOQUEADO de ambiente, sem relacao com a V3.
 - `prettier --check` limpo nos arquivos da V3; 3 arquivos nao tocados seguem fora do padrao.
 
 ---
 
-## Prompt 09 — README, ADRs, não-objetivos e relatório final (2026-10-22)
+## Prompt 09 â€” README, ADRs, nÃ£o-objetivos e relatÃ³rio final (2026-10-22)
 
-- **Inventário:** README raiz era stub; README.pt-BR, snapshots `temp_*` e log antigo do
+- **InventÃ¡rio:** README raiz era stub; README.pt-BR, snapshots `temp_*` e log antigo do
   STATUS foram movidos para `docs/history/` com nota; STATUS reescrito.
-- **Documentação:** README (PT + resumo EN, Mermaid, validação, execução local), 9 ADRs
-  novos + ADR-0004 atualizado, NON_GOALS, CHANGELOG, INDEX, API, DEPLOY_RENDER (não
-  executado), LOAD (não executado), GAP_AUDIT reconstruído (arquivo estava vazio) e
+- **DocumentaÃ§Ã£o:** README (PT + resumo EN, Mermaid, validaÃ§Ã£o, execuÃ§Ã£o local), 9 ADRs
+  novos + ADR-0004 atualizado, NON_GOALS, CHANGELOG, INDEX, API, DEPLOY_RENDER (nÃ£o
+  executado), LOAD (nÃ£o executado), GAP_AUDIT reconstruÃ­do (arquivo estava vazio) e
   FINAL_REPORT.
 - **Checagens reais:** backend unit+arch **425 passed**; sem Docker **427 passed, 251
-  skipped**; suíte com Docker **677 passed, 1 skipped**; frontend **102 passed** + build OK;
+  skipped**; suÃ­te com Docker **677 passed, 1 skipped**; frontend **102 passed** + build OK;
   Ruff OK (384 arquivos); `mypy app --strict` 0 erros (285 arquivos), mas `mypy .` **48
   erros em 5 arquivos de teste**; import-linter 4/4; Compose config OK. Runtime: Grafana e
-  celery-beat em restart (config/permissão).
-- **Links:** `scripts/check_markdown_links.py` → 41 arquivos, 0 links quebrados (46 com
-  histórico). Nenhum push; commits locais de documentação.
-- **NÃO VALIDADO:** deploy Render, teste de carga, rate limiting (não implementado), CORS,
-  modo hybrid no estado padrão, revisão nativa das traduções.
+  celery-beat em restart (config/permissÃ£o).
+- **Links:** `scripts/check_markdown_links.py` â†’ 41 arquivos, 0 links quebrados (46 com
+  histÃ³rico). Nenhum push; commits locais de documentaÃ§Ã£o.
+- **NÃƒO VALIDADO:** deploy Render, teste de carga, rate limiting (nÃ£o implementado), CORS,
+  modo hybrid no estado padrÃ£o, revisÃ£o nativa das traduÃ§Ãµes.
 
 ---
 
@@ -1672,14 +1672,14 @@ Relatórios idênticos nas duas execuções.
 - Rebuild da imagem do backend validado com PIX real: sessao `cs_test_...`, webhook
   `async_payment_succeeded` -> `PAID`, pedido `PAID`.
 
-## Prompt 03 — Seguranca, privacidade e endurecimento (2026-10-22)
+## Prompt 03 â€” Seguranca, privacidade e endurecimento (2026-10-22)
 
-### Passo 1 — CORS
+### Passo 1 â€” CORS
 - Origens explicitas validadas (sem '*', sem caminho), credenciais e max_age configuraveis; RateLimit-*/Retry-After expostos.
 - Testes: 5 passed (preflight permitido/bloqueado, credenciais, config invalida); Ruff OK.
 - Pendente: validacao curl no Docker (passo 8).
 
-### Passo 2 — Cabecalhos de seguranca
+### Passo 2 â€” Cabecalhos de seguranca
 - Backend: middleware com nosniff, Referrer-Policy, Permissions-Policy, no-store em rotas sensiveis/autenticadas, HSTS condicional a producao+HTTPS e remocao de Server/X-Powered-By.
 - Frontend: CSP por requisicao com nonce + strict-dynamic, frame-ancestors none, object-src none, base-uri self, connect/img restritos a API; headers em next.config.
 - Testes: 6 backend + 4 CSP frontend; typecheck/lint OK. Validacao visual da CSP fica para o passo 8.
@@ -1700,73 +1700,127 @@ Relatórios idênticos nas duas execuções.
 - **Remoto:** 15 commits locais nao enviados; 14 commits desde 9A-2 ja estao em
   `origin/main` (`df34400`). Auditoria somente leitura, exceto este arquivo e o GAP_AUDIT.
 
-### Passo 3 � Rate limiting
+### Passo 3 — Rate limiting
 - Token bucket atomico em Redis (Lua) por classe: auth, cadastro, busca, escrita admin, autenticados e leitura publica; health/metricas isentos.
 - 429 RFC 7807 com Retry-After e RateLimit-*, IP real via TRUSTED_PROXY_COUNT, fail-open com limitador local + circuit breaker curto, metricas de rejeicao/falha.
 - Login: limite por conta (HMAC), bloqueio progressivo por conta+IP sem revelar existencia; cadastro tambem limita por conta.
 - Testes: 8 unitarios + 4 de integracao com Redis real; Ruff/mypy OK. Validacao Docker de 429/fail-open fica no passo 8.
 
-## Prompt 05 � Dados, migrations, backup e reconcilia��o (2026-10-22)
+## Prompt 05 — Dados, migrations, backup e reconciliação (2026-10-22)
 
-### Passo 1 � Rollback de migrations
-- `scripts/migration_drill.py`: banco `forja_scratch_migration_*`, bootstrap real, upgrade/seed/downgrade base/upgrade/seed, compara��o de checksums e `alembic check`; remove somente o banco que criou.
-- 0018 e 0020 documentadas como revers�veis com perda de estado (`DRAFT`->`INACTIVE`, `PAID`->`RECEIVED`); teste de arquitetura detecta downgrade ausente/n�o funcional.
-- Drill real no head **0022**: OK em 41,10 s (25,87 s em cache quente); seed 50/4/13/4/150 id�ntico antes/depois.
-- Pendente: job `migrations` do Prompt 02 n�o existe no CI.
+### Passo 1 — Rollback de migrations
+- `scripts/migration_drill.py`: banco `forja_scratch_migration_*`, bootstrap real, upgrade/seed/downgrade base/upgrade/seed, comparação de checksums e `alembic check`; remove somente o banco que criou.
+- 0018 e 0020 documentadas como reversíveis com perda de estado (`DRAFT`->`INACTIVE`, `PAID`->`RECEIVED`); teste de arquitetura detecta downgrade ausente/não funcional.
+- Drill real no head **0022**: OK em 41,10 s (25,87 s em cache quente); seed 50/4/13/4/150 idêntico antes/depois.
+- Pendente: job `migrations` do Prompt 02 não existe no CI.
 
-### Passo 2 � Backup e restaura��o
-- `scripts/backup_db.py`: pg_dump custom, valida��o `PGDMP`, arquivo tempor�rio + rename, rota��o por reten��o, sa�da em `backups/` (fora do volume).
-- `scripts/restore_drill.py`: restaura o �ltimo backup em `forja_scratch_restore_*`, aplica `upgrade head`, `alembic current/check`, contagens e extens�es, confirma banco dev inalterado e remove o scratch.
-- Evid�ncia: dump 226.309 bytes; restore 9,81 s; upgrade/check 9,59 s; 50/4/13/4/150; extens�es OK; dev inalterado.
-- `docs/BACKUP.md` cobre pol�tica, Render (PITR 3/7 dias, exports 7 dias; plano real N�O CONFERIDO) e snapshots do ES; �ndice reconstru�vel.
+### Passo 2 — Backup e restauração
+- `scripts/backup_db.py`: pg_dump custom, validação `PGDMP`, arquivo temporário + rename, rotação por retenção, saída em `backups/` (fora do volume).
+- `scripts/restore_drill.py`: restaura o último backup em `forja_scratch_restore_*`, aplica `upgrade head`, `alembic current/check`, contagens e extensões, confirma banco dev inalterado e remove o scratch.
+- Evidência: dump 226.309 bytes; restore 9,81 s; upgrade/check 9,59 s; 50/4/13/4/150; extensões OK; dev inalterado.
+- `docs/BACKUP.md` cobre política, Render (PITR 3/7 dias, exports 7 dias; plano real NÃO CONFERIDO) e snapshots do ES; índice reconstruível.
 
-### Passo 3 � Outbox
-- Backoff exponencial no SQL (2^attempts, teto 60 s), `DEAD_LETTERED` no limite, motivo apenas tipo da exce��o.
+### Passo 3 — Outbox
+- Backoff exponencial no SQL (2^attempts, teto 60 s), `DEAD_LETTERED` no limite, motivo apenas tipo da exceção.
 - CLI `outbox list-dead`, `outbox requeue <id|--all --yes>`; auditoria estruturada `search_outbox_requeued`.
 - Gauges `forja_outbox_pending`, `forja_outbox_dead_total`, `forja_outbox_oldest_pending_age_seconds` atualizados pela API.
-- Evid�ncia real: ES fora + max_attempts=1 -> dead; list/requeue validados; eventos de teste removidos. Testes de idempot�ncia e dead-letter passando.
+- Evidência real: ES fora + max_attempts=1 -> dead; list/requeue validados; eventos de teste removidos. Testes de idempotência e dead-letter passando.
 
-### Passo 4 � Reconcilia��o
-- Advisory lock de sess�o (`hashtext('forja:search:reconcile')`); segunda inst�ncia sai `skipped`/`reconcile_already_running`.
-- Agendador opcional (`RECONCILE_INTERVAL_SECONDS=0` default) com jitter, timeout e m�tricas `reconcile_last_success_timestamp_seconds`, `reconcile_duration_seconds`, `reconcile_drift_total`, `reconcile_failures_total`.
-- Evid�ncia real: lock segurado -> duas execu��es skipped; drift induzido -> `upserted=1` e documento restaurado.
-- Corrigido upsert p�s-delete com `external_gte` + delete versionado; conflitos n�o contam como escrita.
-- Pendente: alerta do Prompt 04 ainda n�o aplicado (m�trica pronta); Cron Job do Render N�O CONFERIDO no plano.
+### Passo 4 — Reconciliação
+- Advisory lock de sessão (`hashtext('forja:search:reconcile')`); segunda instância sai `skipped`/`reconcile_already_running`.
+- Agendador opcional (`RECONCILE_INTERVAL_SECONDS=0` default) com jitter, timeout e métricas `reconcile_last_success_timestamp_seconds`, `reconcile_duration_seconds`, `reconcile_drift_total`, `reconcile_failures_total`.
+- Evidência real: lock segurado -> duas execuções skipped; drift induzido -> `upserted=1` e documento restaurado.
+- Corrigido upsert pós-delete com `external_gte` + delete versionado; conflitos não contam como escrita.
+- Pendente: alerta do Prompt 04 ainda não aplicado (métrica pronta); Cron Job do Render NÃO CONFERIDO no plano.
 
-### Passo 5 � Limpeza de �ndices
-- `prune-indices --keep N` (default 2), `--dry-run`, `--yes`; nunca remove o alvo do alias nem as N mais recentes; ordena��o num�rica.
-- Evid�ncia real: removida `forja_products_v1`; alias permaneceu em `forja_products_v2`; dry-run seguinte vazio.
-- ILM n�o � usado (�ndice �nico versionado + alias + reconstru�vel); documentado no RUNBOOK.
+### Passo 5 — Limpeza de índices
+- `prune-indices --keep N` (default 2), `--dry-run`, `--yes`; nunca remove o alvo do alias nem as N mais recentes; ordenação numérica.
+- Evidência real: removida `forja_products_v1`; alias permaneceu em `forja_products_v2`; dry-run seguinte vazio.
+- ILM não é usado (índice único versionado + alias + reconstruível); documentado no RUNBOOK.
 
-### Passo 6/7 � Valida��o e documenta��o
+### Passo 6/7 — Validação e documentação
 - `docs/MIGRATIONS.md`, `docs/BACKUP.md`, `docs/search/RUNBOOK.md` e `docs/STATUS.md` atualizados.
-- Testes: su�te completa com Docker 788 passed / 4 failed / 1 skipped; as 4 falhas s�o do WIP concorrente (1 `type: ignore` + 3 `test_companies_api` com 429 do rate limiting). Nossos testes: outbox repo 1, lock 2, todos os de busca passando.
+- Testes: suíte completa com Docker 788 passed / 4 failed / 1 skipped; as 4 falhas são do WIP concorrente (1 `type: ignore` + 3 `test_companies_api` com 429 do rate limiting). Nossos testes: outbox repo 1, lock 2, todos os de busca passando.
 - `mypy app --strict` 0 erros/304 arquivos; `ruff` OK; import-linter 4/4; Compose config OK.
 
-## Prompt 06 � API: OpenAPI, versionamento, idempotencia e webhooks (2026-10-22)
+## Prompt 06 — API: OpenAPI, versionamento, idempotencia e webhooks (2026-10-22)
 
-### Passo 1/2 � Erros e contrato
+### Passo 1/2 — Erros e contrato
 - `ProblemDetails` RFC 9457 com `request_id` e `errors[]` por campo; handlers de 4xx/5xx uniformizados (401/403/404/409/413/422/429/503).
 - OpenAPI enriquecido (tags/summary/erros/seguranca/exemplos) em `app/interface/openapi.py`; 51 rotas cobertas pelo teste `tests/unit/test_openapi_contract.py`.
 - `scripts/export_openapi.py` deterministico (`sort_keys`, UTF-8, `--check`); snapshot `docs/api/openapi.json`; Redoc `docs/api/index.html`; tipos `frontend/core/domain/api-schema.d.ts`; job `openapi-contract` com `oasdiff breaking --fail-on ERR` e drift dos tipos.
-- Evidencia: hash SHA-256 `E098BE93�9443`; duas execucoes identicas; oasdiff compativel exit 0, incompativel exit 1 (3 erros `response-required-property-removed`).
+- Evidencia: hash SHA-256 `E098BE93…9443`; duas execucoes identicas; oasdiff compativel exit 0, incompativel exit 1 (3 erros `response-required-property-removed`).
 
-### Passo 3 � Versionamento/depreciacao
+### Passo 3 — Versionamento/depreciacao
 - `docs/API_VERSIONING.md`, `docs/WEBHOOKS.md`, `docs/api/README.md`.
 - `app/interface/deprecation.py`: `Deprecation`, `Sunset`, `Link`, `Warning`, metrica `forja_deprecated_route_requests_total`; rota legada de webhook com sunset 2027-04-30. Testes 4/4.
 
-### Passo 4 � Idempotencia
+### Passo 4 — Idempotencia
 - Migrations `0021_idempotency_keys` (RLS FORCE, unique por escopo, TTL) e `0022_idempotency_tenant_scope` (indices de orders/payments por empresa).
 - Header `Idempotency-Key` obrigatorio em pedido/pagamento e opcional em produto/exclusao LGPD; replay com `Idempotent-Replayed`, 422 payload diferente, 409 `Retry-After`, liberacao em 5xx; `scripts/cleanup_idempotency_keys.py`.
 - Frontend: `core/domain/idempotency.ts`, header em `ordering-api`/`payment-api`, chave por tentativa/pedido no checkout; testes 112.
 - Evidencia Docker: 10 concorrentes -> 1 pedido, 2 replays, 7 conflitos 409 (`Retry-After: 60`); 422 com payload diferente; limpeza de chave expirada `deleted=1`.
 
-### Passo 5 � Webhooks
+### Passo 5 — Webhooks
 - Stripe e HMAC legado com corpo bruto limitado (1 MiB), HMAC em tempo constante, timestamp assinado (tolerancia 300 s), dois segredos ativos, rate limit `WEBHOOK`, idempotencia por evento e logs sem corpo.
 - ERP/e-mail inbound: **nao se aplica**; callback OAuth nao e webhook. Documentado em `docs/WEBHOOKS.md`.
 - Testes: assinatura valida/invalida/ausente/expirada, rotacao, corpo 413, repetido/DUPLICATE e Stripe (atual/anterior/invalida/expirada/ausente).
 
-### Passo 6/7 � Validacao e documentacao
+### Passo 6/7 — Validacao e documentacao
 - Docker de pe: erros reais 401/403/404/422/429/503; webhook assinado 200, adulterado 401, expirado 401; `alembic downgrade 0020` + `upgrade head` + `check` OK (backup 220.451 bytes).
 - Backend: Ruff check/format OK, mypy strict 0/304, import-linter 4/4, 512 unit/arch + 280 integration (1 skip); frontend typecheck/lint/test 112 OK.
 - `docs/STATUS.md`, `README.md`, `docs/MIGRATIONS.md` atualizados. Nao houve push; commits locais pendentes.
+
+## Prompt 10 â€” Fotos reais e ilustraÃ§Ãµes SVG no catÃ¡logo (2026-10-26)
+
+### Parte 0 â€” Auditoria (somente leitura)
+
+Fotos do responsavel em `frontend/public/brand/` (NENHUMA versionada; `git ls-files frontend/public`
+retorna apenas `brand/forja-b2b-logo*.png`, `brand/icon.svg` e `brand/logo.svg`):
+
+| Arquivo | Extensao | Dimensoes | Tamanho | EXIF | GPS |
+|---|---|---|---|---|---|
+| bota-e-luva-de-obra-kindelmedia-8488037.jpg | .jpg | 5184x3888 | 1.487.635 B | Orientation/Resolucao | NAO |
+| botina-1242304473-30156647.jpg | .jpg | 3000x4500 | 2.443.654 B | Orientation/Resolucao | NAO |
+| capacete-para-obra-38070.jpg | .jpg | 4830x3178 | 1.684.543 B | Orientation/Resolucao | NAO |
+| colete-de-obra-436474929-17858119.jpg | .jpg | 4016x6016 | 747.421 B | Artist/Copyright (nulos) | NAO |
+| furadeira-3877525.jpg | .jpg | 2667x4000 | 893.624 B | Orientation/Resolucao | NAO |
+| kit-antiqueda-34019840.jpg | .jpg | 2624x3936 | 1.016.067 B | Orientation/Resolucao | NAO |
+| kit-parafuso-7285983.jpg | .jpg | 4480x6720 | 3.144.286 B | Artist "KAROLINA GRABOWSKA KABOOMPICS" | NAO |
+| luva-de-obra-8488007.jpg | .jpg | 3888x5184 | 1.583.753 B | Orientation/Resolucao | NAO |
+| mascara-de-gas-3435524-5499417.jpg | .jpg | 6000x4000 | 980.251 B | Artist/Copyright (vazios) | NAO |
+| mÃ¡scara-respiradora-8487784.jpg | .jpg | 3888x5184 | 851.563 B | Orientation/Resolucao | NAO |
+| protetor-auricular-6791514.jpg | .jpg | 4000x6000 | 2.344.280 B | Orientation/Resolucao | NAO |
+| rÃ©gua-de-mediÃ§Ã£o-5493674.jpg | .jpg | 4000x6000 | 2.497.041 B | Orientation/Resolucao | NAO |
+| turquesa-2160382064-36847981.jpg | .jpg | 3787x5310 | 1.628.319 B | Orientation/Resolucao | NAO |
+| Ã³culos-de-obra51320673-8352127.jpg | .jpg | 4622x6934 | 2.592.984 B | Orientation/Resolucao | NAO |
+
+Leitura EXIF com Pillow 12.2.0 (sem `exiftool` no Windows host). Nenhum GPS em nenhuma foto.
+Originais ficam em `frontend/public/` (SERVIDOS publicamente) ate a Parte A2 mover para `assets-src/`.
+
+Por que os cartoes mostram o icone padrao da categoria: nenhuma linha de `products` tem
+`image_url` preenchido no banco de desenvolvimento (coluna existe desde a migration 0015, sempre
+NULL no seed); `ProductImage.resolveSrc` (frontend/shared/components/product-image.tsx) prefixa TODO
+caminho relativo com a base da API (`NEXT_PUBLIC_API_URL`) â€” `/static/...` vai para a API (pasta
+`backend/app/static/catalog`), e caminhos `/catalog/...` hoje tambem cairiam na API (que nao os tem)
+= 404 â†’ fallback. next.config.mjs nao tem bloco `images` (usa `<img>` direto); CSP no middleware:
+`img-src 'self' data: blob: http://localhost:8000` â€” `/catalog/...` na origem do frontend ja e
+coberto por `'self'` (sem ajuste de CSP).
+
+Produtos (seed, `backend/app/infrastructure/db/seeds.py`): 4 base (EPI-CAP-001, EPI-LUV-002,
+EPI-RES-003, MAQ-PAR-004) + 39 demo (CAP-002..005, OCV-001..006, LUV-003..009, RES-004..008,
+AUD-001..004, BOT-001..005, QUE-001..004, FUR-001..005, MAQ-005..010); 2 INACTIVE (CAP-005,
+OCV-006, LUV-009, MAQ-010 sao INACTIVE = 4 na verdade). Insert com `ON CONFLICT (id) DO NOTHING`
++ `_refresh_demo_prices` â€” imagem exigira passo anÃ¡logo de refresh idempotente.
+
+Pipeline 9A-3 preexistente: `backend/app/domain/catalog_image.py` (validacao/precedencia),
+migration 0015, admin de catalogo (upload), manifesto `backend/app/seed_data/
+catalog_photos_manifest.json` (10 fotos, creditos NULOS), template, pasta `assets-src/` (10 fotos
+iguais as de brand/). NAO existe `scripts/optimize_catalog_images.py` nem `docs/IMAGE_CREDITS.md`
+(serao criados aqui, sem duplicar pipeline). `scripts/` na raiz e para ferramentas de repo.
+
+Tokens visuais: tema claro `--background #FAF9F6`, `--secondary #F4F2ED` (fundo do ladrilho no
+card: `bg-secondary/70`), accent `--primary #F59E0B` (ambar) e `--amber-strong #D97706`; tema
+escuro `--card #121212`. Nos SVGs atuais de `backend/app/static/catalog/` a paleta usada e:
+ladrilho `#0F172A`, traco branco `#F8FAFC`, acento laranja `#F97316`. Paleta dos novos SVGs =
+exatamente esses 3 valores (derivados dos SVGs existentes, sem inventar cor).

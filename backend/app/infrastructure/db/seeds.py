@@ -105,6 +105,8 @@ async def _seed_global_catalog(conn: AsyncConnection) -> tuple[int, int]:
     # INSERT acima e ON CONFLICT DO NOTHING, entao um ajuste de preco so entra
     # por aqui, e apenas quando o valor realmente muda.
     await _refresh_demo_prices(conn)
+    # Idem para as imagens por SKU (foto > ilustracao; Prompt 10).
+    await _refresh_product_images(conn)
     translations = await _seed_product_translations(conn)
     return rows, translations
 
@@ -126,6 +128,26 @@ async def _refresh_demo_prices(conn: AsyncConnection) -> None:
                 "WHERE id = :id AND unit_price <> :price"
             ),
             {"price": tier["unit_price"], "id": tier["id"]},
+        )
+
+
+async def _refresh_product_images(conn: AsyncConnection) -> None:
+    """Vincula image_url por SKU (foto/ilustracao) quando diverge, idempotente.
+
+    Upsert por SKU sobre o catalogo de demonstracao apenas: produtos fora de
+    ``_PRODUCT_IMAGES`` (ex.: MAQ-010) mantem o fallback por categoria.
+    """
+    for product in _ALL_PRODUCTS:
+        sku = cast(str, product["sku"])
+        image_url = _PRODUCT_IMAGES.get(sku)
+        if image_url is None:
+            continue
+        await conn.execute(
+            text(
+                "UPDATE products SET image_url = :image_url, updated_at = now() "
+                "WHERE id = :id AND image_url IS DISTINCT FROM :image_url"
+            ),
+            {"image_url": image_url, "id": product["id"]},
         )
 
 
@@ -1252,6 +1274,66 @@ def _build_demo_tiers() -> list[dict[str, object]]:
 
 
 _DEMO_TIERS = _build_demo_tiers()
+
+# Imagens por SKU (Prompt 10): foto real (frontend/public/catalog/photos) ou
+# ilustracao SVG especifica do produto (frontend/public/catalog/illustrations).
+# Precedencia no seed: foto > ilustracao; produtos fora deste mapa usam o
+# fallback por categoria (backend/app/domain/catalog_image.py). O frontend
+# resolve /catalog/... para a propria origem (pasta public) e /static/... para
+# a API. Veja docs/illustrations/PHOTO_MAPPING.md e docs/illustrations/FAMILIES.md.
+_PRODUCT_IMAGES: dict[str, str] = {
+    # --- Fotos reais (Parte A; confianca alta) ---
+    "EPI-CAP-001": "/catalog/photos/epi-cap-001.webp",
+    "MAQ-PAR-004": "/catalog/photos/maq-par-004.webp",
+    "QUE-001": "/catalog/photos/que-001.webp",
+    "LUV-003": "/catalog/photos/luv-003.webp",
+    "RES-005": "/catalog/photos/res-005.webp",
+    "RES-006": "/catalog/photos/res-006.webp",
+    "AUD-002": "/catalog/photos/aud-002.webp",
+    "OCV-003": "/catalog/photos/ocv-003.webp",
+    "BOT-001": "/catalog/photos/bot-001.webp",
+    # --- Ilustracoes SVG especificas por familia (Parte B) ---
+    "CAP-002": "/catalog/illustrations/capacete-de-seguranca.svg",
+    "CAP-003": "/catalog/illustrations/capacete-de-seguranca.svg",
+    "CAP-004": "/catalog/illustrations/capacete-de-seguranca.svg",
+    "CAP-005": "/catalog/illustrations/capacete-de-seguranca.svg",
+    "OCV-001": "/catalog/illustrations/oculos-de-protecao.svg",
+    "OCV-002": "/catalog/illustrations/oculos-de-protecao.svg",
+    "OCV-004": "/catalog/illustrations/oculos-de-protecao.svg",
+    "OCV-005": "/catalog/illustrations/oculos-de-protecao.svg",
+    "OCV-006": "/catalog/illustrations/oculos-de-protecao.svg",
+    "EPI-LUV-002": "/catalog/illustrations/luva-de-raspa.svg",
+    "LUV-004": "/catalog/illustrations/luva-de-raspa.svg",
+    "LUV-006": "/catalog/illustrations/luva-de-raspa.svg",
+    "LUV-009": "/catalog/illustrations/luva-de-raspa.svg",
+    "LUV-005": "/catalog/illustrations/luva-nitrilica.svg",
+    "LUV-007": "/catalog/illustrations/luva-anticorte.svg",
+    "LUV-008": "/catalog/illustrations/luva-latex.svg",
+    "EPI-RES-003": "/catalog/illustrations/mascara-descartavel.svg",
+    "RES-004": "/catalog/illustrations/mascara-descartavel.svg",
+    "RES-007": "/catalog/illustrations/mascara-descartavel.svg",
+    "RES-008": "/catalog/illustrations/respirador-panoramico.svg",
+    "AUD-001": "/catalog/illustrations/protetor-plug.svg",
+    "AUD-004": "/catalog/illustrations/protetor-plug.svg",
+    "AUD-003": "/catalog/illustrations/abafador-capacete.svg",
+    "BOT-004": "/catalog/illustrations/botina.svg",
+    "BOT-002": "/catalog/illustrations/bota-de-seguranca.svg",
+    "BOT-003": "/catalog/illustrations/bota-de-seguranca.svg",
+    "BOT-005": "/catalog/illustrations/sapato-de-seguranca.svg",
+    "QUE-002": "/catalog/illustrations/talabarte.svg",
+    "QUE-003": "/catalog/illustrations/cinto-seguranca.svg",
+    "QUE-004": "/catalog/illustrations/trava-queda.svg",
+    "FUR-001": "/catalog/illustrations/furadeira.svg",
+    "FUR-002": "/catalog/illustrations/furadeira-de-bancada.svg",
+    "FUR-003": "/catalog/illustrations/esmerilhadeira.svg",
+    "FUR-004": "/catalog/illustrations/serra-circular.svg",
+    "FUR-005": "/catalog/illustrations/retifica.svg",
+    "MAQ-005": "/catalog/illustrations/compressor.svg",
+    "MAQ-006": "/catalog/illustrations/prensa-hidraulica.svg",
+    "MAQ-007": "/catalog/illustrations/politriz.svg",
+    "MAQ-008": "/catalog/illustrations/serra-de-bancada.svg",
+    "MAQ-009": "/catalog/illustrations/bomba-agua.svg",
+}
 
 # Listas efetivamente usadas pelo seed (base + demonstracao).
 _ALL_CATEGORIES: list[dict[str, object]] = [*_CATEGORIES, *_DEMO_CATEGORIES]

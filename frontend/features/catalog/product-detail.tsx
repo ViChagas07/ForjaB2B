@@ -1,11 +1,14 @@
 "use client";
 
+import * as React from "react";
 import {
   ArrowLeft,
   BadgeCheck,
   BadgePercent,
   CreditCard,
+  Minus,
   PackageCheck,
+  Plus,
   ShieldCheck,
   Truck,
 } from "lucide-react";
@@ -18,6 +21,9 @@ import { errorMessageKey } from "@/shared/lib/api-error";
 import { formatNumber } from "@/shared/lib/money";
 import { ProductImage } from "@/shared/components/product-image";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { isDisplaySellable } from "./availability";
@@ -34,11 +40,16 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
   const t = useTranslations();
   const locale = useLocale();
   const query = useProduct(productId);
+  const [quantity, setQuantity] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    setQuantity(null);
+  }, [productId]);
 
   if (query.isLoading) {
     return (
       <div className="grid gap-8 lg:grid-cols-2">
-        <Skeleton className="aspect-[4/3] w-full rounded-3xl" />
+        <Skeleton className="aspect-square w-full rounded-3xl" />
         <div className="space-y-4">
           <Skeleton className="h-4 w-28" />
           <Skeleton className="h-10 w-3/4" />
@@ -68,6 +79,15 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
   }
 
   const sellable = isDisplaySellable(product);
+  const minQuantity = Math.max(1, product.min_order_qty);
+  const selectedQuantity = Math.max(minQuantity, quantity ?? minQuantity);
+
+  function updateQuantity(next: number) {
+    if (Number.isNaN(next)) {
+      return;
+    }
+    setQuantity(Math.max(minQuantity, Math.floor(next)));
+  }
 
   return (
     <div className="space-y-8">
@@ -93,11 +113,11 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
               <CaStatusBadge status={product.ca_status} />
               <AvailabilityBadge isSellable={sellable} />
             </div>
-            <div className="flex min-h-[320px] items-center justify-center p-8 sm:min-h-[420px]">
+            <div className="flex aspect-square items-center justify-center">
               <ProductImage
                 src={product.image_url}
                 alt={product.image_alt}
-                className="max-h-[360px] w-full object-contain"
+                className="h-full w-full"
               />
             </div>
             <div className="pointer-events-none absolute end-5 top-5 h-24 w-24 rounded-full bg-primary/5" />
@@ -189,16 +209,62 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
             />
             <p className="mt-2 text-xs text-muted-foreground">
               {t("catalog.minOrderQty")}:{" "}
-              <span className="font-semibold text-foreground">{product.min_order_qty}</span>
+              <span className="font-semibold text-foreground">{minQuantity}</span>
               {product.unit_of_measure ? ` · ${product.unit_of_measure}` : ""}
             </p>
 
+            <div className="mt-5 space-y-2">
+              <Label
+                htmlFor="product-quantity"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                {t("cart.quantity")}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 rounded-xl"
+                  aria-label={t("cart.decreaseQuantity")}
+                  disabled={!sellable || selectedQuantity <= minQuantity}
+                  onClick={() => updateQuantity(selectedQuantity - 1)}
+                >
+                  <Minus aria-hidden="true" className="h-4 w-4" />
+                </Button>
+                <Input
+                  id="product-quantity"
+                  type="number"
+                  inputMode="numeric"
+                  min={minQuantity}
+                  step={1}
+                  value={selectedQuantity}
+                  disabled={!sellable}
+                  className="h-11 w-24 rounded-xl text-center text-base font-semibold tabular-nums"
+                  onFocus={(event) => event.currentTarget.select()}
+                  onChange={(event) => updateQuantity(Number.parseInt(event.target.value, 10))}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 rounded-xl"
+                  aria-label={t("cart.increaseQuantity")}
+                  disabled={!sellable}
+                  onClick={() => updateQuantity(selectedQuantity + 1)}
+                >
+                  <Plus aria-hidden="true" className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
             <AddToCartButton
               productId={product.id}
-              minQuantity={product.min_order_qty}
+              minQuantity={minQuantity}
+              quantity={selectedQuantity}
               disabled={!sellable}
               size="lg"
-              className="mt-5 h-12 w-full rounded-xl text-sm font-semibold"
+              className="mt-4 h-12 w-full rounded-xl text-sm font-semibold"
             />
 
             {!sellable ? (

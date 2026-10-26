@@ -18,6 +18,19 @@ def test_aceita_https_e_caminho_relativo() -> None:
     assert is_valid_image_url("/catalog/capacete.svg")
 
 
+def test_aceita_caminhos_de_foto_e_ilustracao_do_frontend() -> None:
+    # Prompt 10: /catalog/photos e /catalog/illustrations sao servidos pela
+    # origem do frontend (pasta public); a validacao do backend os aceita como
+    # caminho relativo sem relaxar as regras (sem http://, data: ou //host).
+    assert is_valid_image_url("/catalog/photos/bot-001.webp")
+    assert is_valid_image_url("/catalog/illustrations/esmerilhadeira.svg")
+    assert is_valid_image_url(
+        resolve_product_image_path(
+            product_image_url="/catalog/photos/luv-003.webp", category_slug="protecao-maos"
+        )
+    )
+
+
 def test_rejeita_esquemas_e_formatos_invalidos() -> None:
     assert not is_valid_image_url("javascript:alert(1)")
     assert not is_valid_image_url("data:image/svg+xml;base64,AAAA")

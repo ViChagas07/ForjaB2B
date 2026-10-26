@@ -35,12 +35,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
     >
       <Link
         href={`/catalog/${product.id}`}
-        className="relative block aspect-[4/3] overflow-hidden bg-secondary/70"
+        className="relative block aspect-square overflow-hidden bg-secondary/70"
       >
         <ProductImage
           src={product.image_url}
           alt={product.image_alt}
-          className="h-full w-full object-contain p-6 transition-transform duration-500 group-hover:scale-[1.04]"
+          className="h-full w-full transition-transform duration-500 group-hover:scale-[1.04]"
         />
         <div className="absolute start-3 top-3 flex flex-wrap gap-1.5">
           <EpiBadge isEpi={product.is_epi} />
