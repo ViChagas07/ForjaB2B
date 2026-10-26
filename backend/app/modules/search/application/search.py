@@ -41,7 +41,7 @@ _logger = get_logger(__name__)
 
 @dataclass(frozen=True, kw_only=True)
 class SearchResultItem:
-    """Item hidratado da resposta de busca (sem preco quando visitante)."""
+    """Item hidratado da resposta de busca (sem preco quando bloqueado)."""
 
     id: uuid.UUID
     sku: str
@@ -275,12 +275,22 @@ class SearchProducts:
         locale: str,
         category_map: dict[str, str],
     ) -> SearchResultItem:
-        # Visitante: preco consultivo (nenhum valor). Autenticado: preco de lista
+        # Produto bloqueado: preco consultivo (nenhum valor). Visitante de
+        # produto vendavel: preco de lista. Autenticado: preco de lista
         # ajustado pelas regras da empresa (negociado > desconto > lista),
         # resolvido aqui (nunca vem do indice ou do vetor).
-        if auth is None:
+        sellable = is_sellable(
+            status=product.status,
+            is_epi=product.is_epi,
+            ca_valid_until=product.ca_valid_until,
+            today=today,
+        )
+        if not sellable:
             unit_price: Decimal | None = None
             price_on_request = True
+        elif auth is None:
+            unit_price = product.base_unit_price
+            price_on_request = unit_price is None
         else:
             unit_price = resolve_company_price(
                 base_unit_price=product.base_unit_price,

@@ -129,9 +129,9 @@ def _auth() -> AuthContext:
     )
 
 
-async def test_search_hidrata_e_mascara_preco_para_visitante() -> None:
+async def test_search_expoe_preco_publico_e_exclui_produto_bloqueado() -> None:
     a = _row("A")
-    b = _row("B")
+    b = _row("B", is_epi=True, ca_valid_until=date(2000, 1, 1))
     ids = [str(a.id), str(b.id)]
     primary = _FakeSearchReader({"": SearchResult(ids=ids, total=2, mode="lexical")})
     fallback = _FakeSearchReader()
@@ -149,9 +149,12 @@ async def test_search_hidrata_e_mascara_preco_para_visitante() -> None:
         auth=None,
     )
     assert result.search_mode == "lexical"
-    assert len(result.items) == 2
-    assert all(item.price_on_request for item in result.items)
-    assert all(item.base_unit_price is None for item in result.items)
+    assert len(result.items) == 1
+    item = result.items[0]
+    assert item.id == a.id
+    assert item.price_on_request is False
+    assert item.base_unit_price == Decimal("29.90")
+    assert b.id not in {item.id for item in result.items}
 
 
 async def test_search_autenticado_exibe_preco_base() -> None:

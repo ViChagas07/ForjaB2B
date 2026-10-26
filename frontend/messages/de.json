@@ -172,6 +172,8 @@
     "browseProducts": "Produkte ansehen",
     "subtotal": "Zwischensumme",
     "quantity": "Menge",
+    "decreaseQuantity": "Menge verringern",
+    "increaseQuantity": "Menge erhöhen",
     "remove": "Entfernen",
     "clear": "Warenkorb leeren",
     "clearConfirm": "Möchten Sie wirklich den gesamten Warenkorb leeren?",

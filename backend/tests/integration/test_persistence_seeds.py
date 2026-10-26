@@ -13,13 +13,14 @@ import psycopg
 from app.infrastructure.db.seeds import (
     _DEMO_COMPANY_SPECS,
     ADMIN_USER_ID,
+    BLOCKED_CATALOG_SKUS,
+    CATALOG_REFERENCE_PRICES,
     EXAMPLE_COMPANY_ID,
     EXAMPLE_CREDIT_LIMIT,
     PRODUCT_CAPACETE_ID,
     PRODUCT_LUVA_ID,
     PRODUCT_PARAFUSADEIRA_ID,
     PRODUCT_RESPIRADOR_ID,
-    _demo_id,
     _tenant_id,
     cpf_hash,
     seed_database,
@@ -133,8 +134,8 @@ async def test_seeds_tiers(
             (PRODUCT_CAPACETE_ID,),
         ).fetchall()
         assert tiers == [
-            (6, 23, Decimal("24.90")),
-            (24, None, Decimal("21.90")),
+            (6, 23, Decimal("39.90")),
+            (24, None, Decimal("39.90")),
         ]
     finally:
         conn.close()
@@ -203,10 +204,22 @@ async def test_seeds_com_senha_criam_empresas_demo_usuarios_e_regras(
             conn.close()
 
 
+def _catalog_price_snapshot(pg: PostgresInstance) -> dict[str, Decimal | None]:
+    conn = pg.connect_admin()
+    try:
+        rows = conn.execute("SELECT sku, base_unit_price FROM products").fetchall()
+        return {str(sku): price for sku, price in rows}
+    finally:
+        conn.close()
+
+
 async def test_seeds_demo_idempotentes_e_com_preco_atualizado(
     admin_database_url: str, migrated_domain_schema: None, pg: PostgresInstance
 ) -> None:
     await seed_database(admin_database_url, pepper=_TEST_PEPPER, demo_user_password=_DEMO_PASSWORD)
+    first_prices = _catalog_price_snapshot(pg)
+    blocked_before = {sku: first_prices[sku] for sku in BLOCKED_CATALOG_SKUS}
+
     await seed_database(admin_database_url, pepper=_TEST_PEPPER, demo_user_password=_DEMO_PASSWORD)
     company_id = _tenant_id("company", "industria-gama")
     conn = pg.connect_admin(autocommit=False)
@@ -228,12 +241,28 @@ async def test_seeds_demo_idempotentes_e_com_preco_atualizado(
     finally:
         conn.close()
 
+    second_prices = _catalog_price_snapshot(pg)
+    for sku, expected in CATALOG_REFERENCE_PRICES.items():
+        assert second_prices[sku] == expected, f"{sku}: preco divergente"
+    for sku, expected in blocked_before.items():
+        assert second_prices[sku] == expected, f"{sku}: produto bloqueado foi alterado"
+
     price_conn = pg.connect_admin()
     try:
-        price = price_conn.execute(
-            "SELECT base_unit_price FROM products WHERE id = %s",
-            (_demo_id("product", "RES-006"),),
-        ).fetchone()
-        assert price == (Decimal("119.00"),)
+        rows = price_conn.execute(
+            "SELECT p.sku, p.currency, t.min_quantity, t.unit_price "
+            "FROM product_price_tiers t JOIN products p ON p.id = t.product_id "
+            "WHERE p.sku IN ('EPI-CAP-001', 'EPI-LUV-002') "
+            "ORDER BY p.sku, t.min_quantity"
+        ).fetchall()
+        assert rows == [
+            ("EPI-CAP-001", "BRL", 6, Decimal("39.90")),
+            ("EPI-CAP-001", "BRL", 24, Decimal("39.90")),
+        ]
+        currencies = price_conn.execute(
+            "SELECT DISTINCT currency FROM products WHERE sku = ANY(%s)",
+            (list(CATALOG_REFERENCE_PRICES),),
+        ).fetchall()
+        assert currencies == [("BRL",)]
     finally:
         price_conn.close()

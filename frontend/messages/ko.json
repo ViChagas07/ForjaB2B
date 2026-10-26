@@ -172,6 +172,8 @@
     "browseProducts": "상품 보기",
     "subtotal": "소계",
     "quantity": "수량",
+    "decreaseQuantity": "수량 줄이기",
+    "increaseQuantity": "수량 늘리기",
     "remove": "삭제",
     "clear": "장바구니 비우기",
     "clearConfirm": "장바구니를 모두 비우시겠습니까?",

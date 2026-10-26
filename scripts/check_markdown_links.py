@@ -40,14 +40,9 @@ def _iter_markdown(root: Path, include_history: bool) -> list[Path]:
     files: list[Path] = []
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
-        if any(
-            part in {".git", "node_modules", ".venv", ".mypy_cache"}
-            for part in rel.parts
-        ):
+        if any(part in {".git", "node_modules", ".venv", ".mypy_cache"} for part in rel.parts):
             continue
-        if not include_history and (
-            rel.parts[:2] == ("docs", "history") or rel in _DEFAULT_SKIP
-        ):
+        if not include_history and (rel.parts[:2] == ("docs", "history") or rel in _DEFAULT_SKIP):
             continue
         files.append(path)
     return files
@@ -93,9 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--include-history", action="store_true", help="Inclui docs/history e PROGRESS."
     )
-    parser.add_argument(
-        "--quiet", action="store_true", help="So imprime se houver erro."
-    )
+    parser.add_argument("--quiet", action="store_true", help="So imprime se houver erro.")
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()

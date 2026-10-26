@@ -172,6 +172,8 @@
     "browseProducts": "商品を見る",
     "subtotal": "小計",
     "quantity": "数量",
+    "decreaseQuantity": "数量を減らす",
+    "increaseQuantity": "数量を増やす",
     "remove": "削除",
     "clear": "カートを空にする",
     "clearConfirm": "カートをすべて空にしてもよろしいですか？",

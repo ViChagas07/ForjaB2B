@@ -1198,6 +1198,70 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
     ),
 ]
 
+# Precos iniciais de referencia do catalogo de demonstracao (BRL). Nao sao
+# cotacoes de fornecedores verificadas: servem apenas para exibir valores
+# realistas no ambiente demo. A fonte de verdade continua sendo a tabela
+# ``products`` (este mapa alimenta o seed idempotente).
+CATALOG_REFERENCE_PRICES: dict[str, Decimal] = {
+    "AUD-001": Decimal("4.90"),
+    "AUD-002": Decimal("39.90"),
+    "AUD-003": Decimal("79.90"),
+    "AUD-004": Decimal("2.90"),
+    "CAP-002": Decimal("29.90"),
+    "CAP-003": Decimal("59.90"),
+    "CAP-004": Decimal("119.90"),
+    "QUE-001": Decimal("189.90"),
+    "QUE-003": Decimal("89.90"),
+    "QUE-004": Decimal("149.90"),
+    "LUV-003": Decimal("19.90"),
+    "LUV-004": Decimal("29.90"),
+    "LUV-005": Decimal("3.90"),
+    "LUV-006": Decimal("34.90"),
+    "LUV-007": Decimal("49.90"),
+    "BOT-001": Decimal("89.90"),
+    "BOT-002": Decimal("149.90"),
+    "BOT-003": Decimal("69.90"),
+    "BOT-005": Decimal("99.90"),
+    "RES-004": Decimal("2.90"),
+    "RES-005": Decimal("5.90"),
+    "RES-006": Decimal("79.90"),
+    "RES-007": Decimal("2.50"),
+    "OCV-001": Decimal("7.90"),
+    "OCV-002": Decimal("9.90"),
+    "OCV-003": Decimal("24.90"),
+    "OCV-004": Decimal("19.90"),
+    "OCV-005": Decimal("14.90"),
+    "EPI-CAP-001": Decimal("39.90"),
+    "EPI-LUV-002": Decimal("29.90"),
+    "FUR-001": Decimal("249.90"),
+    "FUR-002": Decimal("599.90"),
+    "FUR-003": Decimal("199.90"),
+    "FUR-004": Decimal("399.90"),
+    "FUR-005": Decimal("229.90"),
+    "MAQ-PAR-004": Decimal("499.90"),
+    "MAQ-005": Decimal("2499.90"),
+    "MAQ-006": Decimal("3499.90"),
+    "MAQ-007": Decimal("899.90"),
+    "MAQ-008": Decimal("1499.90"),
+    "MAQ-009": Decimal("349.90"),
+}
+
+# Produtos de demonstracao que devem permanecer bloqueados e sem preco
+# publico. O seed nao altera os precos/estados deles.
+BLOCKED_CATALOG_SKUS: frozenset[str] = frozenset(
+    {
+        "BOT-004",
+        "CAP-005",
+        "LUV-008",
+        "LUV-009",
+        "OCV-006",
+        "MAQ-010",
+        "QUE-002",
+        "RES-008",
+        "EPI-RES-003",
+    }
+)
+
 # Atributos pesquisaveis (JSONB) para alguns itens.
 _DEMO_ATTRIBUTES: dict[str, dict[str, str]] = {
     "CAP-002": {"cor": "branco", "material": "abs"},
@@ -1340,6 +1404,33 @@ _ALL_CATEGORIES: list[dict[str, object]] = [*_CATEGORIES, *_DEMO_CATEGORIES]
 _ALL_BRANDS: list[dict[str, object]] = [*_BRANDS, *_DEMO_BRANDS]
 _ALL_PRODUCTS: list[dict[str, object]] = [*_PRODUCTS, *_DEMO_PRODUCTS]
 _ALL_TIERS: list[dict[str, object]] = [*_TIERS, *_DEMO_TIERS]
+
+
+def _apply_reference_prices() -> None:
+    """Sobrepõe os precos de referencia nos dados do seed (idempotente).
+
+    O mapa ``CATALOG_REFERENCE_PRICES`` e a unica fonte dos valores iniciais de
+    demonstracao. Produtos bloqueados nao estao no mapa e permanecem com seus
+    valores originais. As faixas de preco existentes dos SKUs precificados sao
+    alinhadas ao preco base para que catalogo e carrinho nao divirjam.
+    """
+    products_by_id: dict[object, dict[str, object]] = {
+        product["id"]: product for product in _ALL_PRODUCTS
+    }
+    for product in _ALL_PRODUCTS:
+        price = CATALOG_REFERENCE_PRICES.get(cast(str, product["sku"]))
+        if price is not None:
+            product["base_unit_price"] = price
+    for tier in _ALL_TIERS:
+        tier_product = products_by_id.get(tier["product_id"])
+        if tier_product is None:
+            continue
+        price = CATALOG_REFERENCE_PRICES.get(cast(str, tier_product["sku"]))
+        if price is not None:
+            tier["unit_price"] = price
+
+
+_apply_reference_prices()
 
 # Traducoes offline de demonstracao (en/es/ar) - origem pt-BR. Carregadas uma
 # unica vez no import (arquivo versionado ao lado do seed), nunca no request.

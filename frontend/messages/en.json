@@ -172,6 +172,8 @@
     "browseProducts": "Browse products",
     "subtotal": "Subtotal",
     "quantity": "Quantity",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
     "remove": "Remove",
     "clear": "Clear cart",
     "clearConfirm": "Are you sure you want to clear the entire cart?",

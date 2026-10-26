@@ -66,13 +66,30 @@ def _with_translation(
     )
 
 
+def _is_sellable_view(view: ProductView) -> bool:
+    """Espelha a regra de venda: ativo e, se EPI, CA valido."""
+    if view.status != "ACTIVE":
+        return False
+    if view.is_epi:
+        return view.ca_status == "VALID"
+    return True
+
+
 def _mask_price(view: ProductView) -> ProductView:
-    """Visitante: preco consultivo (nenhum valor exposto)."""
-    return replace(view, base_unit_price=None, price_on_request=True)
+    """Visitante: expoe o preco de lista apenas de produtos vendaveis.
+
+    Produtos bloqueados (inativos, EPI sem CA ou com CA vencido) continuam
+    consultivos: o valor persistido nao vaza em endpoints publicos.
+    """
+    if not _is_sellable_view(view):
+        return replace(view, base_unit_price=None, price_on_request=True)
+    return replace(view, price_on_request=view.base_unit_price is None)
 
 
 def _resolve_price(view: ProductView, rules: list[CompanyPriceRule]) -> ProductView:
-    """Autenticado: preco de lista ajustado pelas regras da empresa."""
+    """Autenticado: preco da empresa; bloqueados permanecem consultivos."""
+    if not _is_sellable_view(view):
+        return replace(view, base_unit_price=None, price_on_request=True)
     base = view.base_unit_price
     if base is None:
         return view

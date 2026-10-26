@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from decimal import Decimal
 
 import httpx
 import pytest
@@ -65,11 +66,13 @@ async def test_busca_nao_retorna_inativo_nem_epi_vencido(
         assert sku not in {item["sku"] for item in response.json()["items"]}
 
 
-async def test_visitante_recebe_preco_consultivo(search_client: httpx.AsyncClient) -> None:
+async def test_visitante_recebe_preco_de_lista(search_client: httpx.AsyncClient) -> None:
     response = await search_client.get("/api/v1/search/products", params={"q": "capacete"})
-    item = response.json()["items"][0]
-    assert item["price_on_request"] is True
-    assert item["base_unit_price"] is None
+    items = [item for item in response.json()["items"] if item["sku"] == "EPI-OK-001"]
+    assert items
+    item = items[0]
+    assert item["price_on_request"] is False
+    assert Decimal(str(item["base_unit_price"])) == Decimal("24.90")
 
 
 async def test_autenticado_recebe_preco(

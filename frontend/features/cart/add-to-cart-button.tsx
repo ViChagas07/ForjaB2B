@@ -20,6 +20,7 @@ import { useAddCartItem } from "./hooks";
 interface AddToCartButtonProps {
   productId: string;
   minQuantity?: number;
+  quantity?: number;
   disabled?: boolean;
   className?: string;
   size?: "default" | "sm" | "lg" | "icon";
@@ -27,8 +28,9 @@ interface AddToCartButtonProps {
 }
 
 /**
- * Adiciona um produto ao carrinho (mutação TanStack Query). Lote mínimo é
- * refletido no payload (default 1); o backend valida de forma definitiva.
+ * Adiciona um produto ao carrinho (mutação TanStack Query). Sem `quantity`
+ * explícita, usa o lote mínimo (default 1); o backend valida de forma
+ * definitiva a quantidade e a disponibilidade.
  *
  * O carrinho é tenant-scoped: visitantes podem navegar pelo catálogo, mas ao
  * tentar guardar um item recebem o convite para entrar/cadastrar a empresa.
@@ -36,6 +38,7 @@ interface AddToCartButtonProps {
 export function AddToCartButton({
   productId,
   minQuantity = 1,
+  quantity,
   disabled,
   className,
   size = "default",
@@ -53,7 +56,7 @@ export function AddToCartButton({
       setGateOpen(true);
       return;
     }
-    mutation.mutate({ product_id: productId, quantity: minQuantity });
+    mutation.mutate({ product_id: productId, quantity: quantity ?? minQuantity });
   }
 
   return (

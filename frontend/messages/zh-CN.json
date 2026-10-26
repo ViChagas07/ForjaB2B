@@ -172,6 +172,8 @@
     "browseProducts": "浏览产品",
     "subtotal": "小计",
     "quantity": "数量",
+    "decreaseQuantity": "减少数量",
+    "increaseQuantity": "增加数量",
     "remove": "移除",
     "clear": "清空购物车",
     "clearConfirm": "确定要清空整个购物车吗？",

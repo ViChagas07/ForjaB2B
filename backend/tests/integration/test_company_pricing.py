@@ -171,10 +171,10 @@ async def _search_price(client: httpx.AsyncClient, token: str | None) -> dict[st
     return cast(dict[str, object], items[0])
 
 
-async def test_visitante_recebe_preco_consultivo(pricing_client: httpx.AsyncClient) -> None:
+async def test_visitante_recebe_preco_de_lista(pricing_client: httpx.AsyncClient) -> None:
     item = await _search_price(pricing_client, None)
-    assert item["price_on_request"] is True
-    assert item["base_unit_price"] is None
+    assert item["price_on_request"] is False
+    assert Decimal(str(item["base_unit_price"])) == _BASE_PRICE
 
 
 async def test_empresa_com_preco_negociado(pricing_client: httpx.AsyncClient) -> None:
@@ -200,7 +200,7 @@ async def _catalog_detail(client: httpx.AsyncClient, token: str | None) -> dict[
     return cast(dict[str, object], response.json())
 
 
-async def test_catalogo_visitante_recebe_preco_consultivo(
+async def test_catalogo_visitante_recebe_preco_de_lista(
     pricing_client: httpx.AsyncClient,
 ) -> None:
     response = await pricing_client.get("/api/v1/catalog/products", params={"page_size": 100})
@@ -208,12 +208,19 @@ async def test_catalogo_visitante_recebe_preco_consultivo(
     items = response.json()["items"]
     assert any(item["sku"] == _SKU for item in items)
     for item in items:
-        assert item["price_on_request"] is True
-        assert item["base_unit_price"] is None
+        sellable = item["status"] == "ACTIVE" and (
+            not item["is_epi"] or item["ca_status"] == "VALID"
+        )
+        if sellable:
+            assert item["price_on_request"] is False
+            assert item["base_unit_price"] is not None
+        else:
+            assert item["price_on_request"] is True
+            assert item["base_unit_price"] is None
 
     body = await _catalog_detail(pricing_client, None)
-    assert body["price_on_request"] is True
-    assert body["base_unit_price"] is None
+    assert body["price_on_request"] is False
+    assert Decimal(str(body["base_unit_price"])) == _BASE_PRICE
 
 
 async def test_catalogo_preco_por_empresa(pricing_client: httpx.AsyncClient) -> None:

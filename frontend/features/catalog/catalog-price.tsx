@@ -12,10 +12,10 @@ interface PriceProps {
 }
 
 /**
- * Exibe um preço do catálogo. A regra de preço consultivo vem do backend
- * (`price_on_request`): para visitante o valor é nulo e mostramos
- * "preço sob consulta, apenas para CNPJ". A exibição também protege contra um
- * valor ausente por qualquer outro motivo.
+ * Exibe um preco do catalogo. A regra de exposicao vem do backend
+ * (`price_on_request`): produtos vendaveis trazem o preco de lista; produtos
+ * bloqueados ou sem preco mostram "preco sob consulta". A exibicao tambem
+ * protege contra um valor ausente por qualquer outro motivo.
  */
 export function CatalogPrice({ amount, currency, priceOnRequest, className }: PriceProps) {
   const t = useTranslations();

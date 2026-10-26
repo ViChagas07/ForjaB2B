@@ -172,6 +172,8 @@
     "browseProducts": "تصفح المنتجات",
     "subtotal": "المجموع الفرعي",
     "quantity": "الكمية",
+    "decreaseQuantity": "تقليل الكمية",
+    "increaseQuantity": "زيادة الكمية",
     "remove": "إزالة",
     "clear": "إفراغ السلة",
     "clearConfirm": "هل أنت متأكد من إفراغ السلة بالكامل؟",

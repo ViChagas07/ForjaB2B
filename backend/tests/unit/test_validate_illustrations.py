@@ -11,8 +11,10 @@ _SCRIPT = REPO_ROOT / "scripts" / "validate_illustrations.py"
 
 def _load():
     spec = importlib.util.spec_from_file_location("validate_illustrations", _SCRIPT)
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    spec.loader.exec_module(module)
     return module
 
 

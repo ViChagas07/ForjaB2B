@@ -172,6 +172,8 @@
     "browseProducts": "Vedi prodotti",
     "subtotal": "Subtotale",
     "quantity": "Quantità",
+    "decreaseQuantity": "Riduci la quantità",
+    "increaseQuantity": "Aumenta la quantità",
     "remove": "Rimuovi",
     "clear": "Svuota carrello",
     "clearConfirm": "Sei sicuro di voler svuotare tutto il carrello?",
