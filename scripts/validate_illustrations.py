@@ -30,6 +30,9 @@ ILLUSTRATIONS_DIR = REPO_ROOT / "frontend" / "public" / "catalog" / "illustratio
 FAMILIES_MD = REPO_ROOT / "docs" / "illustrations" / "FAMILIES.md"
 CATEGORY_DIR = REPO_ROOT / "backend" / "app" / "static" / "catalog"
 CATEGORY_EXTRA = ["protecao-respiratoria.svg", "protecao-maos.svg"]
+# Arquivos de infraestrutura no mesmo diretorio, fora do mapa de familias:
+# fallback final de erro do componente ProductImage (frontend, sem API).
+NON_FAMILY_FILES = {"generic.svg"}
 
 MAX_BYTES = 3072
 VIEWBOX = "0 0 512 512"
@@ -131,7 +134,7 @@ def validate_families(families_md: Path, illustrations_dir: Path) -> list[str]:
     for key in keys:
         if f"{key}.svg" not in files:
             errors.append(f"FAMILIES.md: familia '{key}' sem arquivo {key}.svg")
-    for file in sorted(files - {"README.md"}):
+    for file in sorted(files - NON_FAMILY_FILES):
         if file.removesuffix(".svg") not in keys:
             errors.append(f"{file}: arquivo sem entrada em FAMILIES.md")
     return errors

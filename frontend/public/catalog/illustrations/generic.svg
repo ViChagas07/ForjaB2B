@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img">
+  <title>Imagem padrão de produto (ilustração genérica Forja B2B)</title>
+  <rect width="512" height="512" rx="96" fill="#0F172A"/>
+  <g fill="none" stroke="#F8FAFC" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 128 L384 192 V320 L256 384 L128 320 V192 Z"/>
+    <path d="M128 192 L256 256 L384 192"/>
+    <path d="M256 256 V384"/>
+  </g>
+  <path d="M128 192 V320" fill="none" stroke="#F97316" stroke-width="14" stroke-linecap="round"/>
+</svg>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  PRODUCT_IMAGE_PLACEHOLDER,
+  PRODUCT_IMAGE_FALLBACK,
   productImageKind,
   resolveProductImageSrc,
 } from "@/shared/components/product-image-resolve";
@@ -30,11 +30,10 @@ describe("resolucao da origem da imagem do produto", () => {
     );
   });
 
-  it("src vazio cai no placeholder generico da API", () => {
+  it("src vazio cai no fallback local do frontend (sem depender da API)", () => {
     process.env.NEXT_PUBLIC_API_URL = "https://api.forja.example";
-    expect(resolveProductImageSrc("")).toBe(
-      "https://api.forja.example" + PRODUCT_IMAGE_PLACEHOLDER,
-    );
+    expect(resolveProductImageSrc("")).toBe(PRODUCT_IMAGE_FALLBACK);
+    expect(PRODUCT_IMAGE_FALLBACK).toBe("/catalog/illustrations/generic.svg");
   });
 });
 

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { getApiBaseUrl } from "@/infrastructure/http";
 import { cn } from "@/shared/lib/utils";
 
 import {
-  PRODUCT_IMAGE_PLACEHOLDER,
+  PRODUCT_IMAGE_FALLBACK,
+  PRODUCT_IMAGE_LOAD_TIMEOUT_MS,
   productImageKind,
   resolveProductImageSrc,
 } from "./product-image-resolve";
@@ -22,9 +22,10 @@ interface ProductImageProps {
 
 /**
  * Imagem do produto com dimensões reservadas (evita salto de layout),
- * carregamento preguiçoso e fallback para o placeholder em caso de erro.
- * Fotos preenchem o quadro (cover); ilustrações SVG aparecem inteiras
- * (contain, sobre o próprio ladrilho).
+ * carregamento preguiçoso e fallback local em caso de erro OU de carregamento
+ * que exceda o tempo máximo (API fria/lenta não deixa o tile girando para
+ * sempre). Fotos preenchem o quadro (cover); ilustrações SVG aparecem
+ * inteiras (contain, sobre o próprio ladrilho).
  */
 export function ProductImage({
   src,
@@ -34,10 +35,30 @@ export function ProductImage({
   height = 640,
 }: ProductImageProps) {
   const [failed, setFailed] = useState(false);
-  const resolved = failed
-    ? getApiBaseUrl() + PRODUCT_IMAGE_PLACEHOLDER
-    : resolveProductImageSrc(src);
+  const [loaded, setLoaded] = useState(false);
+  const resolved = failed ? PRODUCT_IMAGE_FALLBACK : resolveProductImageSrc(src);
   const kind = productImageKind(resolved);
+  const timedOut = useRef(false);
+
+  // Componente reutilizado com outro produto: recomeça o carregamento.
+  useEffect(() => {
+    timedOut.current = false;
+    setFailed(false);
+    setLoaded(false);
+  }, [src]);
+
+  useEffect(() => {
+    if (loaded || failed) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (!timedOut.current) {
+        timedOut.current = true;
+        setFailed(true);
+      }
+    }, PRODUCT_IMAGE_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [resolved, loaded, failed]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -48,7 +69,14 @@ export function ProductImage({
       height={height}
       loading="lazy"
       decoding="async"
-      onError={() => setFailed(true)}
+      onLoad={() => {
+        timedOut.current = true;
+        setLoaded(true);
+      }}
+      onError={() => {
+        timedOut.current = true;
+        setFailed(true);
+      }}
       className={cn(
         kind === "photo" ? "object-cover" : "object-contain",
         className,
