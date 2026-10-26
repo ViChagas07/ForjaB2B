@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 PHOTOS_DIR = REPO_ROOT / "frontend" / "public" / "catalog" / "photos"
 ILLUSTRATIONS_DIR = REPO_ROOT / "frontend" / "public" / "catalog" / "illustrations"
 
-# SKUs com foto aprovada em PHOTO_MAPPING.md (confianca alta).
+# SKUs com foto (Prompt 10 lote 1 + lote 2 nomeado pelo responsavel).
 PHOTO_SKUS = {
     "EPI-CAP-001",
     "MAQ-PAR-004",
@@ -21,6 +21,42 @@ PHOTO_SKUS = {
     "AUD-002",
     "OCV-003",
     "BOT-001",
+    "AUD-003",
+    "MAQ-009",
+    "BOT-002",
+    "BOT-003",
+    "BOT-004",
+    "CAP-002",
+    "CAP-003",
+    "CAP-004",
+    "CAP-005",
+    "QUE-003",
+    "MAQ-005",
+    "FUR-003",
+    "FUR-001",
+    "FUR-002",
+    "LUV-007",
+    "LUV-008",
+    "EPI-LUV-002",
+    "LUV-006",
+    "LUV-005",
+    "RES-007",
+    "OCV-002",
+    "MAQ-007",
+    "MAQ-006",
+    "AUD-001",
+    "RES-008",
+    "EPI-RES-003",
+    "FUR-005",
+    "BOT-005",
+    "FUR-004",
+    "MAQ-008",
+    "QUE-002",
+    "MAQ-010",
+    "QUE-004",
+    "OCV-001",
+    "OCV-005",
+    "OCV-004",
 }
 
 
@@ -64,8 +100,9 @@ def test_cobertura_todos_os_vendaveis_com_imagem_especifica() -> None:
     sellable = [sku for sku, product in catalog.items() if cast_str(product["status"]) == "ACTIVE"]
     sem_imagem = [sku for sku in sellable if sku not in _PRODUCT_IMAGES]
     assert sem_imagem == []
-    # Produtos fora de linha mapeados mantem ilustracao (nao afetam a vitrine).
+    # Fora de linha mapeados (CAP-005 e MAQ-010 com foto; OCV-006/LUV-009 com
+    # ilustracao) nao afetam a vitrine.
     inactive_mapeados = [
         sku for sku in _PRODUCT_IMAGES if cast_str(catalog[sku]["status"]) != "ACTIVE"
     ]
-    assert set(inactive_mapeados) <= {"CAP-005", "OCV-006", "LUV-009"}
+    assert set(inactive_mapeados) <= {"CAP-005", "OCV-006", "LUV-009", "MAQ-010"}

@@ -23,6 +23,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -38,18 +39,64 @@ NEUTRAL_BG = (244, 242, 237)  # #F4F2ED (secundaria clara do tema)
 FIT_MARGIN = 40  # px de respiro do objeto dentro do quadro
 QUALITY_START, QUALITY_FLOOR, QUALITY_STEP = 82, 40, 2
 
-# (arquivo original, SKU, modo) — decidido em PHOTO_MAPPING.md (confianca alta).
-PHOTO_SOURCES: list[tuple[str, str, str]] = [
-    ("botina-1242304473-30156647.jpg", "BOT-001", "fit"),
-    ("capacete-para-obra-38070.jpg", "EPI-CAP-001", "crop"),
-    ("furadeira-3877525.jpg", "MAQ-PAR-004", "crop"),
-    ("kit-antiqueda-34019840.jpg", "QUE-001", "crop"),
-    ("luva-de-obra-8488007.jpg", "LUV-003", "fit"),
-    ("mascara-de-gas-3435524-5499417.jpg", "RES-006", "fit"),
-    ("máscara-respiradora-8487784.jpg", "RES-005", "fit"),
-    ("protetor-auricular-6791514.jpg", "AUD-002", "crop"),
-    ("óculos-de-obra51320673-8352127.jpg", "OCV-003", "crop"),
+# (diretorio de origem, arquivo original, SKU, modo) — mapeamento documentado em
+# docs/illustrations/PHOTO_MAPPING.md (confianca alta). Modos: "crop" = recorte
+# quadrado central; "fit" = composicao em fundo neutro (quando o recorte central
+# cortaria o objeto de forma evidente).
+PHOTO_SOURCES: list[tuple[Path, str, str, str]] = [
+    # Lote 1 (brand/): fotos originais do responsavel.
+    (SOURCE_DIR, "botina-1242304473-30156647.jpg", "BOT-001", "fit"),
+    (SOURCE_DIR, "capacete-para-obra-38070.jpg", "EPI-CAP-001", "crop"),
+    (SOURCE_DIR, "furadeira-3877525.jpg", "MAQ-PAR-004", "crop"),
+    (SOURCE_DIR, "kit-antiqueda-34019840.jpg", "QUE-001", "crop"),
+    (SOURCE_DIR, "luva-de-obra-8488007.jpg", "LUV-003", "fit"),
+    (SOURCE_DIR, "mascara-de-gas-3435524-5499417.jpg", "RES-006", "fit"),
+    (SOURCE_DIR, "máscara-respiradora-8487784.jpg", "RES-005", "fit"),
+    (SOURCE_DIR, "protetor-auricular-6791514.jpg", "AUD-002", "crop"),
+    (SOURCE_DIR, "óculos-de-obra51320673-8352127.jpg", "OCV-003", "crop"),
+    # Lote 2 (catalog/photos/): fotos nomeadas pelo proprio produto.
+    (OUTPUT_DIR, "Abafador de Ruído Acoplado ao Capacete.jpg", "AUD-003", "crop"),
+    (OUTPUT_DIR, "Bomba d'Água Autoaspirante.jpg", "MAQ-009", "crop"),
+    (OUTPUT_DIR, "Bota de Segurança Bico Composite.jpg", "BOT-002", "crop"),
+    (OUTPUT_DIR, "Botas de Segurança Impermeáveis.jpg", "BOT-003", "crop"),
+    (OUTPUT_DIR, "Botina Eletricista.jpg", "BOT-004", "crop"),
+    (OUTPUT_DIR, "Capacete de Segurança Classe A Aba Frontal.webp", "CAP-002", "crop"),
+    (OUTPUT_DIR, "Capacete de Segurança Classe B com Jugular.webp", "CAP-003", "crop"),
+    (OUTPUT_DIR, "Capacete de Segurança Conjugado.webp", "CAP-004", "crop"),
+    (OUTPUT_DIR, "Capacete de Segurança Descontinuado.png", "CAP-005", "crop"),
+    (OUTPUT_DIR, "Cinturão de Segurança Abdominal.webp", "QUE-003", "fit"),
+    (OUTPUT_DIR, "Compressor de Ar 100L.jpg", "MAQ-005", "crop"),
+    (OUTPUT_DIR, "Esmerilhadeira Angular 115mm.jpg", "FUR-003", "crop"),
+    (OUTPUT_DIR, "Furadeira de Impacto 850W.jpg", "FUR-001", "fit"),
+    (OUTPUT_DIR, "Furadeiras de Bancada 500W.jpg", "FUR-002", "crop"),
+    (OUTPUT_DIR, "Luva Anticorte Nível 5.jpg", "LUV-007", "crop"),
+    (OUTPUT_DIR, "Luva de Látex Forrada.jpg", "LUV-008", "crop"),
+    (OUTPUT_DIR, "Luva de Raspa Premium.jpg", "EPI-LUV-002", "crop"),
+    (OUTPUT_DIR, "Luva de Vaqueta Petroleira.jpg", "LUV-006", "crop"),
+    (OUTPUT_DIR, "Luva Nitrílica Descartável.jpg", "LUV-005", "fit"),
+    (OUTPUT_DIR, "Máscara de Proteção PFF1.jpg", "RES-007", "crop"),
+    (OUTPUT_DIR, "Oculos de Proteção Fumê.jpg", "OCV-002", "crop"),
+    (OUTPUT_DIR, "Politriz de Bancada.jpg", "MAQ-007", "crop"),
+    (OUTPUT_DIR, "Prensa Hidráulica 15T.jpg", "MAQ-006", "crop"),
+    (OUTPUT_DIR, "Protetor Auricular Plug Silicone.jpg", "AUD-001", "crop"),
+    (OUTPUT_DIR, "Respirador Panorâmico.jpg", "RES-008", "fit"),
+    (OUTPUT_DIR, "Respirador PFF2.jpg", "EPI-RES-003", "fit"),
+    (OUTPUT_DIR, "Retífica Reta 500W.jpg", "FUR-005", "crop"),
+    (OUTPUT_DIR, "Sapato de Segurança Sport.jpg", "BOT-005", "crop"),
+    (OUTPUT_DIR, "Serra Circular 7 14.jpg", "FUR-004", "fit"),
+    (OUTPUT_DIR, "Serra de Bancada 10.jpg", "MAQ-008", "crop"),
+    (OUTPUT_DIR, "Talabarte Duplo I e Y.jpg", "QUE-002", "crop"),
+    (OUTPUT_DIR, "Torno de Bancada.jpg", "MAQ-010", "crop"),
+    (OUTPUT_DIR, "Trava Queda Deslizante.jpg", "QUE-004", "crop"),
+    (OUTPUT_DIR, "Óculos de Proteção Incolor.jpg", "OCV-001", "fit"),
+    (OUTPUT_DIR, "Óculos de Proteção para Sobrepor.jpg", "OCV-005", "crop"),
+    (OUTPUT_DIR, "Óculos de Segurança Antiembaçante.jpg", "OCV-004", "crop"),
 ]
+
+
+def _is_sku_output(name: str) -> bool:
+    """Saida nomeada por SKU: 'bot-001.webp' (minusculas, sem espacos)."""
+    return bool(re.fullmatch(r"[a-z0-9][a-z0-9-]*\.webp", name))
 
 
 def _center_square(image: Image.Image) -> Image.Image:
@@ -108,8 +155,8 @@ def _verify_target(target: Path) -> bool:
     return True
 
 
-def _optimize_one(filename: str, sku: str, mode: str) -> bool:
-    source = SOURCE_DIR / filename
+def _optimize_one(source_dir: Path, filename: str, sku: str, mode: str) -> bool:
+    source = source_dir / filename
     target = OUTPUT_DIR / f"{sku.lower()}.webp"
     if not source.exists():
         print(f"FALHA: origem ausente {source}")
@@ -129,12 +176,18 @@ def optimize(verify_only: bool) -> int:
     failures = 0
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     if verify_only:
-        for target in sorted(OUTPUT_DIR.glob("*.webp")):
+        # Apenas saidas nomeadas por SKU (originais do responsavel nao contam).
+        outputs = sorted(OUTPUT_DIR.glob("*.webp"))
+        outputs = [target for target in outputs if _is_sku_output(target.name)]
+        if not outputs:
+            print("AVISO: nenhuma saida encontrada")
+            return 1
+        for target in outputs:
             if not _verify_target(target):
                 failures += 1
         return failures
-    for filename, sku, mode in PHOTO_SOURCES:
-        if not _optimize_one(filename, sku, mode):
+    for source_dir, filename, sku, mode in PHOTO_SOURCES:
+        if not _optimize_one(source_dir, filename, sku, mode):
             failures += 1
     return failures
 
