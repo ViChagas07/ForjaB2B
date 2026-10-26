@@ -1886,3 +1886,33 @@ reais ficou pendente por instabilidade do sandbox -> NAO VALIDADO visualmente no
 de pagina; imagens individuais validadas por rasterizacao e galeria.
 Lint/typecheck: ruff OK, mypy strict 0/304, frontend lint/typecheck OK, testes
 frontend 123 OK (25 arquivos), backend novos 22 testes OK. Commits pequenos; push ao final.
+
+### Prompt 10 — Incidente pos-deploy: imagens "carregando para sempre" (2026-10-26, noite)
+
+Relato do responsavel: apos o push, as imagens do app deployado (frontend Vercel
+`forja-b2b.vercel.app` + API Render `forjab2b.onrender.com`) ficavam carregando por muito
+tempo e terminavam em erro de conexao, com o Render aparentemente saudavel.
+
+Diagnostico (evidencias curl + Playwright):
+1. A pilha deployada estava/esta INTEIRA: API 200 rapido (produtos com image_url novo
+   preenchido no banco remoto), CORS preflight/GET corretos para o dominio Vercel
+   (`access-control-allow-origin: https://forja-b2b.vercel.app`, allow-headers inclui
+   X-Request-ID/Accept-Language), fotos 200 no frontend (bot-001.webp 49.566 B), CSP
+   `img-src` cobre 'self' + API, bundle do Vercel COM o novo resolve (/catalog/ passa na
+   origem do frontend), seed remoto aplicado.
+2. A carga limpa no navegador renderizou 20 cards com TODAS as imagens `complete` e
+   ZERO erros de console (screenshots `prompt10-home-destaques.png` e
+   `prompt10-catalogo.png` em .playwright-mcp/). Os erros de "CORS localhost:3010"
+   observados no meio do diagnostico eram CONTAMINACAO DO MEU PROPRIO SANDBOX (route
+   handlers orfaos dos testes de captura da manha, com ACAO errado — desfeitos com
+   unroute; lixeira minha, nao da API).
+3. Causa provavel do relato: janela de redeploy/cold start do plano gratuito do Render
+   logo apos o push (servico reiniciando/dormindo; XHRs e imagens de fallback /static
+   ficam pendentes ate o timeout de conexao). Nao e defeito do codigo novo.
+
+Correcao defensiva aplicada (commit 1715b9e): o fallback final do ProductImage NAO
+depende mais da API — `frontend/public/catalog/illustrations/generic.svg` (padrao 512,
+mesma paleta) e servido pela origem do frontend, e um timeout de 10 s troca imagem que
+nao carrega pelo fallback local. Com a API fria/lenta, o tile mostra a ilustracao local
+em vez de girar ate o erro. Validador permite generic.svg fora do mapa de familias;
+testes atualizados (123 OK, typecheck 0, validador 0 violacoes).
