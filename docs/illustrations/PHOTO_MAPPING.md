@@ -32,3 +32,60 @@ o de formato mais próximo do conteúdo da foto (critério registrado por linha)
 
 Confiança "alta" = tipo do produto inconfundível no conteúdo E produto coincidente por
 nome/formato registrado acima. Confiança "baixa" = tipo certo, SKU exato incerto.
+
+---
+
+## Lote 2 — fotos nomeadas pelo próprio produto (decisão do responsável, 2026-10-26)
+
+O responsável forneceu fotos para os produtos que estavam com ilustração, nomeando cada
+arquivo com o nome do produto de destino (`frontend/public/catalog/photos/`, hoje
+arquivado em `assets-src/photos-inbox/`). Todas as 36 foram **inspecionadas
+visualmente**: o conteúdo bate com o nome/produto (nenhum produto de tipo diferente).
+Critérios de desempate registrados abaixo. O pipeline
+(`scripts/optimize_catalog_photos.py`) gerou 640×640 WebP ≤ 80 KB sem EXIF/GPS,
+idempotente; modo `fit` = composição em fundo neutro (o recorte central cortaria o
+objeto), `crop` = recorte quadrado central.
+
+| Arquivo original | SKU | Confiança | Motivo / critério |
+|---|---|---|---|
+| Abafador de Ruído Acoplado ao Capacete.jpg | AUD-003 | Alta | Nome exato; concha + arco no capacete visíveis. |
+| Bomba d'Água Autoaspirante.jpg | MAQ-009 | Alta | Nome exato; bomba com voluta e motor. |
+| Bota de Segurança Bico Composite.jpg | BOT-002 | Alta | Nome exato; botas de trabalho. |
+| Botas de Segurança Impermeáveis.jpg | BOT-003 | Alta | Nome exato; botas de borracha impermeáveis. |
+| Botina Eletricista.jpg | BOT-004 | Alta | Nome exato; botina de couro. |
+| Capacete de Segurança Classe A Aba Frontal.webp | CAP-002 | Alta | Nome exato; aba frontal visível. |
+| Capacete de Segurança Classe B com Jugular.webp | CAP-003 | Alta | Nome exato; jugular visível. |
+| Capacete de Segurança Conjugado.webp | CAP-004 | Alta | Nome ≈ exato ("Conjugado(s)"); capacete com viseira + abafador acoplados. |
+| Capacete de Segurança Descontinuado.png | CAP-005 | Alta | Nome exato (produto INACTIVE; foto aplicada por consistência). |
+| Cinturão de Segurança Abdominal.webp | QUE-003 | Alta | Nome exato; cintura com D-rings (modo fit: recorte cortaria os anéis). |
+| Compressor de Ar 100L.jpg | MAQ-005 | Alta | Nome exato; tanque + motor. |
+| Esmerilhadeira Angular 115mm.jpg | FUR-003 | Alta | Nome exato; disco + corpo. |
+| Furadeira de Impacto 850W.jpg | FUR-001 | Alta | Nome exato; furadeira pistola (modo fit: recorte cortaria o corpo). |
+| Furadeiras de Bancada 500W.jpg | FUR-002 | Alta | Nome exato; prensa-furadeira de bancada. |
+| Luva Anticorte Nível 5.jpg | LUV-007 | Alta | Nome exato; malha anticorte com faca. |
+| Luva de Látex Forrada.jpg | LUV-008 | Alta | Nome exato; luva amarela de látex. |
+| Luva de Raspa Premium.jpg | EPI-LUV-002 | Alta | **Nome exato singular "Luva de Raspa Premium" = produto base EPI-LUV-002**; LUV-004 ("Luvas", plural) mantém ilustração. |
+| Luva de Vaqueta Petroleira.jpg | LUV-006 | Alta | Nome exato; couro com punho de segurança. |
+| Luva Nitrílica Descartável.jpg | LUV-005 | Alta | Nome exato; nitrílica azul descartável (modo fit). |
+| Máscara de Proteção PFF1.jpg | RES-007 | Alta | Nome exato; máscara PFF vestida. |
+| Oculos de Proteção Fumê.jpg | OCV-002 | Alta | Nome ≈ exato ("Oculos" sem acento no arquivo); lente fumê visível. |
+| Politriz de Bancada.jpg | MAQ-007 | Alta | Nome exato; rebolo/politriz de bancada. |
+| Prensa Hidráulica 15T.jpg | MAQ-006 | Alta | Nome exato; prensa com colunas. |
+| Protetor Auricular Plug Silicone.jpg | AUD-001 | Alta | Nome exato; plug de silicone no ouvido. |
+| Respirador Panorâmico.jpg | RES-008 | Alta | Nome exato; máscara de rosto inteiro (modo fit). |
+| Respirador PFF2.jpg | EPI-RES-003 | Alta | **Nome exato "Respirador PFF2" = produto base EPI-RES-003**; RES-004 ("...Sem Válvula") mantém ilustração. |
+| Retífica Reta 500W.jpg | FUR-005 | Alta | Nome exato; retífica reta. |
+| Sapato de Segurança Sport.jpg | BOT-005 | Alta | Nome exato; sapato esportivo de segurança. |
+| Serra Circular 7 14.jpg | FUR-004 | Alta | Nome ≈ exato ("7 1/4" sem a barra); lâmina de serra circular (modo fit). |
+| Serra de Bancada 10.jpg | MAQ-008 | Alta | Nome exato; serra de bancada em uso. |
+| Talabarte Duplo I e Y.jpg | QUE-002 | Alta | Nome exato; talabarte/ganchos em uso na bolsa transversal. |
+| Torno de Bancada.jpg | MAQ-010 | Alta | Nome = produto "Torno de Bancada Descontinuado" (INACTIVE; foto aplicada por consistência). |
+| Trava Queda Deslizante.jpg | QUE-004 | Alta | Nome exato; sistema de retenção em uso. |
+| Óculos de Proteção Incolor.jpg | OCV-001 | Alta | Nome exato; lente incolor (modo fit). |
+| Óculos de Proteção para Sobrepor.jpg | OCV-005 | Alta | Nome exato; óculos amplo sobre armação. |
+| Óculos de Segurança Antiembaçante.jpg | OCV-004 | Alta | Nome exato; óculos amplo antiembaçante. |
+
+Cobertura resultante: **45 de 50 produtos com foto real**; ilustrações específicas
+remanescentes: LUV-004, RES-004, OCV-006 e LUV-009 (todos sem foto fornecida;
+LUV-004/RES-004 ativos). Nenhum produto ativo usa mais o fallback de categoria — que
+segue existindo como última rede de segurança (`resolve_product_image_path`).

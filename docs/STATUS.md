@@ -344,3 +344,21 @@ dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índ
   (96/320 px) e galeria `docs/illustrations/gallery.html`. Sem impacto funcional.
 - WIP concorrente no working tree (preço consultivo/máscara de preço) não foi tocado
   nem commitado.
+
+## Lote 2 de fotos — catálogo quase todo com foto real (2026-10-26, noite)
+
+- Responsável forneceu 36 fotos nomeadas pelo próprio produto (as antigas famílias de
+  ilustração); todas inspecionadas visualmente (conteúdo bate com o nome; nenhum
+  produto de tipo diferente) e otimizadas pelo pipeline (640×640 WebP ≤ 80 KB, sem
+  EXIF/GPS, idempotente; 7 com composição `fit` em fundo neutro onde o recorte central
+  cortaria o objeto).
+- Cobertura final: **45/50 produtos com foto real**; ilustrações específicas remanescentes
+  (fallback do próprio produto): AUD-004, LUV-004, RES-004, OCV-006, LUV-009; **0 produtos
+  ativos no fallback de categoria** (que segue como última rede). Créditos: EXIF Artist/
+  Copyright dedutível registrado (Anton Shoutvin, Jonathan Cooper, AdventistAsia, Lars H.
+  Knudsen); demais `[PREENCHER]`.
+- Seed idempotente validado 2× no Docker (83/150/16/13); DB: 50 produtos = 45 foto +
+  5 ilustração + 0 categoria. **Anti-travamento verificado**: 50/50 URLs de imagem da API
+  respondem 200 em <2 s no frontend; no navegador, 20/20 tiles carregam (16 imediatas +
+  4 lazy no scroll) e o timeout de 10 s com fallback local (`generic.svg` na origem do
+  frontend) cobre qualquer pico de lentidão da API.

@@ -38,3 +38,53 @@ Recorte quadrado central (ou composição em fundo neutro `#F4F2ED` quando o rec
 o objeto), redimensionamento para 640×640, conversão para WebP (qualidade adaptativa, ≤ 80 KB)
 e **remoção total de metadados (EXIF/GPS)**. Processado por `scripts/optimize_catalog_photos.py`;
 originais preservados em `assets-src/photos-inbox/` (ignorado pelo Git, não servido).
+
+---
+
+## Lote 2 — fotos nomeadas por produto (2026-10-26)
+
+Origem declarada pelo responsável ao enviá-las: destinam-se aos produtos do catálogo
+(nomes de produto no arquivo). A licença/origem de cada uma permanece **[PREENCHER]**
+quando não dedutível; onde o EXIF Artist/Copyright indica autor, registro como
+"inferido do EXIF" (sem verificação independente de licença). Saídas otimizadas
+(640×640 WebP ≤ 80 KB, sem EXIF/GPS) em `frontend/public/catalog/photos/`; originais
+em `assets-src/photos-inbox/`.
+
+| Saída (SKU) | Arquivo original | Autor | source_url | Licença | license_url |
+|---|---|---|---|---|---|
+| aud-003.webp | Abafador de Ruído Acoplado ao Capacete.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| maq-009.webp | Bomba d'Água Autoaspirante.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| bot-002.webp | Bota de Segurança Bico Composite.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| bot-003.webp | Botas de Segurança Impermeáveis.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| bot-004.webp | Botina Eletricista.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| cap-002.webp | Capacete de Segurança Classe A Aba Frontal.webp | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| cap-003.webp | Capacete de Segurança Classe B com Jugular.webp | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| cap-004.webp | Capacete de Segurança Conjugado.webp | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| cap-005.webp | Capacete de Segurança Descontinuado.png | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| que-003.webp | Cinturão de Segurança Abdominal.webp | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| maq-005.webp | Compressor de Ar 100L.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| fur-003.webp | Esmerilhadeira Angular 115mm.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| fur-001.webp | Furadeira de Impacto 850W.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| fur-002.webp | Furadeiras de Bancada 500W.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| luv-007.webp | Luva Anticorte Nível 5.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| luv-008.webp | Luva de Látex Forrada.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| epi-luv-002.webp | Luva de Raspa Premium.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| luv-006.webp | Luva de Vaqueta Petroleira.jpg | Jonathan Cooper (inferido do EXIF Artist) | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| luv-005.webp | Luva Nitrílica Descartável.jpg | Anton Shoutvin (inferido do EXIF Artist) | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| res-007.webp | Máscara de Proteção PFF1.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| ocv-002.webp | Oculos de Proteção Fumê.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| maq-007.webp | Politriz de Bancada.jpg | AdventistAsia (inferido do EXIF Copyright; Artist continha placeholder) | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| maq-006.webp | Prensa Hidráulica 15T.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| aud-001.webp | Protetor Auricular Plug Silicone.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| res-008.webp | Respirador Panorâmico.jpg | [PREENCHER] (EXIF Artist vazio) | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| epi-res-003.webp | Respirador PFF2.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| fur-005.webp | Retífica Reta 500W.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| bot-005.webp | Sapato de Segurança Sport.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| fur-004.webp | Serra Circular 7 14.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| maq-008.webp | Serra de Bancada 10.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| que-002.webp | Talabarte Duplo I e Y.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| maq-010.webp | Torno de Bancada.jpg | Lars H. Knudsen (inferido do EXIF Artist/Copyright) | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| que-004.webp | Trava Queda Deslizante.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| ocv-001.webp | Óculos de Proteção Incolor.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| ocv-005.webp | Óculos de Proteção para Sobrepor.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| ocv-004.webp | Óculos de Segurança Antiembaçante.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
