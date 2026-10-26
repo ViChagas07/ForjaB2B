@@ -93,6 +93,28 @@ async def test_hsts_nao_aparece_fora_de_producao() -> None:
     assert "strict-transport-security" not in response.headers
 
 
+async def test_static_permite_embed_cross_origin() -> None:
+    app = FastAPI()
+
+    @app.get("/static/catalog/protecao-maos.svg")
+    async def static_asset() -> PlainTextResponse:
+        return PlainTextResponse("<svg/>")
+
+    @app.get("/api/v1/catalog/products")
+    async def api_route() -> PlainTextResponse:
+        return PlainTextResponse("[]")
+
+    app.add_middleware(SecurityHeadersMiddleware, settings=_settings())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        static_response = await client.get("/static/catalog/protecao-maos.svg")
+        api_response = await client.get("/api/v1/catalog/products")
+
+    assert static_response.headers["cross-origin-resource-policy"] == "cross-origin"
+    assert api_response.headers["cross-origin-resource-policy"] == "same-site"
+
+
 async def test_remove_server_e_x_powered_by_do_app() -> None:
     app = FastAPI()
 

@@ -56,6 +56,15 @@ _VERSION_CONFLICT = "version_conflict_engine_exception"
 _MAX_ERROR_SAMPLES = 3
 
 
+def _is_serverless_settings_error(exc: Exception) -> bool:
+    """Indica que o cluster rejeitou settings de indice por ser serverless."""
+    return (
+        isinstance(exc, ApiError)
+        and getattr(exc, "status_code", None) == 400
+        and "serverless mode" in str(exc)
+    )
+
+
 def _basic_auth(settings: Settings) -> tuple[str, str] | None:
     if settings.elasticsearch_username is not None and settings.elasticsearch_api_key is None:
         return (settings.elasticsearch_username, settings.elasticsearch_password or "")
@@ -120,10 +129,23 @@ class ElasticsearchSearchEngine(SearchEngine):
         return self._index
 
     async def check_health(self) -> SearchEngineHealth:
-        """Consulta o estado do cluster; nunca levanta excecao."""
+        """Consulta o estado do cluster; nunca levanta excecao.
+
+        Elastic Serverless nao expoe ``_cluster/health`` (HTTP 410). Nesse
+        caso a conectividade e validada pelo endpoint de informacoes do
+        proprio cluster, que e suficiente para o health da aplicacao.
+        """
         try:
             response = await self._client.cluster.health(wait_for_status="yellow")
         except _ELASTICSEARCH_ERRORS as exc:
+            if isinstance(exc, ApiError) and getattr(exc, "status_code", None) == 410:
+                try:
+                    await self._client.info()
+                except _ELASTICSEARCH_ERRORS as info_exc:
+                    return SearchEngineHealth(
+                        state=SearchEngineState.UNAVAILABLE, detail=type(info_exc).__name__
+                    )
+                return SearchEngineHealth(state=SearchEngineState.OK, detail="serverless")
             return SearchEngineHealth(
                 state=SearchEngineState.UNAVAILABLE, detail=type(exc).__name__
             )
@@ -178,12 +200,20 @@ class ElasticsearchProductIndex:
             return name  # reexecucao idempotente: reutiliza o indice existente
         settings = dict(load_index_settings())
         settings["number_of_replicas"] = replicas
+        mappings = load_index_mappings()
         try:
-            await self._client.indices.create(
-                index=name, settings=settings, mappings=load_index_mappings()
-            )
+            await self._client.indices.create(index=name, settings=settings, mappings=mappings)
         except _ELASTICSEARCH_ERRORS as exc:
-            raise translate_elasticsearch_error(exc) from exc
+            if not _is_serverless_settings_error(exc):
+                raise translate_elasticsearch_error(exc) from exc
+            # Elastic Serverless gerencia shards/replicas; os settings
+            # explicitos sao rejeitados e precisam ser omitidos.
+            settings.pop("number_of_shards", None)
+            settings.pop("number_of_replicas", None)
+            try:
+                await self._client.indices.create(index=name, settings=settings, mappings=mappings)
+            except _ELASTICSEARCH_ERRORS as retry_exc:
+                raise translate_elasticsearch_error(retry_exc) from retry_exc
         _logger.info("search_index_created", index=name, replicas=replicas)
         return name
 

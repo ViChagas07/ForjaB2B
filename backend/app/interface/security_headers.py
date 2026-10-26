@@ -47,11 +47,13 @@ def _is_sensitive_path(path: str) -> bool:
 def _security_headers(
     settings: Settings, scheme: str, path: str, authenticated: bool
 ) -> list[tuple[bytes, bytes]]:
+    # Ilustracoes do catalogo sao embutidas pelo storefront em outro dominio.
+    resource_policy = b"cross-origin" if path.startswith("/static/") else b"same-site"
     headers: list[tuple[bytes, bytes]] = [
         (b"x-content-type-options", b"nosniff"),
         (b"referrer-policy", b"strict-origin-when-cross-origin"),
         (b"permissions-policy", _PERMISSIONS_POLICY.encode("latin-1")),
-        (b"cross-origin-resource-policy", b"same-site"),
+        (b"cross-origin-resource-policy", resource_policy),
         (b"x-permitted-cross-domain-policies", b"none"),
     ]
     if authenticated or _is_sensitive_path(path):
