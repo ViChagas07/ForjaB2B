@@ -1824,3 +1824,65 @@ card: `bg-secondary/70`), accent `--primary #F59E0B` (ambar) e `--amber-strong #
 escuro `--card #121212`. Nos SVGs atuais de `backend/app/static/catalog/` a paleta usada e:
 ladrilho `#0F172A`, traco branco `#F8FAFC`, acento laranja `#F97316`. Paleta dos novos SVGs =
 exatamente esses 3 valores (derivados dos SVGs existentes, sem inventar cor).
+
+### Prompt 10 — Execucao (2026-10-26)
+
+**A1/A2 — Fotos.** 14 fotos classificadas POR CONTEUDO (inspecao visual das imagens):
+9 aplicadas com confianca alta (botina->BOT-001, capacete-para-obra->EPI-CAP-001,
+furadeira->MAQ-PAR-004 [conteudo: parafusadeira de impacto 20V DeWalt, nome do arquivo
+enganoso], kit-antiqueda->QUE-001, luva-de-obra->LUV-003, mascara-de-gas->RES-006,
+mascara-respiradora->RES-005 [validulo visivel], protetor-auricular->AUD-002,
+oculos-de-obra->OCV-003 [ampla visao]). Nao aplicadas: bota-e-luva (cena mista
+capacete+luvas), colete (sem produto; rosto visivel), kit-parafuso (sem produto;
+autor deduzivel do EXIF: Karolina Grabowska/Kaboompics), regua (sem produto), turquesa
+(luva de couro, SKU incerto LUV-004 vs LUV-006) — tabela completa em
+docs/illustrations/PHOTO_MAPPING.md.
+`scripts/optimize_catalog_photos.py`: 640x640 WebP <=80KB (q=82 em todas), sem EXIF,
+modos crop/fit (fit em fundo #F4F2ED para botina/luva/mascara/mascara-respiradora),
+IDEMPOTENTE (hash identico em reexecucao). Saidas verificadas com --verify. Originais
+copiados para assets-src/photos-inbox/ e REMOVIDOS de frontend/public/brand/ (nunca
+versionados — git ls-files confirma; sem necessidade de git rm --cached).
+
+**A3/A4 — Seed e creditos.** `_PRODUCT_IMAGES` (49 SKUs) + `_refresh_product_images`
+(UPDATE idempotente quando diverge) em seeds.py. Backend: `/catalog/...` ja era aceito
+por `is_valid_image_url` (teste adicionado). Frontend: novo modulo
+`product-image-resolve.ts` (/static/->API, /catalog/->frontend, https direto; tipo por
+prefixo) coberto por 7 testes + 4 testes de renderizacao (renderToStaticMarkup:
+cover/contain/placeholder/dimensoes 1:1). next.config e CSP inalterados ('self' cobre
+a origem do frontend). docs/IMAGE_CREDITS.md criado; manifesto (14 entradas) com
+creditos dedutiveis (kindelmedia via padrao pexels-<autor>-<id>; Grabowska via EXIF).
+
+**B — Ilustracoes.** 26 familias (FAMILIES.md), 26 SVGs 512 duotone originais
+(paleta #0F172A/#F8FAFC/#F97316, traco 14, um acento, role+title, <=1 KB cada — limite
+3 KB). Redesenhados os SVGs de categoria protecao-respiratoria (era um "olho") e
+protecao-maos (forma ambigua), mantendo nomes. `scripts/validate_illustrations.py`
+(+8 testes: XML, viewBox, tamanho, elementos/refs proibidos, paleta, acento unico,
+stroke-width, title/role, cruzamento FAMILIES.md). SVGO 4.1.0 via npx --multipass
+(16822 -> 14216 B nas 26; config preserva viewBox/role; titulos corrigidos depois que
+o SVGO corrompeu UTF-8 no Windows — fix_illustration_titles.py + restore_illustration_role.py).
+Rasterizacao via Playwright (frontend/scripts/rasterize-illustrations.mjs) em
+assets-src/render/ (ignorado): 56 PNGs (96/320) — TODOS revisados visualmente; 3
+redesenhos aplicados (mascara-descartavel/protecao-respiratoria mais largos com
+costura nasal, serra-circular com disco conectado ao corpo, serra-de-bancada com lâmina
+maior + coifa) e revalidados. gallery.html (35 cartoes, 96/160/320, claro/escuro) +
+REVISIONS.md criados.
+
+**C — Exibicao e validacao real.** ProductCard/ProductDetail com quadro 1:1
+(aspect-square); fotos cover, ilustracoes contain; alt = nome do produto; lazy.
+Testes de consistencia do mapeamento (4): SKUs existem, arquivos existem, um produto
+por foto, cobertura: TODOS os 46 produtos ativos com imagem especifica; so MAQ-010
+(INACTIVE) no fallback da categoria. Docker: backend/Dockerfile corrigido (faltava
+copiar seed_data/ — make seed quebrava no container); imagem reconstruida; seed 2x com
+contagens identicas (83/150/16/13); DB: 50 produtos = 9 foto + 40 ilustracao + 1
+fallback; API (46 ativos listados) confirmada: RES-005 foto, RES-007 ilustracao
+mascara-descartavel, LUV-003 foto, RES-004 ilustracao mascara-descartavel, AUD-002
+foto, BOT-001 foto, MAQ-010 fallback /static/catalog/maquinas-estacionarias.svg —
+image_alt = nome. curl -I frontend:3010: /catalog/photos/res-005.webp -> 200 image/webp
+13410 B; /catalog/illustrations/esmerilhadeira.svg -> 200 image/svg+xml 559 B; EXIF
+ausente nos 9 WebP (--verify). Playwright (sandbox): paginas reais NAO capturadas —
+o sandbox intercepta/aborta XHR (stub 404 {} / ERR_ABORTED; evidencia em
+.playwright-mcp/console-*.log); attempt com route-mocking de fixtures REAIS + imagens
+reais ficou pendente por instabilidade do sandbox -> NAO VALIDADO visualmente no nivel
+de pagina; imagens individuais validadas por rasterizacao e galeria.
+Lint/typecheck: ruff OK, mypy strict 0/304, frontend lint/typecheck OK, testes
+frontend 123 OK (25 arquivos), backend novos 22 testes OK. Commits pequenos; push ao final.

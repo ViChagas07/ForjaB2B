@@ -205,3 +205,57 @@ protec, norton, vulcano, aegis, guardian, ferrum, titan, sentinel
 - Botão "Publicar" que lê entradas publicáveis e insere no banco.
 - Upload/otimização das imagens para CDN/storage.
 - Geração de thumbnails e variantes.
+---
+
+## Fotos reais e ilustrações por produto (Prompt 10)
+
+O catálogo exibe imagens em três níveis, por precedência:
+
+1. **Foto real do produto** — `image_url = /catalog/photos/<sku-minúsculas>.webp`
+   (servida pelo próprio frontend, pasta `frontend/public/catalog/photos/`).
+2. **Ilustração SVG específica da família** — `image_url = /catalog/illustrations/<família>.svg`
+   (`frontend/public/catalog/illustrations/`, mapa em `docs/illustrations/FAMILIES.md`).
+3. **Ilustração padrão da categoria** — fallback automático em
+   `backend/app/static/catalog/<categoria>.svg` (`resolve_product_image_path`).
+
+A resolução no frontend (`shared/components/product-image-resolve.ts`):
+`/static/...` vai para a origem da API; `/catalog/...` fica na origem do frontend;
+`https://...` passa como está. O tipo visual deriva do prefixo: fotos em
+`/catalog/photos/` usam `object-cover` (preenchem o quadro 1:1); ilustrações usam
+`object-contain` (aparecem inteiras, sobre o próprio ladrilho escuro).
+
+### Como adicionar uma NOVA FOTO de produto
+
+1. Coloque o original (sem marca d'água, com crédito dedutível) e registre-o em
+   `docs/illustrations/PHOTO_MAPPING.md` (arquivo → SKU, confiança, motivo).
+2. Adicione a tupla `(arquivo, SKU, modo)` em `scripts/optimize_catalog_photos.py`
+   (`crop` = recorte quadrado central; `fit` = composição em fundo neutro quando o
+   recorte cortaria o objeto).
+3. Rode `python scripts/optimize_catalog_photos.py` — gera 640×640 WebP ≤ 80 KB,
+   **sem EXIF/GPS**, idempotente, em `frontend/public/catalog/photos/<sku>.webp`.
+4. Confira com `python scripts/optimize_catalog_photos.py --verify`.
+5. Mapeie o SKU → URL em `_PRODUCT_IMAGES` (`backend/app/infrastructure/db/seeds.py`)
+   e rode o seed (idempotente).
+6. Complete os créditos em `docs/IMAGE_CREDITS.md` (autor/source_url quando
+   dedutível; `[PREENCHER]` caso contrário). Originais vão para
+   `assets-src/photos-inbox/` (não versionado, não servido).
+
+### Como adicionar uma NOVA ILUSTRAÇÃO de família
+
+1. Crie `frontend/public/catalog/illustrations/<familia>.svg` no padrão duotone:
+   `viewBox="0 0 512 512"`, ladrilho `rx≈96` `#0F172A`, traço branco `#F8FAFC`
+   largura 14 com pontas/junções arredondadas, **um único** acento `#F97316`,
+   `role="img"` + `<title>` em português, ≤ 3 KB, sem scripts/refs externas/texto.
+2. Registre a família em `docs/illustrations/FAMILIES.md` (chave, SKUs, descrição).
+3. Otimize: `npx svgo --multipass --config scripts/svgo.config.mjs -f
+   frontend/public/catalog/illustrations` e depois, se o SVGO remover/corromper,
+   `python scripts/fix_illustration_titles.py` e
+   `python scripts/restore_illustration_role.py`.
+4. Valide: `python scripts/validate_illustrations.py` (falha se violar o padrão ou
+   se famílias/arquivos divergirem do FAMILIES.md).
+5. Revise visualmente: `node frontend/scripts/rasterize-illustrations.mjs` (de
+   `frontend/`; saída em `assets-src/render/`, ignorada) e a galeria
+   `docs/illustrations/gallery.html`. Peça ajustes via
+   `docs/illustrations/REVISIONS.md`.
+6. Vincule o SKU em `_PRODUCT_IMAGES` e rode o seed. A foto sempre vence a
+   ilustração; a ilustração da categoria é o último fallback.

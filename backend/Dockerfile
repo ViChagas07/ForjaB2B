@@ -61,11 +61,13 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 
 # Copia APENAS o necessario em runtime (testes/ferramentas ficam fora da
-# imagem final). Alembic e scripts de seed sao usados por comandos one-off.
+# imagem final). Alembic, scripts de seed e seed_data (JSON de traducoes e
+# manifestos) sao usados por comandos one-off.
 COPY --chown=forja:forja app ./app
 COPY --chown=forja:forja alembic ./alembic
 COPY --chown=forja:forja alembic.ini ./
 COPY --chown=forja:forja scripts ./scripts
+COPY --chown=forja:forja seed_data ./seed_data
 
 # Troca para usuário não-root (UID fixo 1000)
 USER forja

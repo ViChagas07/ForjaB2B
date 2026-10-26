@@ -91,49 +91,51 @@ def _encode(image: Image.Image) -> tuple[bytes, int]:
     raise AssertionError("inalcancavel")
 
 
+def _verify_target(target: Path) -> bool:
+    """Verifica um WebP existente; True se OK."""
+    with Image.open(target) as image:
+        problems = []
+        if image.size != (SIZE, SIZE):
+            problems.append(f"dimensoes {image.size}")
+        if image.getexif() != {}:
+            problems.append("EXIF presente")
+    if target.stat().st_size > MAX_BYTES:
+        problems.append(f"{target.stat().st_size:,} B > 80 KB")
+    if problems:
+        print(f"FALHA: {target.name}: {'; '.join(problems)}")
+        return False
+    print(f"VERIFICADO: {target.name} ({target.stat().st_size:,} B, sem EXIF)")
+    return True
+
+
+def _optimize_one(filename: str, sku: str, mode: str) -> bool:
+    source = SOURCE_DIR / filename
+    target = OUTPUT_DIR / f"{sku.lower()}.webp"
+    if not source.exists():
+        print(f"FALHA: origem ausente {source}")
+        return False
+    payload, quality = _encode(_compose(Image.open(source), mode))
+    target.write_bytes(payload)
+    has_exif = Image.open(target).getexif() != {}
+    ok = len(payload) <= MAX_BYTES and not has_exif
+    status = "OK" if ok else "FALHA"
+    print(
+        f"{status}: {filename} -> {target.name} ({len(payload):,} B, q={quality}, exif={has_exif})"
+    )
+    return ok
+
+
 def optimize(verify_only: bool) -> int:
     failures = 0
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, sku, mode in PHOTO_SOURCES:
-        source = SOURCE_DIR / filename
-        target = OUTPUT_DIR / f"{sku.lower()}.webp"
-        if not source.exists():
-            if verify_only:
-                # Originais ja arquivados: verifica apenas a saida.
-                if not target.exists():
-                    print(f"FALHA: {target.name} ausente")
-                    failures += 1
-                continue
-            print(f"FALHA: origem ausente {source}")
-            failures += 1
-            continue
-        if verify_only:
-            continue
-        payload, quality = _encode(_compose(Image.open(source), mode))
-        target.write_bytes(payload)
-        has_exif = Image.open(target).getexif() != {}
-        status = "OK" if (len(payload) <= MAX_BYTES and not has_exif) else "FALHA"
-        if status == "FALHA":
-            failures += 1
-        print(
-            f"{status}: {filename} -> {target.name} "
-            f"({len(payload):,} B, q={quality}, exif={has_exif})"
-        )
     if verify_only:
         for target in sorted(OUTPUT_DIR.glob("*.webp")):
-            with Image.open(target) as image:
-                problems = []
-                if image.size != (SIZE, SIZE):
-                    problems.append(f"dimensoes {image.size}")
-                if image.getexif() != {}:
-                    problems.append("EXIF presente")
-                if target.stat().st_size > MAX_BYTES:
-                    problems.append(f"{target.stat().st_size:,} B > 80 KB")
-                if problems:
-                    failures += 1
-                    print(f"FALHA: {target.name}: {'; '.join(problems)}")
-                else:
-                    print(f"VERIFICADO: {target.name} ({target.stat().st_size:,} B, sem EXIF)")
+            if not _verify_target(target):
+                failures += 1
+        return failures
+    for filename, sku, mode in PHOTO_SOURCES:
+        if not _optimize_one(filename, sku, mode):
+            failures += 1
     return failures
 
 

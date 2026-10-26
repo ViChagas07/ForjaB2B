@@ -313,3 +313,34 @@ dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índ
 5. O `docker-compose.yml` passou a entregar `ELASTICSEARCH_URL/USERNAME/PASSWORD` ao backend,
    worker e beat (antes só o backend recebia a URL). O `.env` local aponta para um cluster
    Elastic Cloud; para validar localmente use `ELASTICSEARCH_URL=http://elasticsearch:9200`.
+
+## Prompt 10 — Fotos reais e ilustrações SVG no catálogo (2026-10-26)
+
+- Catálogo misto entregue: **9 produtos com foto real** (WebP 640×640, ≤ 80 KB, sem
+  EXIF/GPS, originais arquivados em `assets-src/photos-inbox/`), **40 com ilustração
+  SVG específica de família** (26 famílias duotone 512, validador próprio com testes)
+  e **1 (MAQ-010, fora de linha) só com o fallback da categoria**.
+- Fotos mapeadas por CONTEÚDO (inspeção visual), tabela com confiança em
+  `docs/illustrations/PHOTO_MAPPING.md`; 5 fotos sem produto correspondente ou de
+  confiança baixa ficaram para decisão do responsável (inclui colete/kit parafuso/nível,
+  que não têm produto no seed).
+- Seed idempotente (`_refresh_product_images`, upsert por SKU); resolução de
+  `/catalog/...` no frontend (foto `object-cover`, ilustração `object-contain`,
+  quadro 1:1 reservado); CSP/next.config sem mudança (`'self'` cobre).
+- Créditos: `docs/IMAGE_CREDITS.md` — apenas o que é dedutível do nome do arquivo/
+  EXIF foi registrado; demais `[PREENCHER]` (licença declarada pelo responsável).
+- `backend/Dockerfile`: passa a copiar `seed_data/` (o `make seed` em container
+  falhava por ausência do JSON de traduções — correção de build necessária para
+  validar o seed no Docker).
+- Validação: seed 2× no Docker (contagens idênticas 83/150/16/13); DB: 50 produtos,
+  9 com foto, 40 com ilustração, 1 fallback, 46 ativos; API confirmada para os 4 SKUs
+  da home + 6 (image_url/image_alt); `curl -I` no frontend: foto 200 `image/webp`
+  13.410 B, ilustração 200 `image/svg+xml` 559 B; sem EXIF nos 9 WebP.
+- Ruff/mypy strict (304 arquivos, 0 erros), backend 22 testes novos/passageiros OK;
+  frontend lint/typecheck/test 123 OK (+8 deste prompt).
+- **NÃO VALIDADO visualmente (página)**: o sandbox do Playwright MCP bloqueia/aborta
+  XHR para a API (stub 404 `{}`/ERR_ABORTED — evidência em `.playwright-mcp/console-*.log`);
+  dados reais validados via curl e imagens validadas individualmente por rasterização
+  (96/320 px) e galeria `docs/illustrations/gallery.html`. Sem impacto funcional.
+- WIP concorrente no working tree (preço consultivo/máscara de preço) não foi tocado
+  nem commitado.

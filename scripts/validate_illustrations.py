@@ -46,6 +46,33 @@ def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].lower()
 
 
+def _check_attrs(element, tag: str, errors: list[str], accent: dict[str, int]) -> None:
+    attrs = element.attrib
+    if any(key.rsplit("}", 1)[-1] in {"href", "hreflang"} for key in attrs):
+        errors.append(f"referencia externa proibida em <{tag}>")
+    if "style" in attrs:
+        errors.append(f"atributo style proibido em <{tag}>")
+    colors = {attrs[a].strip().lower() for a in COLOR_ATTRS if a in attrs}
+    invalid = colors - ALLOWED_COLORS - {"none"}
+    if invalid:
+        errors.append(f"cores fora da paleta em <{tag}>: {sorted(invalid)}")
+    if ACCENT in colors:
+        accent["count"] += 1
+    width = attrs.get("stroke-width")
+    if width is not None and width != STROKE_WIDTH:
+        errors.append(f'stroke-width "{width}" != {STROKE_WIDTH} em <{tag}>')
+
+
+def _check_header(root, errors: list[str], fail) -> None:
+    if root.get("viewBox") != VIEWBOX:
+        fail(f'viewBox deve ser "{VIEWBOX}" (obtido "{root.get("viewBox")}")')
+    if root.get("role") != "img":
+        fail('role="img" obrigatoria no elemento raiz')
+    title = root.find(f"{_SVG}title")
+    if title is None or not (title.text or "").strip():
+        fail("<title> obrigatorio com o nome da familia em portugues")
+
+
 def validate_svg(source: bytes, *, name: str = "svg") -> list[str]:
     """Retorna a lista de violacoes (vazia = valido). Funcao pura."""
     errors: list[str] = []
@@ -56,7 +83,9 @@ def validate_svg(source: bytes, *, name: str = "svg") -> list[str]:
     if len(source) > MAX_BYTES:
         fail(f"tamanho {len(source)} B acima do limite de {MAX_BYTES} B")
     try:
-        root = ET.fromstring(source.decode("utf-8"))
+        # Entrada confiavel: arquivos gerados por este mesmo pipeline no repo
+        # (sem conteudo de terceiros); defusedxml seria dependencia extra.
+        root = ET.fromstring(source.decode("utf-8"))  # noqa: S314
     except (ET.ParseError, UnicodeDecodeError) as exc:
         fail(f"XML mal formado: {exc}")
         return errors
@@ -64,37 +93,17 @@ def validate_svg(source: bytes, *, name: str = "svg") -> list[str]:
     if _local(root.tag) != "svg":
         fail("raiz nao e <svg>")
         return errors
-    if root.get("viewBox") != VIEWBOX:
-        fail(f'viewBox deve ser "{VIEWBOX}" (obtido "{root.get("viewBox")}")')
-    if root.get("role") != "img":
-        fail('role="img" obrigatoria no elemento raiz')
+    _check_header(root, errors, fail)
 
-    title = root.find(f"{_SVG}title")
-    if title is None or not (title.text or "").strip():
-        fail("<title> obrigatorio com o nome da familia em portugues")
-
-    accent_elements = 0
+    accent: dict[str, int] = {"count": 0}
     for element in root.iter():
         tag = _local(element.tag)
         if tag in FORBIDDEN_TAGS:
             fail(f"elemento proibido <{tag}>")
             continue
-        attrs = element.attrib
-        if any(key.rsplit("}", 1)[-1] in {"href", "hreflang"} for key in attrs):
-            fail(f"referencia externa proibida em <{tag}>")
-        if "style" in attrs:
-            fail(f"atributo style proibido em <{tag}>")
-        colors = {attrs[a].strip().lower() for a in COLOR_ATTRS if a in attrs}
-        invalid = colors - ALLOWED_COLORS - {"none"}
-        if invalid:
-            fail(f"cores fora da paleta em <{tag}>: {sorted(invalid)}")
-        if ACCENT in colors:
-            accent_elements += 1
-        width = attrs.get("stroke-width")
-        if width is not None and width != STROKE_WIDTH:
-            fail(f'stroke-width "{width}" != {STROKE_WIDTH} em <{tag}>')
-    if accent_elements != 1:
-        fail(f"exatamente 1 elemento de acento {ACCENT} obrigatorio (obtido {accent_elements})")
+        _check_attrs(element, tag, errors, accent)
+    if accent["count"] != 1:
+        fail(f"exatamente 1 elemento de acento {ACCENT} obrigatorio (obtido {accent['count']})")
 
     return errors
 

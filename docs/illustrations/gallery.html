@@ -8,7 +8,8 @@
   body { font-family: system-ui, sans-serif; margin: 24px; background: #FAF9F6; color: #171717; }
   h1 { font-size: 20px; } p.hint { color: #666; font-size: 13px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
-  .card { margin: 0; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; background: #fff; }
+  .card { margin: 0; border: 1px solid #ddd; border-radius: 12px;
+          overflow: hidden; background: #fff; }
   .row { display: flex; align-items: flex-end; gap: 12px; padding: 16px; }
   .row.dark { background: #0A0A0A; }
   .row.light { background: #FAF9F6; }
@@ -18,7 +19,8 @@
 </head>
 <body>
 <h1>Galeria de revisao — fotos e ilustracoes do catalogo</h1>
-<p class="hint">Ilustracoes (SVG duotone) e fotos (WebP) em 96, 160 e 320 px sobre fundo escuro e claro. Anote ajustes em REVISIONS.md.</p>
+<p class="hint">Ilustracoes (SVG duotone) e fotos (WebP) em 96, 160 e 320 px sobre
+fundo escuro e claro. Anote ajustes em REVISIONS.md.</p>
 <div class="grid">
 <figure class="card" data-name="abafador-capacete">
 <div class="row dark"><img src="../../frontend/public/catalog/illustrations/abafador-capacete.svg" width="96" height="96" alt="abafador-capacete 96px fundo escuro"><img src="../../frontend/public/catalog/illustrations/abafador-capacete.svg" width="160" height="160" alt="abafador-capacete 160px fundo escuro"><img src="../../frontend/public/catalog/illustrations/abafador-capacete.svg" width="320" height="320" alt="abafador-capacete 320px fundo escuro"></div>
@@ -151,47 +153,47 @@
 <figcaption>trava-queda (ilustração)</figcaption>
 </figure>
 <figure class="card" data-name="aud-002">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="96" height="96" alt="aud-002 96px"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="160" height="160" alt="aud-002 160px"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="320" height="320" alt="aud-002 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="96" height="96" alt="aud-002 96px "><img src="../../frontend/public/catalog/photos/aud-002.webp" width="160" height="160" alt="aud-002 160px "><img src="../../frontend/public/catalog/photos/aud-002.webp" width="320" height="320" alt="aud-002 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="96" height="96" alt="aud-002 96px claro"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="160" height="160" alt="aud-002 160px claro"><img src="../../frontend/public/catalog/photos/aud-002.webp" width="320" height="320" alt="aud-002 320px claro"></div>
 <figcaption>aud-002 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="bot-001">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="96" height="96" alt="bot-001 96px"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="160" height="160" alt="bot-001 160px"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="320" height="320" alt="bot-001 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="96" height="96" alt="bot-001 96px "><img src="../../frontend/public/catalog/photos/bot-001.webp" width="160" height="160" alt="bot-001 160px "><img src="../../frontend/public/catalog/photos/bot-001.webp" width="320" height="320" alt="bot-001 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="96" height="96" alt="bot-001 96px claro"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="160" height="160" alt="bot-001 160px claro"><img src="../../frontend/public/catalog/photos/bot-001.webp" width="320" height="320" alt="bot-001 320px claro"></div>
 <figcaption>bot-001 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="epi-cap-001">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="96" height="96" alt="epi-cap-001 96px"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="160" height="160" alt="epi-cap-001 160px"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="320" height="320" alt="epi-cap-001 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="96" height="96" alt="epi-cap-001 96px "><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="160" height="160" alt="epi-cap-001 160px "><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="320" height="320" alt="epi-cap-001 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="96" height="96" alt="epi-cap-001 96px claro"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="160" height="160" alt="epi-cap-001 160px claro"><img src="../../frontend/public/catalog/photos/epi-cap-001.webp" width="320" height="320" alt="epi-cap-001 320px claro"></div>
 <figcaption>epi-cap-001 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="luv-003">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="96" height="96" alt="luv-003 96px"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="160" height="160" alt="luv-003 160px"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="320" height="320" alt="luv-003 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="96" height="96" alt="luv-003 96px "><img src="../../frontend/public/catalog/photos/luv-003.webp" width="160" height="160" alt="luv-003 160px "><img src="../../frontend/public/catalog/photos/luv-003.webp" width="320" height="320" alt="luv-003 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="96" height="96" alt="luv-003 96px claro"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="160" height="160" alt="luv-003 160px claro"><img src="../../frontend/public/catalog/photos/luv-003.webp" width="320" height="320" alt="luv-003 320px claro"></div>
 <figcaption>luv-003 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="maq-par-004">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="96" height="96" alt="maq-par-004 96px"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="160" height="160" alt="maq-par-004 160px"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="320" height="320" alt="maq-par-004 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="96" height="96" alt="maq-par-004 96px "><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="160" height="160" alt="maq-par-004 160px "><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="320" height="320" alt="maq-par-004 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="96" height="96" alt="maq-par-004 96px claro"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="160" height="160" alt="maq-par-004 160px claro"><img src="../../frontend/public/catalog/photos/maq-par-004.webp" width="320" height="320" alt="maq-par-004 320px claro"></div>
 <figcaption>maq-par-004 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="ocv-003">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="96" height="96" alt="ocv-003 96px"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="160" height="160" alt="ocv-003 160px"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="320" height="320" alt="ocv-003 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="96" height="96" alt="ocv-003 96px "><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="160" height="160" alt="ocv-003 160px "><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="320" height="320" alt="ocv-003 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="96" height="96" alt="ocv-003 96px claro"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="160" height="160" alt="ocv-003 160px claro"><img src="../../frontend/public/catalog/photos/ocv-003.webp" width="320" height="320" alt="ocv-003 320px claro"></div>
 <figcaption>ocv-003 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="que-001">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/que-001.webp" width="96" height="96" alt="que-001 96px"><img src="../../frontend/public/catalog/photos/que-001.webp" width="160" height="160" alt="que-001 160px"><img src="../../frontend/public/catalog/photos/que-001.webp" width="320" height="320" alt="que-001 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/que-001.webp" width="96" height="96" alt="que-001 96px "><img src="../../frontend/public/catalog/photos/que-001.webp" width="160" height="160" alt="que-001 160px "><img src="../../frontend/public/catalog/photos/que-001.webp" width="320" height="320" alt="que-001 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/que-001.webp" width="96" height="96" alt="que-001 96px claro"><img src="../../frontend/public/catalog/photos/que-001.webp" width="160" height="160" alt="que-001 160px claro"><img src="../../frontend/public/catalog/photos/que-001.webp" width="320" height="320" alt="que-001 320px claro"></div>
 <figcaption>que-001 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="res-005">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/res-005.webp" width="96" height="96" alt="res-005 96px"><img src="../../frontend/public/catalog/photos/res-005.webp" width="160" height="160" alt="res-005 160px"><img src="../../frontend/public/catalog/photos/res-005.webp" width="320" height="320" alt="res-005 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/res-005.webp" width="96" height="96" alt="res-005 96px "><img src="../../frontend/public/catalog/photos/res-005.webp" width="160" height="160" alt="res-005 160px "><img src="../../frontend/public/catalog/photos/res-005.webp" width="320" height="320" alt="res-005 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/res-005.webp" width="96" height="96" alt="res-005 96px claro"><img src="../../frontend/public/catalog/photos/res-005.webp" width="160" height="160" alt="res-005 160px claro"><img src="../../frontend/public/catalog/photos/res-005.webp" width="320" height="320" alt="res-005 320px claro"></div>
 <figcaption>res-005 (foto)</figcaption>
 </figure>
 <figure class="card" data-name="res-006">
-<div class="row dark"><img src="../../frontend/public/catalog/photos/res-006.webp" width="96" height="96" alt="res-006 96px"><img src="../../frontend/public/catalog/photos/res-006.webp" width="160" height="160" alt="res-006 160px"><img src="../../frontend/public/catalog/photos/res-006.webp" width="320" height="320" alt="res-006 320px"></div>
+<div class="row dark"><img src="../../frontend/public/catalog/photos/res-006.webp" width="96" height="96" alt="res-006 96px "><img src="../../frontend/public/catalog/photos/res-006.webp" width="160" height="160" alt="res-006 160px "><img src="../../frontend/public/catalog/photos/res-006.webp" width="320" height="320" alt="res-006 320px "></div>
 <div class="row light"><img src="../../frontend/public/catalog/photos/res-006.webp" width="96" height="96" alt="res-006 96px claro"><img src="../../frontend/public/catalog/photos/res-006.webp" width="160" height="160" alt="res-006 160px claro"><img src="../../frontend/public/catalog/photos/res-006.webp" width="320" height="320" alt="res-006 320px claro"></div>
 <figcaption>res-006 (foto)</figcaption>
 </figure>

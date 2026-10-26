@@ -1,7 +1,7 @@
 """Reescreve os <title> corrompidos pelo SVGO no Windows (one-off)."""
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 TITLES = {
     "abafador-capacete": "Abafador acoplado ao capacete",

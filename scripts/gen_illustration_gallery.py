@@ -12,32 +12,26 @@ def rel(p: Path) -> str:
 
 
 cards: list[str] = []
+
+
+def card(name: str, src: str, caption: str, alt_suffixes: tuple[str, str]) -> str:
+    dark, light = alt_suffixes
+    return (
+        f'<figure class="card" data-name="{name}">\n'
+        f'<div class="row dark"><img src="{src}" width="96" height="96" alt="{name} 96px {dark}">'
+        f'<img src="{src}" width="160" height="160" alt="{name} 160px {dark}">'
+        f'<img src="{src}" width="320" height="320" alt="{name} 320px {dark}"></div>\n'
+        f'<div class="row light"><img src="{src}" width="96" height="96" alt="{name} 96px {light}">'
+        f'<img src="{src}" width="160" height="160" alt="{name} 160px {light}">'
+        f'<img src="{src}" width="320" height="320" alt="{name} 320px {light}"></div>\n'
+        f"<figcaption>{caption}</figcaption>\n</figure>"
+    )
+
+
 for p in illus:
-    name = p.stem
-    src = rel(p)
-    cards.append(
-        f'<figure class="card" data-name="{name}">\n'
-        f'<div class="row dark"><img src="{src}" width="96" height="96" alt="{name} 96px fundo escuro">'
-        f'<img src="{src}" width="160" height="160" alt="{name} 160px fundo escuro">'
-        f'<img src="{src}" width="320" height="320" alt="{name} 320px fundo escuro"></div>\n'
-        f'<div class="row light"><img src="{src}" width="96" height="96" alt="{name} 96px fundo claro">'
-        f'<img src="{src}" width="160" height="160" alt="{name} 160px fundo claro">'
-        f'<img src="{src}" width="320" height="320" alt="{name} 320px fundo claro"></div>\n'
-        f"<figcaption>{name} (ilustração)</figcaption>\n</figure>"
-    )
+    cards.append(card(p.stem, rel(p), f"{p.stem} (ilustração)", ("fundo escuro", "fundo claro")))
 for p in photos:
-    name = p.stem
-    src = rel(p)
-    cards.append(
-        f'<figure class="card" data-name="{name}">\n'
-        f'<div class="row dark"><img src="{src}" width="96" height="96" alt="{name} 96px">'
-        f'<img src="{src}" width="160" height="160" alt="{name} 160px">'
-        f'<img src="{src}" width="320" height="320" alt="{name} 320px"></div>\n'
-        f'<div class="row light"><img src="{src}" width="96" height="96" alt="{name} 96px claro">'
-        f'<img src="{src}" width="160" height="160" alt="{name} 160px claro">'
-        f'<img src="{src}" width="320" height="320" alt="{name} 320px claro"></div>\n'
-        f"<figcaption>{name} (foto)</figcaption>\n</figure>"
-    )
+    cards.append(card(p.stem, rel(p), f"{p.stem} (foto)", ("", "claro")))
 
 html = """<!doctype html>
 <html lang="pt-BR">
@@ -49,7 +43,8 @@ html = """<!doctype html>
   body { font-family: system-ui, sans-serif; margin: 24px; background: #FAF9F6; color: #171717; }
   h1 { font-size: 20px; } p.hint { color: #666; font-size: 13px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
-  .card { margin: 0; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; background: #fff; }
+  .card { margin: 0; border: 1px solid #ddd; border-radius: 12px;
+          overflow: hidden; background: #fff; }
   .row { display: flex; align-items: flex-end; gap: 12px; padding: 16px; }
   .row.dark { background: #0A0A0A; }
   .row.light { background: #FAF9F6; }
@@ -59,7 +54,8 @@ html = """<!doctype html>
 </head>
 <body>
 <h1>Galeria de revisao — fotos e ilustracoes do catalogo</h1>
-<p class="hint">Ilustracoes (SVG duotone) e fotos (WebP) em 96, 160 e 320 px sobre fundo escuro e claro. Anote ajustes em REVISIONS.md.</p>
+<p class="hint">Ilustracoes (SVG duotone) e fotos (WebP) em 96, 160 e 320 px sobre
+fundo escuro e claro. Anote ajustes em REVISIONS.md.</p>
 <div class="grid">
 __CARDS__
 </div>
