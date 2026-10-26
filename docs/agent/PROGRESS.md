@@ -1941,3 +1941,31 @@ em prod; o ~21s medido local inclui compilacao dev one-off); rede de seguranca: 
 10s -> generic.svg LOCAL (1715b9e). EXIF: 45/45 saidas limpas. Originais movidos para
 assets-src/photos-inbox/ (nao servidos, nao versionados). Lint/mypy strict 0; testes
 backend 15/15 novos. Commits + push ao final.
+
+### Prompt 10 — Correcao pos-push do lote 2: "Falha de conexao" no deployado (2026-10-26, 23h)
+
+Relato: apos o push do lote 2, o erro voltou — "carregam por um bom tempo ate dar erro
+na conexao", com o Render "de pe".
+
+Diagnostico (evidencias):
+1. API Render: 200 em 0.4-1.6s (5 pedidos seguidos), CORS preflight/GET corretos para o
+   dominio Vercel; app deployado renderizava 4/4 imagens e 20 cards no navegador limpo —
+   a pilha estava de pe e rapida.
+2. Causa raiz do "produtos sem as fotos": o banco remoto NAO tinha o seed do lote 2
+   (40 ilustracoes + 9 fotos + 1 static) — o seed roda como JOB manual no Render, push
+   nao o dispara. O .env local aponta para o MESMO Postgres do Render via hostname
+   INTERNO (dpg-...-a, inacessivel fora da rede deles); hostname publico
+   (dpg-...-a.ohio-postgres.render.com) resolve e aceita TLS.
+3. Correcao 1 (dados): seed rodado contra o banco remoto pelo venv local com
+   DATABASE_ADMIN_URL reescrito para o host publico + SEED_ALLOW_PRODUCTION=true
+   (83/150/16/13; sem usuarios demo — DEMO_USER_PASSWORD ausente). API remota agora:
+   45 fotos + 5 ilustracoes; CAP-002/MAQ-010/RES-005 com foto, AUD-004/RES-004 com
+   ilustracao. App deployado verificado no navegador: catalogo exibindo as fotos do
+   responsavel (evidencia .playwright-mcp/prompt10-lote2-deployado.png).
+4. Correcao 2 (resiliencia — o sintoma "carrega muito e da erro"): o retry das queries
+   era 1 (2 tentativas x 15s = ~31s, MENOS que o cold start de ~60s do plano gratuito
+   do Render) -> "Falha de conexão" (network_error -> error.network) sempre que a API
+   estivesse fria/reiniciando. Agora: retry 4 com backoff exponencial (1-8s) = ~90s de
+   tolerancia, cobrindo cold start/redeploy. Mutations seguem sem retry.
+Licao de operacao: CADA push que muda _PRODUCT_IMAGES/precos exige rodar o seed no banco
+remoto (job manual no Render ou local com o host publico); push so entrega codigo.
