@@ -88,3 +88,16 @@ em `assets-src/photos-inbox/`.
 | ocv-001.webp | Óculos de Proteção Incolor.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
 | ocv-005.webp | Óculos de Proteção para Sobrepor.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
 | ocv-004.webp | Óculos de Segurança Antiembaçante.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+
+---
+
+## Lote 3 — variantes com a mesma foto do responsável (2026-10-27)
+
+A MESMA foto fornecida pelo responsável (já registrada no Lote 2) aplicada também nas
+variantes do produto, a pedido do dono ("ponha as imagens que lhe solicitei adequadamente
+nelas"). Origem/autor/licença: idênticos à entrada do Lote 2 do arquivo original.
+
+| Saída (SKU) | Arquivo original | Autor | source_url | Licença | license_url |
+|---|---|---|---|---|---|
+| aud-004.webp | Protetor Auricular Plug Silicone.jpg (mesma foto do Lote 2) | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| luv-004.webp | Luva de Raspa Premium.jpg (mesma foto do Lote 2) | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |

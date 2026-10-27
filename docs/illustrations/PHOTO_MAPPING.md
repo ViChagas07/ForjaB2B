@@ -85,7 +85,23 @@ objeto), `crop` = recorte quadrado central.
 | Óculos de Proteção para Sobrepor.jpg | OCV-005 | Alta | Nome exato; óculos amplo sobre armação. |
 | Óculos de Segurança Antiembaçante.jpg | OCV-004 | Alta | Nome exato; óculos amplo antiembaçante. |
 
-Cobertura resultante: **45 de 50 produtos com foto real**; ilustrações específicas
-remanescentes: LUV-004, RES-004, OCV-006 e LUV-009 (todos sem foto fornecida;
-LUV-004/RES-004 ativos). Nenhum produto ativo usa mais o fallback de categoria — que
-segue existindo como última rede de segurança (`resolve_product_image_path`).
+## Lote 3 — mesma foto do responsável aplicada nas variantes (2026-10-27)
+
+Relato do dono: "as imagens do protetor auricular de plug modável e luvas de raspa não
+estão aparecendo, sendo que te mandei as imagens". Diagnóstico: as fotos dele foram
+aplicadas apenas nos produtos-base do Lote 2 (EPI-LUV-002, AUD-001); **AUD-004 e LUV-004
+tinham fotos de outra origem (Pexels) que não correspondiam ao produto ("moldável" com
+plug de espuma com cordão)**. Decisão: usar a MESMA foto fornecida pelo responsável nas
+variantes — elas são variantes do mesmo produto demo (singular/plural/tipo). Pipeline
+idêntico (640×640 WebP ≤ 80 KB, modo `fit`: fotos 3:2, o recorte central cortaria o
+objeto). Saídas substituídas e verificadas (`--verify`: 640×640, sem EXIF, ≤ 80 KB).
+
+| Arquivo original | SKU | Confiança | Motivo / critério |
+|---|---|---|---|
+| Protetor Auricular Plug Silicone.jpg | AUD-004 | Alta | **Pedido explícito do dono** ("protetor auricular de plug modável" = "Protetor Auricular Plug Moldável"); a foto dele mostra plug de silicone moldável em uso — substitui a foto de Pexels (plug de espuma com cordão), que contradizia "moldável". |
+| Luva de Raspa Premium.jpg | LUV-004 | Alta | **Pedido explícito do dono** ("luvas de raspa" = "Luvas de Raspa Premium", plural); mesma foto já aplicada no EPI-LUV-002 (variantes do mesmo produto demo) — substitui a foto de Pexels amarela/sintética. |
+
+Cobertura resultante: **47 de 50 produtos com foto real**; ilustrações específicas
+remanescentes: RES-004, OCV-006 e LUV-009 (sem foto fornecida; RES-004 ativo). Nenhum
+produto ativo usa o fallback de categoria — que segue existindo como última rede de
+segurança (`resolve_product_image_path`).

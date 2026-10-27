@@ -31,6 +31,7 @@ from PIL import Image, ImageOps
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = REPO_ROOT / "frontend" / "public" / "brand"
+INBOX_DIR = REPO_ROOT / "assets-src" / "photos-inbox"
 OUTPUT_DIR = REPO_ROOT / "frontend" / "public" / "catalog" / "photos"
 
 SIZE = 640
@@ -91,6 +92,10 @@ PHOTO_SOURCES: list[tuple[Path, str, str, str]] = [
     (OUTPUT_DIR, "Óculos de Proteção Incolor.jpg", "OCV-001", "fit"),
     (OUTPUT_DIR, "Óculos de Proteção para Sobrepor.jpg", "OCV-005", "crop"),
     (OUTPUT_DIR, "Óculos de Segurança Antiembaçante.jpg", "OCV-004", "crop"),
+    # Lote 3 (assets-src/photos-inbox/): fotos fornecidas pelo dono — aplicadas
+    # tambem nas variantes (moldavel/plural) que aparecem no catalogo.
+    (INBOX_DIR, "Protetor Auricular Plug Silicone.jpg", "AUD-004", "fit"),
+    (INBOX_DIR, "Luva de Raspa Premium.jpg", "LUV-004", "fit"),
 ]
 
 
@@ -159,7 +164,12 @@ def _optimize_one(source_dir: Path, filename: str, sku: str, mode: str) -> bool:
     source = source_dir / filename
     target = OUTPUT_DIR / f"{sku.lower()}.webp"
     if not source.exists():
-        print(f"FALHA: origem ausente {source}")
+        # Origens antigas ja consumidas/arquivadas: se a saida ainda existe,
+        # apenas avisa (reexecucao idempotente); sem saida e sem origem e falha.
+        if target.exists():
+            print(f"AVISO: origem ausente {source} (saida existente mantida)")
+            return True
+        print(f"FALHA: origem ausente {source} e nenhuma saida em {target}")
         return False
     payload, quality = _encode(_compose(Image.open(source), mode))
     target.write_bytes(payload)
