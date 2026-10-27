@@ -72,6 +72,10 @@ const ALLOWED_IDENTICAL_KEYS = new Set([
   "onboarding.cnpjLabel",
   "ordering.pix",
   "ordering.boleto",
+  // Endereço de contato da política de privacidade (idêntico em todos os idiomas)
+  "privacy.contactEmail",
+  // Versão do documento da política (numérica, não se traduz)
+  "privacy.version",
   // Termos/cognatos idênticos em pelo menos um dos idiomas
   "catalog.fallback",
   "catalog.brand",

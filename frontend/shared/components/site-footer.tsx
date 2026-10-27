@@ -42,6 +42,11 @@ export async function SiteFooter() {
                 {t("nav.about")}
               </Link>
             </li>
+            <li>
+              <Link href="/privacy" className={footerLinkClass}>
+                {t("footer.privacy")}
+              </Link>
+            </li>
           </ul>
         </div>
 

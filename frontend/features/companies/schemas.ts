@@ -32,6 +32,7 @@ export const registerCompanyFormSchema = z.object({
     .min(1, "onboarding.adminCpfRequired")
     .refine((value) => isValidCpf(value), "onboarding.adminCpfInvalid"),
   password: z.string().min(8, "onboarding.passwordMin").max(128, "onboarding.passwordMax"),
+  consent: z.boolean().refine((accepted) => accepted, "onboarding.consentRequired"),
 });
 
 export type RegisterCompanyFormValues = z.infer<typeof registerCompanyFormSchema>;

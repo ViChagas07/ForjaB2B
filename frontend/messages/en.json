@@ -70,7 +70,9 @@
     "successDescription": "Your company was created and is pending approval. You will be able to sign in once it is approved.",
     "successLogin": "Go to sign in",
     "haveAccount": "Already have an account?",
-    "loginLink": "Sign in"
+    "loginLink": "Sign in",
+    "consentLabel": "I have read the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy> and agree to them.",
+    "consentRequired": "You must agree to the Terms of Service and the Privacy Policy to create an account."
   },
   "company": {
     "title": "Company details",
@@ -472,7 +474,8 @@
     "orders": "Orders",
     "credit": "B2B credit",
     "copyright": "© {year} Forja B2B. All rights reserved.",
-    "madeIn": "Portfolio project — fictional data."
+    "madeIn": "Portfolio project — fictional data.",
+    "privacy": "Privacy Policy"
   },
   "authGate": {
     "title": "Sign in to add to cart",
@@ -484,5 +487,210 @@
     "inCategory": "in {category}",
     "noResults": "No results for “{q}”",
     "viewAll": "View all results"
+  },
+  "privacy": {
+    "heroEyebrow": "PRIVACY AND TERMS",
+    "title": "Privacy Policy",
+    "heroNote": "How we collect, use and protect the data of your company and its operators.",
+    "lastUpdated": "Last updated: {date} — Version {version}",
+    "date": "October 27, 2026",
+    "version": "1.0",
+    "backToTop": "Back to top",
+    "contactTitle": "11. Contact",
+    "contactLead": "For questions related to privacy, data requests, or to exercise your LGPD rights, contact us:",
+    "contactEmail": "privacy@forjab2b.example",
+    "sections": [
+      {
+        "title": "1. General information",
+        "body": "Forja B2B is a B2B e-commerce platform for industrial PPE and machinery, built for companies (CNPJ, the Brazilian company registry ID) that buy in volume. This is a portfolio project: all demo companies, users, prices and documents are fictional. This policy explains which data we collect when your company registers, how we use it and how you can exercise the rights provided by the LGPD (Brazilian General Data Protection Law, No. 13.709/2018)."
+      },
+      {
+        "title": "2. Data we collect",
+        "body": "We collect only what is necessary to operate the commercial relationship:",
+        "items": [
+          {
+            "term": "Company registration",
+            "description": "CNPJ, legal name and trade name provided during registration."
+          },
+          {
+            "term": "Account owner",
+            "description": "Full name, e-mail, CPF and password. The password is stored only as an Argon2id hash, never in plain text."
+          },
+          {
+            "term": "Platform activity",
+            "description": "Cart, orders, commercial terms and credit history of your company."
+          },
+          {
+            "term": "Technical records",
+            "description": "Logs with request identifier, timestamp and action, used for auditing and diagnosis."
+          }
+        ]
+      },
+      {
+        "title": "3. How we use your data",
+        "items": [
+          {
+            "term": "Authentication",
+            "description": "Validate identity, keep the session active and protect the account."
+          },
+          {
+            "term": "Commercial operation",
+            "description": "Resolve your company's negotiated price, minimum order quantities, invoiced credit and billing."
+          },
+          {
+            "term": "Legal compliance",
+            "description": "Preserve orders, invoices and financial records for tax and audit purposes."
+          },
+          {
+            "term": "Security",
+            "description": "Apply request limits, keep audit trails and contain platform abuse."
+          },
+          {
+            "term": "Service improvement",
+            "description": "Measure performance and search quality with aggregated metrics, without personal data."
+          }
+        ]
+      },
+      {
+        "title": "4. Data sharing",
+        "body": "We never sell your personal data. It is shared only with:",
+        "items": [
+          {
+            "term": "Infrastructure",
+            "description": "PostgreSQL (source of truth), Redis and Elasticsearch. The search index stores only IDs and public content — prices and commercial data never enter the index."
+          },
+          {
+            "term": "Payments",
+            "description": "A simulated payment gateway running in the local demo environment. No real acquirer receives data."
+          },
+          {
+            "term": "Notifications",
+            "description": "Transactional order and payment e-mails sent by the local SMTP server (Mailpit) in the demo."
+          },
+          {
+            "term": "Legal obligations",
+            "description": "Responding to requests from competent authorities when required by law."
+          }
+        ]
+      },
+      {
+        "title": "5. Cookies and local storage",
+        "items": [
+          {
+            "term": "Authentication",
+            "description": "JWT token and refresh token to keep you signed in. The refresh token rotates and can be revoked on the server."
+          },
+          {
+            "term": "Preferences",
+            "description": "Interface language and theme (light/dark) stored in your browser."
+          },
+          {
+            "term": "Cache",
+            "description": "Catalog and search results may be cached temporarily in your browser to load faster. Your company's price is resolved on the server at every load."
+          }
+        ],
+        "note": "You can clear this data at any time in your browser settings or by signing out."
+      },
+      {
+        "title": "6. Security",
+        "body": "We implement security measures in line with industry best practices:",
+        "items": [
+          {
+            "term": "HTTPS",
+            "description": "All communication is encrypted in transit."
+          },
+          {
+            "term": "Password hashing",
+            "description": "Argon2id, the current standard of password resistance."
+          },
+          {
+            "term": "Per-company isolation",
+            "description": "Row-Level Security in PostgreSQL: one company never sees another's data, and the company of the session comes from the token, never from a client parameter."
+          },
+          {
+            "term": "Sessions",
+            "description": "Short-lived JWTs with rotating refresh stored in Redis."
+          },
+          {
+            "term": "Rate limiting",
+            "description": "Request control per user and per IP to contain abuse."
+          },
+          {
+            "term": "Monitoring",
+            "description": "Structured logs with request ID, metrics and health checks."
+          }
+        ]
+      },
+      {
+        "title": "7. Your LGPD rights",
+        "body": "Under Brazilian law (LGPD), you have the right to:",
+        "items": [
+          {
+            "term": "Access",
+            "description": "Export your data (profile, role, consents and your own audit trail) in a self-service way."
+          },
+          {
+            "term": "Rectification",
+            "description": "Rectify your personal data, such as name and phone."
+          },
+          {
+            "term": "Deletion",
+            "description": "Request anonymization of your account and your data."
+          },
+          {
+            "term": "Portability",
+            "description": "Receive your data in a structured format to take to another service."
+          },
+          {
+            "term": "Withdrawal of consent",
+            "description": "Revoke consent at any time, without affecting prior acts."
+          },
+          {
+            "term": "Information",
+            "description": "Know with whom your data has been shared."
+          }
+        ]
+      },
+      {
+        "title": "8. Account deletion",
+        "body": "You can delete your account at any time. This process:",
+        "steps": [
+          "Anonymizes the owner's personal data (name, e-mail, phone and CPF).",
+          "Suspends access to the account.",
+          "Preserves financial, tax and audit records, as required by law.",
+          "Updates the derived indexes (search and cache) in the reconciliation routines."
+        ]
+      },
+      {
+        "title": "9. Data retention",
+        "body": "Personal data is kept while your account is active. After deletion, it is anonymized immediately and access is suspended; financial, tax and audit records are preserved for the period required by law. Derived data (search index and caches) is rebuilt from the source of truth."
+      },
+      {
+        "title": "10. Terms of use",
+        "body": "By using Forja B2B, you agree to these terms. If you do not agree, please do not use the platform.",
+        "items": [
+          {
+            "term": "Permitted use",
+            "description": "Forja B2B is a demonstration platform for B2B purchases of PPE and industrial machinery. You may browse, build carts and simulate orders."
+          },
+          {
+            "term": "Prohibited conduct",
+            "description": "Attempting to access other companies' data, bypassing per-company isolation, automated scraping, trying to break authentication or interfering with the platform's operation."
+          },
+          {
+            "term": "Intellectual property",
+            "description": "The platform's brands, catalog and content belong to the project. Demo data is fictional."
+          },
+          {
+            "term": "Limitation of liability",
+            "description": "Forja B2B is a portfolio project provided as is, without warranties. We are not liable for damages arising from real production use."
+          },
+          {
+            "term": "Changes to these terms",
+            "description": "We may update these terms. Material changes will be communicated through the platform."
+          }
+        ]
+      }
+    ]
   }
 }

@@ -64,6 +64,8 @@
     "passwordLabel": "Senha",
     "passwordMin": "A senha deve ter ao menos 8 caracteres.",
     "passwordMax": "Senha muito longa.",
+    "consentLabel": "Eu li os <terms>Termos de Serviço</terms> e <privacy>Política de Privacidade</privacy> e concordo com eles.",
+    "consentRequired": "É obrigatório concordar com os Termos de Serviço e a Política de Privacidade para criar a conta.",
     "submit": "Cadastrar empresa",
     "submitLoading": "Cadastrando…",
     "successTitle": "Cadastro enviado",
@@ -471,6 +473,7 @@
     "accountTitle": "Sua conta",
     "orders": "Pedidos",
     "credit": "Crédito B2B",
+    "privacy": "Política de Privacidade",
     "copyright": "© {year} Forja B2B. Todos os direitos reservados.",
     "madeIn": "Projeto de portfólio — dados fictícios."
   },
@@ -484,5 +487,210 @@
     "inCategory": "em {category}",
     "noResults": "Nenhum resultado para “{q}”",
     "viewAll": "Ver todos os resultados"
+  },
+  "privacy": {
+    "heroEyebrow": "PRIVACIDADE E TERMOS",
+    "title": "Política de Privacidade",
+    "heroNote": "Como coletamos, usamos e protegemos os dados da sua empresa e dos seus operadores.",
+    "lastUpdated": "Última atualização: {date} — Versão {version}",
+    "date": "27 de outubro de 2026",
+    "version": "1.0",
+    "backToTop": "Voltar ao topo",
+    "contactTitle": "11. Contato",
+    "contactLead": "Para dúvidas relacionadas à privacidade, solicitação de dados ou para exercer seus direitos LGPD, entre em contato:",
+    "contactEmail": "privacy@forjab2b.example",
+    "sections": [
+      {
+        "title": "1. Informações gerais",
+        "body": "O Forja B2B é uma plataforma de e-commerce B2B para EPIs e máquinas industriais, feita para empresas (CNPJ) que compram em volume. Este é um projeto de portfólio: todas as empresas, usuários, preços e documentos de demonstração são fictícios. Esta política explica quais dados coletamos quando sua empresa se cadastra, como os usamos e como você pode exercer os direitos previstos na LGPD (Lei nº 13.709/2018)."
+      },
+      {
+        "title": "2. Dados que coletamos",
+        "body": "Coletamos apenas o necessário para operar a relação comercial:",
+        "items": [
+          {
+            "term": "Cadastro da empresa",
+            "description": "CNPJ, razão social e nome fantasia informados no cadastro."
+          },
+          {
+            "term": "Responsável pela conta",
+            "description": "Nome completo, e-mail, CPF e senha. A senha é armazenada apenas como hash Argon2id, nunca em texto puro."
+          },
+          {
+            "term": "Operação na plataforma",
+            "description": "Carrinho, pedidos, condições comerciais e histórico de crédito da sua empresa."
+          },
+          {
+            "term": "Registros técnicos",
+            "description": "Logs com identificador de requisição, horário e ação, usados para auditoria e diagnóstico."
+          }
+        ]
+      },
+      {
+        "title": "3. Como usamos seus dados",
+        "items": [
+          {
+            "term": "Autenticação",
+            "description": "Validar a identidade, manter a sessão ativa e proteger a conta."
+          },
+          {
+            "term": "Operação comercial",
+            "description": "Resolver o preço negociado da sua empresa, lotes mínimos, crédito faturado e faturamento."
+          },
+          {
+            "term": "Cumprimento legal",
+            "description": "Preservar pedidos, faturas e registros financeiros para fins fiscais e de auditoria."
+          },
+          {
+            "term": "Segurança",
+            "description": "Aplicar limites de requisição, registrar auditoria e conter abuso da plataforma."
+          },
+          {
+            "term": "Melhoria do serviço",
+            "description": "Medir desempenho e busca com métricas agregadas, sem dado pessoal."
+          }
+        ]
+      },
+      {
+        "title": "4. Compartilhamento de dados",
+        "body": "Nós nunca vendemos seus dados pessoais. Eles são compartilhados apenas com:",
+        "items": [
+          {
+            "term": "Infraestrutura",
+            "description": "PostgreSQL (fonte de verdade), Redis e Elasticsearch. O índice de busca guarda apenas IDs e conteúdo público — preço e dados comerciais nunca entram no índice."
+          },
+          {
+            "term": "Pagamento",
+            "description": "Gateway de pagamento simulado, executado no ambiente local de demonstração. Nenhuma adquirente real recebe dados."
+          },
+          {
+            "term": "Notificações",
+            "description": "E-mails transacionais de pedido e pagamento enviados pelo servidor SMTP local (Mailpit) na demonstração."
+          },
+          {
+            "term": "Obrigação legal",
+            "description": "Atendimento a requisições de autoridades competentes quando exigido por lei."
+          }
+        ]
+      },
+      {
+        "title": "5. Cookies e armazenamento local",
+        "items": [
+          {
+            "term": "Autenticação",
+            "description": "Token JWT e refresh token para manter você conectado. O refresh é rotativo e pode ser revogado no servidor."
+          },
+          {
+            "term": "Preferências",
+            "description": "Idioma da interface e tema (claro/escuro) guardados no navegador."
+          },
+          {
+            "term": "Cache",
+            "description": "Catálogo e resultados de busca podem ficar em cache temporário no navegador para carregar mais rápido. O preço da sua empresa é resolvido no servidor a cada carregamento."
+          }
+        ],
+        "note": "Você pode limpar esses dados a qualquer momento nas configurações do navegador ou ao sair da conta."
+      },
+      {
+        "title": "6. Segurança",
+        "body": "Implementamos medidas de segurança de acordo com as boas práticas da indústria:",
+        "items": [
+          {
+            "term": "HTTPS",
+            "description": "Toda comunicação é criptografada em trânsito."
+          },
+          {
+            "term": "Hash de senhas",
+            "description": "Argon2id, o padrão atual de resistência para senhas."
+          },
+          {
+            "term": "Isolamento por empresa",
+            "description": "Row-Level Security no PostgreSQL: uma empresa nunca enxerga dados de outra, e a empresa da sessão vem do token, nunca de parâmetro do cliente."
+          },
+          {
+            "term": "Sessões",
+            "description": "JWT de vida curta com refresh rotativo no Redis."
+          },
+          {
+            "term": "Limitação de taxa",
+            "description": "Controle de requisições por usuário e por IP para conter abuso."
+          },
+          {
+            "term": "Monitoramento",
+            "description": "Logs estruturados com ID de requisição, métricas e health checks."
+          }
+        ]
+      },
+      {
+        "title": "7. Seus direitos LGPD",
+        "body": "De acordo com a legislação brasileira (LGPD), você tem o direito de:",
+        "items": [
+          {
+            "term": "Acesso",
+            "description": "Exportar seus dados (perfil, papel, consentimentos e auditoria própria) de forma self-service."
+          },
+          {
+            "term": "Correção",
+            "description": "Retificar seus dados pessoais, como nome e telefone."
+          },
+          {
+            "term": "Exclusão",
+            "description": "Solicitar a anonimização da sua conta e dos seus dados."
+          },
+          {
+            "term": "Portabilidade",
+            "description": "Receber seus dados em formato estruturado para levar a outro serviço."
+          },
+          {
+            "term": "Revogação de consentimento",
+            "description": "Revogar o consentimento a qualquer momento, sem afetar atos anteriores."
+          },
+          {
+            "term": "Informação",
+            "description": "Saber com quem seus dados foram compartilhados."
+          }
+        ]
+      },
+      {
+        "title": "8. Exclusão de conta",
+        "body": "Você pode excluir sua conta a qualquer momento. Este processo:",
+        "steps": [
+          "Anonimiza os dados pessoais do titular (nome, e-mail, telefone e CPF).",
+          "Suspende o acesso à conta.",
+          "Preserva registros financeiros, fiscais e a trilha de auditoria, conforme exigido por lei.",
+          "Atualiza os índices derivados (busca e cache) nas rotinas de reconciliação."
+        ]
+      },
+      {
+        "title": "9. Retenção de dados",
+        "body": "Os dados pessoais são mantidos enquanto a sua conta estiver ativa. Após a exclusão, eles são anonimizados imediatamente e o acesso é suspenso; registros financeiros, fiscais e de auditoria são preservados pelo prazo exigido pela legislação. Dados derivados (índice de busca e caches) são reconstruídos a partir da fonte de verdade."
+      },
+      {
+        "title": "10. Termos de uso",
+        "body": "Ao usar o Forja B2B, você concorda com estes termos. Se não concordar, por favor não use a plataforma.",
+        "items": [
+          {
+            "term": "Uso permitido",
+            "description": "O Forja B2B é uma plataforma de demonstração para compras B2B de EPIs e máquinas industriais. Você pode navegar, montar carrinhos e simular pedidos."
+          },
+          {
+            "term": "Conduta proibida",
+            "description": "Tentar acessar dados de outras empresas, burlar o isolamento por empresa, fazer scraping automatizado, tentar quebrar a autenticação ou interferir na operação da plataforma."
+          },
+          {
+            "term": "Propriedade intelectual",
+            "description": "Marcas, catálogo e conteúdo da plataforma pertencem ao projeto. Os dados de demonstração são fictícios."
+          },
+          {
+            "term": "Limitação de responsabilidade",
+            "description": "O Forja B2B é um projeto de portfólio, entregue no estado em que se encontra, sem garantias. Não nos responsabilizamos por danos decorrentes do uso em produção real."
+          },
+          {
+            "term": "Alterações dos termos",
+            "description": "Podemos atualizar estes termos. Alterações materiais serão comunicadas pela plataforma."
+          }
+        ]
+      }
+    ]
   }
 }

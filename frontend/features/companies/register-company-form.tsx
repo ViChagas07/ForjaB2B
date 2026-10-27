@@ -10,6 +10,7 @@ import { companyApi, useCompanyApi } from "@/infrastructure/http";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
+import { Checkbox } from "@/shared/ui/checkbox";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
@@ -23,6 +24,7 @@ const INITIAL_VALUES = {
   admin_email: "",
   admin_cpf: "",
   password: "",
+  consent: false,
 };
 
 type FormField = keyof typeof INITIAL_VALUES;
@@ -55,6 +57,10 @@ export function RegisterCompanyForm() {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
       setValues((current) => ({ ...current, [field]: event.target.value }));
     };
+  }
+
+  function updateConsent(event: React.ChangeEvent<HTMLInputElement>) {
+    setValues((current) => ({ ...current, consent: event.target.checked }));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -227,13 +233,55 @@ export function RegisterCompanyForm() {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="consent"
+            name="consent"
+            checked={values.consent}
+            required
+            disabled={isLoading}
+            aria-invalid={Boolean(fieldErrors.consent)}
+            onChange={updateConsent}
+          />
+          <Label
+            htmlFor="consent"
+            className="text-sm font-normal leading-relaxed text-muted-foreground"
+          >
+            {t.rich("onboarding.consentLabel", {
+              terms: (chunks) => (
+                <Link
+                  href="/privacy"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link
+                  href="/privacy"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </Label>
+        </div>
+        {fieldErrors.consent ? (
+          <p role="alert" className="text-sm text-destructive">
+            {t(fieldErrors.consent)}
+          </p>
+        ) : null}
+      </div>
+
       {formError ? (
         <Alert variant="destructive">
           <AlertDescription>{formError}</AlertDescription>
         </Alert>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full" disabled={isLoading || !values.consent}>
         {isLoading ? t("onboarding.submitLoading") : t("onboarding.submit")}
       </Button>
     </form>

@@ -43,10 +43,19 @@ describe("registerCompanyFormSchema", () => {
     admin_email: "admin@teste.com",
     admin_cpf: "529.982.247-25",
     password: "Senha@Forte123",
+    consent: true,
   };
 
   it("aceita dados válidos (com máscaras)", () => {
     expect(registerCompanyFormSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejeita sem aceite dos termos e da política de privacidade", () => {
+    const result = registerCompanyFormSchema.safeParse({ ...valid, consent: false });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("onboarding.consentRequired");
+    }
   });
 
   it("rejeita CNPJ inválido", () => {
