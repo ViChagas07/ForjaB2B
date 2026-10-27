@@ -477,5 +477,12 @@
   "authGate": {
     "title": "Sign in to add to cart",
     "description": "Create your business account or sign in to save items to your cart."
+  },
+  "search": {
+    "suggestionsGroup": "Suggestions",
+    "popularResultsFor": "Popular results for “{q}”",
+    "inCategory": "in {category}",
+    "noResults": "No results for “{q}”",
+    "viewAll": "View all results"
   }
 }

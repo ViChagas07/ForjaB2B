@@ -477,5 +477,12 @@
   "authGate": {
     "title": "Anmelden, um in den Warenkorb zu legen",
     "description": "Erstellen Sie Ihr Firmenkonto oder melden Sie sich an, um Artikel im Warenkorb zu speichern."
+  },
+  "search": {
+    "suggestionsGroup": "Vorschläge",
+    "popularResultsFor": "Beliebte Ergebnisse für „{q}“",
+    "inCategory": "in {category}",
+    "noResults": "Keine Ergebnisse für „{q}“",
+    "viewAll": "Alle Ergebnisse ansehen"
   }
 }

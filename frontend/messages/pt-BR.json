@@ -477,5 +477,12 @@
   "authGate": {
     "title": "Entre para adicionar ao carrinho",
     "description": "Crie sua conta empresarial ou entre na sua conta para guardar itens no carrinho."
+  },
+  "search": {
+    "suggestionsGroup": "Sugestões",
+    "popularResultsFor": "Resultados populares para “{q}”",
+    "inCategory": "em {category}",
+    "noResults": "Nenhum resultado para “{q}”",
+    "viewAll": "Ver todos os resultados"
   }
 }

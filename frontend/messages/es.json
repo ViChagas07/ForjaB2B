@@ -477,5 +477,12 @@
   "authGate": {
     "title": "Inicia sesión para agregar al carrito",
     "description": "Crea tu cuenta empresarial o inicia sesión para guardar artículos en el carrito."
+  },
+  "search": {
+    "suggestionsGroup": "Sugerencias",
+    "popularResultsFor": "Resultados populares para “{q}”",
+    "inCategory": "en {category}",
+    "noResults": "Sin resultados para “{q}”",
+    "viewAll": "Ver todos los resultados"
   }
 }

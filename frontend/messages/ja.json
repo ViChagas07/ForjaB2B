@@ -477,5 +477,12 @@
   "authGate": {
     "title": "カートに追加するにはログイン",
     "description": "法人アカウントを作成するかログインして、商品をカートに保存します。"
+  },
+  "search": {
+    "suggestionsGroup": "候補",
+    "popularResultsFor": "「{q}」の人気の検索結果",
+    "inCategory": "{category}で",
+    "noResults": "「{q}」の結果は見つかりません",
+    "viewAll": "すべての結果を見る"
   }
 }

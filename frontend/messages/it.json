@@ -477,5 +477,12 @@
   "authGate": {
     "title": "Accedi per aggiungere al carrello",
     "description": "Crea il tuo account aziendale o accedi per salvare articoli nel carrello."
+  },
+  "search": {
+    "suggestionsGroup": "Suggerimenti",
+    "popularResultsFor": "Risultati popolari per “{q}”",
+    "inCategory": "in {category}",
+    "noResults": "Nessun risultato per “{q}”",
+    "viewAll": "Vedi tutti i risultati"
   }
 }

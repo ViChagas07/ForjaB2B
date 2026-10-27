@@ -477,5 +477,12 @@
   "authGate": {
     "title": "سجّل الدخول للإضافة إلى السلة",
     "description": "أنشئ حساب أعمالك أو سجّل الدخول لحفظ العناصر في سلتك."
+  },
+  "search": {
+    "suggestionsGroup": "اقتراحات",
+    "popularResultsFor": "النتائج الشائعة لـ “{q}”",
+    "inCategory": "في {category}",
+    "noResults": "لا توجد نتائج لـ “{q}”",
+    "viewAll": "عرض جميع النتائج"
   }
 }

@@ -477,5 +477,12 @@
   "authGate": {
     "title": "장바구니에 담으려면 로그인하세요",
     "description": "기업 계정을 만들거나 로그인하여 상품을 장바구니에 저장하세요."
+  },
+  "search": {
+    "suggestionsGroup": "추천",
+    "popularResultsFor": "“{q}” 인기 검색 결과",
+    "inCategory": "{category}에서",
+    "noResults": "“{q}”에 대한 결과가 없습니다",
+    "viewAll": "모든 결과 보기"
   }
 }

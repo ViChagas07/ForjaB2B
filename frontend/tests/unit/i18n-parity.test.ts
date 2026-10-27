@@ -116,6 +116,8 @@ const ALLOWED_IDENTICAL_VALUES: Record<string, Set<string>> = {
     "Cancelar pedido",
     "Pedido cancelado.",
     "Crédito",
+    // Dropdown de busca: "Resultados populares para {q}" é cognato exato em es.
+    "Resultados populares para “{q}”",
   ]),
   fr: new Set(["E-mail", "ou"]),
   it: new Set(["E-mail", "Nome completo"]),

@@ -477,5 +477,12 @@
   "authGate": {
     "title": "登录后加入购物车",
     "description": "创建企业账户或登录，将商品保存到购物车。"
+  },
+  "search": {
+    "suggestionsGroup": "搜索建议",
+    "popularResultsFor": "“{q}”的热门结果",
+    "inCategory": "在{category}中",
+    "noResults": "未找到与“{q}”相关的结果",
+    "viewAll": "查看全部结果"
   }
 }

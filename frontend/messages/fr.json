@@ -477,5 +477,12 @@
   "authGate": {
     "title": "Connectez-vous pour ajouter au panier",
     "description": "Créez votre compte entreprise ou connectez-vous pour enregistrer des articles dans votre panier."
+  },
+  "search": {
+    "suggestionsGroup": "Suggestions",
+    "popularResultsFor": "Résultats populaires pour « {q} »",
+    "inCategory": "dans {category}",
+    "noResults": "Aucun résultat pour « {q} »",
+    "viewAll": "Voir tous les résultats"
   }
 }
