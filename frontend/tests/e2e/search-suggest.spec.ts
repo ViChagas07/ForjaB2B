@@ -68,7 +68,14 @@ test("clique no produto abre a página do produto", async ({ page }) => {
   const listbox = page.getByRole("listbox");
   await expect(listbox).toBeVisible();
 
-  await listbox.getByRole("option").filter({ hasText: "CAP-002" }).first().click();
+  // Options de produto são os únicos com <img>; "CAP-002" também existe como
+  // TERMO de SKU na coluna esquerda (clicar nele leva a /catalog?q=CAP-002).
+  const productOption = listbox
+    .getByRole("option")
+    .filter({ has: page.locator("img") })
+    .filter({ hasText: "CAP-002" })
+    .first();
+  await productOption.click();
   await expect(page).toHaveURL(/\/catalog\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });

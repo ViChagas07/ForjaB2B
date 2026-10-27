@@ -89,10 +89,13 @@ export function SearchCombobox({ className, inputClassName }: SearchComboboxProp
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  // Nova resposta: nenhuma opção fica pré-selecionada (comportamento BestBuy).
+  // Nova resposta para OUTRO termo: nenhuma opção fica pré-selecionada
+  // (comportamento BestBuy). Resposta da MESMA query (cache/refetch) NÃO
+  // reset a seleção — apertar seta enquanto carrega não perde o foco.
+  const responseQuery = data?.query ?? "";
   React.useEffect(() => {
     setActiveIndex(null);
-  }, [data]);
+  }, [responseQuery]);
 
   const go = React.useCallback(
     (href: string) => {
@@ -134,7 +137,9 @@ export function SearchCombobox({ className, inputClassName }: SearchComboboxProp
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
     if (event.key === "Escape") {
-      // Fecha mantendo o texto digitado.
+      // Fecha mantendo o texto digitado. preventDefault: navegadores limpam
+      // inputs type=search no Esc (ação nativa) — o contrato aqui é manter.
+      event.preventDefault();
       setOpen(false);
       setActiveIndex(null);
       return;
