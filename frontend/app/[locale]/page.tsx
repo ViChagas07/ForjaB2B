@@ -14,6 +14,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { BrandStrip } from "@/features/home/brand-strip";
 import { FeaturedProducts } from "@/features/home/featured-products";
+import { HeroFlamesBackground } from "@/features/home/hero-flames-background";
 import { HomeCategories } from "@/features/home/home-categories";
 import { Link } from "@/i18n/navigation";
 import { SiteFooter } from "@/shared/components/site-footer";
@@ -67,10 +68,15 @@ export default async function HomePage() {
       <SiteHeader />
       <main id="main" className="flex-1">
         <section className="surface-ink amber-glow relative overflow-hidden">
-          <div aria-hidden="true" className="soft-grid absolute inset-0 opacity-40" />
+          <HeroFlamesBackground />
+          <div aria-hidden="true" className="absolute inset-0 bg-ink/45" />
           <div
             aria-hidden="true"
-            className="absolute end-[-10%] top-[-20%] h-[420px] w-[420px] rounded-full bg-primary/10 blur-3xl"
+            className="absolute inset-0 bg-gradient-to-r from-ink/75 via-ink/25 to-transparent rtl:-scale-x-100"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-ink via-ink/60 to-transparent"
           />
 
           <div className="container relative grid gap-14 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
