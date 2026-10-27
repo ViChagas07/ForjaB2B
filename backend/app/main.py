@@ -298,6 +298,10 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_search_capacity,
             refill_per_minute=settings.rate_limit_search_refill_per_minute,
         ),
+        RateLimitClass.SUGGEST: RateLimitPolicy(
+            capacity=settings.rate_limit_suggest_capacity,
+            refill_per_minute=settings.rate_limit_suggest_refill_per_minute,
+        ),
         RateLimitClass.ADMIN_WRITE: RateLimitPolicy(
             capacity=settings.rate_limit_admin_write_capacity,
             refill_per_minute=settings.rate_limit_admin_write_refill_per_minute,

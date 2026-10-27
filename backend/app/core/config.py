@@ -231,6 +231,10 @@ class Settings(BaseSettings):
     rate_limit_registration_refill_per_minute: float = Field(default=5.0, gt=0)
     rate_limit_search_capacity: int = Field(default=30, ge=1)
     rate_limit_search_refill_per_minute: float = Field(default=120.0, gt=0)
+    # Dropdown de sugestoes (/search/suggest): balde proprio e mais folgado que
+    # o da busca da pagina de resultados (digitação gera rajadas curtas).
+    rate_limit_suggest_capacity: int = Field(default=40, ge=1)
+    rate_limit_suggest_refill_per_minute: float = Field(default=180.0, gt=0)
     rate_limit_admin_write_capacity: int = Field(default=20, ge=1)
     rate_limit_admin_write_refill_per_minute: float = Field(default=60.0, gt=0)
     rate_limit_authenticated_capacity: int = Field(default=60, ge=1)

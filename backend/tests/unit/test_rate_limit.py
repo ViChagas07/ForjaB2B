@@ -196,10 +196,31 @@ def test_classificacao_de_rotas() -> None:
     assert classify_request("/api/v1/auth/login", "POST") is RateLimitClass.AUTH
     assert classify_request("/api/v1/companies", "POST") is RateLimitClass.REGISTRATION
     assert classify_request("/api/v1/search/products", "GET") is RateLimitClass.SEARCH
+    assert classify_request("/api/v1/search/suggest", "GET") is RateLimitClass.SUGGEST
     assert classify_request("/api/v1/admin/catalog/products", "POST") is RateLimitClass.ADMIN_WRITE
     assert classify_request("/api/v1/orders", "POST") is RateLimitClass.AUTHENTICATED
     assert classify_request("/api/v1/catalog/products", "GET") is RateLimitClass.PUBLIC_READ
     assert classify_request("/docs", "GET") is None
+
+
+async def test_suggest_tem_balde_proprio_e_nao_esgota_o_da_busca() -> None:
+    """Digitar no dropdown esgota o balde SUGGEST sem tocar no balde SEARCH."""
+    limiter = RateLimiter(
+        store=InMemoryBucketStore(),
+        policies={
+            RateLimitClass.SUGGEST: RateLimitPolicy(capacity=10, refill_per_minute=6),
+            RateLimitClass.SEARCH: RateLimitPolicy(capacity=2, refill_per_minute=60),
+        },
+        clock=_Clock(),
+    )
+
+    for _ in range(10):
+        assert (await limiter.check(rate_class=RateLimitClass.SUGGEST, identity="ip:9")).allowed
+
+    assert not (await limiter.check(rate_class=RateLimitClass.SUGGEST, identity="ip:9")).allowed
+    # Mesma identidade, classe SEARCH: balde independente, ainda cheio.
+    assert (await limiter.check(rate_class=RateLimitClass.SEARCH, identity="ip:9")).allowed
+    assert (await limiter.check(rate_class=RateLimitClass.SEARCH, identity="ip:9")).allowed
 
 
 def test_ip_real_so_confia_em_proxy_configurado() -> None:

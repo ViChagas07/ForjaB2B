@@ -31,6 +31,7 @@ class RateLimitClass(StrEnum):
     AUTH = "auth"
     REGISTRATION = "registration"
     SEARCH = "search"
+    SUGGEST = "suggest"
     ADMIN_WRITE = "admin_write"
     AUTHENTICATED = "authenticated"
     PUBLIC_READ = "public_read"
