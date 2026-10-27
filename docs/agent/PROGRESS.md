@@ -6,6 +6,44 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Autocomplete estilo BestBuy â€” FASE 2: camada de dados do frontend (2026-10-27)
+
+Sem componente visual (nenhum arquivo de UI tocado na fase). `searchApi.
+fetchSuggestions(q, locale, signal)` chama GET /api/v1/search/suggest pelo
+MESMO `apiClient` do catalogo (cookie/JWT + Accept-Language), tipos do
+api-schema.d.ts gerado. Porta HttpRequest ganhou `signal?: AbortSignal`:
+FetchHttpClient recusa requisicao ja abortada, propaga abort externo para o
+controller interno e RELANCA o AbortError original (React Query trata como
+cancelamento; timeout continua virando ApiError de rede). `features/search/`:
+`query-keys.ts` (locale + q trim+lowercase), `debounce.ts` (createDebouncer
+puro, testavel com fake timers), `use-debounced-value.ts` (200ms),
+`use-search-suggestions.ts` (suggestQueryOptions testavel: enabled >= 2 chars
+apos trim, staleTime 30s, placeholderData mantem anterior, retry false, signal
+repassado; hook aplica debounce + locale do next-intl). Sem dependencia nova
+(sem testing-library/jsdom: hooks testados via options + debouncer puro;
+comportamento do hook de colagem fica para e2e da Fase 4).
+
+**Checagens reais:** `npm run check` COMPLETO PASSOU: lint OK (4 warnings
+pre-existentes de no-img-element em admin-product-form-client), typecheck 0,
+format:check OK (apos style commit de 5 arquivos pre-existentes divergentes do
+prettier atual â€” diff apenas requebramento, mesmos tokens), 143 testes passed
+(28 arquivos; 11 novos em search-suggest.test.ts, 2 novos de signal em
+http-client.test.ts), depcruise 0 violacoes (188 modulos). NAO VALIDADO:
+dropdown em navegador real (fica para Fase 3/4 â€” esta fase nao tem UI);
+`vitest.config.ts` nao inclui *.test.tsx, portanto
+product-image-component.test.tsx nao roda no npm test (pre-existente,
+relatado, nao alterado nesta fase).
+
+**Arquivos:** `core/application/ports/http-client.ts`,
+`infrastructure/http/api-client.ts`, `infrastructure/http/search-api.ts` (novo),
+`infrastructure/http/index.ts`, `features/search/query-keys.ts` (novo),
+`features/search/debounce.ts` (novo), `features/search/use-debounced-value.ts`
+(novo), `features/search/use-search-suggestions.ts` (novo),
+`tests/unit/http-client.test.ts`, `tests/unit/search-suggest.test.ts` (novo) e
+5 arquivos apenas reformatados (style commit separado).
+
+---
+
 ## Autocomplete estilo BestBuy â€” FASE 1: backend de sugestÃµes (2026-10-27)
 
 Contrato novo `GET /api/v1/search/suggest` (dropdown: termos + categorias + 6
