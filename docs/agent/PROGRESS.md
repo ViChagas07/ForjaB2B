@@ -6,6 +6,67 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Autocomplete estilo BestBuy â€” FASE 1: backend de sugestÃµes (2026-10-27)
+
+Contrato novo `GET /api/v1/search/suggest` (dropdown: termos + categorias + 6
+produtos), sem reindex e sem mexer no mapping (`name.autocomplete`, `name` com
+fuzziness AUTO + prefix_length 1, `sku.prefix`, `brand.text`, `name_{locale}`
+para en/es/ar). Sort SEMPRE por `_score` (nunca `name.sort`). Fallback Postgres
+com ILIKE (nome/SKU/marca) + GROUP BY categoria, sem fuzzy. Preco/estoque
+hidratados do PostgreSQL pela MESMA rotina do SearchProducts (extraida para
+`_hydrate_page` compartilhada; preco consultivo p/ visitante, por empresa p/
+autenticado). Rate limit identico ao de /search/products via middleware
+(`/api/v1/search*` -> SEARCH). Categorias do suggest traduzidas no locale via
+`get_category_name_map`. Termos: brand (prefixo) > product (hits) > sku
+(prefixo), dedupe case-insensitive, limite 8; categorias: limite 3; produtos: 6.
+
+**Comandos de checagem (backend, venv local no Windows):**
+`backend/.venv/Scripts/ruff.exe check .` / `format --check .`;
+`backend/.venv/Scripts/mypy.exe app` (strict; `mypy .` inclui testes com erros
+PRE-EXISTENTES de outras fases, ver pendencias); `lint-imports --config
+.import-linter` (no Windows pediu --config; container usa `lint-imports` puro);
+`python -m pytest tests/unit -q`; `python -m pytest tests/integration -q`
+(Testcontainers). OpenAPI: `python scripts/export_openapi.py` + (frontend)
+`npm run openapi:types`.
+
+**Checagens reais (todas executadas nesta sessao):**
+- Ruff check/format: passed (429 arquivos formatados).
+- mypy strict em `app` + testes de busca alterados: 0 erros (305-308 arquivos).
+- Import-linter: 4 contracts kept, 0 broken.
+- Unit: **548 passed** (12 novos de suggest).
+- Integracao completa (Docker/Testcontainers, PG real + ES 9.5.5 real):
+  **288 passed, 1 skipped** (skip pre-existente em test_search_semantic_pg).
+- `docker compose --env-file .env.example config --quiet`: OK.
+- Frontend `npm run typecheck`: OK (api-schema.d.ts regenerado).
+- CritÃ©rios de aceite validados de verdade: `q=cap` -> "Capacete" no topo +
+  categorias + 6 produtos com image_url e preco (HTTP fallback e ES real);
+  `q=a` -> vazio; `q=capacte` -> "Capacete de Seguranca" no ES real
+  (test_search_index_es::test_suggest_por_score_com_typo_e_agregacoes);
+  ES fora do ar -> fallback responde 200 (suite HTTP roda com ES desabilitado).
+
+**Arquivos:** `interface/schemas.py` (SuggestTermOut/SuggestCategoryOut/
+SuggestResponse), `application/ports.py` (SuggestTerm/Category/Data +
+SearchReader.suggest), `application/suggest.py` (novo, montagem pura de termos),
+`infrastructure/elasticsearch.py` (suggest + aggs), `infrastructure/
+postgres_search.py` (suggest fallback), `application/search.py` (_hydrate_page
+compartilhada + SuggestProducts), `main.py` (wiring), `interface/router.py`
+(GET /suggest), `docs/api/openapi.json` + `frontend/core/domain/api-schema.d.ts`
+(regenerados), testes (unit/integration) e fakes conformes ao protocolo novo.
+
+**Pendencias / NOTA (fora do escopo desta fase):** `mypy .` (incluindo tests/)
+aponta 88 erros PRE-EXISTENTES em 13 arquivos de teste de outras features
+(test_product_attributes, test_i18n, test_validate_illustrations,
+test_stripe_integration, test_rate_limit, test_seed_product_images,
+test_demo_translations, test_persistence_seeds, test_search_multilingual,
+test_security_headers, test_deprecation, test_cors, test_rate_limit_api) â€”
+nenhum deles foi tocado nesta fase; `mypy app` esta limpo. Corrigir os 88
+exige toque em codigo de outras fases e ficou registrado como trabalho
+pendente. CritÃ©rio "ES fora do ar -> fallback sem 500" validado no nivel HTTP
+(suite roda com ELASTICSEARCH_ENABLED=False); nao houve teste que DERRUBE o ES
+de verdade em runtime (so desabilita no settings de teste).
+
+---
+
 ## Fase 9A-3a â€” Rascunhos de produtos a partir das fotos e manifesto
 
 **Iniciado:** 2026-10-11
