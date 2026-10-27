@@ -6,6 +6,39 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Imagens do catÃ¡logo: fotos do dono nas variantes + timeout de tile (2026-10-27)
+
+**Relato do dono:** "as imagens do protetor auricular de plug modÃ¡vel e luvas de raspa
+nÃ£o estÃ£o aparecendo, sendo que te mandei as imagens". Investigação com browser real:
+
+1. **Causa A (foto errada na variante):** as fotos do dono (Lote 2,
+   `assets-src/photos-inbox/`) haviam sido aplicadas SÃ" nos produtos-base (EPI-LUV-002,
+   AUD-001). Os tiles que ele via â€" **AUD-004 "Protetor Auricular Plug MoldÃ¡vel"** e
+   **LUV-004 "Luvas de Raspa Premium"** â€" tinham fotos de Pexels que nÃ£o eram as dele
+   (plug de ESPUMA com cordÃ£o para um produto "MoldÃ¡vel"; luva amarela sintÃ©tica).
+   **Fix:** as fotos DELE aplicadas nas variantes (modo `fit`: fotos 3:2, recorte
+   central cortaria o objeto) â€" `aud-004.webp` (25.282 B) e `luv-004.webp` (28.434 B),
+   registradas como **Lote 3** no `PHOTO_MAPPING.md` e `IMAGE_CREDITS.md`; script
+   ganhou `INBOX_DIR` e origens arquivadas com saÃ­da existente viram AVISO (reexecuÃ§Ã£o
+   idempotente). `--verify`: **48/48 saÃ­das OK** (640Ã—640, sem EXIF, â‰¤ 80 KB).
+2. **Causa B (tile virava ilustração genÃ©rica):** o timer de 10s do `ProductImage`
+   corria desde o mount, mas o `<img loading="lazy">` abaixo da dobra NEM COMEÃ‡AVA a
+   carregar â€” aos 10s virava `generic.svg` **permanentemente** (reproduzido: scroll
+   apÃ³s load mostrava o fallback). **Fix:** IntersectionObserver (rootMargin 256px, a
+   mesma faixa do lazy) inicia o timer sÃ³ quando o tile se aproxima da viewport â€”
+   ao rolar, a foto real carrega (validado: LUV-004 e AUD-004 renderizam 640Ã—640).
+
+**ValidaÃ§Ã£o real:** browser (dev server) â€" tiles de AUD-004 e LUV-004 com as fotos do
+dono (640Ã—640, complete); `optimize_catalog_photos.py --verify` 48/48; `npm run check`
+**162 passed**, depcruise 0; **e2e search-suggest 8/8** (regressÃ£o do dropdown).
+Cobertura de fotos: **47 de 50** (restam RES-004, OCV-006, LUV-009 com ilustraÃ§Ã£o
+especÃ­fica). **NÃƒO VALIDADO:** dispositivo fÃ­sico do dono e cache HTTP intermediÃ¡rio
+(browser novo vÃª as fotos; se o navegador dele tiver o WebP antigo em cache, basta
+recarga com bypass). Arquivo: `scripts/optimize_catalog_photos.py` muda comportamento
+de origem ausente (aviso vs falha) â€" registrado.
+
+---
+
 ## Suggest â€” painel instÃ¡vel na digitaÃ§Ã£o e mobile cobrindo a barra (2026-10-27, apÃ³s o push)
 
 **Relato do dono:** (1) depois de ~30 min, as recomendaÃ§Ãµes "carregam mas depois somem";
