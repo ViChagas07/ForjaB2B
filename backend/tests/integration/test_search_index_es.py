@@ -20,7 +20,11 @@ from elasticsearch import AsyncElasticsearch
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.wait_strategies import HttpWaitStrategy
 
-from app.modules.search.application.ports import ProductDocument, SearchQuery
+from app.modules.search.application.ports import (
+    ProductDocument,
+    SearchQuery,
+    SuggestCategory,
+)
 from app.modules.search.infrastructure.elasticsearch import ElasticsearchProductIndex
 
 _IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:9.5.5"
@@ -76,6 +80,7 @@ def _document(
     version: int = 1,
     sku: str | None = None,
     is_available: bool = True,
+    brand: str | None = None,
 ) -> ProductDocument:
     return ProductDocument(
         id=doc_id,
@@ -91,8 +96,8 @@ def _document(
         category_id=str(uuid.uuid4()),
         category="Categoria",
         category_slug="categoria",
-        brand_id=None,
-        brand=None,
+        brand_id=str(uuid.uuid4()) if brand is not None else None,
+        brand=brand,
         brand_slug=None,
         attributes={},
         name_en=None,
@@ -231,3 +236,44 @@ async def test_autocomplete_por_prefixo(es_client: AsyncElasticsearch) -> None:
     suggestions = await index.autocomplete(q="cap", limit=10)
     assert any(suggestion.id == "p-cap" for suggestion in suggestions)
     assert all(suggestion.name for suggestion in suggestions)
+
+
+async def test_suggest_por_score_com_typo_e_agregacoes(
+    es_client: AsyncElasticsearch,
+) -> None:
+    """Suggest (dropdown): typo tolerado, ordenacao por _score e aggs reais.
+
+    Cobertura dos criterios de aceite da Fase 1 no ES real: "capacte" devolve
+    "Capacete..." (fuzziness no nome), prefixo de SKU/marca vira termo e as
+    categorias vem da agregacao terms (nome + slug no sub-agg).
+    """
+    index = _index(es_client)
+    name = await index.create_versioned_index(version=914, replicas=0)
+    await index.index_documents(
+        target=name,
+        documents=[
+            _document("p-cap", "Capacete de Seguranca", brand="Cappi", version=1),
+            _document("p-luv", "Luva de Seguranca", version=1),
+        ],
+    )
+    await index.swap_alias(index_name=name)
+    await index.refresh(target=name)
+
+    com_typo = await index.suggest(
+        q="capacte", locale="pt-BR", term_limit=8, category_limit=3, product_limit=6
+    )
+    assert com_typo.product_ids == ["p-cap"]
+    assert [(term.text, term.kind) for term in com_typo.terms] == [
+        ("Capacete de Seguranca", "product")
+    ]
+
+    por_prefixo = await index.suggest(
+        q="cap", locale="pt-BR", term_limit=8, category_limit=3, product_limit=6
+    )
+    # Ordem por _score (nunca name.sort): apenas o match relevante no indice.
+    assert por_prefixo.product_ids == ["p-cap"]
+    assert [(term.text, term.kind) for term in por_prefixo.terms] == [
+        ("Cappi", "brand"),
+        ("Capacete de Seguranca", "product"),
+    ]
+    assert por_prefixo.categories == [SuggestCategory(name="Categoria", slug="categoria", count=1)]
