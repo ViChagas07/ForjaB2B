@@ -18,6 +18,7 @@ from app.modules.search.application.search import (
     AutocompleteProducts,
     SearchProducts,
     SearchResultItem,
+    SuggestProducts,
 )
 from app.modules.search.interface.schemas import (
     AutocompleteOut,
@@ -27,6 +28,9 @@ from app.modules.search.interface.schemas import (
     SearchProductOut,
     SearchQueryParams,
     SearchResponse,
+    SuggestCategoryOut,
+    SuggestResponse,
+    SuggestTermOut,
 )
 
 router = APIRouter(prefix="/search", tags=["search"])
@@ -38,6 +42,10 @@ def _search_products(request: Request) -> SearchProducts:
 
 def _autocomplete_products(request: Request) -> AutocompleteProducts:
     return cast(AutocompleteProducts, request.app.state.search_autocomplete_products)
+
+
+def _suggest_products(request: Request) -> SuggestProducts:
+    return cast(SuggestProducts, request.app.state.search_suggest_products)
 
 
 def _to_product_out(item: SearchResultItem) -> SearchProductOut:
@@ -103,3 +111,28 @@ async def autocomplete_products(
 ) -> AutocompleteResponse:
     suggestions = await use_case.run(q=q)
     return AutocompleteResponse(items=[AutocompleteOut(**vars(s)) for s in suggestions])
+
+
+@router.get("/suggest", response_model=SuggestResponse)
+async def suggest_products(
+    q: Annotated[str, Query(max_length=100)],
+    use_case: Annotated[SuggestProducts, Depends(_suggest_products)],
+    auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
+    locale: Annotated[str, Depends(get_locale)],
+) -> SuggestResponse:
+    """Sugestoes do dropdown: termos, categorias e produtos por score.
+
+    O rate limit e o mesmo de /search/products (middleware classifica
+    ``/api/v1/search*``). O preco dos produtos vem do PostgreSQL (lista para
+    visitante, por empresa para autenticado); o indice nunca guarda preco.
+    """
+    result = await use_case.run(q=q, auth=auth, locale=locale)
+    return SuggestResponse(
+        terms=[SuggestTermOut(text=term.text, kind=term.kind) for term in result.terms],
+        categories=[
+            SuggestCategoryOut(name=category.name, slug=category.slug, count=category.count)
+            for category in result.categories
+        ],
+        products=[_to_product_out(item) for item in result.items],
+        query=result.query,
+    )
