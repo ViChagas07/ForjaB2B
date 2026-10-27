@@ -6,6 +6,52 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Autocomplete estilo BestBuy â€” FASE 3: UI do autocomplete (2026-10-27)
+
+`shared/components/search-combobox/`: `search-combobox.tsx` (form role=search,
+combobox ARIA â€” aria-expanded/controls/autocomplete="list"/activedescendant,
+teclado: setas verticais percorrem termos+categorias+produtos, laterais trocam
+de bloco com inversÃ£o em RTL, Enter confirma o item ativo (sem ativo =
+submit para /catalog?q=), Esc/Tab fecham mantendo o texto, pointerdown fora
+fecha no document com cleanup, skeleton de 6 linhas enquanto isFetching sem
+dados anteriores, vazio -> "Nenhum resultado para â€œqâ€" + link viewAll; painel
+desktop absolute top-full min(52rem,90vw) grid 40/60 com max-h e scroll;
+mobile fixed inset-x-0 top-[72px] coluna Ãºnica; sÃ³ classes lÃ³gicas), 
+`suggestion-list.tsx` (termos com HighlightMatch + categorias "em {category}"),
+`product-preview-list.tsx` (tÃ­tulo com o termo da resposta + 6 produtos:
+ProductImage, line-clamp-2, SKU, CatalogPrice reusado, selo CaStatusBadge
+quando ca_status=VALID, cart.minQuantity quando min_order_qty>1; clique ->
+/catalog/<id>), `highlight-match.tsx` (splitHighlight puro: fold NFD sem
+diacrÃ­ticos + mapa de codepoints de volta ao original â€” cobre harakat Ã¡rabe;
+renderiza <strong>, sem dangerouslySetInnerHTML; 8 testes).
+`HeaderSearch` virou wrapper fino do SearchCombobox (site-header sem mudanÃ§as,
+mesmas props). `/catalog` sÃ³ aceita category_id (uuid), nÃ£o slug: clique em
+categoria navega com q do input (decisÃ£o da fase). i18n: chaves search.*
+(suggestionsGroup/popularResultsFor/inCategory/noResults/viewAll) nos 11
+locales (script node no temp; placeholders preservados); preÃ§o sob consulta e
+pedido mÃ­nimo REUSAM catalog.priceOnRequest e cart.minQuantity; es cognato
+exato registrado na allowlist legÃ­tima do i18n-parity.
+
+**Checagens reais:** `npm run check` COMPLETO PASSOU: lint OK (4 warnings
+prÃ©-existentes de no-img-element em admin-product-form), typecheck 0,
+format:check OK, **151 testes passed** (29 arquivos; +8 highlight-match),
+depcruise 0 violaÃ§Ãµes (193 mÃ³dulos). Testes estÃ¡ticos RTL (sem classes
+fÃ­sicas em shared/**) e hardcoded-text passam com o novo componente. NÃO
+VALIDADO: comportamento visual/interativo em navegador real (digitar "cap"
+abrindo apÃ³s ~200ms, setas/Enter/Esc de verdade e espelhamento visual em ar) â€”
+fica para e2e Playwright da Fase 4; o projeto nÃ£o tem renderer de testes de
+hooks/componentes (sem testing-library), comportamento do combobox coberto
+por e2e.
+
+**Arquivos:** `shared/components/search-combobox/search-combobox.tsx` (novo),
+`.../suggestion-list.tsx` (novo), `.../product-preview-list.tsx` (novo),
+`.../highlight-match.tsx` (novo), `shared/components/header-search.tsx`
+(wrapper fino), `messages/{pt-BR,en,es,ar,de,fr,it,ja,ko,ru,zh-CN}.json`,
+`tests/unit/highlight-match.test.ts` (novo),
+`tests/unit/i18n-parity.test.ts` (allowlist es). site-header.tsx: intocado.
+
+---
+
 ## Autocomplete estilo BestBuy â€” FASE 2: camada de dados do frontend (2026-10-27)
 
 Sem componente visual (nenhum arquivo de UI tocado na fase). `searchApi.
