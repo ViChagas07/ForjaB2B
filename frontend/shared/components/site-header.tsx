@@ -29,8 +29,10 @@ export async function SiteHeader() {
           </Link>
         </nav>
 
-        <HeaderSearch className="ms-auto hidden max-w-sm flex-1 md:block" />
-        <div className="ms-auto md:ms-0">
+        <div className="ms-auto hidden max-w-sm flex-1 md:flex xl:absolute xl:inset-x-0 xl:inset-y-0 xl:mx-auto xl:w-80 xl:max-w-none xl:flex-none xl:items-center">
+          <HeaderSearch className="w-full" />
+        </div>
+        <div className="ms-auto">
           <HeaderActions />
         </div>
       </div>
