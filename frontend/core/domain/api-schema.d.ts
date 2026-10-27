@@ -884,6 +884,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest Products
+         * @description Sugestoes do dropdown: termos, categorias e produtos por score.
+         *
+         *     O rate limit e o mesmo de /search/products (middleware classifica
+         *     ``/api/v1/search*``). O preco dos produtos vem do PostgreSQL (lista para
+         *     visitante, por empresa para autenticado); o indice nunca guarda preco.
+         */
+        get: operations["suggest_products_api_v1_search_suggest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -2485,6 +2509,45 @@ export interface components {
              * @default true
              */
             received: boolean;
+        };
+        /**
+         * SuggestCategoryOut
+         * @description Categoria sugerida, exibida no formato "em <Categoria>".
+         */
+        SuggestCategoryOut: {
+            /** Count */
+            count: number;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /**
+         * SuggestResponse
+         * @description Resposta do dropdown de sugestoes (termos + categorias + produtos).
+         */
+        SuggestResponse: {
+            /** Categories */
+            categories: components["schemas"]["SuggestCategoryOut"][];
+            /** Products */
+            products: components["schemas"]["SearchProductOut-Output"][];
+            /** Query */
+            query: string;
+            /** Terms */
+            terms: components["schemas"]["SuggestTermOut"][];
+        };
+        /**
+         * SuggestTermOut
+         * @description Termo sugerido pelo dropdown (produto, marca ou SKU).
+         */
+        SuggestTermOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "product" | "brand" | "sku";
+            /** Text */
+            text: string;
         };
         /**
          * TranslationAdminOut
@@ -9487,6 +9550,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AutocompleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Dependencia externa indisponivel. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Dependencia externa indisponivel.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 503,
+                     *       "title": "Service Unavailable",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_503"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    suggest_products_api_v1_search_suggest_get: {
+        parameters: {
+            query: {
+                q: string;
+                lang?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestResponse"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Validation Error */
