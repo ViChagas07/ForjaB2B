@@ -35,9 +35,7 @@ describe("ProductImage (renderizacao estatica)", () => {
 
   it("fallback: src vazio renderiza o placeholder generico LOCAL (sem depender da API)", () => {
     process.env.NEXT_PUBLIC_API_URL = API;
-    const html = renderToStaticMarkup(
-      <ProductImage src="" alt="Produto sem imagem" />,
-    );
+    const html = renderToStaticMarkup(<ProductImage src="" alt="Produto sem imagem" />);
     expect(html).toContain('src="/catalog/illustrations/generic.svg"');
     expect(html).toContain("object-contain");
   });

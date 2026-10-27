@@ -220,10 +220,7 @@ export function CatalogBrowser() {
                     className="h-9 w-9 rounded-lg p-0"
                     aria-label={t("catalog.jumpToPage")}
                   >
-                    <ArrowRight
-                      aria-hidden="true"
-                      className="h-4 w-4 rtl:-scale-x-100"
-                    />
+                    <ArrowRight aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
                   </Button>
                 </form>
               </div>

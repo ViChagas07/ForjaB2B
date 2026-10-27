@@ -77,10 +77,7 @@ export function ProductImage({
         timedOut.current = true;
         setFailed(true);
       }}
-      className={cn(
-        kind === "photo" ? "object-cover" : "object-contain",
-        className,
-      )}
+      className={cn(kind === "photo" ? "object-cover" : "object-contain", className)}
     />
   );
 }
