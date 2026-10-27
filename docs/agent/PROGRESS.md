@@ -6,6 +6,34 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Privacy & Policy + consentimento obrigatório no cadastro (2026-10-27)
+
+**Feito:** página nova `app/[locale]/privacy/page.tsx` (rota `/{locale}/privacy`) com 11
+seções numeradas adaptadas ao contexto do Forja B2B (LGPD, isolamento por empresa via RLS,
+Argon2id, índice de busca sem preço, pagamento simulado, retenção com preservação fiscal),
+renderizada a partir do namespace `privacy` nos 11 dicionários (traduzido em todos,
+incluindo RTL). No onboarding, checkbox de consentimento obrigatório ("Eu li os
+Termos de Serviço e Política de Privacidade e concordo com eles.", com "Termos de
+Serviço" e "Política de Privacidade" linkados a `/privacy` via `t.rich`); o botão
+"Cadastrar empresa" fica `disabled` até marcar (gating no componente + campo `consent`
+no schema com `onboarding.consentRequired` e teste). Rodapé ganhou link para a página e o
+sitemap cobre `/{locale}/privacy`. Componente novo `shared/ui/checkbox.tsx` (input
+nativo acessível, sem dependência nova; o próprio input cobre a caixa visual — `sr-only`
+interceptava o clique em browser real). `privacy.version` e `privacy.contactEmail`
+entram no `ALLOWED_IDENTICAL_KEYS` do teste de paridade (versão numérica e e-mail fixo
+não se traduzem).
+
+**Validação:** `npm run check` → **163 passed** (paridade de chaves em 11 locales,
+client-hardcoded-text, schemas com o caso novo), depcruise 0 violações; `npm run build`
+OK com `/{locale}/privacy` no manifest. Browser real (dev :3100): desmarcado → botão
+desabilitado; marcado → habilitado; desmarcar volta a desabilitar; os dois links do label
+navegam a `/pt-BR/privacy` sem alternar o checkbox; página renderizada em pt-BR, en e ar
+(RTL). Backend: `POST /api/v1/privacy/consent` exige autenticação, então o aceite no
+cadastro é frontend-only por enquanto (gating de botão; o registro versionado do
+consentimento continua self-service pós-login).
+
+---
+
 ## Imagens do catÃ¡logo: fotos do dono nas variantes + timeout de tile (2026-10-27)
 
 **Relato do dono:** "as imagens do protetor auricular de plug modÃ¡vel e luvas de raspa
