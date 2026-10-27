@@ -12,6 +12,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator
 from decimal import Decimal
+from typing import Any
 
 import httpx
 import pytest
@@ -101,6 +102,69 @@ async def test_suggest_autenticado_recebe_preco(
     body = response.json()
     assert body["products"]
     assert body["products"][0]["base_unit_price"] is not None
+
+
+async def test_suggest_anonimo_usa_cache_redis(
+    suggest_client: httpx.AsyncClient, test_settings: Settings, redis_url: str
+) -> None:
+    """Anonimo: resposta gravada no Redis (TTL 30s) e servida no 2o hit."""
+    import redis.asyncio as redis_asyncio
+
+    test_redis: Any = redis_asyncio.from_url(redis_url, decode_responses=True)
+    try:
+        primeira = await suggest_client.get("/api/v1/search/suggest", params={"q": "cap"})
+        assert primeira.status_code == 200
+        assert primeira.headers["cache-control"] == "public, max-age=30"
+
+        chave = f"search:suggest:v{test_settings.elasticsearch_index_version}:pt-BR:cap"
+        assert await test_redis.exists(chave) == 1
+        ttl = await test_redis.ttl(chave)
+        assert 0 < ttl <= 30
+
+        segunda = await suggest_client.get("/api/v1/search/suggest", params={"q": "cap"})
+        assert segunda.status_code == 200
+        assert segunda.headers["cache-control"] == "public, max-age=30"
+        assert segunda.json() == primeira.json()
+    finally:
+        await test_redis.aclose()
+
+
+async def test_suggest_autenticado_nao_escreve_cache_nem_permite_cache_http(
+    suggest_client: httpx.AsyncClient, test_settings: Settings, redis_url: str
+) -> None:
+    """Autenticado (preco por empresa): sem chave no Redis e no-store no HTTP."""
+    import redis.asyncio as redis_asyncio
+
+    test_redis: Any = redis_asyncio.from_url(redis_url, decode_responses=True)
+    try:
+        chave = f"search:suggest:v{test_settings.elasticsearch_index_version}:pt-BR:cap"
+        # O Redis pode ser compartilhado entre testes: garante estado limpo.
+        await test_redis.delete(chave)
+
+        token = TokenService(
+            secret_key=test_settings.secret_key,
+            algorithm=test_settings.jwt_algorithm,
+            expire_minutes=test_settings.access_token_expire_minutes,
+        ).issue_access_token(
+            AuthContext(
+                user_id=uuid.uuid4(),
+                company_id=uuid.uuid4(),
+                role="BUYER",
+                token_id="cache-bypass-token",  # noqa: S106 - id de token de teste
+            )
+        )
+        response = await suggest_client.get(
+            "/api/v1/search/suggest",
+            params={"q": "cap"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        # O middleware de security headers vence e emite no-store (contrato).
+        assert response.headers["cache-control"] == "no-store"
+        # Resposta autenticada NUNCA e cacheada.
+        assert await test_redis.exists(chave) == 0
+    finally:
+        await test_redis.aclose()
 
 
 async def test_suggest_respeita_locale(

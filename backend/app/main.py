@@ -172,6 +172,7 @@ from app.modules.search.infrastructure.pgvector_store import PgVectorStore
 from app.modules.search.infrastructure.postgres_search import PostgresSearchReader
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
 from app.modules.search.infrastructure.reconcile import ReconcileService
+from app.modules.search.infrastructure.suggest_cache import SuggestCache
 
 _logger = get_logger(__name__)
 
@@ -410,6 +411,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.redis_client = redis_client
     app.state.rate_limiter = _build_rate_limiter(settings, redis_client)
     app.state.login_throttle = _build_login_throttle(settings, redis_client)
+    app.state.search_suggest_cache = SuggestCache(
+        redis_client=redis_client,
+        index_version=settings.elasticsearch_index_version,
+    )
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)
     app.state.idempotency_service = IdempotencyService(

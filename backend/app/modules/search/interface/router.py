@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.application.security import AuthContext
 from app.interface.deps import get_locale, get_optional_auth
@@ -20,6 +20,7 @@ from app.modules.search.application.search import (
     SearchResultItem,
     SuggestProducts,
 )
+from app.modules.search.infrastructure.suggest_cache import SuggestCache
 from app.modules.search.interface.schemas import (
     AutocompleteOut,
     AutocompleteResponse,
@@ -113,21 +114,39 @@ async def autocomplete_products(
     return AutocompleteResponse(items=[AutocompleteOut(**vars(s)) for s in suggestions])
 
 
+def _suggest_cache(request: Request) -> SuggestCache:
+    return cast(SuggestCache, request.app.state.search_suggest_cache)
+
+
 @router.get("/suggest", response_model=SuggestResponse)
 async def suggest_products(
     q: Annotated[str, Query(max_length=100)],
     use_case: Annotated[SuggestProducts, Depends(_suggest_products)],
+    cache: Annotated[SuggestCache, Depends(_suggest_cache)],
     auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
     locale: Annotated[str, Depends(get_locale)],
+    response: Response,
 ) -> SuggestResponse:
     """Sugestoes do dropdown: termos, categorias e produtos por score.
 
-    O rate limit e o mesmo de /search/products (middleware classifica
-    ``/api/v1/search*``). O preco dos produtos vem do PostgreSQL (lista para
-    visitante, por empresa para autenticado); o indice nunca guarda preco.
+    Rate limit em balde PROPRIO (classe SUGGEST, mais folgado que o SEARCH).
+    Respostas ANONIMAS passam por cache Redis curto (TTL 30 s; chave com q
+    normalizado + locale + versao do indice) e recebem ``Cache-Control:
+    public, max-age=30``. Respostas AUTENTICADAS (preco por empresa) nunca
+    sao cacheadas — o middleware de security headers emite ``no-store``.
     """
+    normalized = q.strip()
+    cache_key = cache.key_for(q=normalized, locale=locale) if auth is None else None
+    cached_payload = await cache.get(key=cache_key) if cache_key is not None else None
+    if cached_payload is not None:
+        try:
+            response.headers["Cache-Control"] = "public, max-age=30"
+            return SuggestResponse.model_validate_json(cached_payload)
+        except ValueError:
+            # Payload corrompido/antigo: trata como miss e recalcula.
+            pass
     result = await use_case.run(q=q, auth=auth, locale=locale)
-    return SuggestResponse(
+    payload = SuggestResponse(
         terms=[SuggestTermOut(text=term.text, kind=term.kind) for term in result.terms],
         categories=[
             SuggestCategoryOut(name=category.name, slug=category.slug, count=category.count)
@@ -136,3 +155,7 @@ async def suggest_products(
         products=[_to_product_out(item) for item in result.items],
         query=result.query,
     )
+    if cache_key is not None:
+        await cache.set(key=cache_key, payload=payload.model_dump_json())
+        response.headers["Cache-Control"] = "public, max-age=30"
+    return payload
