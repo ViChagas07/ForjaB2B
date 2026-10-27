@@ -6,6 +6,58 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Suggest â€” rate limit e cache (2026-10-27, apÃ³s a Fase 4)
+
+**API key do Cloud:** o `.env` do dono foi atualizado com a nova key (sem printar valores);
+validada com curl direto (Cloud Serverless 9.6.0, `forja_products` com 41 docs, HTTP 200).
+**Achado:** o `docker-compose.yml` de dev NÃƒO passava `ELASTICSEARCH_API_KEY` ao
+backend/worker/beat (o prod jÃ¡ passava) â€” corrigido (`f1baf08`); backend recriado e o Cloud
+voltou a ser o primÃ¡rio (status 200 nos logs do ES, fallback desligado).
+
+**Passo 1 (mapa do rate limit):** middleware ASGI (`interface/rate_limit.py`) com token
+bucket Redis+Lua (`application/rate_limit.py`); chave `rl:{classe}:{user:{id}|ip:{ip}}` â€”
+usuÃ¡rio para autenticados, IP para anÃ´nimos; 429 com `Retry-After` + headers `RateLimit-*`.
+Antes da mudanÃ§a, `/suggest` compartilhava o balde SEARCH (capacity 30, refill 120/min)
+com `/search/products` (mesma classe e chave).
+
+**Passo 2 (simulaÃ§Ã£o real):** `scripts/validate_suggest_ratelimit.py` (httpx, XFF â€”
+precisou de backend efÃªmero com `TRUSTED_PROXY_COUNT=1` porque o dev roda com 0 e ignora
+XFF). Uso real (12 em ~6s, 2 IPs): **0 Ã— 429**; pressÃ£o concorrente: 40 â†’ **10 Ã— 429**
+(com `Retry-After: 1`), provando o esgotamento do balde compartilhado. Nota: sequencial a
+0.1s nunca esgota (latÃªncia do Cloud ~0.6s domina; refill 2/s cobre).
+
+**Passo 3 (mudanÃ§a aplicada):** classe nova `SUGGEST` com balde PRÃ“PRIO
+`RATE_LIMIT_SUGGEST_CAPACITY=40` / `RATE_LIMIT_SUGGEST_REFILL_PER_MINUTE=180` (defaults;
+documentadas no `.env.example`). Identidade user/IP mantida. **ValidaÃ§Ã£o real apÃ³s rebuild
+do backend:** 50 suggest concorrentes â†’ 40Ã—200 + 10Ã—429 (limiar exato) e
+`/search/products` do MESMO IP drenado â†’ **200** (baldes independentes provados);
+`ratelimit-limit: 40` na resposta real.
+
+**Passo 4 (cache):** `SuggestCache` (Redis, TTL 30s) para respostas ANÃ"NIMAS; chave
+`search:suggest:v{Ã­ndice}:{locale}:{q trim+lowercase}`; falha do Redis degrada sem cache
+(nunca 500); autenticado NUNCA cacheia e recebe `no-store` do middleware de security
+headers (por isso NÃƒO foi adicionado `private, max-age=30` â€” conflitaria e o middleware
+vence duplicatas); anÃ´nimo recebe `Cache-Control: public, max-age=30`. **ValidaÃ§Ã£o real:**
+TTL 29s na chave no Redis do compose, 2Ã¢Âª chamada servida do cache, autenticado sem
+escrever chave.
+
+**Passo 5 (429 no frontend):** jÃ¡ coberto â€” `retry: false`, TanStack mantÃ©m o Ãºltimo
+`data` quando a refetch falha (provado por teste vitest com QueryClient real: refetch stale
+com 429 rejeita sem tentativa extra e o cache preserva o resultado; sem toast por design).
+Backend jÃ¡ emite `Retry-After`. **Nada alterado no frontend** (sÃ³ teste novo).
+
+**Passo 6 (checagens):** backend Ruff/format/mypy app/import-linter **OK**;
+`pytest tests/unit tests/integration` â†’ **846 passed efetivo** (1Âº run 845+1 flake
+ConnectionTimeout de Testcontainers ES, rerun isolado 10/10; skip prÃ©-existente). Frontend
+`npm run check` â†’ **162 passed**, depcruise 0 violaÃ§Ãµes. **NÃƒO VALIDADO:** 429 HTTP real
+para usuÃ¡rio AUTENTICADO (simulaÃ§Ã£o usou IPs anÃ´nimos; a classe Ã© a mesma para
+`user:{id}`), e cache com mÃºltiplas instÃ¢ncias de backend simultÃ¢neas (dev tem 1).
+
+**Commits:** `f1baf08` (compose API key), `4c1fc30`+`8e7220b` (simulador),
+`26f9a54` (balde SUGGEST), `07ad9c2` (cache), `30b64e4` (teste 429).
+
+---
+
 ## Autocomplete estilo BestBuy â€” FASE 4: testes e validaÃ§Ã£o real (2026-10-27)
 
 Pilha local: ES healthy (Ã­ndice `forja_products` com 41 docs, **v2 no alias** â€” v2 e v3
