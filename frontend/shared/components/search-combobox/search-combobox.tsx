@@ -15,6 +15,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { ProductPreviewList } from "./product-preview-list";
 import { SuggestionList } from "./suggestion-list";
 
+type SuggestResponse = components["schemas"]["SuggestResponse"];
 type SuggestTerm = components["schemas"]["SuggestTermOut"];
 type SuggestCategory = components["schemas"]["SuggestCategoryOut"];
 type SearchProduct = components["schemas"]["SearchProductOut-Output"];
@@ -50,8 +51,16 @@ export function SearchCombobox({ className, inputClassName }: SearchComboboxProp
   const listboxId = React.useId().replace(/[^a-zA-Z0-9_-]/g, "r");
 
   const suggestions = useSearchSuggestions(query);
-  const data = suggestions.data;
   const isFetching = suggestions.isFetching;
+  // Último resultado bem-sucedido: enquanto a busca nova carrega (ou falha),
+  // o painel continua mostrando os resultados anteriores — nunca pisca para
+  // "Nenhum resultado" nem fecha entre uma tecla e outra (queixa real de
+  // "carregam e depois somem").
+  const lastDataRef = React.useRef<SuggestResponse | null>(null);
+  if (suggestions.data) {
+    lastDataRef.current = suggestions.data;
+  }
+  const data = suggestions.data ?? lastDataRef.current;
 
   const normalizedQuery = query.trim();
   const hasQuery = normalizedQuery.length >= MIN_QUERY_LENGTH;
@@ -63,6 +72,43 @@ export function SearchCombobox({ className, inputClassName }: SearchComboboxProp
   const productBase = categoryBase + categories.length;
   const totalOptions = terms.length + categories.length + products.length;
   const listboxVisible = Boolean(open && hasQuery && (isFetching || data));
+
+  // Painel no mobile: ancorado no FIM da barra de busca (abaixo do input,
+  // nunca na frente dele). IMPORTANTE: o <header> tem backdrop-filter, que
+  // cria containing block para position:fixed — o top/height são calculados
+  // RELATIVOS ao header (e não ao viewport). Desktop usa `top-full`.
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [mobilePanelStyle, setMobilePanelStyle] = React.useState<React.CSSProperties | null>(null);
+  React.useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    function update(): void {
+      const container = containerRef.current;
+      if (!container) {
+        return;
+      }
+      const header = container.closest("header");
+      const formRect = container.getBoundingClientRect();
+      if (media.matches && header) {
+        const headerRect = header.getBoundingClientRect();
+        const gap = 8;
+        setMobilePanelStyle({
+          top: formRect.bottom - headerRect.top + gap,
+          height: window.innerHeight - formRect.bottom - gap,
+        });
+        setIsMobile(true);
+      } else {
+        setIsMobile(false);
+        setMobilePanelStyle(null);
+      }
+    }
+    update();
+    media.addEventListener("change", update);
+    window.addEventListener("resize", update);
+    return () => {
+      media.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
 
   // Option ativo rola para dentro da área visível (navegação por teclado).
   React.useEffect(() => {
@@ -214,6 +260,7 @@ export function SearchCombobox({ className, inputClassName }: SearchComboboxProp
   const gridClasses =
     products.length > 0 ? "md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : "";
 
+  const panelReadyForViewport = !isMobile || mobilePanelStyle !== null;
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       <form role="search" onSubmit={handleSubmit}>
@@ -258,11 +305,12 @@ export function SearchCombobox({ className, inputClassName }: SearchComboboxProp
         </button>
       </form>
 
-      {listboxVisible ? (
+      {listboxVisible && panelReadyForViewport ? (
         <div
+          style={isMobile ? (mobilePanelStyle ?? undefined) : undefined}
           className={cn(
             "z-40 overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-[0_24px_50px_-24px_rgba(10,10,10,0.4)]",
-            "max-md:fixed max-md:inset-x-0 max-md:top-[72px] max-md:rounded-none",
+            "max-md:fixed max-md:inset-x-0 max-md:rounded-none",
             "md:absolute md:start-0 md:top-full md:mt-2 md:w-[min(52rem,90vw)]",
           )}
         >

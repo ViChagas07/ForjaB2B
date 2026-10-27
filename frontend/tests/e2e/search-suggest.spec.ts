@@ -84,6 +84,52 @@ test("clique no produto abre a página do produto", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
+test("digitação contínua nunca faz o painel sumir nem mostrar vazio", async ({ page }) => {
+  await page.goto("/pt-BR");
+  const input = page.locator(INPUT).first();
+  await input.click();
+  await input.fill("cap");
+  const listbox = page.getByRole("listbox");
+  await expect(listbox).toBeVisible();
+  await expect(listbox.locator('[role="option"]').first()).toBeVisible();
+
+  // Continua digitando: o painel permanece com os dados anteriores/atuais
+  // (nunca some nem pisca para "Nenhum resultado" entre uma tecla e outra).
+  await page.keyboard.press("a");
+  await expect(listbox).toBeVisible();
+  await expect(page.getByText(/Nenhum resultado/i)).toHaveCount(0);
+  await page.keyboard.press("c");
+  await expect(listbox).toBeVisible();
+  await expect(listbox.locator('[role="option"]').first()).toBeVisible();
+  await expect(input).toHaveValue("capac");
+});
+
+test.describe("mobile", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("painel abre abaixo da barra e o input continua visível e digitável", async ({ page }) => {
+    await page.goto("/pt-BR");
+    const input = page.locator(INPUT).last(); // no mobile, a barra visível é a segunda
+    await input.click();
+    await input.fill("cap");
+    const listbox = page.getByRole("listbox");
+    await expect(listbox).toBeVisible();
+
+    // O painel começa no fim da barra (nunca na frente do input).
+    const inputBox = await input.boundingBox();
+    const panelBox = await listbox.boundingBox();
+    expect(panelBox).not.toBeNull();
+    expect(inputBox).not.toBeNull();
+    expect(panelBox!.y).toBeGreaterThanOrEqual(inputBox!.y + inputBox!.height - 1);
+
+    // O usuário continua vendo e digitando com o painel aberto.
+    await page.keyboard.press("a");
+    await expect(input).toHaveValue("capa");
+    await expect(listbox).toBeVisible();
+    await expect(listbox.locator('[role="option"]').first()).toBeVisible();
+  });
+});
+
 test("em árabe o painel espelha (html dir=rtl e direção herdada)", async ({ page }) => {
   await page.goto("/ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
