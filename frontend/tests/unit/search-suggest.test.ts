@@ -99,7 +99,12 @@ describe("suggestQueryOptions", () => {
     expect(options.staleTime).toBe(SUGGEST_STALE_TIME_MS);
     expect(options.retry).toBe(false);
     const previous = { terms: [], categories: [], products: [], query: "ca" };
-    expect(options.placeholderData?.(previous, undefined)).toBe(previous);
+    const placeholder = options.placeholderData;
+    expect(typeof placeholder).toBe("function");
+    if (typeof placeholder === "function") {
+      const keepPrevious = placeholder as (previous: unknown) => unknown;
+      expect(keepPrevious(previous)).toBe(previous);
+    }
   });
 
   it("consulta o termo com trim e repassa o signal do contexto", async () => {
@@ -109,11 +114,16 @@ describe("suggestQueryOptions", () => {
 
     const options = suggestQueryOptions("pt-BR", " cap ");
     expect(options.queryKey).toEqual(["search", "suggestions", "pt-BR", "cap"]);
-    await options.queryFn?.({
-      client: new QueryClient(),
-      signal: new AbortController().signal,
-      meta: {},
-    });
+    const queryFn = options.queryFn;
+    expect(typeof queryFn).toBe("function");
+    if (typeof queryFn === "function") {
+      await queryFn({
+        client: new QueryClient(),
+        queryKey: options.queryKey,
+        signal: new AbortController().signal,
+        meta: {},
+      });
+    }
 
     const [url] = fetchMock.mock.calls[0] ?? [];
     expect(String(url)).toContain("q=cap");
