@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useCategories } from "@/features/catalog";
+import { categoryIllustration } from "@/features/home/category-illustrations";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -40,6 +41,7 @@ export function HomeCategories() {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {categories.map((category, index) => {
         const Icon = ICONS[index % ICONS.length] ?? HardHat;
+        const illustration = categoryIllustration(category.name);
         return (
           <Link
             key={category.id}
@@ -59,7 +61,22 @@ export function HomeCategories() {
                 />
               </span>
             </span>
-            <span className="pointer-events-none absolute end-4 top-4 h-24 w-24 rounded-full bg-primary/5 transition-transform duration-500 group-hover:scale-150" />
+            <span className="pointer-events-none absolute end-4 top-4 h-24 w-24 overflow-hidden rounded-full bg-primary/5 transition-transform duration-500 group-hover:scale-150">
+              {illustration ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={encodeURI(illustration)}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(event) => {
+                    event.currentTarget.style.visibility = "hidden";
+                  }}
+                  className="h-full w-full object-cover"
+                />
+              ) : null}
+            </span>
           </Link>
         );
       })}
