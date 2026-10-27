@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -83,3 +84,33 @@ class AutocompleteResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[AutocompleteOut]
+
+
+class SuggestTermOut(BaseModel):
+    """Termo sugerido pelo dropdown (produto, marca ou SKU)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+    kind: Literal["product", "brand", "sku"]
+
+
+class SuggestCategoryOut(BaseModel):
+    """Categoria sugerida, exibida no formato \"em <Categoria>\"."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    slug: str
+    count: int
+
+
+class SuggestResponse(BaseModel):
+    """Resposta do dropdown de sugestoes (termos + categorias + produtos)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    terms: list[SuggestTermOut]
+    categories: list[SuggestCategoryOut]
+    products: list[SearchProductOut]
+    query: str
