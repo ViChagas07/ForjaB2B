@@ -1393,10 +1393,11 @@ _PRODUCT_IMAGES: dict[str, str] = {
     "OCV-001": "/catalog/photos/ocv-001.webp",
     "OCV-005": "/catalog/photos/ocv-005.webp",
     "OCV-004": "/catalog/photos/ocv-004.webp",
+    # --- Fotos reais lote 3 (nomeadas pelo proprio produto; decisao do responsavel) ---
+    "LUV-004": "/catalog/photos/luv-004.webp",
+    "RES-004": "/catalog/photos/res-004.webp",
+    "AUD-004": "/catalog/photos/aud-004.webp",
     # --- Ilustracoes SVG especificas (fallback do proprio produto; sem foto) ---
-    "AUD-004": "/catalog/illustrations/protetor-plug.svg",
-    "LUV-004": "/catalog/illustrations/luva-de-raspa.svg",
-    "RES-004": "/catalog/illustrations/mascara-descartavel.svg",
     "OCV-006": "/catalog/illustrations/oculos-de-protecao.svg",
     "LUV-009": "/catalog/illustrations/luva-de-raspa.svg",
 }

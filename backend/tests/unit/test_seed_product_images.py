@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 PHOTOS_DIR = REPO_ROOT / "frontend" / "public" / "catalog" / "photos"
 ILLUSTRATIONS_DIR = REPO_ROOT / "frontend" / "public" / "catalog" / "illustrations"
 
-# SKUs com foto (Prompt 10 lote 1 + lote 2 nomeado pelo responsavel).
+# SKUs com foto (Prompt 10 lote 1 + lote 2 nomeado pelo responsavel + lote 3).
 PHOTO_SKUS = {
     "EPI-CAP-001",
     "MAQ-PAR-004",
@@ -57,6 +57,9 @@ PHOTO_SKUS = {
     "OCV-001",
     "OCV-005",
     "OCV-004",
+    "LUV-004",
+    "RES-004",
+    "AUD-004",
 }
 
 
