@@ -6,6 +6,47 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Autocomplete estilo BestBuy â€” FASE 4: testes e validaÃ§Ã£o real (2026-10-27)
+
+Pilha local: ES healthy (Ã­ndice `forja_products` com 41 docs, **v2 no alias** â€” v2 e v3
+coexistem); backend container **reconstrÃ­do** (a imagem de 15 h nÃ£o tinha o `/suggest`,
+404 antes do build). **Achado de ambiente:** o `.env` do dono aponta o primÃ¡rio para
+**Elastic Cloud com credencial 401** â€” toda resposta do backend em `:8000` vinha do
+**fallback PostgreSQL** (logs `suggest_primary_unavailable_switching_to_fallback`). Para
+validar o ES de verdade: `docker compose run --rm -p 8001:8001 -e ELASTICSEARCH_URL=
+http://elasticsearch:9200 -e ELASTICSEARCH_PASSWORD=... -e ELASTICSEARCH_API_KEY= backend
+uvicorn ...` (env de processo, sem editar o `.env`; 200 verde ao final). Uvicorn local no
+venv do Windows falha a conectar no Postgres do Docker (WinError 64/asyncpg) â€” por isso o
+container. users/companies do banco demo: **0** â€” login HTTP inviÃ¡vel; token emitido no
+prÃ³prio container (`python -c` com o secret do `.env`) validou o caminho autenticado.
+
+**RequisiÃ§Ãµes reais (coletadas no relÃ³gio):** `q=cap` (ES) â†’ 8 termos + 3 categorias + 5
+produtos por `_score` (CAP-004 no topo); `q=capacte` (ES) â†’ **5 capacetes** (fuzziness
+real); `q=a` â†’ vazio; `q=3m` â†’ vazio (sem marca 3M no demo); `?lang=en` â†’
+"Safety Helmet Pro"/"Head Protection" (traduÃ§Ã£o real); JWT â†’ 200 (sem regras â†’ lista);
+**ES PARADO** â†’ 200 pelo fallback (8 termos, ordem alfabÃ©tica, sem typo) sem 500; ES
+restaurado **green** ao final (nenhum volume tocado).
+
+**Bugs reais achados pelo e2e (corrigidos):** Esc limpava o input `type=search` (aÃ§Ã£o
+nativa do Chrome) â†’ `preventDefault` mantÃ©m o texto; resposta nova com placeholderData
+resetava a seleÃ§Ã£o do teclado na mesma query â†’ reset passa a ser por `data.query`.
+Teste e2e corrigido para esperar opÃ§Ãµes antes das setas (painel abre com skeleton; ARIA:
+lista vazia nÃ£o seleciona) e para distinguir o TERMO sku `CAP-002` do produto (options de
+produto tÃªm `<img>`).
+
+**Checagens reais:** backend: Ruff/format **OK**; `mypy app` **0 erros**; import-linter
+**4 kept**; `pytest tests/unit tests/integration` â†’ **836 passed, 1 skipped**. Frontend:
+vitest passa a incluir `*.test.tsx` com jsx automÃ¡tico â€” `product-image-component.test.tsx`
+(5 testes Ã³rfÃ£os desde a criaÃ§Ã£o) agora roda e passa; novos SSR do combobox (5);
+`npm run check` completo â†’ **161 passed**, depcruise **0 violaÃ§Ãµes** (195 mÃ³dulos);
+**e2e Playwright 6/6** contra a pilha real. `docker compose ps`/logs/ES `green` ao final.
+Docs atualizados: `docs/STATUS.md` (feature + validaÃ§Ã£o) e `docs/search/RUNBOOK.md` (Â§6c
+com contrato, receitas e checklist de sugestÃµes vazias). PendÃªncia do dono: renovar a
+API key do Elastic Cloud ou apontar o dev para o ES local. NÃƒO VALIDADO: login HTTP real,
+`_score` no Cloud, `q=3m` com marca real.
+
+---
+
 ## Autocomplete estilo BestBuy â€” FASE 3: UI do autocomplete (2026-10-27)
 
 `shared/components/search-combobox/`: `search-combobox.tsx` (form role=search,
