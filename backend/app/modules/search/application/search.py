@@ -32,6 +32,9 @@ from app.modules.search.application.ports import (
     SearchReader,
     SearchResult,
     SearchSuggestion,
+    SuggestCategory,
+    SuggestData,
+    SuggestTerm,
 )
 from app.modules.search.application.rrf import looks_like_sku, reciprocal_rank_fusion
 from app.modules.search.application.semantic import SemanticSearch
@@ -77,6 +80,146 @@ class SearchResultPage:
     search_mode: str
 
 
+@dataclass(frozen=True, kw_only=True)
+class SuggestResult:
+    """Sugestoes do dropdown: termos, categorias e produtos hidratados."""
+
+    terms: list[SuggestTerm]
+    categories: list[SuggestCategory]
+    items: list[SearchResultItem]
+    query: str
+
+
+async def _hydrate_page(
+    product_reader: ProductReader,
+    ids: list[str],
+    *,
+    auth: AuthContext | None,
+    locale: str,
+) -> tuple[list[SearchResultItem], dict[str, str]]:
+    """Hidrata ids no PostgreSQL (preco/estoque/imagem); compartilhado.
+
+    Descarta entradas defasadas do indice (produto inativo, EPI com CA vencido
+    ou ausente do banco). Devolve tambem o mapa ``slug -> nome`` das categorias
+    no locale (vazio em pt-BR), usado pelo suggest para traduzir categorias.
+    """
+    products = await product_reader.get_products_by_ids([uuid.UUID(pid) for pid in ids])
+    today = date.today()
+    rules_by_product: dict[uuid.UUID, list[CompanyPriceRule]] = {}
+    if auth is not None:
+        rules_by_product = await product_reader.get_company_price_rules(
+            company_id=auth.company_id, product_ids=list(products.keys())
+        )
+    category_map: dict[str, str] = {}
+    if locale != DEFAULT_LOCALE:
+        category_map = await product_reader.get_category_name_map(locale)
+    items: list[SearchResultItem] = []
+    dropped = 0
+    for pid_str in ids:
+        product = products.get(uuid.UUID(pid_str))
+        if product is None:
+            dropped += 1
+            continue
+        if not is_sellable(
+            status=product.status,
+            is_epi=product.is_epi,
+            ca_valid_until=product.ca_valid_until,
+            today=today,
+        ):
+            dropped += 1
+            _logger.warning(
+                "search_stale_index_entry_dropped",
+                product_id=pid_str,
+                status=product.status,
+                ca_valid_until=str(product.ca_valid_until),
+            )
+            continue
+        items.append(
+            _to_item(
+                product,
+                auth,
+                today,
+                rules_by_product.get(product.id, []),
+                locale=locale,
+                category_map=category_map,
+            )
+        )
+    if dropped:
+        _logger.info("search_stale_entries_summary", dropped=dropped, returned=len(items))
+    return items, category_map
+
+
+def _to_item(
+    product: ProductRow,
+    auth: AuthContext | None,
+    today: date,
+    rules: list[CompanyPriceRule],
+    *,
+    locale: str,
+    category_map: dict[str, str],
+) -> SearchResultItem:
+    # Produto bloqueado: preco consultivo (nenhum valor). Visitante de
+    # produto vendavel: preco de lista. Autenticado: preco de lista
+    # ajustado pelas regras da empresa (negociado > desconto > lista),
+    # resolvido aqui (nunca vem do indice ou do vetor).
+    sellable = is_sellable(
+        status=product.status,
+        is_epi=product.is_epi,
+        ca_valid_until=product.ca_valid_until,
+        today=today,
+    )
+    if not sellable:
+        unit_price: Decimal | None = None
+        price_on_request = True
+    elif auth is None:
+        unit_price = product.base_unit_price
+        price_on_request = unit_price is None
+    else:
+        unit_price = resolve_company_price(
+            base_unit_price=product.base_unit_price,
+            tiers=[],
+            quantity=1,
+            category_id=product.category_id,
+            rules=rules,
+        ).unit_price
+        price_on_request = False
+    resolved = resolve_product_text(
+        source_name=product.name,
+        source_description=product.description,
+        source_attributes=product.attributes,
+        locale=locale,
+        translation=product.translations.get(locale) if locale != DEFAULT_LOCALE else None,
+    )
+    return SearchResultItem(
+        id=product.id,
+        sku=product.sku,
+        name=resolved.name.value or product.name,
+        slug=product.slug,
+        status=product.status,
+        is_epi=product.is_epi,
+        ca_status=ca_status(
+            is_epi=product.is_epi,
+            ca_valid_until=product.ca_valid_until,
+            today=today,
+        ).value,
+        category_id=product.category_id,
+        category_name=category_map.get(product.category_slug, product.category_name),
+        category_slug=product.category_slug,
+        brand_id=product.brand_id,
+        brand_name=product.brand_name,
+        brand_slug=product.brand_slug,
+        base_unit_price=unit_price,
+        currency=product.currency,
+        min_order_qty=product.min_order_qty,
+        price_on_request=price_on_request,
+        image_url=resolve_product_image_path(
+            product_image_url=product.image_url, category_slug=product.category_slug
+        ),
+        image_alt=resolve_image_alt(resolved.name.value or product.name),
+        content_locale=resolved.content_locale,
+    )
+
+
 class SearchProducts:
     """Busca hibrida com degradacao graciosa e hidratacao autoritativa."""
 
@@ -103,53 +246,9 @@ class SearchProducts:
         started = time.perf_counter()
         ids, total, mode = await self._retrieve(query)
         page_ids = self._paginate(ids, query=query, mode=mode)
-        products = await self._product_reader.get_products_by_ids(
-            [uuid.UUID(pid) for pid in page_ids]
+        items, _category_map = await _hydrate_page(
+            self._product_reader, page_ids, auth=auth, locale=query.locale
         )
-        today = date.today()
-        rules_by_product: dict[uuid.UUID, list[CompanyPriceRule]] = {}
-        if auth is not None:
-            rules_by_product = await self._product_reader.get_company_price_rules(
-                company_id=auth.company_id, product_ids=list(products.keys())
-            )
-        locale = query.locale
-        category_map: dict[str, str] = {}
-        if locale != DEFAULT_LOCALE:
-            category_map = await self._product_reader.get_category_name_map(locale)
-        items: list[SearchResultItem] = []
-        dropped = 0
-        for pid_str in page_ids:
-            product = products.get(uuid.UUID(pid_str))
-            if product is None:
-                dropped += 1
-                continue
-            if not is_sellable(
-                status=product.status,
-                is_epi=product.is_epi,
-                ca_valid_until=product.ca_valid_until,
-                today=today,
-            ):
-                dropped += 1
-                _logger.warning(
-                    "search_stale_index_entry_dropped",
-                    product_id=pid_str,
-                    status=product.status,
-                    ca_valid_until=str(product.ca_valid_until),
-                )
-                continue
-            items.append(
-                self._to_item(
-                    product,
-                    auth,
-                    today,
-                    rules_by_product.get(product.id, []),
-                    locale=locale,
-                    category_map=category_map,
-                )
-            )
-        if dropped:
-            _logger.info("search_stale_entries_summary", dropped=dropped, returned=len(items))
-
         duration = time.perf_counter() - started
         metrics.observe_search(mode=mode, duration=duration)
         _logger.info(
@@ -265,77 +364,6 @@ class SearchProducts:
         if (query.page - 1) * query.page_size > self._settings.search_max_deep_pagination:
             raise InvalidSearchQueryError("pagination too deep")
 
-    def _to_item(
-        self,
-        product: ProductRow,
-        auth: AuthContext | None,
-        today: date,
-        rules: list[CompanyPriceRule],
-        *,
-        locale: str,
-        category_map: dict[str, str],
-    ) -> SearchResultItem:
-        # Produto bloqueado: preco consultivo (nenhum valor). Visitante de
-        # produto vendavel: preco de lista. Autenticado: preco de lista
-        # ajustado pelas regras da empresa (negociado > desconto > lista),
-        # resolvido aqui (nunca vem do indice ou do vetor).
-        sellable = is_sellable(
-            status=product.status,
-            is_epi=product.is_epi,
-            ca_valid_until=product.ca_valid_until,
-            today=today,
-        )
-        if not sellable:
-            unit_price: Decimal | None = None
-            price_on_request = True
-        elif auth is None:
-            unit_price = product.base_unit_price
-            price_on_request = unit_price is None
-        else:
-            unit_price = resolve_company_price(
-                base_unit_price=product.base_unit_price,
-                tiers=[],
-                quantity=1,
-                category_id=product.category_id,
-                rules=rules,
-            ).unit_price
-            price_on_request = False
-        resolved = resolve_product_text(
-            source_name=product.name,
-            source_description=product.description,
-            source_attributes=product.attributes,
-            locale=locale,
-            translation=product.translations.get(locale) if locale != DEFAULT_LOCALE else None,
-        )
-        return SearchResultItem(
-            id=product.id,
-            sku=product.sku,
-            name=resolved.name.value or product.name,
-            slug=product.slug,
-            status=product.status,
-            is_epi=product.is_epi,
-            ca_status=ca_status(
-                is_epi=product.is_epi,
-                ca_valid_until=product.ca_valid_until,
-                today=today,
-            ).value,
-            category_id=product.category_id,
-            category_name=category_map.get(product.category_slug, product.category_name),
-            category_slug=product.category_slug,
-            brand_id=product.brand_id,
-            brand_name=product.brand_name,
-            brand_slug=product.brand_slug,
-            base_unit_price=unit_price,
-            currency=product.currency,
-            min_order_qty=product.min_order_qty,
-            price_on_request=price_on_request,
-            image_url=resolve_product_image_path(
-                product_image_url=product.image_url, category_slug=product.category_slug
-            ),
-            image_alt=resolve_image_alt(resolved.name.value or product.name),
-            content_locale=resolved.content_locale,
-        )
-
 
 def _as_lexical(outcome: SearchResult | BaseException | None) -> tuple[list[str] | None, int]:
     if isinstance(outcome, SearchResult):
@@ -378,3 +406,103 @@ class AutocompleteProducts:
             except SearchUnavailableError:
                 _logger.warning("autocomplete_primary_unavailable_switching_to_fallback")
         return await self._fallback.autocomplete(q=q, limit=limit)
+
+
+class SuggestProducts:
+    """Sugestoes do dropdown (estilo BestBuy): termos + categorias + produtos.
+
+    Somente lexical (sem pgvector). O motor primario (ES) devolve termos e
+    categorias agregadas em UMA consulta; os produtos sao hidratados do
+    PostgreSQL pela MESMA rotina do SearchProducts (preco por empresa para
+    autenticado, consultivo para visitante; entradas defasadas descartadas).
+    """
+
+    def __init__(
+        self,
+        *,
+        primary: SearchReader | None,
+        fallback: SearchReader,
+        product_reader: ProductReader,
+        settings: Settings,
+    ) -> None:
+        self._primary = primary
+        self._fallback = fallback
+        self._product_reader = product_reader
+        self._settings = settings
+
+    async def run(
+        self,
+        *,
+        q: str,
+        auth: AuthContext | None,
+        locale: str = DEFAULT_LOCALE,
+        term_limit: int = 8,
+        category_limit: int = 3,
+        product_limit: int = 6,
+    ) -> SuggestResult:
+        q = q.strip()
+        if len(q) < self._settings.search_autocomplete_min_chars:
+            return SuggestResult(terms=[], categories=[], items=[], query=q)
+        data = await self._retrieve(
+            q,
+            locale=locale,
+            term_limit=term_limit,
+            category_limit=category_limit,
+            product_limit=product_limit,
+        )
+        items, category_map = await _hydrate_page(
+            self._product_reader,
+            data.product_ids[:product_limit],
+            auth=auth,
+            locale=locale,
+        )
+        return SuggestResult(
+            terms=data.terms,
+            categories=self._translate_categories(data.categories, category_map),
+            items=items,
+            query=q,
+        )
+
+    async def _retrieve(
+        self,
+        q: str,
+        *,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        """Primario (ES); em SearchUnavailableError cai para o fallback Postgres."""
+        if self._primary is not None:
+            try:
+                return await self._primary.suggest(
+                    q=q,
+                    locale=locale,
+                    term_limit=term_limit,
+                    category_limit=category_limit,
+                    product_limit=product_limit,
+                )
+            except SearchUnavailableError:
+                _logger.warning("suggest_primary_unavailable_switching_to_fallback")
+        return await self._fallback.suggest(
+            q=q,
+            locale=locale,
+            term_limit=term_limit,
+            category_limit=category_limit,
+            product_limit=product_limit,
+        )
+
+    def _translate_categories(
+        self, categories: list[SuggestCategory], category_map: dict[str, str]
+    ) -> list[SuggestCategory]:
+        """Troca o nome pelo nome traduzido quando o slug estiver no mapa."""
+        if not category_map:
+            return categories
+        return [
+            SuggestCategory(
+                name=category_map.get(category.slug, category.name),
+                slug=category.slug,
+                count=category.count,
+            )
+            for category in categories
+        ]

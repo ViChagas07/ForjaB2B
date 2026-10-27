@@ -15,6 +15,7 @@ from app.modules.search.application.ports import (
     SearchQuery,
     SearchResult,
     SearchSuggestion,
+    SuggestData,
 )
 from app.modules.search.application.search import SearchProducts
 from app.modules.search.infrastructure import elasticsearch as es_mod
@@ -54,6 +55,19 @@ class _FlakyPrimary:
     async def autocomplete(self, *, q: str, limit: int) -> list[SearchSuggestion]:
         return []
 
+    async def suggest(
+        self,
+        *,
+        q: str,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        if self.fail:
+            raise SearchUnavailableError("down")
+        return SuggestData(terms=[], categories=[], product_ids=[])
+
 
 class _Fallback:
     async def search(self, query: SearchQuery) -> SearchResult:
@@ -61,6 +75,17 @@ class _Fallback:
 
     async def autocomplete(self, *, q: str, limit: int) -> list[SearchSuggestion]:
         return []
+
+    async def suggest(
+        self,
+        *,
+        q: str,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        return SuggestData(terms=[], categories=[], product_ids=[])
 
 
 class _EmptyReader:

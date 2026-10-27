@@ -156,7 +156,11 @@ from app.modules.privacy.infrastructure.repository import SqlAlchemyPrivacyRepos
 from app.modules.search.application.metrics import SearchMetricsLoop
 from app.modules.search.application.ports import SearchEngine
 from app.modules.search.application.scheduler import ReconcileScheduler
-from app.modules.search.application.search import AutocompleteProducts, SearchProducts
+from app.modules.search.application.search import (
+    AutocompleteProducts,
+    SearchProducts,
+    SuggestProducts,
+)
 from app.modules.search.application.semantic import SemanticSearch
 from app.modules.search.application.sync import RefreshSearchMetrics
 from app.modules.search.infrastructure.elasticsearch import build_product_index, build_search_engine
@@ -263,6 +267,12 @@ def _compose_search(app: FastAPI, settings: Settings) -> None:
     app.state.search_autocomplete_products = AutocompleteProducts(
         primary=product_index,
         fallback=postgres_search_reader,
+        settings=settings,
+    )
+    app.state.search_suggest_products = SuggestProducts(
+        primary=product_index,
+        fallback=postgres_search_reader,
+        product_reader=product_reader,
         settings=settings,
     )
 
