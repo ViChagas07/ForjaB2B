@@ -136,6 +136,7 @@
     "previous": "이전",
     "next": "다음",
     "pageInfo": "{pages}페이지 중 {page}페이지",
+    "jumpToPage": "페이지로 이동",
     "results": "{count}개 결과",
     "sku": "SKU",
     "brand": "브랜드",

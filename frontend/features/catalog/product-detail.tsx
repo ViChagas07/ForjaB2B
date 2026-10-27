@@ -15,7 +15,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 
 import { AddToCartButton } from "@/features/cart";
-import { Link } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { isLocale, localeLabels } from "@/i18n/locales";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { formatNumber } from "@/shared/lib/money";
@@ -28,6 +28,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 
 import { isDisplaySellable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
+import { readCatalogReturn } from "./catalog-return";
 import { showContentLocaleNote } from "./content-locale";
 import { useProduct } from "./hooks";
 import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
@@ -39,12 +40,17 @@ interface ProductDetailViewProps {
 export function ProductDetailView({ productId }: ProductDetailViewProps) {
   const t = useTranslations();
   const locale = useLocale();
+  const router = useRouter();
   const query = useProduct(productId);
   const [quantity, setQuantity] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     setQuantity(null);
   }, [productId]);
+
+  function handleBackToCatalog() {
+    router.push(readCatalogReturn() ?? "/catalog");
+  }
 
   if (query.isLoading) {
     return (
@@ -92,13 +98,14 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
   return (
     <div className="space-y-8">
       <nav className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <Link
-          href="/catalog"
+        <button
+          type="button"
+          onClick={handleBackToCatalog}
           className="inline-flex items-center gap-1.5 font-medium text-foreground transition-colors hover:text-forge-700 dark:hover:text-forge-300"
         >
           <ArrowLeft aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
           {t("catalog.backToCatalog")}
-        </Link>
+        </button>
         <span aria-hidden="true">/</span>
         <span className="truncate">{product.category.name}</span>
         <span aria-hidden="true">/</span>

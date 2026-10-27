@@ -136,6 +136,7 @@
     "previous": "Назад",
     "next": "Вперед",
     "pageInfo": "Страница {page} из {pages}",
+    "jumpToPage": "Перейти на страницу",
     "results": "{count} результатов",
     "sku": "SKU",
     "brand": "Бренд",

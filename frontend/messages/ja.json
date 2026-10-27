@@ -136,6 +136,7 @@
     "previous": "前へ",
     "next": "次へ",
     "pageInfo": "{pages} ページ中 {page} ページ",
+    "jumpToPage": "ページへ移動",
     "results": "{count} 件",
     "sku": "SKU",
     "brand": "ブランド",

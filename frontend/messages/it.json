@@ -136,6 +136,7 @@
     "previous": "Precedente",
     "next": "Successivo",
     "pageInfo": "Pagina {page} di {pages}",
+    "jumpToPage": "Vai alla pagina",
     "results": "{count} risultati",
     "sku": "SKU",
     "brand": "Marca",

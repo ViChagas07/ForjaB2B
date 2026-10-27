@@ -136,6 +136,7 @@
     "previous": "السابق",
     "next": "التالي",
     "pageInfo": "الصفحة {page} من {pages}",
+    "jumpToPage": "الانتقال إلى صفحة",
     "results": "{count} نتيجة",
     "sku": "SKU",
     "brand": "العلامة التجارية",

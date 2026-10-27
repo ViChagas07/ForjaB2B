@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { SortField, SortOrder } from "@/core/domain/catalog";
@@ -12,6 +13,7 @@ import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { CatalogFilters } from "./catalog-filters";
+import { saveCatalogReturn } from "./catalog-return";
 import { useBrands, useCategories, useProducts } from "./hooks";
 import { ProductCard } from "./product-card";
 
@@ -63,6 +65,56 @@ export function CatalogBrowser() {
   const products = productsQuery.data?.items ?? [];
   const total = productsQuery.data?.total ?? 0;
   const pages = productsQuery.data?.pages ?? 1;
+
+  const [pageJumpOpen, setPageJumpOpen] = React.useState(false);
+  const [pageDraft, setPageDraft] = React.useState("");
+  const pageJumpRef = React.useRef<HTMLDivElement | null>(null);
+
+  function openPageJump() {
+    setPageDraft(String(page));
+    setPageJumpOpen(true);
+  }
+
+  function submitPageJump(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = Number.parseInt(pageDraft, 10);
+    if (Number.isFinite(value)) {
+      const clamped = Math.min(Math.max(value, 1), pages);
+      setParam("page", String(clamped), false);
+    }
+    setPageJumpOpen(false);
+  }
+
+  React.useEffect(() => {
+    if (!pageJumpOpen) {
+      return;
+    }
+    function handlePointerDown(event: PointerEvent) {
+      if (!pageJumpRef.current?.contains(event.target as Node)) {
+        setPageJumpOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setPageJumpOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pageJumpOpen]);
+
+  React.useEffect(() => {
+    setPageJumpOpen(false);
+  }, [page, pages]);
+
+  const currentUrl = `${pathname}?${searchParams.toString()}`;
+  React.useEffect(() => {
+    saveCatalogReturn(currentUrl);
+  }, [currentUrl]);
 
   return (
     <div className="space-y-8">
@@ -136,9 +188,57 @@ export function CatalogBrowser() {
           >
             {t("catalog.previous")}
           </Button>
-          <span className="text-sm text-muted-foreground">
-            {t("catalog.pageInfo", { page, pages })}
-          </span>
+          <div ref={pageJumpRef} className="relative">
+            {pageJumpOpen ? (
+              <div className="absolute inset-x-0 bottom-full z-10 mb-2 flex justify-center">
+                <form
+                  onSubmit={submitPageJump}
+                  noValidate
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-lg"
+                >
+                  <label
+                    htmlFor="catalog-page-jump"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    {t("catalog.jumpToPage")}
+                  </label>
+                  <input
+                    id="catalog-page-jump"
+                    type="number"
+                    min={1}
+                    max={pages}
+                    inputMode="numeric"
+                    autoFocus
+                    value={pageDraft}
+                    onFocus={(event) => event.target.select()}
+                    onChange={(event) => setPageDraft(event.target.value)}
+                    className="h-9 w-16 rounded-lg border border-input bg-background px-2 text-center text-sm text-foreground shadow-none"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="h-9 w-9 rounded-lg p-0"
+                    aria-label={t("catalog.jumpToPage")}
+                  >
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="h-4 w-4 rtl:-scale-x-100"
+                    />
+                  </Button>
+                </form>
+              </div>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-lg text-sm text-muted-foreground hover:text-foreground"
+              aria-haspopup="dialog"
+              aria-expanded={pageJumpOpen}
+              onClick={openPageJump}
+            >
+              {t("catalog.pageInfo", { page, pages })}
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="sm"
