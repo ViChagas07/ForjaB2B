@@ -29,9 +29,13 @@ test("setas selecionam e Enter navega para a busca do termo", async ({ page }) =
 
   const listbox = page.getByRole("listbox");
   await expect(listbox).toBeVisible();
+  // O painel abre já no debounce (com skeleton enquanto carrega); setas só
+  // selecionam quando há opções (contrato ARIA: lista vazia não seleciona).
+  const firstOption = listbox.locator('[role="option"]').first();
+  await expect(firstOption).toBeVisible();
 
   await page.keyboard.press("ArrowDown");
-  await expect(listbox.locator('[role="option"]').first()).toHaveAttribute("aria-selected", "true");
+  await expect(firstOption).toHaveAttribute("aria-selected", "true");
 
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/catalog\?q=/);
