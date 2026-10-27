@@ -187,6 +187,62 @@ curl -s "http://localhost:8000/api/v1/search/products?q=casque&lang=fr" | jq .se
 - `content_locale` na resposta reflete o idioma negociado.
 - Fallback pt-BR funciona: se tradução não existe para o campo, usa valor pt-BR.
 
+## 6c. Sugestões do dropdown (`/search/suggest` — autocomplete estilo BestBuy)
+
+Endpoint único do dropdown da barra de busca (Fase 1–4 do autocomplete, entregue em
+2026-10-27). **Uma chamada** devolve termos, categorias e até 6 produtos ordenados por
+`_score` (nunca `name.sort`). Preço/CA/imagem são hidratados do PostgreSQL (o índice nunca
+guarda preço); `get_optional_auth` entrega o preço por empresa quando há token.
+
+```bash
+# termos + categorias + produtos em UMA chamada (ordenado por _score)
+curl -s "http://localhost:8000/api/v1/search/suggest?q=cap" | \
+  jq '{terms: (.terms | map(.text)), categories: (.categories | map(.name)), products: (.products | map({sku, name}))}'
+
+# typo tolerado APENAS com o Elasticsearch (fuzziness AUTO + prefix_length 1 no nome)
+curl -s "http://localhost:8000/api/v1/search/suggest?q=capacte" | jq '.terms | map(.text)'
+
+# locale negociado (Accept-Language ou ?lang=) traduz nomes e categorias
+curl -s "http://localhost:8000/api/v1/search/suggest?q=cap&lang=en" | jq '.products | map(.name)'
+
+# autenticado: preço por empresa resolvido no PostgreSQL
+curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:8000/api/v1/search/suggest?q=cap" | jq '.products[0]'
+```
+
+Contrato: `terms[] {text, kind: "product"|"brand"|"sku"}`, `categories[] {name, slug, count}`
+(o frontend exibe "em \<Categoria\>"; o `/catalog` aceita `category_id`, não slug — o clique em
+categoria navega pelo `q`), `products[]` (mesmo `SearchProductOut` de `/search/products`) e
+`query` (eco do termo). Mínimo de 2 caracteres (`SEARCH_AUTOCOMPLETE_MIN_CHARS`); limites
+defaults: 8 termos, 3 categorias, 6 produtos.
+
+**Diagnosticar sugestões vazias:**
+
+1. `q` tem menos de 2 caracteres? → resposta vazia é o **contrato** (não é bug).
+2. O produto existe no PostgreSQL? (`GET /api/v1/catalog/products?q=...`). Sem produto não há
+   o que sugerir — nada no índice cria sugestão.
+3. O backend está caindo no fallback? Nos logs JSON, procure
+   `suggest_primary_unavailable_switching_to_fallback`. No fallback **não há fuzzy**: o typo
+   (`capacte`) devolve vazio — esperado.
+4. O índice está populado?
+   `curl -u "elastic:$ELASTICSEARCH_PASSWORD" http://localhost:9200/forja_products/_count` —
+   `docs.count` precisa ser > 0; se vazio, rode `bootstrap` + `reindex` (§5). Também confirme o
+   alias: `GET http://localhost:9200/_alias/forja_products` (deve apontar para a versão
+   esperada; índices antigos ainda no alias podem misturar resultados).
+5. Marca/SKU: marcas casam por `brand.text` e SKU por prefixo de `sku.prefix`; `q=3m` vazio com
+   o catálogo demo é **correto** (não existe marca `3M`).
+6. O frontend só chama o endpoint com ≥ 2 caracteres e debounce de 200 ms
+   (`features/search/use-search-suggestions.ts`): o painel mostra skeleton enquanto carrega e
+   "Nenhum resultado para “q”" quando a resposta vem vazia — ambos são estados normais.
+
+**Validação real (2026-10-27, ES 9.5.5 local, catálogo demo de 41 documentos):** `q=cap` →
+8 termos + 3 categorias + 5 produtos por `_score`; `q=capacte` → 5 capacetes (fuzziness real);
+`q=a` → vazio; `?lang=en` → "Safety Helmet Pro"/"Head Protection" com `content_locale: en`;
+JWT → 200; **ES parado → 200 pelo fallback PostgreSQL** (ordem alfabética, sem typo) sem 500.
+E2E Playwright: **6/6** (painel, setas+Enter, Esc mantendo o texto, clique no produto abre
+`/catalog/<id>`, vazio com link, `ar` com `dir="rtl"` e direção computada). Não validado: login
+HTTP real (banco demo sem usuários) e `_score` no Elastic Cloud (credencial 401 — pendência do
+dono; ver `docs/STATUS.md`).
+
 ## 7. Smoke test pós-deploy (somente leitura)
 
 ```bash

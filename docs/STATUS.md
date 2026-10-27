@@ -23,6 +23,7 @@
 | Busca lexical ES + fallback PostgreSQL | Implementado e validado | `backend/app/modules/search`, `docs/search/RUNBOOK.md` |
 | Busca semântica pgvector + RRF | Implementado, **desligado por padrão** | `EMBEDDINGS_ENABLED=false`, ADR-0004 |
 | Busca multilíngue (en/es/ar) e 4 locales de conteúdo | Implementado | `docs/I18N.md`, migration `0016` |
+| Autocomplete do header (`/search/suggest` + dropdown 2 colunas, 11 locales) | Implementado e **validado de verdade** (Fase 4, 2026-10-27) | `modules/search/interface/router.py`, `frontend/shared/components/search-combobox`, `docs/search/RUNBOOK.md` §6c |
 | Interface em 11 idiomas, RTL árabe | Implementado | `frontend/i18n/locales.ts`, `frontend/messages/*.json` |
 | Admin de catálogo (CRUD/publicação/atributos/traduções) | Implementado | `backend/app/modules/catalog/interface/admin_router.py`, frontend admin |
 | Observabilidade (OTel/Prometheus/Grafana, logs JSON, health) | Parcial | `backend/app/core/telemetry.py`, `docker/`; Grafana local falha |
@@ -362,3 +363,43 @@ dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índ
   respondem 200 em <2 s no frontend; no navegador, 20/20 tiles carregam (16 imediatas +
   4 lazy no scroll) e o timeout de 10 s com fallback local (`generic.svg` na origem do
   frontend) cobre qualquer pico de lentidão da API.
+
+## Autocomplete estilo BestBuy — Fase 4: testes e validação real (2026-10-27)
+
+Entrega das Fases 1–3 validada **com requisições reais contra a pilha local** (ES 9.5.5,
+PostgreSQL e backend reconstruído com o código novo — a imagem anterior de 15 h não tinha
+`/search/suggest`):
+
+- **Endpoint com ES real:** `q=cap` → 8 termos (brand/product/sku) + 3 categorias com
+  contagem + 5 produtos ordenados por `_score` (CAP-004 no topo), preço/imagem/CA/`min_order_qty`
+  hidratados do PostgreSQL; `q=capacte` (typo) → **5 capacetes** via `fuzziness AUTO
+  (prefix_length 1)`; `q=a` → vazio (mín. 2 chars); `q=3m` → vazio (não há marca `3M` no catálogo
+  demo — marcas são PROTEC/VULCANO; o campo `brand.text` está na DSL e coberto por testes);
+  `?lang=en` → nomes e categorias traduzidos ("Safety Helmet Pro", "Head Protection",
+  `content_locale: en`); JWT → 200 (banco demo não tem empresas/regras de preço → preço de lista;
+  preço negociado coberto por `test_company_pricing`/`test_search_suggest_api` com Testcontainers).
+- **Fallback real:** com o `elasticsearch` parado, `q=cap` → **200 pelo PostgreSQL** (8 termos +
+  5 produtos, ordem alfabética; sem typo — sem fuzzy é o contrato do fallback), sem 500.
+- **Achado de ambiente (resolvido para a validação):** o `.env` local aponta o primário para
+  **Elastic Cloud** e a credencial responde **401** (`suggest_primary_unavailable_switching_to_
+  fallback` nos logs) — todas as respostas do backend em `:8000` vinham do **fallback**. Para
+  validar o ES de verdade usou-se `docker compose run` com `ELASTICSEARCH_URL=http://
+  elasticsearch:9200` (env de processo, **sem editar o `.env`**). Pendência para o dono:
+  renovar a API key do Cloud ou apontar o dev para o ES local (ver pendência 5 do Prompt 02).
+- **Suítes:** backend `pytest tests/unit tests/integration` → **836 passed, 1 skipped**
+  (Testcontainers reais; 12 unit + 7 HTTP + 10 ES do suggest); Ruff/mypy app/import-linter OK;
+  frontend `npm run check` → **161 passed** (31 arquivos; +8 highlight, +5 SSR do combobox) e
+  depcruise 0 violações (195 módulos).
+- **Correções de bugs achados pelo e2e real:** Esc limpava o texto (ação nativa do
+  `input[type=search]` — agora `preventDefault` mantém o texto) e qualquer resposta nova
+  resetava a seleção do teclado (agora o reset ocorre só quando o **termo da resposta muda**).
+- **e2e Playwright 6/6** (pilha real, dev server :3010): painel com termos+produtos ao digitar
+  "cap", setas+Enter navegam para `/catalog?q=`, Esc fecha mantendo o texto, sem resultados mostra
+  mensagem+link, clique no produto abre `/catalog/<id>` e `/ar` espelha (`dir="rtl"` + direção
+  computada do painel).
+- **Frontend vitest:** suíte passa a incluir `*.test.tsx` (jsx automático) — o teste órfão
+  `product-image-component.test.tsx` (5 testes, criado sem rodar) agora roda e passa.
+- **NÃO VALIDADO:** login HTTP real (banco demo sem `users`/`companies` — autenticação validada
+  com token assinado pelo próprio container e via HTTP ASGI nos testes); visual no navegador do
+  usuário final além do Chromium do e2e; `_score` contra o Elastic Cloud (401, pendência do dono);
+  `q=3m` com marca real (sem marca `3M` no catálogo demo).
