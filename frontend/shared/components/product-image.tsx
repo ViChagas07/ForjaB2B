@@ -36,6 +36,8 @@ export function ProductImage({
 }: ProductImageProps) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [inViewport, setInViewport] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const resolved = failed ? PRODUCT_IMAGE_FALLBACK : resolveProductImageSrc(src);
   const kind = productImageKind(resolved);
   const timedOut = useRef(false);
@@ -45,10 +47,35 @@ export function ProductImage({
     timedOut.current = false;
     setFailed(false);
     setLoaded(false);
+    setInViewport(false);
   }, [src]);
 
+  // O `loading="lazy"` só inicia o download quando o tile se aproxima da
+  // viewport. O timer de fallback precisa seguir o MESMO gatilho: contar os
+  // 10s desde o mount fazia tiles abaixo da dobra "falharem" sem sequer
+  // tentar carregar — viravam ilustração genérica para sempre (bug real do
+  // dono: "as imagens não estão aparecendo").
   useEffect(() => {
-    if (loaded || failed) {
+    const node = imgRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setInViewport(true); // ambiente sem IO: comportamento anterior
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setInViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "256px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [resolved]);
+
+  useEffect(() => {
+    if (loaded || failed || !inViewport) {
       return;
     }
     const timer = setTimeout(() => {
@@ -58,11 +85,12 @@ export function ProductImage({
       }
     }, PRODUCT_IMAGE_LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [resolved, loaded, failed]);
+  }, [resolved, loaded, failed, inViewport]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      ref={imgRef}
       src={resolved}
       alt={alt}
       width={width}
