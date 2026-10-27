@@ -79,6 +79,11 @@ export class FetchHttpClient implements HttpClient {
   constructor(private readonly baseUrl: string) {}
 
   async request<T>(request: HttpRequest): Promise<HttpResponse<T>> {
+    // Signal já abortado: nenhuma requisição é iniciada (mesmo contrato do fetch).
+    if (request.signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
+
     const url = buildUrl(this.baseUrl, request);
 
     const headers: Record<string, string> = {
@@ -97,6 +102,17 @@ export class FetchHttpClient implements HttpClient {
     const controller = new AbortController();
     const timeoutMs = request.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    // Cancelamento externo (ex.: signal do React Query): propaga para o
+    // controller interno sem interferir no timeout.
+    const externalSignal = request.signal;
+    const onExternalAbort = (): void => controller.abort();
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        onExternalAbort();
+      } else {
+        externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+      }
+    }
 
     let response: Response;
     try {
@@ -108,9 +124,17 @@ export class FetchHttpClient implements HttpClient {
         cache: "no-store",
       });
     } catch (cause) {
+      // Abort EXTERNO não é falha de rede: repassa o AbortError original para
+      // o chamador (React Query trata como cancelamento, não como erro).
+      if (externalSignal?.aborted) {
+        throw cause;
+      }
       throw toNetworkError(cause);
     } finally {
       clearTimeout(timer);
+      if (externalSignal) {
+        externalSignal.removeEventListener("abort", onExternalAbort);
+      }
     }
 
     return this.parseResponse<T>(response);

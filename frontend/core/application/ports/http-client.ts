@@ -19,6 +19,11 @@ export interface HttpRequest {
   timeoutMs?: number;
   /** Locale para enviar no header Accept-Language (ex.: "pt-BR", "en", "es", "ar"). */
   locale?: string;
+  /**
+   * Signal opcional para cancelamento cooperativo (ex.: signal do React Query).
+   * Quando abortado, o chamador recebe o `AbortError` original (não `ApiError`).
+   */
+  signal?: AbortSignal;
 }
 
 export interface HttpResponse<T> {

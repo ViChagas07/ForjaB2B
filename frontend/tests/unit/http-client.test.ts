@@ -108,4 +108,44 @@ describe("FetchHttpClient", () => {
     expect(headers["X-Request-ID"]).toBeTruthy();
     expect(headers["Content-Type"]).toBe("application/json");
   });
+
+  it("repassa o cancelamento externo como AbortError (não ApiError de rede)", async () => {
+    // Simula o fetch real: rejeita com AbortError quando o signal interno aborta.
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(
+      (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new FetchHttpClient(baseUrl);
+    const external = new AbortController();
+    const pending = client.request({
+      method: "GET",
+      path: "/api/v1/foo",
+      signal: external.signal,
+    });
+    external.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejeita imediatamente quando o signal externo já está abortado", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new FetchHttpClient(baseUrl);
+    const external = new AbortController();
+    external.abort();
+
+    await expect(
+      client.request({ method: "GET", path: "/api/v1/foo", signal: external.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
