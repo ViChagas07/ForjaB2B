@@ -38,7 +38,10 @@ from app.modules.search.application.ports import (
     SearchQuery,
     SearchResult,
     SearchSuggestion,
+    SuggestCategory,
+    SuggestData,
 )
+from app.modules.search.application.suggest import collect_suggest_terms
 from app.modules.search.infrastructure.index_files import (
     load_index_mappings,
     load_index_settings,
@@ -54,6 +57,8 @@ _ELASTICSEARCH_ERRORS = (ConnectionError, ConnectionTimeout, TransportError, Api
 _VERSION_CONFLICT = "version_conflict_engine_exception"
 # Quantos motivos de rejeicao por documento guardar no resultado do bulk.
 _MAX_ERROR_SAMPLES = 3
+# Tamanho da agregacao de marcas do suggest (painel de termos do dropdown).
+_SUGGEST_BRAND_LIMIT = 3
 
 
 def _is_serverless_settings_error(exc: Exception) -> bool:
@@ -325,6 +330,97 @@ class ElasticsearchProductIndex:
             for hit in hits
         ]
 
+    async def suggest(
+        self,
+        *,
+        q: str,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        """Sugestoes do dropdown em UMA chamada: hits por score + aggs.
+
+        Ordena por ``_score`` (nunca por ``name.sort``); as categorias vêm da
+        agregacao ``terms`` (nome keyword + slug no sub-agg) e os termos sao
+        montados em application.suggest (brand > product > sku, sem duplicatas).
+        """
+        q = q.strip()
+        if not q:
+            return SuggestData(terms=[], categories=[], product_ids=[])
+        normalized = q.lower()
+        should: list[dict[str, Any]] = [
+            {"match": {"name.autocomplete": {"query": q, "boost": 6}}},
+            {
+                "match": {
+                    "name": {
+                        "query": q,
+                        "fuzziness": "AUTO",
+                        "prefix_length": 1,
+                        "boost": 2,
+                    }
+                }
+            },
+            {"prefix": {"sku.prefix": {"value": normalized, "boost": 8}}},
+            {"match": {"brand.text": {"query": q, "boost": 3}}},
+        ]
+        if locale in SEARCH_TRANSLATION_LOCALES:
+            should.append({"match": {f"name_{locale}": {"query": q, "boost": 5}}})
+        es_query: dict[str, Any] = {
+            "bool": {
+                "must": {"bool": {"should": should, "minimum_should_match": 1}},
+                "filter": self._base_filters(
+                    SearchQuery(
+                        q=None,
+                        category_id=None,
+                        brand_id=None,
+                        is_epi=None,
+                        page=1,
+                        page_size=product_limit,
+                    )
+                ),
+            }
+        }
+        try:
+            response = await self._search_client().search(
+                index=self._alias,
+                query=es_query,
+                size=product_limit,
+                sort=["_score"],
+                source_includes=["id", "name", "sku", "brand", "category", "category_slug"],
+                aggs={
+                    "categories": {
+                        "terms": {"field": "category", "size": category_limit},
+                        "aggs": {"slugs": {"terms": {"field": "category_slug", "size": 1}}},
+                    },
+                    "brands": {"terms": {"field": "brand", "size": _SUGGEST_BRAND_LIMIT}},
+                },
+            )
+        except _ELASTICSEARCH_ERRORS as exc:
+            raise translate_elasticsearch_error(exc) from exc
+        hits = cast("list[dict[str, Any]]", response.get("hits", {}).get("hits", []))
+        aggregations = cast("dict[str, Any]", response.get("aggregations", {}))
+        terms = collect_suggest_terms(
+            query=q,
+            brands=[str(bucket["key"]) for bucket in _agg_buckets(aggregations, "brands")],
+            product_names=[str(hit.get("_source", {}).get("name", "")) for hit in hits],
+            skus=[str(hit.get("_source", {}).get("sku", "")) for hit in hits],
+            term_limit=term_limit,
+        )
+        categories = [
+            SuggestCategory(
+                name=str(bucket["key"]),
+                slug=_first_bucket_key(bucket, "slugs"),
+                count=int(bucket.get("doc_count", 0)),
+            )
+            for bucket in _agg_buckets(aggregations, "categories")
+        ]
+        return SuggestData(
+            terms=terms,
+            categories=categories,
+            product_ids=[str(hit["_id"]) for hit in hits],
+        )
+
     def _base_filters(self, query: SearchQuery) -> list[dict[str, Any]]:
         """Filtros obrigatorios: publicado, disponivel e facets opcionais."""
         filters: list[dict[str, Any]] = [
@@ -492,6 +588,18 @@ def classify_cluster_status(status: str) -> SearchEngineState:
     if status == "red":
         return SearchEngineState.DEGRADED
     return SearchEngineState.OK
+
+
+def _agg_buckets(aggregations: dict[str, Any], name: str) -> list[dict[str, Any]]:
+    """Buckets de uma agregacao terms (lista vazia quando a agg nao veio)."""
+    aggregation = aggregations.get(name, {})
+    return cast("list[dict[str, Any]]", aggregation.get("buckets", []))
+
+
+def _first_bucket_key(bucket: dict[str, Any], aggregation_name: str) -> str:
+    """Chave do primeiro bucket de um sub-agg (``""`` quando vazio)."""
+    buckets = bucket.get(aggregation_name, {}).get("buckets", [])
+    return str(buckets[0]["key"]) if buckets else ""
 
 
 def translate_elasticsearch_error(exc: Exception) -> SearchUnavailableError:
