@@ -6,6 +6,40 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Suggest â€” painel instÃ¡vel na digitaÃ§Ã£o e mobile cobrindo a barra (2026-10-27, apÃ³s o push)
+
+**Relato do dono:** (1) depois de ~30 min, as recomendaÃ§Ãµes "carregam mas depois somem";
+(2) no mobile, o dropdown cobre a barra de digitaÃ§Ã£o. InvestigaÃ§Ã£o com browser real (MCP)
+reproduziu/achou as causas:
+
+1. **Flash entre teclas**: ao trocar a queryKey, hÃ¡ um frame com
+   `data=undefined && isFetching=false` â†’ o painel renderizava "Nenhum resultado"/sumia
+   (com o Cloud mais lento o flash ficou visÃ­vel). **Fix:** o combobox mantÃ©m o Ãºltimo
+   resultado bem-sucedido (`lastDataRef`) â€” enquanto a busca nova carrega (ou falha) o
+   painel segue com os dados anteriores; skeleton sÃ³ na primeira busca; "Nenhum resultado"
+   sÃ³ com resposta real vazia.
+2. **Mobile cobrindo o input**: o painel usava `position:fixed top-[72px]`, mas o
+   `<header>` tem `backdrop-blur` â€” **backdrop-filter cria containing block para
+   position:fixed** â€” entÃ£o o painel era ancorado ao header (133px) e caÃ­a sobre a barra.
+   **Fix:** no mobile o painel Ã© medido e posicionado com `top/height` calculados a partir
+   do fim do form **relativo ao header** (gap 8px, altura atÃ© o fundo da tela, atualizado
+   em resize/rotaÃ§Ã£o; painel sÃ³ renderiza apÃ³s a mediÃ§Ã£o). Desktop segue `absolute
+   top-full` (nunca afetado).
+
+**ValidaÃ§Ã£o real (browser + dev server):** desktop â€” "cap" â† "capa" â† "capac": 1 painel
+sempre visÃ­vel, 13 opÃ§Ãµes, sem "Nenhum resultado"; mobile (390Ã—844) â€” input (bottom 123)
+vs painel (top 131, height 713, largura total), `panelBelowInput: true`, digitando com o
+painel aberto o valor avanÃ§a e o painel mantÃ©m dados. **E2E Playwright 8/8** (6 antigos +
+2 novos: estabilidade de digitaÃ§Ã£o e mobile "painel abaixo da barra, input visÃ­vel e
+digitÃ¡vel"). **`npm run check` completo: 162 passed**, depcruise 0 violaÃ§Ãµes. NÃƒO
+VALIDADO: teste em dispositivo fÃ­sico (teclado virtual/viewport real do celular); o cenÃ¡rio
+"erro de rede na resposta nova" na UI (coberto por cÃ³digo + teste de 429 do QueryClient).
+
+**Commit:** `4e1a05a` (fix + e2e). Arquivo Ãºnico de UI:
+`shared/components/search-combobox/search-combobox.tsx`.
+
+---
+
 ## Suggest â€” rate limit e cache (2026-10-27, apÃ³s a Fase 4)
 
 **API key do Cloud:** o `.env` do dono foi atualizado com a nova key (sem printar valores);
