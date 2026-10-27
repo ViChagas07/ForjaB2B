@@ -21,6 +21,7 @@ from app.modules.search.application.ports import (
     SearchReader,
     SearchResult,
     SearchSuggestion,
+    SuggestData,
     VectorHit,
 )
 from app.modules.search.application.search import SearchProducts
@@ -71,6 +72,17 @@ class _FakeLexical(SearchReader):
 
     async def autocomplete(self, *, q: str, limit: int) -> list[SearchSuggestion]:
         return []
+
+    async def suggest(
+        self,
+        *,
+        q: str,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        return SuggestData(terms=[], categories=[], product_ids=[])
 
 
 class _FakeProductReader(ProductReader):

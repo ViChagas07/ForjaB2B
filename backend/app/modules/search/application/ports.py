@@ -240,6 +240,36 @@ class SearchSuggestion:
     name: str
 
 
+@dataclass(frozen=True, kw_only=True)
+class SuggestTerm:
+    """Termo sugerido pelo dropdown (produto, marca ou SKU)."""
+
+    text: str
+    kind: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class SuggestCategory:
+    """Categoria sugerida (nome original do indice; traducao fica no caso de uso)."""
+
+    name: str
+    slug: str
+    count: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class SuggestData:
+    """Resultado bruto de suggest: termos, categorias e ids de produtos.
+
+    Sem preco e sem traducao: a hidratacao dos produtos (PostgreSQL) e a
+    traducao dos nomes ficam a cargo do caso de uso.
+    """
+
+    terms: list[SuggestTerm]
+    categories: list[SuggestCategory]
+    product_ids: list[str]
+
+
 class ProductReader(Protocol):
     """Leitura do catalogo (PostgreSQL) para montar documentos/versoes."""
 
@@ -281,6 +311,22 @@ class SearchReader(Protocol):
 
     async def autocomplete(self, *, q: str, limit: int) -> list[SearchSuggestion]:
         """Autocomplete por prefixo/texto; devolve no maximo ``limit`` sugestoes."""
+        ...
+
+    async def suggest(
+        self,
+        *,
+        q: str,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        """Sugestoes do dropdown (termos/categorias) + ids de produtos por score.
+
+        Implementado com UMA consulta por motor (ES ou Postgres). Os ids de
+        produtos sao hidratados no PostgreSQL pelo caso de uso.
+        """
         ...
 
 

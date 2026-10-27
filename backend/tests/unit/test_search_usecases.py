@@ -20,6 +20,7 @@ from app.modules.search.application.ports import (
     SearchReader,
     SearchResult,
     SearchSuggestion,
+    SuggestData,
 )
 from app.modules.search.application.search import AutocompleteProducts, SearchProducts
 
@@ -30,10 +31,12 @@ class _FakeSearchReader(SearchReader):
         results: dict[str, SearchResult] | None = None,
         suggestions: dict[str, list[SearchSuggestion]] | None = None,
         fail: bool = False,
+        suggests: dict[str, SuggestData] | None = None,
     ) -> None:
         self._results = results or {}
         self._suggestions = suggestions or {}
         self._fail = fail
+        self._suggests = suggests or {}
 
     async def search(self, query: SearchQuery) -> SearchResult:
         if self._fail:
@@ -45,6 +48,19 @@ class _FakeSearchReader(SearchReader):
         if self._fail:
             raise SearchUnavailableError("elasticsearch down")
         return self._suggestions.get(q, [])
+
+    async def suggest(
+        self,
+        *,
+        q: str,
+        locale: str,
+        term_limit: int,
+        category_limit: int,
+        product_limit: int,
+    ) -> SuggestData:
+        if self._fail:
+            raise SearchUnavailableError("elasticsearch down")
+        return self._suggests.get(q, SuggestData(terms=[], categories=[], product_ids=[]))
 
 
 class _FakeProductReader(ProductReader):
