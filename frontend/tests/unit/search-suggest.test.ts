@@ -164,4 +164,52 @@ describe("integração QueryClient", () => {
 
     expect(result.terms).toEqual([{ text: "Capacete", kind: "product" }]);
   });
+
+  it("429 rejeita sem retry e mantém o último resultado no cache (painel não quebra)", async () => {
+    const body = {
+      terms: [{ text: "Capacete", kind: "product" as const }],
+      categories: [],
+      products: [],
+      query: "cap",
+    };
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse(body))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            type: "urn:forja:problem:rate_limit_exceeded",
+            title: "Too Many Requests",
+            status: 429,
+            detail: "Muitas requisicoes.",
+          }),
+          {
+            status: 429,
+            headers: {
+              "content-type": "application/problem+json",
+              "retry-after": "1",
+            },
+          },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new QueryClient();
+    const key = searchKeys.suggestions("pt-BR", "cap");
+    const options = suggestQueryOptions("pt-BR", "cap");
+
+    // Primeira busca bem-sucedida (dados já no cache).
+    await client.fetchQuery({ ...options, retry: false });
+    expect(client.getQueryData(key)).toEqual(body);
+
+    // Refetch da mesma query após stale recebe 429: rejeita IMEDIATAMENTE
+    // (retry false). staleTime 0 força o refetch (equivalente a 30s depois).
+    await expect(
+      client.fetchQuery({ ...options, retry: false, staleTime: 0 }),
+    ).rejects.toMatchObject({ status: 429 });
+    expect(fetchMock).toHaveBeenCalledTimes(2); // sem tentativa extra
+
+    // O último resultado bem-sucedido permanece: o painel segue com dados.
+    expect(client.getQueryData(key)).toEqual(body);
+  });
 });
