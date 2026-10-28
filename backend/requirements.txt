@@ -46,3 +46,12 @@ opentelemetry-instrumentation-sqlalchemy==0.66b1
 
 # Prometheus (endpoint /metrics e formatacao de metricas customizadas).
 prometheus-client==0.21.0
+
+# Agentes de IA (Fase 12): orquestracao LangGraph e LLM via API compativel
+# OpenAI (langchain-core/langchain-openai). Somente as camadas
+# application/infrastructure do modulo ai importam esses pacotes; o dominio
+# nunca importa frameworks (contrato import-linter). Nenhuma chamada de rede
+# acontece quando AI_AGENTS_ENABLED=false (kill switch).
+langgraph==1.2.18
+langchain-core==1.7.0
+langchain-openai==1.7.3
