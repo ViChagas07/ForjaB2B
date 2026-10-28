@@ -72,9 +72,7 @@ class ResilientLLM:
             lambda: self._inner.complete_text(messages=messages)
         )
 
-    async def _call_with_resilience(
-        self, call: Callable[[], Awaitable[TReturn]]
-    ) -> TReturn:
+    async def _call_with_resilience(self, call: Callable[[], Awaitable[TReturn]]) -> TReturn:
         last_error: BaseException | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
