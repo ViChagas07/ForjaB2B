@@ -6,6 +6,24 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 5 — Assistente de chat (PARCIAL: só dados) (2026-10-28)
+
+Passo 1 entregue: pg_dump prévio (`forja_db_20261028T173935Z.dump`, 251.016 B)
++ migration **0026** (`chat_conversations` com company/user NULL p/ visitante,
+locale/last_message_at/expires_at, RLS FORCE: visitante acessível pela posse do
+UUID, tenant só vê as próprias; `chat_messages` role user|assistant com RLS via
+EXISTS na conversa) + role NOLOGIN `forja_chat` + função SECURITY DEFINER
+`app.delete_expired_chat_conversations` no bootstrap. Modelos no Base.metadata.
+Checagens: drift 32 passed, ruff 487 OK, mypy 0 erros (338), import-linter 5
+kept, unit 744 passed, 0025→0026 aplicada no dev. **NÃO ENTREGUE nesta sessão
+(fase incompleta):** grafo
+input_guard→route→retrieve→answer→output_guard→persist, portas/adaptadores,
+endpoint POST /api/v1/ai/chat, rate limit por IP/conversa, cartões, task diária
+de TTL e testes do assistente — bloqueado por limite de contexto do agente;
+nenhuma rota nova exposta. Commit `aef77c6`.
+
+---
+
 ## Fase 12, FASE 4 — Agente de recuperação de carrinho (2026-10-28)
 
 DADOS: pg_dump prévio (`forja_db_20261028T171017Z.dump`, 234.684 B validado);
