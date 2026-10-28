@@ -5,6 +5,7 @@
 aqui importa langchain/langgraph/pydantic (contrato import-linter).
 """
 
+from app.modules.ai.domain.audit_payload import build_audit_payload, sanitize_prefix
 from app.modules.ai.domain.types import (
     AgentContext,
     GuardVerdict,
@@ -13,4 +14,12 @@ from app.modules.ai.domain.types import (
     resolve_locale,
 )
 
-__all__ = ["AgentContext", "GuardVerdict", "Locale", "ToolResult", "resolve_locale"]
+__all__ = [
+    "AgentContext",
+    "GuardVerdict",
+    "Locale",
+    "ToolResult",
+    "build_audit_payload",
+    "resolve_locale",
+    "sanitize_prefix",
+]

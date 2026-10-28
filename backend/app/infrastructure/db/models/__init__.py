@@ -9,6 +9,7 @@ dos outros (contrato import-linter).
 
 from __future__ import annotations
 
+from app.infrastructure.db.models.ai_agent_audit import AgentAuditLog
 from app.infrastructure.db.models.audit import AuditLog
 from app.infrastructure.db.models.cart import Cart, CartItem
 from app.infrastructure.db.models.catalog import (
@@ -33,6 +34,7 @@ from app.infrastructure.db.models.privacy import ConsentRecord
 from app.infrastructure.db.models.search import SearchOutbox
 
 __all__ = [
+    "AgentAuditLog",
     "AuditLog",
     "Brand",
     "Cart",
