@@ -44,6 +44,11 @@ class CartItemView:
     image_url: str
     image_alt: str
     content_locale: str
+    # Fase 12 (recuperacao de carrinho): peso para simular frete e se a linha
+    # tem preco NEGOCIADO (PriceSource.NEGOTIATED) — desconto de recuperacao
+    # so aplica em linhas sem preco negociado.
+    weight_kg: Decimal | None = None
+    is_negotiated: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)

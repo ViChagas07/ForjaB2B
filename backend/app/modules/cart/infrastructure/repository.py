@@ -18,7 +18,7 @@ from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.application.ports.tenant import TenantContext
 from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
 from app.domain.i18n import DEFAULT_LOCALE
-from app.domain.pricing import CompanyPriceRule, PriceTier, resolve_company_price
+from app.domain.pricing import CompanyPriceRule, PriceSource, PriceTier, resolve_company_price
 from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
@@ -44,7 +44,7 @@ _SELECT_CART = text("SELECT id FROM carts WHERE company_id = :company_id AND use
 _SELECT_ITEMS = text(
     "SELECT ci.product_id, ci.quantity, p.sku, p.name, p.description, p.attributes, "
     "       p.status, p.is_epi, p.ca_valid_until, p.base_unit_price, p.min_order_qty, "
-    "       p.category_id, p.image_url, c.slug AS category_slug "
+    "       p.category_id, p.image_url, p.weight_kg, c.slug AS category_slug "
     "FROM cart_items ci JOIN products p ON p.id = ci.product_id "
     "JOIN categories c ON c.id = p.category_id "
     "WHERE ci.cart_id = :cart_id ORDER BY ci.created_at, ci.id"
@@ -61,6 +61,9 @@ _SET_QUANTITY = text(
 )
 _REMOVE_ITEM = text("DELETE FROM cart_items WHERE cart_id = :cart_id AND product_id = :product_id")
 _CLEAR = text("DELETE FROM cart_items WHERE cart_id = :cart_id")
+# Toda operacao de item toca a ultima atividade do carrinho NA MESMA transacao
+# (base do agente de recuperacao de carrinho abandonado — Fase 12).
+_TOUCH_CART = text("UPDATE carts SET last_activity_at = now() WHERE id = :cart_id")
 
 
 class SqlAlchemyCartRepository:
@@ -211,6 +214,8 @@ class SqlAlchemyCartRepository:
                     ),
                     image_alt=resolve_image_alt(text.name.value or r.name),
                     content_locale=text.content_locale,
+                    weight_kg=r.weight_kg,
+                    is_negotiated=resolved.source == PriceSource.NEGOTIATED,
                 )
             )
         return items
@@ -288,6 +293,7 @@ class SqlAlchemyCartRepository:
                     "quantity": quantity,
                 },
             )
+            await uow.session.execute(_TOUCH_CART, {"cart_id": cart_id})
             await uow.commit()
 
     async def set_quantity(
@@ -304,6 +310,7 @@ class SqlAlchemyCartRepository:
                 _SET_QUANTITY,
                 {"cart_id": cart_id, "product_id": product_id, "quantity": quantity},
             )
+            await uow.session.execute(_TOUCH_CART, {"cart_id": cart_id})
             await uow.commit()
 
     async def remove_item(
@@ -312,10 +319,12 @@ class SqlAlchemyCartRepository:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
             await uow.session.execute(_REMOVE_ITEM, {"cart_id": cart_id, "product_id": product_id})
+            await uow.session.execute(_TOUCH_CART, {"cart_id": cart_id})
             await uow.commit()
 
     async def clear(self, *, cart_id: uuid.UUID, company_id: uuid.UUID) -> None:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
             await uow.session.execute(_CLEAR, {"cart_id": cart_id})
+            await uow.session.execute(_TOUCH_CART, {"cart_id": cart_id})
             await uow.commit()

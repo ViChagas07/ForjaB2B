@@ -148,6 +148,28 @@ ALTER ROLE forja_notification WITH
 
 GRANT forja_notification TO :"admin_user";
 
+-- 4.7. Role dedicada ao agente de recuperacao de carrinho (Fase 12, FASE 4).
+--    NOLOGIN: owner SECURITY DEFINER da funcao app.list_recovery_tenants
+--    (enumeracao cross-tenant de carrinhos elegiveis sem contexto de tenant;
+--    a tabela carts tem FORCE RLS). A politica dedicada (migration 0025)
+--    restringe a leitura; a role nao tem BYPASSRLS.
+SELECT 'CREATE ROLE forja_recovery NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
+       'NOINHERIT NOREPLICATION NOBYPASSRLS'
+WHERE NOT EXISTS (
+        SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'forja_recovery')
+\gexec
+
+ALTER ROLE forja_recovery WITH
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT
+    NOREPLICATION
+    NOBYPASSRLS;
+
+GRANT forja_recovery TO :"admin_user";
+
 -- 5. Conectividade restrita ao banco operacional
 REVOKE CONNECT ON DATABASE :"db_name" FROM PUBLIC;
 GRANT CONNECT ON DATABASE :"db_name" TO :"app_user";

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from app.infrastructure.db.models.ai_agent_audit import AgentAuditLog
 from app.infrastructure.db.models.audit import AuditLog
-from app.infrastructure.db.models.cart import Cart, CartItem
+from app.infrastructure.db.models.cart import Cart, CartItem, CartRecoveryAttempt, CartRecoveryOffer
 from app.infrastructure.db.models.catalog import (
     Brand,
     Category,
@@ -39,6 +39,8 @@ __all__ = [
     "Brand",
     "Cart",
     "CartItem",
+    "CartRecoveryAttempt",
+    "CartRecoveryOffer",
     "Category",
     "Company",
     "CompanyAddress",

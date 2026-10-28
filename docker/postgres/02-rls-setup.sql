@@ -184,6 +184,36 @@ COMMENT ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) IS
     'Enumera (notification_id, company_id) das notificacoes pendentes para o worker. SECURITY DEFINER sobre forja_notification.';
 
 -- -----------------------------------------------------------------------------
+-- 6. app.list_recovery_tenants(p_limit): enumeracao de tenants com carrinhos
+--    elegiveis ao agente de recuperacao (Fase 12, FASE 4).
+--    SECURITY DEFINER (owner: forja_recovery, NOLOGIN) porque public.carts tem
+--    FORCE RLS e o worker precisa enumerar tenants antes de abrir o contexto de
+--    cada um. Retorna apenas company_id; leitura restrita a carts por politica
+--    dedicada (migration 0025). search_path fixo previne hijack.
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION app.list_recovery_tenants(p_limit INTEGER)
+RETURNS TABLE(company_id UUID)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT c.company_id
+    FROM public.carts c
+    WHERE c.last_activity_at IS NOT NULL
+      AND c.last_activity_at <= now() - interval '24 hours'
+      AND c.last_activity_at >= now() - interval '7 days'
+    ORDER BY c.company_id
+    LIMIT p_limit;
+END;
+$$;
+
+COMMENT ON FUNCTION app.list_recovery_tenants(INTEGER) IS
+    'Enumera company_id com carrinhos parados entre 24h e 7 dias (agente de recuperacao). SECURITY DEFINER sobre forja_recovery.';
+
+-- -----------------------------------------------------------------------------
 -- Ownership e permissoes de execucao
 -- -----------------------------------------------------------------------------
 ALTER FUNCTION app.current_company_id() OWNER TO :"admin_user";
@@ -193,6 +223,8 @@ ALTER FUNCTION app.set_tenant_context(UUID, UUID) OWNER TO :"admin_user";
 ALTER FUNCTION app.resolve_user_by_email(TEXT) OWNER TO forja_auth;
 -- A funcao de despacho e owned pela role dedicada forja_notification.
 ALTER FUNCTION app.list_due_notifications(INTEGER, INTEGER) OWNER TO forja_notification;
+-- A funcao do agente de recuperacao e owned pela role dedicada forja_recovery.
+ALTER FUNCTION app.list_recovery_tenants(INTEGER) OWNER TO forja_recovery;
 
 -- Funcoes novas concedem EXECUTE a PUBLIC por padrao: revogar explicitamente.
 REVOKE EXECUTE ON FUNCTION app.current_company_id() FROM PUBLIC;
@@ -200,12 +232,14 @@ REVOKE EXECUTE ON FUNCTION app.current_user_id() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.set_tenant_context(UUID, UUID) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.resolve_user_by_email(TEXT) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION app.list_recovery_tenants(INTEGER) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION app.current_company_id() TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.current_user_id() TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.set_tenant_context(UUID, UUID) TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.resolve_user_by_email(TEXT) TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) TO :"app_user";
+GRANT EXECUTE ON FUNCTION app.list_recovery_tenants(INTEGER) TO :"app_user";
 
 -- Mesma politica para funcoes futuras do schema app criadas pelo admin.
 ALTER DEFAULT PRIVILEGES FOR ROLE :"admin_user" IN SCHEMA app
