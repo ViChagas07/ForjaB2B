@@ -1,6 +1,7 @@
 # Forja B2B — estado atual
 
-> **Última atualização:** 2026-10-22
+> **Última atualização:** 2026-10-28 (acréscimo da seção de agentes de IA; o
+> restante do documento reflete a consolidação de 2026-10-22)
 > **Base:** commit `7ee3265` (branch `main`, 7 commits à frente de `origin/main`) + esta
 > entrega de documentação.
 > **Natureza:** projeto de portfólio. Dados, marcas, CNPJs, preços e CA são fictícios.
@@ -23,6 +24,7 @@
 | Busca lexical ES + fallback PostgreSQL | Implementado e validado | `backend/app/modules/search`, `docs/search/RUNBOOK.md` |
 | Busca semântica pgvector + RRF | Implementado, **desligado por padrão** | `EMBEDDINGS_ENABLED=false`, ADR-0004 |
 | Busca multilíngue (en/es/ar) e 4 locales de conteúdo | Implementado | `docs/I18N.md`, migration `0016` |
+| Agentes de IA (recuperação de carrinho + chat) | **Backend implementado (FASES 1–5c)**; frontend do chat e envio real Resend/WhatsApp pendentes | `backend/app/modules/ai`, `docs/ai/`, migrations `0023`–`0026` |
 | Autocomplete do header (`/search/suggest` + dropdown 2 colunas, 11 locales) | Implementado e **validado de verdade** (Fase 4, 2026-10-27) | `modules/search/interface/router.py`, `frontend/shared/components/search-combobox`, `docs/search/RUNBOOK.md` §6c |
 | Interface em 11 idiomas, RTL árabe | Implementado | `frontend/i18n/locales.ts`, `frontend/messages/*.json` |
 | Admin de catálogo (CRUD/publicação/atributos/traduções) | Implementado | `backend/app/modules/catalog/interface/admin_router.py`, frontend admin |
@@ -32,6 +34,42 @@
 | Deploy em provedor | **Não executado** | `docs/DEPLOY_RENDER.md` |
 | Teste de carga | **Não executado** | `docs/testing/LOAD.md` |
 | Licença | **Não definida** | não há `LICENSE` |
+
+## Agentes de IA (Fase 12) — estado em 2026-10-28
+
+Documentação de contexto: `docs/ai/AGENTS_CONTEXT.md` (decisões fixas) e
+`docs/ai/SECURITY.md` (mapa ameaça → camada + o que NÃO é coberto).
+
+- **Fundação (FASE 1)**: módulo `backend/app/modules/ai` em Clean Architecture;
+  `LLMPort` + `ResilientLLM` (timeout/1 retry) + `FakeLLM`; LLM via API
+  compatível com OpenAI (`LLM_*` no `.env`, chave só no backend);
+  `AI_AGENTS_ENABLED=false` é o kill switch; `agent_audit_log` (sem PII).
+- **Segurança (FASE 2)**: normalização/anti-jailbreak (pt/en/es, arquivo
+  versionado), delimitadores + canary, output guard (URLs/PII/segredos/preços/
+  idioma/HTML), tool allowlist por nó, memória só com conteúdo aprovado,
+  sanitizador de catálogo com quarentena. Suíte adversarial de 64 casos.
+- **Canais (FASE 3)**: templates por evento em 11 locales; Resend por
+  `EMAIL_PROVIDER` (SMTP/Mailpit segue padrão dev); WhatsApp via Z-API
+  desligado por padrão, só com opt-in + E.164; evento `cart.recovery`.
+- **Agente de recuperação (FASE 4)**: política determinística (REMIND/frete
+  grátis/3%/escalar), grafo LangGraph fixo com fallback REMIND, job a cada 15
+  min com lock e idempotência (7 dias/2 por estado), ofertas de uso único
+  aplicadas no checkout. Validado em runtime no Mailpit (25h → 1 e-mail;
+  reexecução não duplica).
+- **Assistente de chat (FASES 5, 5a, 5b, 5c)**: conversas/mensagens com RLS e
+  TTL + limpeza diária; ferramentas somente leitura sanitizadas; cartões de
+  produto montados no backend (visitante sem preço; logado com preço da própria
+  empresa, inclusive negociado); grafo fixo
+  `input_guard → route → retrieve → answer → output_guard → persist` e
+  `POST /api/v1/ai/chat` com rate limit por IP/conversa, orçamento diário de
+  tokens, 503 neutro no kill switch e auditoria por turno. Endpoint coberto por
+  testes de integração com FakeLLM (ACEITE: "capacete para soldador" devolve
+  cartões com link `/catalog/<id>`); `docs/api/openapi.json` e
+  `frontend/core/domain/api-schema.d.ts` regenerados.
+- **Pendências declaradas**: frontend do chat (widget/consumo), envio real
+  Resend/Z-API (verificação de domínio/credenciais), memória/contadores de
+  bloqueio distribuídos (Redis) e avaliação contra LLM real (`-m llm_eval`).
+  Nenhum preço/PII chega ao LLM; falha de IA degrada sem bloquear o site.
 
 ## Validação executada em 2026-10-22
 

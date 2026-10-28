@@ -6,6 +6,50 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 5c — Grafo e endpoint do chat (2026-10-28)
+
+`modules/ai/application/chat_graph.py`: grafo fixo
+`input_guard?route?retrieve?answer?output_guard?persist` (sem loop livre).
+input_guard usa o gate da Fase 2 na conversa + janela; route = LLM estruturado
+(intent) com fallback determinístico e pedidos sensíveis (outra empresa,
+desconto, alterar preço, CNPJ/contrato) já neutralizados ANTES do LLM;
+retrieve usa as ferramentas somente leitura da 5b (contexto sanitizado, sem
+preço; CART_HELP só logado e só resumo do próprio carrinho); answer = LLM
+curto no locale via PromptBuilder (histórico/contexto/usuário como dado não
+confiável), `AnswerDecision` STRICT com `product_ids` filtrados ao conjunto
+do turno; output_guard da Fase 2; persist grava user sanitizado + assistant
+aprovado (ConversationService), audita (`agent_audit_log`, hash/prefixo) e
+monta cartões no backend. Kill switch/LLM off ou indisponível ? resposta
+neutra traduzida, com cartões da busca determinística em PRODUCT_SEARCH
+(degradação graciosa). Métricas `forja_llm_*`/`forja_ai_guard_blocks_total`
+por turno.
+`POST /api/v1/ai/chat` (get_optional_auth + get_locale): 503 neutro no kill
+switch; rate limit classe AI por IP e por conversa (429 + Retry-After);
+orçamento diário de tokens estimados; conversa fora do escopo = 404 neutro;
+resposta `{conversation_id, reply, product_cards}`. Auditoria via
+`SqlAlchemyChatAudit` (RLS por tenant; visitante com company NULL).
+`docs/api/openapi.json` e `frontend/core/domain/api-schema.d.ts` regenerados.
+
+**Checagens reais:** pytest unit **782 passed** (14 novos do grafo: intents,
+id forjado, visitante sem preço, kill switch, LLM down com cartões, injeção
+direta sem chamar LLM, sensível?neutro, 11 locales, histórico como dado);
+integration **313 passed, 1 skipped** (pré-existente) com 7 novos do endpoint
+em Postgres real + FakeLLM: **ACEITE** "capacete para soldador" ? cartões com
+link `/catalog/<id>` (visitante sem preço; logado FIXED_PRICE 777,00), outra
+empresa/outro usuário e anônimo não reabrem a conversa (404), ataques da Fase
+2 pelo endpoint (injeção/`company_id` no corpo?422/prompt do sistema) sem
+chamar LLM, instrução em nome de produto em quarentena (sem cartão, resposta
+sem eco), id forjado descartado, kill switch 503 neutro; ruff **506 OK**;
+mypy app **0 erros** (350); import-linter **5 kept**; compose config OK;
+`frontend npm run typecheck` OK com o schema regenerado. **NÃO VALIDADO:**
+LLM real (FakeLLM; `AI_AGENTS_ENABLED=false` por padrão), contadores de
+bloqueio/limite de conversa distribuídos (memória do processo; Redis na fase
+de frontend/deploy), UI do chat.
+
+**Commits:** (backend+testes), (openapi+api-schema), (docs STATUS/PROGRESS).
+
+---
+
 ## Fase 12, FASE 5b — Ferramentas somente leitura e cartões de produto (2026-10-28)
 
 Sem chamada a LLM e sem rota nova. `modules/ai/application/tools.py`:
