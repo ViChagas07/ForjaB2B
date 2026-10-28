@@ -152,12 +152,12 @@ async def _create_order(client: httpx.AsyncClient, key: str) -> dict[str, Any]:
 
 
 class _TransientSender:
-    async def send(self, *, to: str, subject: str, body: str) -> None:
+    async def send(self, *, to: str, subject: str, body: str, html: str | None = None) -> None:
         raise EmailTransientError("smtp unavailable")
 
 
 class _PermanentSender:
-    async def send(self, *, to: str, subject: str, body: str) -> None:
+    async def send(self, *, to: str, subject: str, body: str, html: str | None = None) -> None:
         raise EmailPermanentError("recipient refused")
 
 

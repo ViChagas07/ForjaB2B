@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Enum,
     ForeignKey,
@@ -52,6 +53,13 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
+    # WhatsApp (Fase 3, recuperacao de carrinho): opt-in EXPLICITO do usuario.
+    # Nulo/falso = NUNCA enviar. `whatsapp_phone` e o numero E.164 confirmado.
+    whatsapp_phone: Mapped[str | None] = mapped_column(String(20))
+    whatsapp_opt_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cpf_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     cpf_encrypted: Mapped[bytes | None] = mapped_column(LargeBinary)
     password_hash: Mapped[str | None] = mapped_column(String(255))

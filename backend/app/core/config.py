@@ -277,6 +277,12 @@ class Settings(BaseSettings):
     email_provider: str = "smtp"
     resend_api_key: str | None = None
     resend_from: str | None = None
+    # Canal WhatsApp (recuperacao de carrinho): DESLIGADO por padrao. Envia
+    # somente com opt-in explicito e numero E.164 (regras no DispatchOutbox).
+    whatsapp_enabled: bool = False
+    zapi_instance_id: str | None = None
+    zapi_token: str | None = None
+    zapi_client_token: str | None = None
 
     # Admin de plataforma (aprovacao de empresas e administracao de traducoes).
     # Em producao deve ser uma chave forte injetada via secrets. Ausente, 401.
@@ -404,6 +410,9 @@ class Settings(BaseSettings):
         "llm_api_key",
         "resend_api_key",
         "resend_from",
+        "zapi_instance_id",
+        "zapi_token",
+        "zapi_client_token",
         mode="before",
     )
     @classmethod

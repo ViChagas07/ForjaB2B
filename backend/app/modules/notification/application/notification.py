@@ -109,7 +109,7 @@ class DispatchOutbox:
         ):
             await self._skip(row)
             return False
-        message, _subject = render_text(
+        _subject, message = render_text(
             event_type=row.event_type,
             locale=recipient.locale,
             slots=self._slots_for(row, recipient),

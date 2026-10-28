@@ -19,6 +19,7 @@ from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.notification.application.notification import DispatchOutbox
 from app.modules.notification.infrastructure.email import build_email_sender
 from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
+from app.modules.notification.infrastructure.whatsapp import build_whatsapp_sender
 from app.tasks.celery_app import celery_app
 
 
@@ -33,6 +34,7 @@ def dispatch_outbox() -> int:
         use_case = DispatchOutbox(
             repository=repository,
             email_sender=build_email_sender(settings),
+            whatsapp_sender=build_whatsapp_sender(settings),
             frontend_base_url=settings.frontend_base_url,
         )
         return asyncio.run(_dispatch(use_case, repository))
