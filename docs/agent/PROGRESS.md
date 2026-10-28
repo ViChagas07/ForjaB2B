@@ -6,6 +6,53 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 3 — Canais de notificação: Resend, WhatsApp, templates 11 locales (2026-10-28)
+
+Templates por evento em `modules/notification/domain/data/templates.v1.json`
+(4 eventos × 11 locales, fallback pt-BR, nunca vazios; render em código):
+`render_email` (HTML mínimo e SEGURO — valores escapados, `dir="rtl"` para ar)
+e `render_text` (WhatsApp texto puro); `build_email`/`locale_key` antigos
+preservados. Evento `cart.recovery` no outbox (`enqueue_notification` ganhou
+`channel`/`payload`; resolução por carrinho `carts JOIN users`). E-mail:
+`EMAIL_PROVIDER=smtp|resend` com `ResendEmailSender` (HTTP Resend, chave só no
+backend, sem retry próprio — outbox retenta; testes com `httpx.MockTransport`).
+WhatsApp: `ZApiWhatsAppSender` (Z-API send-text, `ZAPI_*` só no backend,
+`WHATSAPP_ENABLED=false` por padrão), colunas `users.whatsapp_phone/`
+`whatsapp_opt_in/whatsapp_opt_in_at` (migration 0024, pg_dump prévio
+`forja_db_20261028T154145Z.dump` 233628 B validado; constraint de canal
+EMAIL+WHATSAPP; drops via SQL direto — naming convention do alembic
+re-prefixa nomes), endpoint autenticado `PUT
+/api/v1/notifications/whatsapp/preferences` (E.164; identidade do JWT), envio
+somente com opt-in + E.164 (senão SKIPPED); instrução de como parar de
+receber nos templates. `{cart_url}` sempre do backend
+(`frontend_base_url`); `{personal_note}` único slot do LLM: notification NÃO
+importa o módulo ai (bounded contexts) — `build_personal_note_sanitizer`
+(output guard + scan de injeção, 200 chars) é injetado na raiz de composição.
+BUG pré-existente corrigido: Celery sem `include` registrava ZERO tasks
+(worker descartava as mensagens do beat com "Received unregistered task").
+`.env.example` com placeholders (nenhum segredo versionado).
+
+**Checagens reais:** pytest unit **719 passed**; integration **292 passed, 1
+skipped** (pré-existente); ruff check/format **476 OK**; mypy app **0 erros**
+(333); import-linter **5 kept**; compose config `--quiet` OK; imagens backend
+e worker reconstruídas; alembic 0023→0024 aplicado e conferido via psql.
+**VALIDADO (runtime, Mailpit):** 4× `cart.recovery` enfileiradas no banco de
+dev foram despachadas pelo worker — pt-BR, en (link /en/cart) e ar
+(`lang="ar"`, `dir="rtl"` no HTML, texto árabe correto); nota do LLM com
+tentativa de injeção foi OMITIDA do e-mail; eventos antigos (order.created/
+payment.confirmed) seguiram fluindo no mesmo ciclo. **NÃO VALIDADO:** envio
+REAL via Resend/Z-API (requer verificação de domínio/endereço no Resend e
+nenhum teste chama rede; canal WhatsApp desligado por padrão); Frontend
+intocado (tipos OpenAPI do frontend ainda não regenerados — fazer junto da
+FASE 4).
+
+**Commits:** `1520bc6` templates, `5ef0a31` cart.recovery+canais, `2a07771`
+Resend, `c0c8806` WhatsApp+0024, `07cb73e` endpoint opt-in, `f0618ca` include
+Celery+alias+locale payload, `a6952fc` ponte do sanitizador (bounded contexts),
+passo final (PROGRESS).
+
+---
+
 ## Fase 12, FASE 2 — Segurança do pipeline de IA (2026-10-28)
 
 Defesa em camadas determinísticas (toda regra crítica fora do LLM), sem mudar
