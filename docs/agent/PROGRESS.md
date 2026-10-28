@@ -6,6 +6,46 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 6 — Widget de chat no frontend (2026-10-28)
+
+Ícone de IA no navbar (`HeaderActions`, animação de hover com glow/scale) e
+painel em portal no `document.body` (necessário porque `fixed` dentro do header
+com backdrop-blur fica preso ao header). Estado do painel/conversa em zustand
+SÓ EM MEMÓRIA (sem localStorage; recarregar inicia outra). `ai-api.ts` com
+`sendChatMessage` (AbortSignal, token opcional = visitante). Painel:
+desktop 24rem / mobile quase tela; `role="log"` + `aria-live="polite"`; 500
+chars com contador; Enter envia, Shift+Enter quebra linha, Esc fecha
+devolvendo o foco ao gatilho; indicador de digitando; nova conversa; aviso de
+IA. Mensagens do assistente como TEXTO PURO; cartões do backend com imagem
+(next/image via ProductImage), nome, SKU, preço por empresa (visitante "sob
+consulta" — `price_on_request`), "Ver produto" (`/catalog/<id>` localizado) e
+"Adicionar ao carrinho" (mutation existente; visitante ? login). Erros
+neutros: 429 com cooldown de 30s desabilitando o envio, 503 com link para o
+catálogo, timeout/rede genéricos. i18n completo nos 11 locales (paridade e
+sem chaves vazias garantidas pelo teste existente). Deps de teste:
+jsdom + @testing-library/react (dev).
+
+**Checagens reais:** `npm run check` **verde** (lint, typecheck, format,
+vitest **170 passed** com 7 novos do widget: abrir/fechar com foco, limite de
+500 + contador, Enter/Shift+Enter, texto puro sem HTML injetado, cartões com
+link/preço consultivo, 429 com envio desabilitado, 503 com link; depcruise
+**0 violações**). Playwright: spec do chat **4/4** (abrir pelo navbar e enviar,
+cartões + clique em "Ver produto" navegando para `/catalog/<id>`, /ar com RTL,
+mobile quase tela) — API do chat mockada NO NAVEGADOR (sem LLM/rede). Suíte e2e
+completa: **10 passed, 7 failed, 6 skipped** — as 7 falhas são do
+`search-suggest.spec` pré-existente por ausência do backend em `:8000` no
+ambiente local (fora do escopo desta fase; não foram alteradas). Achado e
+corrigido: `reset()` do store não limpava `cooldownUntil` (teste de 429
+vazava para o teste seguinte). **NÃO VALIDADO:** animação de hover contra o
+vídeo de referência (MP4 não inspecionável no ambiente — sem ffmpeg; hover
+implementado como glow/scale/sparkle e sujeito a ajuste); e2e contra backend
+real com FakeLLM embutido (inexistente como modo de runtime; cobertura de
+backend é a suíte de integração da 5c).
+
+**Commits:** (widget+api+i18n), (vitest), (e2e), (docs).
+
+---
+
 ## Fase 12, FASE 5c — Grafo e endpoint do chat (2026-10-28)
 
 `modules/ai/application/chat_graph.py`: grafo fixo

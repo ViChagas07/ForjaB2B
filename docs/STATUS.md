@@ -24,7 +24,7 @@
 | Busca lexical ES + fallback PostgreSQL | Implementado e validado | `backend/app/modules/search`, `docs/search/RUNBOOK.md` |
 | Busca semântica pgvector + RRF | Implementado, **desligado por padrão** | `EMBEDDINGS_ENABLED=false`, ADR-0004 |
 | Busca multilíngue (en/es/ar) e 4 locales de conteúdo | Implementado | `docs/I18N.md`, migration `0016` |
-| Agentes de IA (recuperação de carrinho + chat) | **Backend implementado (FASES 1–5c)**; frontend do chat e envio real Resend/WhatsApp pendentes | `backend/app/modules/ai`, `docs/ai/`, migrations `0023`–`0026` |
+| Agentes de IA (recuperação de carrinho + chat) | **Backend (FASES 1–5c) e widget do chat (FASE 6)**; envio real Resend/WhatsApp pendente | `backend/app/modules/ai`, `frontend/features/ai-chat`, `docs/ai/`, migrations `0023`–`0026` |
 | Autocomplete do header (`/search/suggest` + dropdown 2 colunas, 11 locales) | Implementado e **validado de verdade** (Fase 4, 2026-10-27) | `modules/search/interface/router.py`, `frontend/shared/components/search-combobox`, `docs/search/RUNBOOK.md` §6c |
 | Interface em 11 idiomas, RTL árabe | Implementado | `frontend/i18n/locales.ts`, `frontend/messages/*.json` |
 | Admin de catálogo (CRUD/publicação/atributos/traduções) | Implementado | `backend/app/modules/catalog/interface/admin_router.py`, frontend admin |
@@ -66,10 +66,20 @@ Documentação de contexto: `docs/ai/AGENTS_CONTEXT.md` (decisões fixas) e
   testes de integração com FakeLLM (ACEITE: "capacete para soldador" devolve
   cartões com link `/catalog/<id>`); `docs/api/openapi.json` e
   `frontend/core/domain/api-schema.d.ts` regenerados.
-- **Pendências declaradas**: frontend do chat (widget/consumo), envio real
-  Resend/Z-API (verificação de domínio/credenciais), memória/contadores de
-  bloqueio distribuídos (Redis) e avaliação contra LLM real (`-m llm_eval`).
-  Nenhum preço/PII chega ao LLM; falha de IA degrada sem bloquear o site.
+- **Widget do chat (FASE 6)**: ícone de IA no navbar (com animação de hover) e
+  painel responsivo (cartão de 24rem no desktop, quase tela no mobile),
+  mensagens como TEXTO PURO (`role="log"`, `aria-live`), limite de 500
+  caracteres com contador, Enter/Shift+Enter/Esc, indicador de digitação, nova
+  conversa e aviso de IA; cartões de produto do backend com imagem, SKU,
+  preço por empresa (visitante "sob consulta"), "Ver produto" e "Adicionar ao
+  carrinho" (visitante vai ao login); 429 com cooldown (Retry-After de 30 s),
+  503 com link para o catálogo e erros neutros; i18n completo nos 11 locales;
+  `conversation_id` só em memória (sem localStorage). Testes vitest (7) e e2e
+  Playwright (4, com API mockada no navegador; nenhum LLM real).
+- **Pendências declaradas**: envio real Resend/Z-API (verificação de
+  domínio/credenciais), memória/contadores de bloqueio distribuídos (Redis) e
+  avaliação contra LLM real (`-m llm_eval`). Nenhum preço/PII chega ao LLM;
+  falha de IA degrada sem bloquear o site.
 
 ## Validação executada em 2026-10-22
 
