@@ -36,7 +36,9 @@ _ZERO_WIDTH = (
 )
 
 _HEX_RUN = re.compile(r"\b[0-9a-fA-F]{32,}\b")
-_B64_RUN = re.compile(r"\b[A-Za-z0-9+/]{40,}={0,2}\b")
+# Runs de base64 com "=" em qualquer posicao (payloads concatenados): o texto
+# e procurado SEM "=" para nao quebrar o run; a decodificacao repõe o padding.
+_B64_RUN = re.compile(r"[A-Za-z0-9+/]{40,}")
 _ALPHA_RUN = re.compile(r"\b[A-Za-z]{40,}\b")
 # Letra a letra: >= 7 grupos de "uma letra + separador" (i g n o r e  a s ...)
 _SPACED = re.compile(r"(?:[^\w]{0,3}\b\w\b[^\w]{0,3}\s?){6,}", re.UNICODE)
@@ -79,9 +81,10 @@ def normalize_user_text(text: str, *, max_chars: int) -> NormalizedText:
 def detect_encoding_flags(text: str) -> frozenset[str]:
     """Marca conteudo codificado/escondido (sinais, nao vereditos)."""
     flags: set[str] = set()
+    no_padding = text.replace("=", "")
     if _HEX_RUN.search(text):
         flags.add("hex")
-    if any(_decodable_base64(match.group(0)) for match in _B64_RUN.finditer(text)):
+    if any(_decodable_base64(match.group(0)) for match in _B64_RUN.finditer(no_padding)):
         flags.add("base64")
     if _decodable_rot13(text) is not None:
         flags.add("rot13")
@@ -95,7 +98,8 @@ def detect_encoding_flags(text: str) -> frozenset[str]:
 def decode_hidden_candidates(text: str) -> tuple[str, ...]:
     """Decodificacoes plausiveis (base64/hex/rot13) para re-escanear injecao."""
     decoded: list[str] = []
-    for match in _B64_RUN.finditer(text):
+    no_padding = text.replace("=", "")
+    for match in _B64_RUN.finditer(no_padding):
         value = _decodable_base64(match.group(0))
         if value is not None:
             decoded.append(value)

@@ -1,0 +1,49 @@
+# Padrões de jailbreak/injeção — FASE 2 (arquivo de dados versionado, item A.2)
+# Formato (uma por linha):  id|LEVEL|regex   (LEVEL: BLOCK ou SANITIZE)
+# - Regex Python, case-insensitive, aplicada ao texto JÁ normalizado (NFKC).
+# - Sem quantificadores aninhados (anti-ReDoS); frases longas e específicas.
+# - Acentos escritos por extenso nas classes ([çc], [õo], [êe], [áa], [ée], [íi], [óo]).
+# version: 1
+# pt-BR
+ignore_previous_pt|BLOCK|ignor\w*\s+(as\s+|todas\s+as\s+|as\s+minhas\s+|suas\s+)?(instru[çc][õo]es|regras|orienta[çc][õo]es)\s+(anteriores|acima|iniciais|do\s+sistema)
+desconsidere_pt|BLOCK|desconsider\w*\s+(as\s+|todas\s+as\s+)?(instru[çc][õo]es|regras|orienta[çc][õo]es)
+esqueca_tudo_pt|BLOCK|esque[çc]a\s+(tudo\s+que\s+te\s+disseram|todas\s+as\s+instru[çc][õo]es|tudo\s+o\s+que)
+apague_regras_pt|BLOCK|apag\w{1,3}\s+(suas\s+|as\s+|todas\s+as\s+)?(instru[çc][õo]es|regras|mem[óo]ria)
+modo_desenvolvedor_pt|BLOCK|modo\s+(de\s+)?(desenvolvedor|dev\b)
+finge_sem_regras_pt|BLOCK|finj\w{1,3}\s+que\s+n[ãa]o\s+(h[áa]\s+|tem\s+|existem\s+)?(regras|restri[çc][õo]es|limites)|finja\s+n[ãa]o\s+estar\s+sujeito
+sem_regras_pt|BLOCK|voc[êe]\s+n[ãa]o\s+tem\s+(nenhuma\s+)?(restri[çc][õo]es|regras|limites)|sem\s+nenhuma\s+restri[çc][ãa]o
+revelar_prompt_pt|BLOCK|(revel\w{1,3}|vaz\w{1,3})\s+(o\s+|seu\s+|as\s+)?(prompt|instru[çc][õo]es)\s*(do\s+sistema|secretas|internas|iniciais|completas)?
+mostrar_prompt_pt|BLOCK|(mostre|exiba|imprima|diga|repita)\s+(seu\s+|o\s+|as\s+|todas\s+as\s+)?(system\s+prompt|prompt\s+(do\s+)?sistema|instru[çc][õo]es\s+(internas|iniciais|secretas|do\s+sistema))
+prompt_sistema_pt|BLOCK|prompt\s+(do\s+)?sistema
+jailbreak_pt|BLOCK|jailbreak|modo\s+dan\b|fazer\s+qualquer\s+coisa\s+agora
+traduza_execute_pt|BLOCK|traduz\w{1,3}\s+e\s+(execut|fa[çc]a|rod\w{1,3})
+voce_e_agora_pt|BLOCK|a\s+partir\s+de\s+agora\s+voc[êe]\s+[ée]|voc[êe]\s+[ée]\s+agora\s+(um|uma)\s+
+burlar_regras_pt|BLOCK|burl\w{1,3}\s+(as\s+|as\s+suas\s+)?(regras|restri[çc][õo]es|limita[çc][õo]es|filtros)
+roleplay_burlar_pt|BLOCK|role-?play\s+(para|de)\s+burl
+regras_internas_pt|SANITIZE|(regras|instru[çc][õo]es)\s+(internas|secretas|ocultas)\s+(do\s+|da\s+)?(modelo|sistema|chat|assistente)
+# en
+ignore_previous_en|BLOCK|ignore\s+(all\s+|any\s+|the\s+)?(previous|prior|above|earlier)\s+(instructions|prompts?|rules?|directions|guidelines)
+forget_instructions_en|BLOCK|forget\s+(everything|all|your)\s+(that\s+)?(you\s+)?(were\s+|been\s+)?(told|instructed|trained|taught)|forget\s+(your\s+)?(instructions|rules)
+disregard_en|BLOCK|disregard\s+(all\s+(of\s+)?(the\s+|your\s+)?|your\s+|the\s+)?(previous\s+|above\s+)?(instructions|rules|guidelines|constraints)
+you_are_now_en|BLOCK|you\s+are\s+now\s+(a\s+|an\s+|in\s+)?(dan\b|developer|unrestricted|uncensored|free|jailbroken|amoral)
+act_as_dan_en|BLOCK|act\s+as\s+(a\s+|an\s+)?(dan\b|unrestricted|uncensored|jailbroken|amoral|evil\s+ai)
+pretend_no_rules_en|BLOCK|pretend\s+(you\s+)?(are|to\s+be)\s+(not\s+bound|free\s+of|an?\s+ai\s+without|immune\s+to)|pretend\s+there\s+are\s+no\s+rules
+reveal_prompt_en|BLOCK|(reveal|show\s+me|print|repeat|output)\s+(your|the)?\s*(initial\s+|system\s+|original\s+|hidden\s+)?(prompt|instructions|system\s+prompt)
+dan_mode_en|BLOCK|system\s+prompt|developer\s+mode|dan\s+mode|jailbreak|do\s+anything\s+now
+translate_execute_en|BLOCK|translate\s+and\s+(execute|run)
+bypass_rules_en|BLOCK|bypass\s+(the\s+|all\s+|your\s+)?(rules|restrictions|safety|filters?|guardrails?)
+stay_in_character_en|BLOCK|stay\s+in\s+character\s+(and\s+)?(ignore|bypass|disregard)
+simulate_unrestricted_en|BLOCK|simulate\s+(being\s+)?(an?\s+)?(unrestricted|uncensored|amoral|evil)\s+(ai|assistant|model)?
+hidden_rules_en|SANITIZE|(internal|hidden|secret)\s+(rules|instructions)\s+(of\s+your|that\s+govern)
+# es
+ignore_previous_es|BLOCK|ignor\w{1,3}\s+(todas\s+)?(las\s+)?(instrucciones|reglas)\s+(anteriores|previas|iniciales|del\s+sistema)
+olvida_todo_es|BLOCK|olvida\s+(todo|todas\s+tus\s+instrucciones|tus\s+reglas)
+desconsidera_es|BLOCK|desconsidera\s+(las\s+|todas\s+las\s+)?(instrucciones|reglas)
+finge_sin_reglas_es|BLOCK|fing\w{1,3}\s+que\s+no\s+(hay|tienes|existen)\s+(reglas|restricciones|l[íi]mites)|finge\s+no\s+estar\s+sujeto
+sin_restricciones_es|BLOCK|no\s+tienes\s+(restricci[óo]n(es)?|reglas|l[íi]mites)|sin\s+ninguna\s+restricci[óo]n
+revela_prompt_es|BLOCK|(revela|muestra|imprime|repite)\s+(tu\s+|el\s+|las\s+)?(prompt|instrucciones)\s*(del\s+sistema|secretas|internas|iniciales)?
+prompt_sistema_es|BLOCK|prompt\s+del\s+sistema|modo\s+desarrollador
+traduce_ejecuta_es|BLOCK|traduce\s+y\s+(ejecuta|ejecutar)
+eres_ahora_es|BLOCK|eres\s+ahora\s+(un|una)\s+
+saltar_reglas_es|BLOCK|saltar(te)?\s+(las\s+|tus\s+)?(reglas|restricciones)
+reglas_internas_es|SANITIZE|(reglas|instrucciones)\s+(internas|secretas|ocultas)\s+(de\s+tu\s+)?(modelo|sistema|chat|asistente)

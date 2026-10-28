@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "default_locale": "pt-BR",
+  "messages": {
+    "pt-BR": "Não posso ajudar com esse pedido. Podemos voltar aos produtos do catálogo?",
+    "en": "I can't help with that request. Shall we get back to the catalog products?",
+    "es": "No puedo ayudarte con ese pedido. ¿Volvemos a los productos del catálogo?",
+    "ar": "لا يمكنني المساعدة في هذا الطلب. هل نعود إلى منتجات الكتالوج؟",
+    "de": "Bei dieser Anfrage kann ich nicht helfen. Zurück zu den Katalogprodukten?",
+    "fr": "Je ne peux pas aider avec cette demande. Retournons aux produits du catalogue ?",
+    "it": "Non posso aiutarti con questa richiesta. Torniamo ai prodotti del catalogo?",
+    "ja": "そのご要望にはお応えできません。カタログの商品に戻りましょうか。",
+    "ko": "해당 요청은 도와드릴 수 없습니다. 카탈로그 상품으로 돌아갈까요?",
+    "ru": "Я не могу помочь с этим запросом. Вернёмся к товарам каталога?",
+    "zh-CN": "我无法协助该请求。我们回到目录商品好吗？"
+  }
+}
