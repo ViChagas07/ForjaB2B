@@ -110,7 +110,9 @@ class DispatchOutbox:
             await self._skip(row)
             return False
         message, _subject = render_text(
-            event_type=row.event_type, locale=recipient.locale, slots=self._slots_for(row, recipient)
+            event_type=row.event_type,
+            locale=recipient.locale,
+            slots=self._slots_for(row, recipient),
         )
         try:
             await self._whatsapp_sender.send(phone=str(recipient.whatsapp_phone), message=message)
@@ -154,7 +156,10 @@ class DispatchOutbox:
 
     async def _fail(self, row: OutboxView, error: str) -> None:
         await self._repository.mark(
-            company_id=row.company_id, outbox_id=row.id, status=NotificationStatus.FAILED, error=error
+            company_id=row.company_id,
+            outbox_id=row.id,
+            status=NotificationStatus.FAILED,
+            error=error,
         )
         increment_notifications_dispatched(status="FAILED")
 

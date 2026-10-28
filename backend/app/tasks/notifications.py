@@ -2,7 +2,10 @@
 
 Enumera os tenants com notificacoes pendentes (funcao SECURITY DEFINER
 ``app.list_due_notifications``) e despacha cada tenant com o seu proprio
-contexto RLS. O worker monta engine/UoW/email de forma independente da API.
+contexto RLS. O worker monta engine/UoW/senders de forma independente da API;
+o provedor de e-mail vem de EMAIL_PROVIDER (SMTP Mailpit ou Resend) e o canal
+WhatsApp fica desligado sem WHATSAPP_ENABLED. Falha de provedor nunca derruba
+o worker (FAILED/DEAD_LETTERED na outbox).
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.notification.application.notification import DispatchOutbox
-from app.modules.notification.infrastructure.email import SmtpEmailSender
+from app.modules.notification.infrastructure.email import build_email_sender
 from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
 from app.tasks.celery_app import celery_app
 
@@ -27,12 +30,11 @@ def dispatch_outbox() -> int:
         session_factory = create_session_factory(engine)
         uow_factory = SqlAlchemyUnitOfWorkFactory(session_factory)
         repository = SqlAlchemyNotificationRepository(uow_factory)
-        sender = SmtpEmailSender(
-            host=settings.email_smtp_host,
-            port=settings.email_smtp_port,
-            from_email=settings.email_from,
+        use_case = DispatchOutbox(
+            repository=repository,
+            email_sender=build_email_sender(settings),
+            frontend_base_url=settings.frontend_base_url,
         )
-        use_case = DispatchOutbox(repository=repository, email_sender=sender)
         return asyncio.run(_dispatch(use_case, repository))
     finally:
         asyncio.run(engine.dispose())

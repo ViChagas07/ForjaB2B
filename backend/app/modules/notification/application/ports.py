@@ -91,9 +91,7 @@ class NotificationRepository(Protocol):
 class EmailSender(Protocol):
     """Porta do canal de e-mail (SMTP Mailpit/fake ou Resend)."""
 
-    async def send(
-        self, *, to: str, subject: str, body: str, html: str | None = None
-    ) -> None:
+    async def send(self, *, to: str, subject: str, body: str, html: str | None = None) -> None:
         """Envia um e-mail; falhas levantam EmailTransientError/EmailPermanentError."""
 
 

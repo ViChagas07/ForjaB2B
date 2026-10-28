@@ -271,6 +271,12 @@ class Settings(BaseSettings):
     email_smtp_host: str = "localhost"
     email_smtp_port: int = Field(default=1025, ge=1)
     email_from: str = "no-reply@forja.local"
+    # Provedor de e-mail transacional (Fase 3): "smtp" (Mailpit, padrao dev)
+    # ou "resend" (API HTTP). A chave e o remetente ficam SOMENTE no backend;
+    # vazios contam como ausentes. NUNCA versionar valores reais.
+    email_provider: str = "smtp"
+    resend_api_key: str | None = None
+    resend_from: str | None = None
 
     # Admin de plataforma (aprovacao de empresas e administracao de traducoes).
     # Em producao deve ser uma chave forte injetada via secrets. Ausente, 401.
@@ -396,6 +402,8 @@ class Settings(BaseSettings):
         "payment_webhook_secret_previous",
         "llm_base_url",
         "llm_api_key",
+        "resend_api_key",
+        "resend_from",
         mode="before",
     )
     @classmethod
@@ -409,6 +417,15 @@ class Settings(BaseSettings):
         if isinstance(value, str) and value.strip() == "":
             return None
         return value
+
+    @field_validator("email_provider", mode="before")
+    @classmethod
+    def _validate_email_provider(cls, value: object) -> object:
+        """Provedor de e-mail: 'smtp' (padrao dev) ou 'resend'."""
+        provider = str(value).strip().lower()
+        if provider not in ("smtp", "resend"):
+            raise ValueError("email_provider deve ser 'smtp' ou 'resend'")
+        return provider
 
     @field_validator("database_url", "database_admin_url", mode="after")
     @classmethod

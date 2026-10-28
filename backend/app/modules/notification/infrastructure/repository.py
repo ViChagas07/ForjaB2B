@@ -20,8 +20,8 @@ from app.modules.notification.application.ports import OutboxView, RecipientView
 from app.modules.notification.domain.enums import NotificationStatus
 
 _LIST_DUE = text(
-    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at, channel "
-    "FROM notifications WHERE company_id = :company_id AND "
+    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, "
+    "created_at, channel FROM notifications WHERE company_id = :company_id AND "
     "(status = 'PENDING' OR (status = 'FAILED' AND attempts < :max_attempts)) "
     "ORDER BY created_at, id LIMIT :limit"
 )
@@ -45,12 +45,13 @@ _UPDATE_STATUS = text(
     "sent_at = :sent_at, updated_at = now() WHERE id = :id AND company_id = :company_id"
 )
 _LIST_ALL = text(
-    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at, channel "
-    "FROM notifications WHERE company_id = :company_id ORDER BY created_at DESC, id DESC"
+    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, "
+    "created_at, channel FROM notifications WHERE company_id = :company_id "
+    "ORDER BY created_at DESC, id DESC"
 )
 _GET_ONE = text(
-    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at, channel "
-    "FROM notifications WHERE id = :id AND company_id = :company_id"
+    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, "
+    "created_at, channel FROM notifications WHERE id = :id AND company_id = :company_id"
 )
 _RESET = text(
     "UPDATE notifications SET status = 'PENDING', attempts = 0, error = NULL, "
