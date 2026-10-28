@@ -231,3 +231,27 @@
     display: none;
   }
 }
+
+/* Assistente de IA: piscada do rostinho no hover (Fase 6). */
+@keyframes ai-blink {
+  0%,
+  38%,
+  100% {
+    transform: scaleY(1);
+  }
+  50%,
+  62% {
+    transform: scaleY(0.12);
+  }
+}
+
+.ai-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-eyes {
+    animation: none !important;
+  }
+}

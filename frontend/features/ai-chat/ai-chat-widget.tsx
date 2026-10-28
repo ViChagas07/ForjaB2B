@@ -163,12 +163,8 @@ export function AiChatWidget() {
           aria-hidden="true"
           className="absolute inset-0 rounded-lg bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 opacity-0 blur-[6px] transition-all duration-300 group-hover:from-primary/60 group-hover:via-sky-400/40 group-hover:to-accent/60 group-hover:opacity-100"
         />
-        <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-primary/90 to-sky-500/90 text-primary-foreground shadow-sm transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:scale-110 group-hover:rotate-6">
-          <Bot aria-hidden="true" className="h-4 w-4" />
-          <Sparkles
-            aria-hidden="true"
-            className="absolute -end-1 -top-1 h-3 w-3 text-amber-300 opacity-0 transition-all duration-300 group-hover:scale-125 group-hover:opacity-100"
-          />
+        <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-primary/90 to-sky-500/90 text-primary-foreground shadow-sm transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:scale-105">
+          <RobotFaceIcon />
         </span>
       </button>
 
@@ -332,6 +328,35 @@ export function AiChatWidget() {
           )
         : null}
     </>
+  );
+}
+
+function RobotFaceIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      data-testid="ai-chat-robot-face"
+    >
+      <circle cx="12" cy="2.4" r="1" fill="currentColor" stroke="none" />
+      <line x1="12" y1="3.4" x2="12" y2="5.4" />
+      <rect x="3.6" y="5.4" width="16.8" height="12.6" rx="4.2" />
+      <line x1="2" y1="11" x2="3.6" y2="11" />
+      <line x1="20.4" y1="11" x2="22" y2="11" />
+      {/* Olhos: piscam juntos no hover do gatilho (keyframes ai-blink). */}
+      <g className="ai-eyes group-hover:[animation:ai-blink_0.7s_ease-in-out_1]">
+        <line x1="9" y1="10.6" x2="9" y2="12.4" strokeWidth="2.1" />
+        <line x1="15" y1="10.6" x2="15" y2="12.4" strokeWidth="2.1" />
+      </g>
+      <path d="M9.4 15.6h5.2" />
+    </svg>
   );
 }
 

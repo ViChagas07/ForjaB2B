@@ -102,6 +102,8 @@ describe("AiChatWidget", () => {
   it("abre pelo gatilho do navbar, mostra aviso de IA e fecha com Esc devolvendo o foco", () => {
     const panel = openWidget();
     expect(panel).toBeTruthy();
+    expect(screen.getByTestId("ai-chat-robot-face")).toBeTruthy();
+    expect(screen.getByTestId("ai-chat-robot-face").querySelector(".ai-eyes")).toBeTruthy();
     expect(screen.getByText(/assistente de IA/i)).toBeTruthy();
     expect(screen.getByRole("log")).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape" });

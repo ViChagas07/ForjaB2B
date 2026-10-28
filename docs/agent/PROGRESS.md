@@ -25,6 +25,16 @@ catálogo, timeout/rede genéricos. i18n completo nos 11 locales (paridade e
 sem chaves vazias garantidas pelo teste existente). Deps de teste:
 jsdom + @testing-library/react (dev).
 
+**Ajuste (2026-10-28, pedido do dono):** o gatilho do assistente fica no
+navbar IMEDIATAMENTE À DIREITA do seletor de idiomas (ordem DOM após
+`LanguageSwitcher`, lado inline-end em RTL) e o ícone virou um rostinho de
+robô (SVG próprio) que, no hover, levita levemente e PISCA os dois olhos
+(keyframes `ai-blink` em `app/globals.css`, uma vez por hover, respeitando
+`prefers-reduced-motion`; glow/scale mantidos). Coberto por vitest (rostinho e
+grupo `.ai-eyes` presentes no gatilho) e e2e; `npm run check` verde de novo
+(vitest **170**, depcruise 0). Aparência exata do vídeo segue como referência
+visual subjetiva (a animação foi implementada conforme descrição do dono).
+
 **Checagens reais:** `npm run check` **verde** (lint, typecheck, format,
 vitest **170 passed** com 7 novos do widget: abrir/fechar com foco, limite de
 500 + contador, Enter/Shift+Enter, texto puro sem HTML injetado, cartões com

@@ -46,8 +46,8 @@ export function HeaderActions() {
 
   return (
     <div className="flex items-center gap-0.5">
-      <AiChatWidget />
       <LanguageSwitcher className={iconButtonClass} />
+      <AiChatWidget />
       <ThemeToggle className={`hidden sm:inline-flex ${iconButtonClass}`} />
 
       <Link
