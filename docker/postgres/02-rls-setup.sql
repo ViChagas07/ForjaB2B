@@ -42,6 +42,8 @@ GRANT USAGE, CREATE ON SCHEMA app TO forja_notification;
 -- forja_recovery (agente de recuperacao de carrinho) idem, para assumir o
 -- ownership da funcao app.list_recovery_tenants (SECURITY DEFINER).
 GRANT USAGE, CREATE ON SCHEMA app TO forja_recovery;
+-- forja_chat (limpeza TTL do chat) idem, para a funcao SECURITY DEFINER.
+GRANT USAGE, CREATE ON SCHEMA app TO forja_chat;
 
 -- -----------------------------------------------------------------------------
 -- 1. app.current_company_id(): UUID do tenant ativo ou NULL se ausente/invalido.
@@ -217,6 +219,38 @@ COMMENT ON FUNCTION app.list_recovery_tenants(INTEGER) IS
     'Enumera company_id com carrinhos parados entre 24h e 7 dias (agente de recuperacao). SECURITY DEFINER sobre forja_recovery.';
 
 -- -----------------------------------------------------------------------------
+-- 7. app.delete_expired_chat_conversations(p_limit): limpeza diaria do chat de
+--    IA por TTL (Fase 12, FASE 5). SECURITY DEFINER (owner: forja_chat, NOLOGIN)
+--    porque chat_conversations tem FORCE RLS e a limpeza atravessa tenants.
+--    Retorna quantas conversas removeu (mensagens caem por CASCADE).
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION app.delete_expired_chat_conversations(p_limit INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    removed INTEGER;
+BEGIN
+    WITH expired AS (
+        SELECT id FROM public.chat_conversations
+        WHERE expires_at < now()
+        ORDER BY expires_at
+        LIMIT p_limit
+    )
+    DELETE FROM public.chat_conversations c
+    USING expired e
+    WHERE c.id = e.id;
+    GET DIAGNOSTICS removed = ROW_COUNT;
+    RETURN removed;
+END;
+$$;
+
+COMMENT ON FUNCTION app.delete_expired_chat_conversations(INTEGER) IS
+    'Remove conversas de chat expiradas (TTL). SECURITY DEFINER sobre forja_chat.';
+
+-- -----------------------------------------------------------------------------
 -- Ownership e permissoes de execucao
 -- -----------------------------------------------------------------------------
 ALTER FUNCTION app.current_company_id() OWNER TO :"admin_user";
@@ -228,6 +262,8 @@ ALTER FUNCTION app.resolve_user_by_email(TEXT) OWNER TO forja_auth;
 ALTER FUNCTION app.list_due_notifications(INTEGER, INTEGER) OWNER TO forja_notification;
 -- A funcao do agente de recuperacao e owned pela role dedicada forja_recovery.
 ALTER FUNCTION app.list_recovery_tenants(INTEGER) OWNER TO forja_recovery;
+-- A limpeza TTL do chat e owned pela role dedicada forja_chat.
+ALTER FUNCTION app.delete_expired_chat_conversations(INTEGER) OWNER TO forja_chat;
 
 -- Funcoes novas concedem EXECUTE a PUBLIC por padrao: revogar explicitamente.
 REVOKE EXECUTE ON FUNCTION app.current_company_id() FROM PUBLIC;
@@ -236,6 +272,7 @@ REVOKE EXECUTE ON FUNCTION app.set_tenant_context(UUID, UUID) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.resolve_user_by_email(TEXT) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION app.list_recovery_tenants(INTEGER) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION app.delete_expired_chat_conversations(INTEGER) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION app.current_company_id() TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.current_user_id() TO :"app_user";
@@ -243,6 +280,7 @@ GRANT EXECUTE ON FUNCTION app.set_tenant_context(UUID, UUID) TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.resolve_user_by_email(TEXT) TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.list_due_notifications(INTEGER, INTEGER) TO :"app_user";
 GRANT EXECUTE ON FUNCTION app.list_recovery_tenants(INTEGER) TO :"app_user";
+GRANT EXECUTE ON FUNCTION app.delete_expired_chat_conversations(INTEGER) TO :"app_user";
 
 -- Mesma politica para funcoes futuras do schema app criadas pelo admin.
 ALTER DEFAULT PRIVILEGES FOR ROLE :"admin_user" IN SCHEMA app

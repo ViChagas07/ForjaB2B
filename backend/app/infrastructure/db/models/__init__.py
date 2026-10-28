@@ -19,6 +19,7 @@ from app.infrastructure.db.models.catalog import (
     ProductPriceTier,
     ProductTranslation,
 )
+from app.infrastructure.db.models.chat import ChatConversation, ChatMessage
 from app.infrastructure.db.models.companies import Company, CompanyAddress
 from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
@@ -42,6 +43,8 @@ __all__ = [
     "CartRecoveryAttempt",
     "CartRecoveryOffer",
     "Category",
+    "ChatConversation",
+    "ChatMessage",
     "Company",
     "CompanyAddress",
     "CompanyMember",

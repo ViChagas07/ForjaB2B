@@ -170,6 +170,26 @@ ALTER ROLE forja_recovery WITH
 
 GRANT forja_recovery TO :"admin_user";
 
+-- 4.8. Role dedicada a limpeza TTL do chat de IA (Fase 12, FASE 5).
+--    NOLOGIN: owner SECURITY DEFINER de app.delete_expired_chat_conversations
+--    (limpeza cross-tenant diaria). Politicas dedicadas na migration 0026.
+SELECT 'CREATE ROLE forja_chat NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
+       'NOINHERIT NOREPLICATION NOBYPASSRLS'
+WHERE NOT EXISTS (
+        SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'forja_chat')
+\gexec
+
+ALTER ROLE forja_chat WITH
+    NOLOGIN
+    NOSUPERUSER
+    NOCREATEDB
+    NOCREATEROLE
+    NOINHERIT
+    NOREPLICATION
+    NOBYPASSRLS;
+
+GRANT forja_chat TO :"admin_user";
+
 -- 5. Conectividade restrita ao banco operacional
 REVOKE CONNECT ON DATABASE :"db_name" FROM PUBLIC;
 GRANT CONNECT ON DATABASE :"db_name" TO :"app_user";
