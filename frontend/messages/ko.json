@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "AI 어시스턴트 열기",
+    "close": "어시스턴트 닫기",
+    "title": "Forja 어시스턴트",
+    "online": "응답 가능",
+    "disclaimer": "저는 AI 어시스턴트이며 실수할 수 있습니다. 카탈로그에서 확인하세요.",
+    "placeholder": "상품, 배송 또는 장바구니에 대해 물어보세요...",
+    "send": "메시지 보내기",
+    "newConversation": "새 대화",
+    "typing": "어시스턴트가 입력 중입니다",
+    "counter": "{max}자 중 {count}자 남음",
+    "enterHint": "Enter 전송 - Shift+Enter 줄바꿈",
+    "viewProduct": "상품 보기",
+    "addToCart": "장바구니에 추가",
+    "goToCatalog": "카탈로그로",
+    "suggestion1": "용접용 헬멧",
+    "suggestion2": "배송은 어떻게 계산되나요?",
+    "suggestion3": "최소 주문 수량은?",
+    "errors": {
+      "rateLimited": "메시지가 너무 많습니다. {seconds}초 후 다시 시도하세요.",
+      "unavailable": "어시스턴트를 지금 사용할 수 없습니다.",
+      "timeout": "응답이 너무 오래 걸렸습니다. 다시 시도하세요.",
+      "generic": "지금은 응답할 수 없습니다. 다시 시도하세요."
+    }
   }
 }

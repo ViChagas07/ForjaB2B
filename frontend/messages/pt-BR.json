@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "Abrir assistente de IA",
+    "close": "Fechar assistente",
+    "title": "Assistente Forja",
+    "online": "Online",
+    "disclaimer": "Sou um assistente de IA e posso errar. Confira as informações no catálogo.",
+    "placeholder": "Pergunte sobre produtos, frete ou seu carrinho...",
+    "send": "Enviar mensagem",
+    "newConversation": "Nova conversa",
+    "typing": "O assistente está digitando",
+    "counter": "{count} de {max} caracteres restantes",
+    "enterHint": "Enter envia - Shift+Enter quebra linha",
+    "viewProduct": "Ver produto",
+    "addToCart": "Adicionar ao carrinho",
+    "goToCatalog": "Ir para o catálogo",
+    "suggestion1": "Capacete para soldador",
+    "suggestion2": "Como funciona o frete?",
+    "suggestion3": "Qual o pedido minimo?",
+    "errors": {
+      "rateLimited": "Muitas mensagens em pouco tempo. Tente novamente em {seconds}s.",
+      "unavailable": "O assistente está indisponível no momento.",
+      "timeout": "A resposta demorou demais. Tente de novo.",
+      "generic": "Não foi possível responder agora. Tente de novo."
+    }
   }
 }

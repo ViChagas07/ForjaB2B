@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "Ouvrir l'assistant IA",
+    "close": "Fermer l'assistant",
+    "title": "Assistant Forja",
+    "online": "Disponible",
+    "disclaimer": "Je suis un assistant IA et je peux me tromper. Vérifiez dans le catalogue.",
+    "placeholder": "Posez une question sur les produits, la livraison ou votre panier...",
+    "send": "Envoyer le message",
+    "newConversation": "Nouvelle conversation",
+    "typing": "L'assistant écrit",
+    "counter": "{count} sur {max} caractères restants",
+    "enterHint": "Entrée envoie - Maj+Entrée nouvelle ligne",
+    "viewProduct": "Voir le produit",
+    "addToCart": "Ajouter au panier",
+    "goToCatalog": "Aller au catalogue",
+    "suggestion1": "Casque de soudeur",
+    "suggestion2": "Comment fonctionne la livraison ?",
+    "suggestion3": "Quelle est la commande minimale ?",
+    "errors": {
+      "rateLimited": "Trop de messages. Réessayez dans {seconds}s.",
+      "unavailable": "L'assistant est indisponible pour le moment.",
+      "timeout": "La réponse a pris trop de temps. Réessayez.",
+      "generic": "Impossible de répondre maintenant. Réessayez."
+    }
   }
 }

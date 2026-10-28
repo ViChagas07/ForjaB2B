@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "KI-Assistent öffnen",
+    "close": "Assistent schließen",
+    "title": "Forja-Assistent",
+    "online": "Verfügbar",
+    "disclaimer": "Ich bin ein KI-Assistent und kann Fehler machen. Prüfen Sie den Katalog.",
+    "placeholder": "Fragen Sie zu Produkten, Versand oder Warenkorb...",
+    "send": "Nachricht senden",
+    "newConversation": "Neue Unterhaltung",
+    "typing": "Der Assistent schreibt",
+    "counter": "{count} von {max} Zeichen übrig",
+    "enterHint": "Enter sendet - Shift+Enter neue Zeile",
+    "viewProduct": "Produkt ansehen",
+    "addToCart": "In den Warenkorb",
+    "goToCatalog": "Zum Katalog",
+    "suggestion1": "Schweißerhelm",
+    "suggestion2": "Wie funktioniert der Versand?",
+    "suggestion3": "Wie hoch ist die Mindestbestellung?",
+    "errors": {
+      "rateLimited": "Zu viele Nachrichten. Versuchen Sie es in {seconds}s.",
+      "unavailable": "Der Assistent ist derzeit nicht verfügbar.",
+      "timeout": "Die Antwort dauerte zu lange. Versuchen Sie es erneut.",
+      "generic": "Antwort derzeit nicht möglich. Versuchen Sie es erneut."
+    }
   }
 }

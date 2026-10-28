@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "Open AI assistant",
+    "close": "Close assistant",
+    "title": "Forja AI Assistant",
+    "online": "Available",
+    "disclaimer": "I am an AI assistant and can make mistakes. Check details in the catalog.",
+    "placeholder": "Ask about products, shipping or your cart...",
+    "send": "Send message",
+    "newConversation": "New conversation",
+    "typing": "The assistant is typing",
+    "counter": "{count} of {max} characters left",
+    "enterHint": "Enter sends - Shift+Enter adds a line",
+    "viewProduct": "View product",
+    "addToCart": "Add to cart",
+    "goToCatalog": "Go to catalog",
+    "suggestion1": "Welding helmet",
+    "suggestion2": "How does shipping work?",
+    "suggestion3": "What is the minimum order?",
+    "errors": {
+      "rateLimited": "Too many messages. Try again in {seconds}s.",
+      "unavailable": "The assistant is unavailable right now.",
+      "timeout": "The answer took too long. Try again.",
+      "generic": "Could not answer right now. Try again."
+    }
   }
 }

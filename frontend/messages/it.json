@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "Apri assistente IA",
+    "close": "Chiudi assistente",
+    "title": "Assistente IA Forja",
+    "online": "In linea",
+    "disclaimer": "Sono un assistente IA e posso sbagliare. Verifica nel catalogo.",
+    "placeholder": "Chiedi di prodotti, spedizione o carrello...",
+    "send": "Invia messaggio",
+    "newConversation": "Nuova conversazione",
+    "typing": "L'assistente sta scrivendo",
+    "counter": "{count} di {max} caratteri rimasti",
+    "enterHint": "Invio invia - Shift+Invio nuova riga",
+    "viewProduct": "Vedi prodotto",
+    "addToCart": "Aggiungi al carrello",
+    "goToCatalog": "Vai al catalogo",
+    "suggestion1": "Casco per saldatore",
+    "suggestion2": "Come funziona la spedizione?",
+    "suggestion3": "Qual è l'ordine minimo?",
+    "errors": {
+      "rateLimited": "Troppi messaggi. Riprova tra {seconds}s.",
+      "unavailable": "L'assistente non è disponibile ora.",
+      "timeout": "La risposta è stata troppo lenta. Riprova.",
+      "generic": "Impossibile rispondere ora. Riprova."
+    }
   }
 }

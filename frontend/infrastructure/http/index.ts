@@ -13,3 +13,5 @@ export { cartApi, useCartApi } from "./cart-api";
 export { orderingApi, useOrderingApi } from "./ordering-api";
 export { paymentApi, usePaymentApi } from "./payment-api";
 export { creditApi, useCreditApi } from "./credit-api";
+export { sendChatMessage } from "./ai-api";
+export type { ChatRequest, ChatResponse, ChatProductCard } from "./ai-api";

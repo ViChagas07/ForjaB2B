@@ -5,6 +5,7 @@ import { ChevronDown, LayoutDashboard, LogOut, Menu, ShoppingCart, UserRound } f
 import { useTranslations } from "next-intl";
 
 import { Link, useRouter } from "@/i18n/navigation";
+import { AiChatWidget } from "@/features/ai-chat/ai-chat-widget";
 import { logout } from "@/shared/stores/auth-actions";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Button } from "@/shared/ui/button";
@@ -45,6 +46,7 @@ export function HeaderActions() {
 
   return (
     <div className="flex items-center gap-0.5">
+      <AiChatWidget />
       <LanguageSwitcher className={iconButtonClass} />
       <ThemeToggle className={`hidden sm:inline-flex ${iconButtonClass}`} />
 

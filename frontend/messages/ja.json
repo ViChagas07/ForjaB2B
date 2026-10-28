@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "AIアシスタントを開く",
+    "close": "アシスタントを閉じる",
+    "title": "Forjaアシスタント",
+    "online": "対応可能",
+    "disclaimer": "AIアシスタントのため誤ることがあります。カタログでご確認ください。",
+    "placeholder": "商品・配送・カートについて質問してください…",
+    "send": "メッセージを送信",
+    "newConversation": "新しい会話",
+    "typing": "アシスタントが入力中です",
+    "counter": "残り{count}/{max}文字",
+    "enterHint": "Enterで送信 - Shift+Enterで改行",
+    "viewProduct": "商品を見る",
+    "addToCart": "カートに追加",
+    "goToCatalog": "カタログへ",
+    "suggestion1": "溶接用ヘルメット",
+    "suggestion2": "送料はどう計算されますか？",
+    "suggestion3": "最小注文数は？",
+    "errors": {
+      "rateLimited": "メッセージが多すぎます。{seconds}秒後にお試しください。",
+      "unavailable": "アシスタントは現在利用できません。",
+      "timeout": "応答に時間がかかりすぎました。もう一度お試しください。",
+      "generic": "現在応答できません。もう一度お試しください。"
+    }
   }
 }

@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "打开 AI 助手",
+    "close": "关闭助手",
+    "title": "Forja 助手",
+    "online": "可用",
+    "disclaimer": "我是 AI 助手，可能会出错。请在目录中核对信息。",
+    "placeholder": "询问商品、运费或购物车...",
+    "send": "发送消息",
+    "newConversation": "新对话",
+    "typing": "助手正在输入",
+    "counter": "剩余 {count}/{max} 个字符",
+    "enterHint": "Enter 发送 - Shift+Enter 换行",
+    "viewProduct": "查看商品",
+    "addToCart": "加入购物车",
+    "goToCatalog": "前往目录",
+    "suggestion1": "焊工头盔",
+    "suggestion2": "运费如何计算？",
+    "suggestion3": "最小起订量是多少？",
+    "errors": {
+      "rateLimited": "消息过多，请在 {seconds} 秒后重试。",
+      "unavailable": "助手目前不可用。",
+      "timeout": "响应时间过长，请重试。",
+      "generic": "暂时无法回答，请重试。"
+    }
   }
 }

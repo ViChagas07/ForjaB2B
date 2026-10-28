@@ -690,5 +690,30 @@
         ]
       }
     ]
+  },
+  "aiChat": {
+    "open": "Abrir asistente de IA",
+    "close": "Cerrar asistente",
+    "title": "Asistente Forja",
+    "online": "En línea",
+    "disclaimer": "Soy un asistente de IA y puedo equivocarme. Verifique en el catálogo.",
+    "placeholder": "Pregunte sobre productos, envío o su carrito...",
+    "send": "Enviar mensaje",
+    "newConversation": "Nueva conversación",
+    "typing": "El asistente está escribiendo",
+    "counter": "Quedan {count} de {max} caracteres",
+    "enterHint": "Enter envía - Shift+Enter salto de línea",
+    "viewProduct": "Ver producto",
+    "addToCart": "Añadir al carrito",
+    "goToCatalog": "Ir al catálogo",
+    "suggestion1": "Casco para soldador",
+    "suggestion2": "¿Cómo funciona el envío?",
+    "suggestion3": "¿Cuál es el pedido mínimo?",
+    "errors": {
+      "rateLimited": "Demasiados mensajes. Intente en {seconds}s.",
+      "unavailable": "El asistente no está disponible ahora.",
+      "timeout": "La respuesta tardó demasiado. Intente de nuevo.",
+      "generic": "No se pudo responder ahora. Intente de nuevo."
+    }
   }
 }
