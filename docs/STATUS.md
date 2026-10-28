@@ -312,8 +312,10 @@ dead-letter/reprocessamento, reconciliação com advisory lock e limpeza de índ
 4. Cron Job do Render: a documentação oficial foi consultada; a disponibilidade no
    plano/workspace real está **NÃO CONFERIDA**.
 5. O `docker-compose.yml` passou a entregar `ELASTICSEARCH_URL/USERNAME/PASSWORD` ao backend,
-   worker e beat (antes só o backend recebia a URL). O `.env` local aponta para um cluster
-   Elastic Cloud; para validar localmente use `ELASTICSEARCH_URL=http://elasticsearch:9200`.
+   worker e beat (antes só o backend recebia a URL). O `.env` local apontava para um cluster
+   Elastic Cloud; **resolvido em 2026-10-28**: a URL do Cloud foi removida (duplicada) e o dev
+   usa o ES local (`http://elasticsearch:9200`), reindexado na v3. O compose agora também
+   entrega `ELASTICSEARCH_INDEX_VERSION` ao backend.
 
 ## Prompt 10 — Fotos reais e ilustrações SVG no catálogo (2026-10-26)
 

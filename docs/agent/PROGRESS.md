@@ -6,6 +6,71 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Lentidão do catálogo: ES local no lugar do Cloud + debounce na busca (2026-10-28)
+
+**Relato do dono:** produtos do catálogo e da barra de pesquisa demorando MUITO;
+às vezes carregavam 100%, às vezes erro depois de esperar.
+
+**Causas (com evidência):**
+
+1. **`ELASTICSEARCH_URL` duplicado no `.env`** — a última linha (Elastic Cloud
+   Serverless, `us-central1`/EUA) vencia na leitura do compose/dotenv. Cada
+   sugestão cruzava o continente: medido do host, 171ms só de rede com conexão
+   reutilizada e ~570ms com handshake novo (total observado ~0,6s a 2s+ por
+   chamada). Autenticado NUNCA cacheia (`router.py` só cacheia `auth is None`),
+   então cada pausa de digitação ia para os EUA; travadas estouravam o timeout
+   de 15s do cliente (`api-client.ts`) → "erro após demorar".
+2. **Origem `:3100` (dev server) fora do CORS** — o `.env` nem definia
+   `CORS_ORIGINS` (compose usa default `:3000,:3010`); toda chamada de API do
+   dev falhava no preflight e o TanStack refazia 3 retries com backoff antes de
+   mostrar erro (reproduzido no browser: 18 erros de console, "0 resultados").
+3. **Filtro de busca do catálogo sem debounce** — cada tecla disparava
+   `router.replace` + `GET /catalog/products?q=`.
+4. **Hipótese do "locale dos produtos" descartada com prova:** traduções são
+   1 query em lote para os ids da página + dicionário de categorias com
+   `lru_cache` + `resolve_product_text` puro em memória; sem N+1 e sem API
+   externa de tradução (NullTranslationProvider).
+
+**Fix:**
+
+1. `.env`: URL do Cloud REMOVIDA (restou `http://elasticsearch:9200`),
+   `ELASTICSEARCH_API_KEY` limpa (o cliente ES dá precedência à API key
+   (`elasticsearch.py`) e o ES local usa basic auth — com a key do Cloud no ar
+   o ES local rejeitaria tudo com 401), `ELASTICSEARCH_INDEX_VERSION=3` e
+   `CORS_ORIGINS` incluindo `http://localhost:3100`. `docker-compose.yml` passou
+   a entregar `ELASTICSEARCH_INDEX_VERSION` ao backend (antes nem recebia e o
+   Settings usava o default 2 — só afetava o namespace do cache de suggest).
+2. **Reindex do ES local:** `bootstrap --version 3` revelou uma **v3 ÓRFÃ de
+   schema antigo** (20 campos — sem os 9 multilíngues da Fase 9B-b; 41 docs
+   pré-multilíngue) que a idempotência do bootstrap reutilizava sem atualizar o
+   mapping; o `reindex` rejeitava 100% dos docs
+   (`strict_dynamic_mapping_exception`) e NÃO trocava o alias. Índice órfão
+   removido (derivado/reconstruível; v2 seguiu servindo durante todo o
+   processo), v3 recriada com o mapping atual de 29 campos e
+   `reindex --version 3` → **41/41, 0 rejeições, alias trocado**.
+3. **Frontend:** debounce de 300ms no `q` do catálogo (`catalog-browser.tsx`:
+   estado local no campo + URL por pausa; a URL manda e ressincroniza o campo
+   em voltar/avançar/submit do combobox). `features/search/index.ts` criado
+   como API pública da feature (regra depcruise de cross-feature).
+
+**Validação real:** suggest em 5 chamadas: 183ms (frio) e **3–22ms** nas
+seguintes (antes ~0,6s–2s+); `q=capacte` → 5 capacetes (fuzzy no ES local);
+`search_mode=lexical` e `search_completed` com 31ms; logs sem
+fallback/429/circuit breaker; browser real (dev :3100): catálogo com 50
+resultados, digitar "capacete" (8 teclas) = **1 única request** de
+`/catalog/products`, painel do suggest com termos + categorias traduzidas +
+6 produtos; **0 erros de console** (antes 18, todos de CORS). Frontend
+`npm run check`: **163 passed**, depcruise 0 violações (198 módulos); **e2e
+search-suggest 8/8** contra a stack real. Outbox: **0 dead-letters**.
+
+**NÃO VALIDADO:** dispositivo físico do dono; Elastic Cloud segue como opção de
+produção (a API key antiga saiu do `.env` — renovar antes de reusar). Notas de
+ambiente: `celery-beat` segue "unhealthy" por causa do healthcheck `ps`-grep
+(no logs o agendador despacha normalmente); `grafana` em loop de restart é
+pré-existente e já documentado.
+
+---
+
 ## Privacy & Policy + consentimento obrigatório no cadastro (2026-10-27)
 
 **Feito:** página nova `app/[locale]/privacy/page.tsx` (rota `/{locale}/privacy`) com 11
