@@ -172,6 +172,23 @@ export interface paths {
         patch: operations["update_translation_api_v1_admin_catalog_translations_products__product_id___locale__patch"];
         trace?: never;
     };
+    "/api/v1/ai/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat */
+        post: operations["chat_api_v1_ai_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/google": {
         parameters: {
             query?: never;
@@ -591,6 +608,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/whatsapp/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Whatsapp Preferences
+         * @description Ativa/desativa o canal WhatsApp do USUARIO AUTENTICADO (opt-in explicito).
+         *
+         *     user_id/company_id vem do JWT (nunca do corpo). Falha de validacao E.164
+         *     responde 422 com mensagem neutra.
+         */
+        put: operations["update_whatsapp_preferences_api_v1_notifications_whatsapp_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/{notification_id}/resend": {
         parameters: {
             query?: never;
@@ -895,9 +935,11 @@ export interface paths {
          * Suggest Products
          * @description Sugestoes do dropdown: termos, categorias e produtos por score.
          *
-         *     O rate limit e o mesmo de /search/products (middleware classifica
-         *     ``/api/v1/search*``). O preco dos produtos vem do PostgreSQL (lista para
-         *     visitante, por empresa para autenticado); o indice nunca guarda preco.
+         *     Rate limit em balde PROPRIO (classe SUGGEST, mais folgado que o SEARCH).
+         *     Respostas ANONIMAS passam por cache Redis curto (TTL 30 s; chave com q
+         *     normalizado + locale + versao do indice) e recebem ``Cache-Control:
+         *     public, max-age=30``. Respostas AUTENTICADAS (preco por empresa) nunca
+         *     sao cacheadas — o middleware de security headers emite ``no-store``.
          */
         get: operations["suggest_products_api_v1_search_suggest_get"];
         put?: never;
@@ -1218,6 +1260,28 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /**
+         * ChatRequest
+         * @description Mensagem do usuario; `conversation_id` ausente = nova conversa.
+         */
+        ChatRequest: {
+            /** Conversation Id */
+            conversation_id?: string | null;
+            /** Message */
+            message: string;
+        };
+        /** ChatResponse */
+        ChatResponse: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Product Cards */
+            product_cards: components["schemas"]["ProductCardOut"][];
+            /** Reply */
+            reply: string;
         };
         /**
          * CheckStatus
@@ -1940,6 +2004,34 @@ export interface components {
             value: string;
         };
         /**
+         * ProductCardOut
+         * @description Cartao montado pelo BACKEND (preco so para usuario logado).
+         */
+        ProductCardOut: {
+            /** Ca Status */
+            ca_status: string;
+            /** Currency */
+            currency: string;
+            /** Image Alt */
+            image_alt: string;
+            /** Image Url */
+            image_url: string;
+            /** Link */
+            link: string;
+            /** Min Order Qty */
+            min_order_qty: number;
+            /** Name */
+            name: string;
+            /** Price */
+            price: string | null;
+            /** Price On Request */
+            price_on_request: boolean;
+            /** Product Id */
+            product_id: string;
+            /** Sku */
+            sku: string;
+        };
+        /**
          * ProductCreate
          * @description Payload para criar produto.
          */
@@ -2642,6 +2734,26 @@ export interface components {
             payment_id: string;
             /** Status */
             status: string;
+        };
+        /**
+         * WhatsAppOptInRequest
+         * @description Opt-in/opt-out do canal WhatsApp (usuario autenticado; E.164).
+         */
+        WhatsAppOptInRequest: {
+            /** Opt In */
+            opt_in: boolean;
+            /** Whatsapp Phone */
+            whatsapp_phone?: string | null;
+        };
+        /**
+         * WhatsAppOptInResponse
+         * @description Estado do opt-in WhatsApp apos atualizacao.
+         */
+        WhatsAppOptInResponse: {
+            /** Opt In */
+            opt_in: boolean;
+            /** Whatsapp Phone */
+            whatsapp_phone?: string | null;
         };
         /**
          * PaymentMethod
@@ -4165,6 +4277,157 @@ export interface operations {
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    chat_api_v1_ai_chat_post: {
+        parameters: {
+            query?: {
+                lang?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conversa inexistente ou fora do escopo */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de uso/orcamento excedido (Retry-After) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Agentes de IA desabilitados (kill switch) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6995,6 +7258,143 @@ export interface operations {
                      *       "title": "Unauthorized",
                      *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
                      *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_whatsapp_preferences_api_v1_notifications_whatsapp_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppOptInRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOptInResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
                      *     }
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];

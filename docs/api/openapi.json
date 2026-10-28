@@ -658,6 +658,63 @@
         "title": "CategoryRefAdmin",
         "type": "object"
       },
+      "ChatRequest": {
+        "additionalProperties": false,
+        "description": "Mensagem do usuario; `conversation_id` ausente = nova conversa.",
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "ChatRequest",
+        "type": "object"
+      },
+      "ChatResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "product_cards": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCardOut"
+            },
+            "title": "Product Cards",
+            "type": "array"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "reply",
+          "product_cards"
+        ],
+        "title": "ChatResponse",
+        "type": "object"
+      },
       "CheckStatus": {
         "enum": [
           "ok",
@@ -2556,6 +2613,78 @@
           "value"
         ],
         "title": "ProductAttributeOut",
+        "type": "object"
+      },
+      "ProductCardOut": {
+        "additionalProperties": false,
+        "description": "Cartao montado pelo BACKEND (preco so para usuario logado).",
+        "properties": {
+          "ca_status": {
+            "title": "Ca Status",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "image_alt": {
+            "title": "Image Alt",
+            "type": "string"
+          },
+          "image_url": {
+            "title": "Image Url",
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          },
+          "min_order_qty": {
+            "title": "Min Order Qty",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "price_on_request": {
+            "title": "Price On Request",
+            "type": "boolean"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "string"
+          },
+          "sku": {
+            "title": "Sku",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "sku",
+          "image_url",
+          "image_alt",
+          "link",
+          "price",
+          "currency",
+          "price_on_request",
+          "min_order_qty",
+          "ca_status"
+        ],
+        "title": "ProductCardOut",
         "type": "object"
       },
       "ProductCreate": {
@@ -6573,6 +6702,188 @@
         "summary": "Update Translation",
         "tags": [
           "catalog-admin-translations"
+        ]
+      }
+    },
+    "/api/v1/ai/chat": {
+      "post": {
+        "operationId": "chat_api_v1_ai_chat_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lang"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "404": {
+            "description": "Conversa inexistente ou fora do escopo"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de uso/orcamento excedido (Retry-After)"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          },
+          "503": {
+            "description": "Agentes de IA desabilitados (kill switch)"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {}
+        ],
+        "summary": "Chat",
+        "tags": [
+          "ai"
         ]
       }
     },
@@ -13935,6 +14246,10 @@
     }
   },
   "tags": [
+    {
+      "description": "Operacoes da API.",
+      "name": "ai"
+    },
     {
       "description": "Autenticacao, sessao e OAuth Google.",
       "name": "auth"
