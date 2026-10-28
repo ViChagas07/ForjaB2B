@@ -20,31 +20,36 @@ from app.modules.notification.application.ports import OutboxView, RecipientView
 from app.modules.notification.domain.enums import NotificationStatus
 
 _LIST_DUE = text(
-    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at "
+    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at, channel "
     "FROM notifications WHERE company_id = :company_id AND "
     "(status = 'PENDING' OR (status = 'FAILED' AND attempts < :max_attempts)) "
     "ORDER BY created_at, id LIMIT :limit"
 )
 _LIST_DUE_TENANTS = text("SELECT company_id FROM app.list_due_notifications(:limit, :max_attempts)")
 _RESOLVE_BUYER = text(
-    "SELECT u.id AS user_id, u.email FROM orders o "
+    "SELECT u.id AS user_id, u.email, u.whatsapp_phone, u.whatsapp_opt_in FROM orders o "
     "JOIN users u ON u.id = o.buyer_user_id "
-    "WHERE o.id = :order_id AND o.company_id = :company_id"
+    "WHERE o.id = :aggregate_id AND o.company_id = :company_id"
+)
+_RESOLVE_CART = text(
+    "SELECT u.id AS user_id, u.email, u.whatsapp_phone, u.whatsapp_opt_in FROM carts c "
+    "JOIN users u ON u.id = c.user_id "
+    "WHERE c.id = :aggregate_id AND c.company_id = :company_id"
 )
 _SELECT_PREFERENCE = text(
     "SELECT enabled FROM notification_preferences "
-    "WHERE company_id = :company_id AND user_id = :user_id AND channel = 'EMAIL'"
+    "WHERE company_id = :company_id AND user_id = :user_id AND channel = :channel"
 )
 _UPDATE_STATUS = text(
     "UPDATE notifications SET status = :status, error = :error, attempts = attempts + 1, "
     "sent_at = :sent_at, updated_at = now() WHERE id = :id AND company_id = :company_id"
 )
 _LIST_ALL = text(
-    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at "
+    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at, channel "
     "FROM notifications WHERE company_id = :company_id ORDER BY created_at DESC, id DESC"
 )
 _GET_ONE = text(
-    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at "
+    "SELECT id, company_id, event_type, aggregate_id, payload, status, attempts, created_at, channel "
     "FROM notifications WHERE id = :id AND company_id = :company_id"
 )
 _RESET = text(
@@ -63,6 +68,7 @@ def _to_view(row: Any) -> OutboxView:
         status=row.status,
         attempts=row.attempts,
         created_at=row.created_at,
+        channel=row.channel,
     )
 
 
@@ -98,13 +104,19 @@ class SqlAlchemyNotificationRepository:
             return {row.company_id for row in rows}
 
     async def resolve_recipient(
-        self, *, company_id: uuid.UUID, order_id: uuid.UUID
+        self,
+        *,
+        company_id: uuid.UUID,
+        event_type: str,
+        aggregate_id: uuid.UUID,
+        channel: str = "EMAIL",
     ) -> RecipientView | None:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
+            statement = _RESOLVE_CART if event_type == "cart.recovery" else _RESOLVE_BUYER
             buyer = (
                 await uow.session.execute(
-                    _RESOLVE_BUYER, {"order_id": order_id, "company_id": company_id}
+                    statement, {"aggregate_id": aggregate_id, "company_id": company_id}
                 )
             ).first()
             if buyer is None:
@@ -112,12 +124,21 @@ class SqlAlchemyNotificationRepository:
                 return None
             preference = (
                 await uow.session.execute(
-                    _SELECT_PREFERENCE, {"company_id": company_id, "user_id": buyer.user_id}
+                    _SELECT_PREFERENCE,
+                    {"company_id": company_id, "user_id": buyer.user_id, "channel": channel},
                 )
             ).first()
             await uow.commit()
             opted_out = preference is not None and not bool(preference[0])
-            return RecipientView(email=buyer.email, locale=None, opted_out=opted_out)
+            whatsapp_phone = str(buyer.whatsapp_phone) if buyer.whatsapp_phone else None
+            return RecipientView(
+                email=buyer.email,
+                locale=None,
+                opted_out=opted_out,
+                user_id=buyer.user_id,
+                whatsapp_phone=whatsapp_phone,
+                whatsapp_opt_in=bool(buyer.whatsapp_opt_in),
+            )
 
     async def mark(
         self,

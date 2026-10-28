@@ -6,9 +6,10 @@ from enum import StrEnum
 
 
 class NotificationChannel(StrEnum):
-    """Canais de entrega suportados (apenas e-mail nesta fase)."""
+    """Canais de entrega suportados (e-mail + WhatsApp; WHATSAPP exige opt-in)."""
 
     EMAIL = "EMAIL"
+    WHATSAPP = "WHATSAPP"
 
 
 class NotificationStatus(StrEnum):
@@ -27,3 +28,4 @@ class NotificationEventType(StrEnum):
     ORDER_CREATED = "order.created"
     INVOICE_ISSUED = "invoice.issued"
     PAYMENT_CONFIRMED = "payment.confirmed"
+    CART_RECOVERY = "cart.recovery"

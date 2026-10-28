@@ -22,6 +22,7 @@ class OutboxView:
     status: str
     attempts: int
     created_at: datetime
+    channel: str = "EMAIL"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -31,6 +32,9 @@ class RecipientView:
     email: str
     locale: str | None
     opted_out: bool
+    user_id: uuid.UUID | None = None
+    whatsapp_phone: str | None = None
+    whatsapp_opt_in: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -53,9 +57,14 @@ class NotificationRepository(Protocol):
         """Enumera tenants com notificacoes pendentes (via SECURITY DEFINER)."""
 
     async def resolve_recipient(
-        self, *, company_id: uuid.UUID, order_id: uuid.UUID
+        self,
+        *,
+        company_id: uuid.UUID,
+        event_type: str,
+        aggregate_id: uuid.UUID,
+        channel: str = "EMAIL",
     ) -> RecipientView | None:
-        """Resolve email/idioma/opt-out do comprador do pedido."""
+        """Resolve destinatario do evento (pedido OU carrinho) + opt-out por canal."""
 
     async def mark(
         self,
@@ -80,7 +89,16 @@ class NotificationRepository(Protocol):
 
 
 class EmailSender(Protocol):
-    """Porta do canal de e-mail (Fake/local ou SMTP Mailpit)."""
+    """Porta do canal de e-mail (SMTP Mailpit/fake ou Resend)."""
 
-    async def send(self, *, to: str, subject: str, body: str) -> None:
+    async def send(
+        self, *, to: str, subject: str, body: str, html: str | None = None
+    ) -> None:
         """Envia um e-mail; falhas levantam EmailTransientError/EmailPermanentError."""
+
+
+class WhatsAppSender(Protocol):
+    """Porta do canal WhatsApp (Z-API; None = canal desligado)."""
+
+    async def send(self, *, phone: str, message: str) -> None:
+        """Envia mensagem de texto; falhas levantam EmailTransientError/EmailPermanentError."""

@@ -17,10 +17,12 @@ class FakeEmailSender:
     """Registra envios em memoria (deterministico, para testes)."""
 
     def __init__(self) -> None:
-        self.sent: list[dict[str, str]] = []
+        self.sent: list[dict[str, str | None]] = []
 
-    async def send(self, *, to: str, subject: str, body: str) -> None:
-        self.sent.append({"to": to, "subject": subject, "body": body})
+    async def send(
+        self, *, to: str, subject: str, body: str, html: str | None = None
+    ) -> None:
+        self.sent.append({"to": to, "subject": subject, "body": body, "html": html})
 
 
 class SmtpEmailSender:
@@ -32,15 +34,20 @@ class SmtpEmailSender:
         self._from_email = from_email
         self._timeout = timeout
 
-    async def send(self, *, to: str, subject: str, body: str) -> None:
-        await asyncio.to_thread(self._send_sync, to, subject, body)
+    async def send(
+        self, *, to: str, subject: str, body: str, html: str | None = None
+    ) -> None:
+        await asyncio.to_thread(self._send_sync, to, subject, body, html)
 
-    def _send_sync(self, to: str, subject: str, body: str) -> None:
+    def _send_sync(self, to: str, subject: str, body: str, html_body: str | None) -> None:
         msg = EmailMessage()
         msg["Subject"] = subject
         msg["From"] = self._from_email
         msg["To"] = to
         msg.set_content(body)
+        if html_body:
+            # multipart/alternative: texto puro + HTML (valor JA escapado no render).
+            msg.add_alternative(html_body, subtype="html")
         try:
             with smtplib.SMTP(self._host, self._port, timeout=self._timeout) as smtp:
                 smtp.send_message(msg)

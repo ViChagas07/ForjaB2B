@@ -9,14 +9,15 @@ despachara. O event_type e um contrato string estavel (ver notification.domain).
 
 from __future__ import annotations
 
+import json
 import uuid
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 _INSERT_NOTIFICATION = text(
-    "INSERT INTO notifications (company_id, event_type, aggregate_id, channel, status) "
-    "VALUES (:company_id, :event_type, :aggregate_id, 'EMAIL', 'PENDING')"
+    "INSERT INTO notifications (company_id, event_type, aggregate_id, channel, payload, status) "
+    "VALUES (:company_id, :event_type, :aggregate_id, :channel, CAST(:payload AS jsonb), 'PENDING')"
 )
 
 
@@ -26,11 +27,24 @@ async def enqueue_notification(
     company_id: uuid.UUID,
     event_type: str,
     aggregate_id: uuid.UUID,
+    channel: str = "EMAIL",
+    payload: dict[str, object] | None = None,
 ) -> None:
-    """Registra uma notificacao PENDING na outbox, na transacao corrente."""
+    """Registra uma notificacao PENDING na outbox, na transacao corrente.
+
+    `channel`: "EMAIL" (padrao) ou "WHATSAPP" (exige opt-in; ver modulo
+    notification). `payload`: slots de render (ex.: cart.recovery leva
+    company_name/items_summary/offer_text — dados do backend, nunca do LLM).
+    """
     await session.execute(
         _INSERT_NOTIFICATION,
-        {"company_id": company_id, "event_type": event_type, "aggregate_id": aggregate_id},
+        {
+            "company_id": company_id,
+            "event_type": event_type,
+            "aggregate_id": aggregate_id,
+            "channel": channel,
+            "payload": json.dumps(payload) if payload is not None else None,
+        },
     )
 
 
