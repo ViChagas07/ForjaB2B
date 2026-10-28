@@ -12,3 +12,7 @@ from __future__ import annotations
 
 class LLMUnavailableError(RuntimeError):
     """LLM indisponivel ou falho apos esgotadas as tentativas."""
+
+
+class AIDisabledError(RuntimeError):
+    """IA desabilitada pelo kill switch (AI_AGENTS_ENABLED=false)."""

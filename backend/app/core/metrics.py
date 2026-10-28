@@ -117,6 +117,35 @@ reconcile_failures_total = Counter(
     "Execucoes de reconciliacao que falharam",
 )
 
+# Agentes de IA (Fase 12): chamadas LLM, latencia, erros, bloqueios de guard
+# e tokens estimados. Labels de baixa cardinalidade (agent: cart|chat);
+# NUNCA incluem PII, texto de prompt/resposta, chave de API ou tenant.
+llm_calls_total = Counter(
+    "forja_llm_calls_total",
+    "Chamadas a LLM por agente",
+    ["agent"],
+)
+llm_duration_seconds = Histogram(
+    "forja_llm_duration_seconds",
+    "Latencia de chamadas a LLM por agente",
+    ["agent"],
+)
+llm_errors_total = Counter(
+    "forja_llm_errors_total",
+    "Falhas de LLM (timeout/transporte/validacao) por agente",
+    ["agent"],
+)
+llm_tokens_estimated_total = Counter(
+    "forja_llm_tokens_estimated_total",
+    "Tokens estimados (aproximacao chars/4) por agente",
+    ["agent"],
+)
+ai_guard_blocks_total = Counter(
+    "forja_ai_guard_blocks_total",
+    "Bloqueios de guard (acao ou saida) por agente",
+    ["agent"],
+)
+
 _DEGRADED_SEARCH_MODES = frozenset({"semantic_postgres", "postgres_fallback"})
 
 
@@ -138,6 +167,23 @@ def increment_payment_confirmed(*, method: str, outcome: str) -> None:
 
 def increment_notifications_dispatched(*, status: str) -> None:
     notifications_dispatched_total.labels(status=status).inc()
+
+
+def observe_llm_call(
+    *, agent: str, duration: float, outcome: str, estimated_tokens: int = 0
+) -> None:
+    """Registra uma chamada LLM: latencia, resultado (ok/error) e tokens estimados."""
+    llm_calls_total.labels(agent=agent).inc()
+    llm_duration_seconds.labels(agent=agent).observe(duration)
+    if outcome != "ok":
+        llm_errors_total.labels(agent=agent).inc()
+    if estimated_tokens > 0:
+        llm_tokens_estimated_total.labels(agent=agent).inc(estimated_tokens)
+
+
+def increment_ai_guard_block(*, agent: str) -> None:
+    """Registra um bloqueio de guard (acao ou saida) por agente."""
+    ai_guard_blocks_total.labels(agent=agent).inc()
 
 
 def observe_search(*, mode: str, duration: float) -> None:
