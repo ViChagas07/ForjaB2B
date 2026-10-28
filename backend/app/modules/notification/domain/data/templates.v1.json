@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "events": {
+    "order.created": {
+      "pt-BR": {"subject": "Pedido recebido", "text": "Seu pedido {order_id} foi recebido e esta em processamento."},
+      "en": {"subject": "Order received", "text": "Your order {order_id} has been received and is being processed."},
+      "es": {"subject": "Pedido recibido", "text": "Su pedido {order_id} fue recibido y esta en procesamiento."},
+      "ar": {"subject": "تم استلام الطلب", "text": "تم استلام طلبك {order_id} وهو قيد المعالجة."},
+      "de": {"subject": "Bestellung eingegangen", "text": "Ihre Bestellung {order_id} wurde erhalten und wird bearbeitet."},
+      "fr": {"subject": "Commande reçue", "text": "Votre commande {order_id} a été reçue et est en cours de traitement."},
+      "it": {"subject": "Ordine ricevuto", "text": "Il suo ordine {order_id} è stato ricevuto ed è in elaborazione."},
+      "ja": {"subject": "ご注文を受け付けました", "text": "ご注文 {order_id} を受け付けました。現在処理中です。"},
+      "ko": {"subject": "주문이 접수되었습니다", "text": "주문 {order_id}이(가) 접수되어 처리 중입니다."},
+      "ru": {"subject": "Заказ получен", "text": "Ваш заказ {order_id} получен и обрабатывается."},
+      "zh-CN": {"subject": "已收到订单", "text": "您的订单 {order_id} 已收到，正在处理中。"}
+    },
+    "invoice.issued": {
+      "pt-BR": {"subject": "Fatura emitida", "text": "A fatura {order_id} foi emitida e aguarda pagamento."},
+      "en": {"subject": "Invoice issued", "text": "Invoice {order_id} has been issued and is awaiting payment."},
+      "es": {"subject": "Factura emitida", "text": "La factura {order_id} fue emitida y espera pago."},
+      "ar": {"subject": "تم إصدار الفاتورة", "text": "تم إصدار الفاتورة {order_id} وهي بانتظار الدفع."},
+      "de": {"subject": "Rechnung ausgestellt", "text": "Die Rechnung {order_id} wurde ausgestellt und wartet auf Zahlung."},
+      "fr": {"subject": "Facture émise", "text": "La facture {order_id} a été émise et attend le paiement."},
+      "it": {"subject": "Fattura emessa", "text": "La fattura {order_id} è stata emessa ed è in attesa di pagamento."},
+      "ja": {"subject": "請求書を発行しました", "text": "請求書 {order_id} を発行しました。お支払いをお待ちしています。"},
+      "ko": {"subject": "인보이스가 발행되었습니다", "text": "인보이스 {order_id}이(가) 발행되어 결제를 기다리고 있습니다."},
+      "ru": {"subject": "Счёт выставлен", "text": "Счёт {order_id} выставлен и ожидает оплаты."},
+      "zh-CN": {"subject": "发票已开具", "text": "发票 {order_id} 已开具，等待付款。"}
+    },
+    "payment.confirmed": {
+      "pt-BR": {"subject": "Pagamento confirmado", "text": "O pagamento do pedido {order_id} foi confirmado."},
+      "en": {"subject": "Payment confirmed", "text": "Payment for order {order_id} has been confirmed."},
+      "es": {"subject": "Pago confirmado", "text": "El pago del pedido {order_id} fue confirmado."},
+      "ar": {"subject": "تم تأكيد الدفع", "text": "تم تأكيد دفع الطلب {order_id}."},
+      "de": {"subject": "Zahlung bestätigt", "text": "Die Zahlung für Bestellung {order_id} wurde bestätigt."},
+      "fr": {"subject": "Paiement confirmé", "text": "Le paiement de la commande {order_id} a été confirmé."},
+      "it": {"subject": "Pagamento confermato", "text": "Il pagamento dell'ordine {order_id} è stato confermato."},
+      "ja": {"subject": "お支払いが確認されました", "text": "ご注文 {order_id} のお支払いが確認されました。"},
+      "ko": {"subject": "결제가 확인되었습니다", "text": "주문 {order_id}의 결제가 확인되었습니다."},
+      "ru": {"subject": "Платёж подтверждён", "text": "Оплата заказа {order_id} подтверждена."},
+      "zh-CN": {"subject": "付款已确认", "text": "订单 {order_id} 的付款已确认。"}
+    },
+    "cart.recovery": {
+      "pt-BR": {"subject": "Seu carrinho na Forja está guardado", "text": "Olá!\n\nA empresa {company_name} deixou itens no carrinho:\n{items_summary}\n\n{offer_text}\n\nFinalize o pedido aqui: {cart_url}\n\n{personal_note}\n\nPara deixar de receber mensagens de recuperação, desative as notificações no seu perfil."},
+      "en": {"subject": "Your Forja cart is saved", "text": "Hello!\n\n{company_name} left items in your cart:\n{items_summary}\n\n{offer_text}\n\nFinish your order here: {cart_url}\n\n{personal_note}\n\nTo stop receiving recovery messages, turn off notifications in your profile."},
+      "es": {"subject": "Su carrito en Forja está guardado", "text": "¡Hola!\n\nLa empresa {company_name} dejó artículos en el carrito:\n{items_summary}\n\n{offer_text}\n\nFinalice el pedido aquí: {cart_url}\n\n{personal_note}\n\nPara dejar de recibir mensajes de recuperación, desactive las notificaciones en su perfil."},
+      "ar": {"subject": "سلة التسوق الخاصة بك في فورجا محفوظة", "text": "مرحباً!\n\nتركَت شركة {company_name} عناصر في سلة التسوق:\n{items_summary}\n\n{offer_text}\n\nأكمل الطلب هنا: {cart_url}\n\n{personal_note}\n\nللتوقف عن استلام رسائل الاستعادة، عطّل الإشعارات في ملفك الشخصي."},
+      "de": {"subject": "Ihr Forja-Warenkorb ist gespeichert", "text": "Hallo!\n\nDas Unternehmen {company_name} hat Artikel im Warenkorb hinterlassen:\n{items_summary}\n\n{offer_text}\n\nBestellung hier abschließen: {cart_url}\n\n{personal_note}\n\nUm keine Nachrichten mehr zu erhalten, deaktivieren Sie Benachrichtigungen in Ihrem Profil."},
+      "fr": {"subject": "Votre panier Forja est enregistré", "text": "Bonjour !\n\nL'entreprise {company_name} a laissé des articles dans le panier :\n{items_summary}\n\n{offer_text}\n\nFinalisez la commande ici : {cart_url}\n\n{personal_note}\n\nPour ne plus recevoir de messages de relance, désactivez les notifications dans votre profil."},
+      "it": {"subject": "Il suo carrello Forja è salvato", "text": "Salve!\n\nL'azienda {company_name} ha lasciato articoli nel carrello:\n{items_summary}\n\n{offer_text}\n\nConcluda l'ordine qui: {cart_url}\n\n{personal_note}\n\nPer non ricevere più messaggi di recupero, disattivi le notifiche nel suo profilo."},
+      "ja": {"subject": "Forja のカートが保存されています", "text": "こんにちは！\n\n{company_name} がカートに商品を残しています：\n{items_summary}\n\n{offer_text}\n\nご注文はこちらから：{cart_url}\n\n{personal_note}\n\n復興メッセージを受け取らない場合は、プロフィールで通知をオフにしてください。"},
+      "ko": {"subject": "Forja 장바구니가 저장되어 있습니다", "text": "안녕하세요!\n\n{company_name}이(가) 장바구니에 상품을 남겼습니다:\n{items_summary}\n\n{offer_text}\n\n주문 완료하기: {cart_url}\n\n{personal_note}\n\n복구 메시지를 더 이상 받지 않으려면 프로필에서 알림을 끄세요."},
+      "ru": {"subject": "Ваша корзина Forja сохранена", "text": "Здравствуйте!\n\nКомпания {company_name} оставила товары в корзине:\n{items_summary}\n\n{offer_text}\n\nЗавершите заказ здесь: {cart_url}\n\n{personal_note}\n\nЧтобы не получать сообщения о восстановлении, отключите уведомления в профиле."},
+      "zh-CN": {"subject": "您在 Forja 的购物车已保存", "text": "您好！\n\n{company_name} 在购物车中留有商品：\n{items_summary}\n\n{offer_text}\n\n在此完成订单：{cart_url}\n\n{personal_note}\n\n如不再接收提醒消息，请在个人资料中关闭通知。"}
+    }
+  }
+}
