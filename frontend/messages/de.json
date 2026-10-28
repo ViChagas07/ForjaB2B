@@ -33,8 +33,6 @@
     "logout": "Abmelden",
     "logoutLoading": "Abmeldung läuft…",
     "signedInAs": "Angemeldet als",
-    "loginOr": "oder",
-    "continueWithGoogle": "Weiter mit Google",
     "googleCallbackLoading": "Anmeldung wird abgeschlossen…",
     "googleCallbackError": "Google-Anmeldung konnte nicht abgeschlossen werden."
   },

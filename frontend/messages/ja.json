@@ -33,8 +33,6 @@
     "logout": "ログアウト",
     "logoutLoading": "ログアウト中…",
     "signedInAs": "ログイン中：",
-    "loginOr": "または",
-    "continueWithGoogle": "Google で続行",
     "googleCallbackLoading": "サインインを完了しています…",
     "googleCallbackError": "Google でのサインインを完了できませんでした。"
   },

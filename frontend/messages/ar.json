@@ -33,8 +33,6 @@
     "logout": "تسجيل الخروج",
     "logoutLoading": "جارٍ تسجيل الخروج…",
     "signedInAs": "مسجّل الدخول باسم",
-    "loginOr": "أو",
-    "continueWithGoogle": "المتابعة باستخدام Google",
     "googleCallbackLoading": "جارٍ إكمال تسجيل الدخول…",
     "googleCallbackError": "تعذر إكمال تسجيل الدخول باستخدام Google."
   },

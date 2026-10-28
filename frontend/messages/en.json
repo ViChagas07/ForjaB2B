@@ -33,8 +33,6 @@
     "logout": "Sign out",
     "logoutLoading": "Signing out…",
     "signedInAs": "Signed in as",
-    "loginOr": "or",
-    "continueWithGoogle": "Continue with Google",
     "googleCallbackLoading": "Completing sign-in…",
     "googleCallbackError": "Could not complete Google sign-in."
   },

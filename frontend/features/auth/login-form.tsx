@@ -12,7 +12,6 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
 import { loginFormSchema } from "./schemas";
-import { GoogleLoginButton } from "./google-login-button";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
@@ -105,17 +104,6 @@ export function LoginForm() {
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? t("auth.loginLoading") : t("auth.loginSubmit")}
       </Button>
-
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">{t("auth.loginOr")}</span>
-        </div>
-      </div>
-
-      <GoogleLoginButton />
     </form>
   );
 }
