@@ -50,5 +50,5 @@ class AgentAuditLog(Base):
     reason_code: Mapped[str | None] = mapped_column(String(64))
     payload: Mapped[dict[str, object] | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=text("now()")
+        DateTime(timezone=True), nullable=False, server_default=text("now()"), index=True
     )

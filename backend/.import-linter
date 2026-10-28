@@ -56,6 +56,7 @@ modules =
     app.modules.privacy
     app.modules.search
     app.modules.audit
+    app.modules.ai
 
 # ------------------------------------------------------------------------------
 # Pureza do dominio: nem o dominio compartilhado nem o dominio de qualquer
@@ -94,3 +95,20 @@ forbidden_modules =
     app.infrastructure
     app.interface
     app.modules
+
+# ------------------------------------------------------------------------------
+# IA (Fase 12): o dominio dos agentes NUNCA importa LangChain/LangGraph —
+# esses frameworks ficam restritos as camadas application/infrastructure do
+# modulo ai (o dominio continua pureza total, inclusive sem pydantic, pelo
+# contrato domain-purity acima).
+# ------------------------------------------------------------------------------
+[importlinter:contract:ai-domain-llm-independence]
+name = Dominio de IA nao importa LangChain/LangGraph
+type = forbidden
+source_modules =
+    app.modules.ai.domain
+forbidden_modules =
+    langchain
+    langchain_core
+    langchain_openai
+    langgraph

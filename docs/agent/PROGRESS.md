@@ -6,6 +6,49 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 1 — Fundação dos agentes de IA (2026-10-28)
+
+Módulo novo `backend/app/modules/ai/` (Clean Architecture): domain puro
+(`AgentContext`, `Locale` dos 11 locales, `ToolResult`, `GuardVerdict`,
+`build_audit_payload` — hash sha256 + tamanho + prefixo sanitizado de 80
+chars, sem PII/texto completo); application com porta `LLMPort`
+(`complete_structured`/`complete_text`), `ResilientLLM` (timeout + 1 retry,
+erro único `LLMUnavailableError`) e kill switch `ensure_ai_enabled`
+(`AIDisabledError`); infrastructure com `LangChainOpenAILLM` (langchain-openai
+apontando para `LLM_BASE_URL`) e `FakeLLM` scriptável. Config: `AI_AGENTS_ENABLED`
+(false = kill switch, default), `LLM_*` (base_url/api_key/model/timeout/max_tokens,
+chave só no backend), `AI_DAILY_TOKEN_BUDGET`, `AI_CHAT_MAX_MESSAGE_CHARS=500`,
+`AI_CHAT_HISTORY_TURNS=10`, `AI_CONVERSATION_TTL_DAYS=30` (documentados no
+`.env.example` com placeholders). Migration 0023 cria `agent_audit_log`
+(append-only, RLS FORCE no padrão do projeto; INSERT aceita `company_id` NULL
+de visitante, que fica invisível a tenants) + modelo ORM no `Base.metadata`;
+payload nunca guarda texto do usuário. Métricas: `forja_llm_calls_total`,
+`forja_llm_duration_seconds`, `forja_llm_errors_total`,
+`forja_llm_tokens_estimated_total`, `forja_ai_guard_blocks_total`. Novo contrato
+import-linter: domínio de IA não importa langchain/langgraph (5 kept; teste
+negativo provou que violação BROKEN). Nenhum endpoint/job de IA existe ainda —
+com `AI_AGENTS_ENABLED=false` (default) nada muda no comportamento atual.
+
+**Checagens reais:** pip/langchain 1.7.0 + langchain-openai 1.7.3 + langgraph
+1.2.18 instalados no venv e na imagem (backend rebuild OK); ruff check/format
+**450 arquivos OK**; mypy app **0 erros** (318 arquivos); import-linter **5
+kept**; pytest unit **585 passed**; pytest integration **290 passed, 1 skipped**
+(skip pré-existente); `docker compose --env-file .env.example config --quiet`
+OK; pg_dump pré-migration `backups/forja_db_20261028T135106Z.dump` (228.571 B,
+validado) e `alembic upgrade head` 0022→0023 aplicado no banco de dev com
+estrutura/policies conferidas via psql. Achado e corrigido no caminho: drift
+do índice `ix_agent_audit_log_created_at` (metadata sem índice) — modelo
+alinhou ao banco. **NÃO VALIDADO:** chamada real a LLM/provedor (nenhum
+endpoint/jobs de IA; só construção do adaptador sem rede), frontend intocado
+(sem dependência/uso novo).
+
+**Commits:** `f73752c` (deps), `1c67c18` (config/kill switch), `0b71443`
+(domain), `fe9b5d1` (porta + retry), `213ff3a` (adaptadores), `ff011cb`
+(auditoria + RLS), `b96d22c` (métricas + gate), passo 8 (import-linter +
+checagens + este registro).
+
+---
+
 ## Lentidão do catálogo: ES local no lugar do Cloud + debounce na busca (2026-10-28)
 
 **Relato do dono:** produtos do catálogo e da barra de pesquisa demorando MUITO;
