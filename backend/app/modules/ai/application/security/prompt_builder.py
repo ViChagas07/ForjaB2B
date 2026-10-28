@@ -22,8 +22,8 @@ import secrets
 from collections.abc import Callable, Sequence
 from functools import lru_cache
 
-from app.modules.ai.domain.types import Locale
 from app.modules.ai.application.ports import LLMMessage
+from app.modules.ai.domain.types import Locale
 
 _SYSTEM_PROMPT_FILE = "system_prompt.chat.v1.txt"
 

@@ -25,6 +25,7 @@ from app.modules.notification.application.ports import (
 )
 from app.modules.notification.domain.enums import NotificationStatus
 from app.modules.notification.domain.notification import (
+    PersonalNoteSanitizer,
     cart_url,
     render_email,
     render_personal_note,
@@ -49,12 +50,14 @@ class DispatchOutbox:
         repository: NotificationRepository,
         email_sender: EmailSender,
         whatsapp_sender: WhatsAppSender | None = None,
+        personal_note_sanitizer: PersonalNoteSanitizer | None = None,
         frontend_base_url: str = "",
         max_attempts: int = 5,
     ) -> None:
         self._repository = repository
         self._email_sender = email_sender
         self._whatsapp_sender = whatsapp_sender
+        self._personal_note_sanitizer = personal_note_sanitizer
         self._frontend_base_url = frontend_base_url
         self._max_attempts = max_attempts
 
@@ -140,6 +143,7 @@ class DispatchOutbox:
             note = render_personal_note(
                 str(payload.get("personal_note", "")) if payload.get("personal_note") else None,
                 locale=locale,
+                sanitizer=self._personal_note_sanitizer,
             )
             return {
                 "company_name": str(payload.get("company_name", "Forja")),

@@ -16,6 +16,7 @@ from app.core.config import get_settings
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.modules.ai.application.security.note_sanitizer import build_personal_note_sanitizer
 from app.modules.notification.application.notification import DispatchOutbox
 from app.modules.notification.infrastructure.email import build_email_sender
 from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
@@ -35,6 +36,7 @@ def dispatch_outbox() -> int:
             repository=repository,
             email_sender=build_email_sender(settings),
             whatsapp_sender=build_whatsapp_sender(settings),
+            personal_note_sanitizer=build_personal_note_sanitizer(),
             frontend_base_url=settings.frontend_base_url,
         )
         return asyncio.run(_dispatch(use_case, repository))

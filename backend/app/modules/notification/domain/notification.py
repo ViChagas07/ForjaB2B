@@ -10,8 +10,12 @@ zh-CN, ja, ko, ru, es, de, fr, it, ar), fallback pt-BR. Nunca ha chave vazia.
   mantida para compatibilidade com os 3 eventos originais.
 - `cart_url` (item 6): SEMPRE gerado pelo backend a partir do dominio do
   site em config — nunca vem do LLM.
-- `{personal_note}` (item 5): unico slot vindo do LLM; `render_personal_note`
-  aplica o output guard da Fase 2 e limite de 200 chars — reprovado, omite.
+- `{personal_note}` (item 5): unico slot possivelmente vindo do LLM. Este
+  modulo NAO importa app.modules.ai (contrato de bounded contexts): o
+  CHAMADOR injeta o sanitizador (output guard da Fase 2, limite 200 chars;
+  reprovado = slot omitido) via `render_personal_note(..., sanitizer=...)`.
+  Sem sanitizador injetado, fallback deterministico: normalizacao basica e
+  truncamento em 200 chars.
 """
 
 from __future__ import annotations
@@ -20,12 +24,14 @@ import html
 import importlib.resources
 import json
 import re
+import unicodedata
+from collections.abc import Callable
 from functools import lru_cache
 from typing import cast
 
-from app.modules.ai.domain.security.injection import scan_injection
-from app.modules.ai.domain.security.output_guard import guard_model_output
-from app.modules.ai.domain.types import Locale
+PersonalNoteSanitizer = Callable[[str | None, str | None], str]
+
+PERSONAL_NOTE_MAX_CHARS = 200
 
 _TEMPLATES_FILE = "templates.v1.json"
 _LOCALES = (
@@ -127,23 +133,26 @@ def render_text(*, event_type: str, locale: str | None, slots: dict[str, str]) -
     return _render(subject_template, slots), _render(text_template, slots)
 
 
-def render_personal_note(note: str | None, *, locale: str | None) -> str:
-    """Slot {personal_note}: output guard da Fase 2 + 200 chars; reprovado = ''.
+def render_personal_note(
+    note: str | None,
+    *,
+    locale: str | None,
+    sanitizer: PersonalNoteSanitizer | None = None,
+) -> str:
+    """Slot {personal_note}: sanitizador injetado (IA) ou fallback deterministico.
 
-    Defesa em profundidade: alem do output guard, a nota tambem passa pelo
-    detector de injecao (texto gerado por LLM nao leva jailbreak para o e-mail).
+    Com sanitizador (raiz de composicao injeta o output guard da Fase 2 +
+    scan de injecao): texto aprovado ou "" (reprovado/vazio omite o slot).
+    Sem sanitizador: apenas normalizacao basica e truncamento em 200 chars —
+    nunca estoura o limite.
     """
+    if sanitizer is not None:
+        return sanitizer(note, locale)
     if note is None or not note.strip():
         return ""
-    locale_value = _normalize_locale(locale)
-    guarded = guard_model_output(
-        note.strip(), locale=Locale(locale_value), max_chars=PERSONAL_NOTE_MAX_CHARS
-    )
-    if guarded.blocked or not guarded.text:
-        return ""
-    if scan_injection(guarded.text).level.value == "BLOCK":
-        return ""
-    return guarded.text
+    normalized = unicodedata.normalize("NFKC", note.strip())
+    collapsed = " ".join(normalized.split())
+    return collapsed[:PERSONAL_NOTE_MAX_CHARS]
 
 
 def cart_url(locale: str | None, *, frontend_base_url: str) -> str:
