@@ -6,6 +6,41 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 5b — Ferramentas somente leitura e cartões de produto (2026-10-28)
+
+Sem chamada a LLM e sem rota nova. `modules/ai/application/tools.py`:
+`search_products(query, category?, limit<=6)`, `get_product(id UUID)`,
+`list_categories()`, `get_shipping_policy()` com schemas Pydantic STRICT
+(`extra="forbid"`; `company_id`/`user_id` nunca são argumentos — vêm do
+contexto do servidor). Toda saída para o modelo passa pelo sanitizador de
+catálogo da Fase 2 (allowlist id/name/sku/brand/category/atributos, descrição
+≤300, sem HTML/URL); documento suspeito vai a QUARENTENA com product_id e
+reason (para audit) e o id NÃO entra no turno. Nenhum preço no contexto do
+LLM. Política de frete estática e traduzida (11 locales) usando
+`BASE_FREIGHT`/`RATE_PER_KG` de `domain/shipping.py`, sem prometer prazo.
+Ferramentas registradas na allowlist por nó `chat` (Fase 2, máx. 4/turno).
+`modules/ai/application/product_cards.py`: filtra ids forjados (só o
+intersect das ferramentas NESTE turno), hidrata via porta e monta cartão com
+link `/catalog/<id>` e imagem no SERVIDOR; visitante SEMPRE sem preço
+(`price_on_request`), logado com o preço da PRÓPRIA empresa; máx. 6 cartões.
+Ligação em `app/wiring/ai_tools.py` (raiz de composição, fora de
+`modules/ai`): reusa `SearchProducts`/`ProductReader` e o domínio
+compartilhado — mesma resolução de preço (negociado > desconto > lista),
+sem duplicar busca; bounded contexts 5 kept.
+
+**Checagens reais:** pytest unit **768 passed** (15 novos de ferramentas/
+cartões/guards); integration **306 passed, 1 skipped** (pré-existente) com 2
+novos em Postgres real: visitante sem preço no cartão e logado recebendo
+**FIXED_PRICE** da própria empresa (777,00) via adapter; ruff **500 OK**;
+mypy app **0 erros** (345); import-linter **5 kept**; compose config OK.
+**NÃO VALIDADO:** `search_products` via SearchProducts real em runtime
+(Elasticsearch/pgvector não exercitados; testes usam stub de ranking +
+`ProductReader` real); endpoint do chat (FASE 5c).
+
+**Commits:** `f2a3c05` ferramentas+cartões+wiring, passo final (PROGRESS).
+
+---
+
 ## Fase 12, FASE 5a — Memória do chat (conversas/mensagens/TTL) (2026-10-28)
 
 Continuidade da FASE 5 sem refazer a migration 0026. Entregue:
