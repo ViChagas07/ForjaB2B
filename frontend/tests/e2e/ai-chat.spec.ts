@@ -39,7 +39,7 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "text/html",
-      body: "<!doctype html><html lang=\"pt-BR\"><body><h1>Produto</h1></body></html>",
+      body: '<!doctype html><html lang="pt-BR"><body><h1>Produto</h1></body></html>',
     });
   });
 });
