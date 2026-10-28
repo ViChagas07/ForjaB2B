@@ -37,7 +37,8 @@ mypy app **0 erros** (345); import-linter **5 kept**; compose config OK.
 (Elasticsearch/pgvector não exercitados; testes usam stub de ranking +
 `ProductReader` real); endpoint do chat (FASE 5c).
 
-**Commits:** `f2a3c05` ferramentas+cartões+wiring, passo final (PROGRESS).
+**Commits:** `ccc6b1b` ferramentas+cartões+wiring, `84f16b6` pacote de
+helpers dos testes, passo final (PROGRESS).
 
 ---
 
