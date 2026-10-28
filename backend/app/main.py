@@ -14,8 +14,10 @@ conhece interface e infraestrutura ao mesmo tempo.
 from __future__ import annotations
 
 import asyncio
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -63,6 +65,16 @@ from app.interface.openapi import configure_openapi
 from app.interface.rate_limit import RateLimitMiddleware
 from app.interface.security_headers import SecurityHeadersMiddleware
 from app.interface.v1.router import api_v1_router
+from app.modules.ai.application.chat import ChatService
+from app.modules.ai.application.chat_graph import ChatGraph
+from app.modules.ai.application.conversation_service import ConversationService
+from app.modules.ai.application.ports import ResilientLLM
+from app.modules.ai.application.security.budget import InMemoryDailyTokenBudget
+from app.modules.ai.application.security.input_gate import InputGate
+from app.modules.ai.application.security.ports import InMemoryBlockCounter
+from app.modules.ai.infrastructure.chat_audit import SqlAlchemyChatAudit
+from app.modules.ai.infrastructure.chat_repository import SqlAlchemyConversationRepository
+from app.modules.ai.infrastructure.llm_openai import build_langchain_llm
 from app.modules.cart.application.cart import CartService
 from app.modules.cart.infrastructure.repository import SqlAlchemyCartRepository
 from app.modules.catalog.application.catalog import (
@@ -177,6 +189,7 @@ from app.modules.search.infrastructure.postgres_search import PostgresSearchRead
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
 from app.modules.search.infrastructure.reconcile import ReconcileService
 from app.modules.search.infrastructure.suggest_cache import SuggestCache
+from app.wiring.ai_tools import build_ai_catalog_wiring
 
 _logger = get_logger(__name__)
 
@@ -262,6 +275,7 @@ def _compose_search(app: FastAPI, settings: Settings) -> None:
         )
     app.state.embedding_provider = embedding_provider
     app.state.vector_store = vector_store
+    app.state.search_product_reader = product_reader
     app.state.search_products = SearchProducts(
         primary=product_index,
         fallback=postgres_search_reader,
@@ -372,6 +386,66 @@ def _build_admin_factories(
     admin_engine = create_engine(settings, admin=True)
     session_factory = create_session_factory(admin_engine)
     return admin_engine, session_factory, SqlAlchemyUnitOfWorkFactory(session_factory)
+
+
+class _CartSummaryAdapter:
+    """Resumo do carrinho do PROPRIO usuario para CART_HELP (sem precos)."""
+
+    def __init__(self, cart_service: CartService) -> None:
+        self._cart_service = cart_service
+
+    async def cart_summary(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> str:
+        view = await self._cart_service.get_cart(company_id, user_id, "pt-BR")
+        if view is None or not view.items:
+            return "carrinho vazio"
+        total_qty = sum(item.quantity for item in view.items)
+        names = ", ".join(item.name for item in view.items[:5])
+        return f"{len(view.items)} itens, {total_qty} unidades: {names}"
+
+
+def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
+    """Assistente de chat (FASE 5c): grafo fixo + servico + orcamento.
+
+    Kill switch: com `AI_AGENTS_ENABLED=false` o LLM nem e construido (o
+    endpoint responde 503 neutro e nenhum custo e gerado).
+    """
+    ai_llm = (
+        ResilientLLM(build_langchain_llm(settings), timeout_seconds=settings.llm_timeout_s)
+        if settings.ai_agents_enabled and settings.llm_ready
+        else None
+    )
+    ai_tools, ai_cards = build_ai_catalog_wiring(
+        search_products=app.state.search_products,
+        product_reader=app.state.search_product_reader,
+        uow_factory=app.state.uow_factory,
+    )
+    ai_conversations = ConversationService(
+        repository=SqlAlchemyConversationRepository(app.state.uow_factory),
+        ttl_days=settings.ai_conversation_ttl_days,
+        history_turns=settings.ai_chat_history_turns,
+        max_message_chars=settings.ai_chat_max_message_chars,
+    )
+    app.state.ai_chat_service = ChatService(
+        conversations=ai_conversations,
+        graph=ChatGraph(
+            llm=ai_llm,
+            tools=ai_tools,
+            cards=ai_cards,
+            input_gate=InputGate(
+                max_message_chars=settings.ai_chat_max_message_chars,
+                window_turns=settings.ai_chat_history_turns,
+                block_counter=InMemoryBlockCounter(),
+            ),
+            conversations=ai_conversations,
+            cart_summary=_CartSummaryAdapter(app.state.cart_service),
+            audit=SqlAlchemyChatAudit(app.state.uow_factory),
+            ai_enabled=settings.ai_agents_enabled,
+            history_turns=settings.ai_chat_history_turns,
+        ),
+    )
+    app.state.ai_token_budget = InMemoryDailyTokenBudget(
+        limit=settings.ai_daily_token_budget, clock=date.today
+    )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -587,6 +661,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Composicao do contexto de carrinho.
     app.state.cart_service = CartService(repository=SqlAlchemyCartRepository(app.state.uow_factory))
+
+    # Composicao do assistente de chat de IA (FASE 5c): grafo fixo + endpoint.
+    _compose_ai_chat(app, settings)
 
     # Composicao do contexto de pedidos.
     ordering_repository = SqlAlchemyOrderingRepository(app.state.uow_factory)

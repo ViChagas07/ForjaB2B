@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.ai.interface.router import router as ai_router
 from app.modules.cart.interface.router import router as cart_router
 from app.modules.catalog.interface.router import router as catalog_router
 from app.modules.companies.interface.router import router as companies_router
@@ -33,3 +34,4 @@ api_v1_router.include_router(payment_router)
 api_v1_router.include_router(notification_router)
 api_v1_router.include_router(privacy_router)
 api_v1_router.include_router(search_router)
+api_v1_router.include_router(ai_router)
