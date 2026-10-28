@@ -95,6 +95,32 @@ def seed(pg: object) -> None:
         )
 
 
+@pytest.fixture(autouse=True)
+def _cleanup_after(pg: object, migrated_domain_schema: None) -> Iterator[None]:
+    """Limpa o seed ao fim de CADA teste (banco compartilhado na sessao).
+
+    Produto/categoria sao GLOBAIS: sem limpeza, o produto de teste vazaria
+    para os testes de catalogo.
+    """
+    yield
+    with tenant_tx(pg) as conn:
+        for table in (
+            "agent_audit_log",
+            "cart_recovery_attempts",
+            "notifications",
+            "cart_recovery_offers",
+            "cart_items",
+            "carts",
+            "order_items",
+            "orders",
+        ):
+            conn.execute(f"DELETE FROM {table} WHERE company_id = %s", (COMPANY,))
+        conn.execute("DELETE FROM products WHERE id = %s", (PRODUCT,))
+        conn.execute("DELETE FROM categories WHERE id = %s", (CATEGORY,))
+        conn.execute("DELETE FROM users WHERE company_id = %s", (COMPANY,))
+        conn.execute("DELETE FROM companies WHERE id = %s", (COMPANY,))
+
+
 def scalar(pg: object, sql: str, params: tuple[object, ...] = ()) -> object:
     with tenant_tx(pg) as conn:
         row = conn.execute(sql, params).fetchone()

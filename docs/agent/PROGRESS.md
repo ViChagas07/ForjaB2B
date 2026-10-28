@@ -6,6 +6,53 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 4 — Agente de recuperação de carrinho (2026-10-28)
+
+DADOS: pg_dump prévio (`forja_db_20261028T171017Z.dump`, 234.684 B validado);
+migration **0025** adiciona `carts.last_activity_at` (indexada, backfill =
+`updated_at` com NO FORCE temporário), `cart_recovery_attempts` (status,
+reason_code, chosen_action, channel, offer_id, guard_verdict, sent_at; RLS
+FORCE) e `cart_recovery_offers` (FREE_SHIPPING | PERCENT_DISCOUNT, expires_at
+72h, redeemed_at; RLS FORCE); role NOLOGIN `forja_recovery` + policy dedicada
+em `carts` + função SECURITY DEFINER `app.list_recovery_tenants` no bootstrap
+(ownership exige superuser). TODA operação de item (add/update/remove/clear)
+toca `last_activity_at` na mesma transação (teste cobre as 4). POLÍTICA em
+`modules/ai/domain/recovery.py` (pura): elegível 24h..7d, sem pedido depois,
+sem opt-out; REMIND sempre; FREE_SHIPPING ≥ 1500 (ratio 15% é hint);
+DISCOUNT_3PCT só com pedido pago anterior E linha não negociada;
+ESCALATE_HUMAN ≥ 20000 ou risco; cooldown 7d/2 por estado. GRAFO LangGraph
+fixo (load_context→policy→decide→validate→act→end) em
+`modules/ai/application/recovery.py`: decide recebe só contagens/faixas/hints
+sem PII em bloco não confiável, saída `RecoveryDecision` STRICT, ação fora da
+lista/nota reprovada → REMIND sem nota, LLM off/falha → REMIND determinístico
+(kill switch degrada, nunca quebra). JOB `tasks/cart_recovery.py` no beat a
+cada 15 min, lotes por tenant com RLS, advisory lock PostgreSQL, idempotente.
+CHECKOUT: oferta resolvida no SERVIDOR pelo carrinho do comprador; frete
+grátis zera; 3% só linhas sem preço negociado; resgate na MESMA transação do
+pedido (uso único; rowcount 0 falha fechado). Bounded contexts preservado
+(job orquestra cart; ai não importa cart) — import-linter 5 kept.
+
+**Checagens reais:** pytest unit **744 passed** (25 novos: 17 política + 8
+grafo/FakeLLM); integration **299 passed, 1 skipped** (pré-existente) com 7
+novos (last_activity 4 ops, idempotência do job, pedido-depois, frete grátis,
+3% só não-negociado, expirada, outro comprador); ruff **457 arquivos OK**;
+mypy app **0 erros** (337); import-linter **5 kept**; compose config OK;
+migration 0024→0025 aplicada e conferida (backfill 6/6 carts);
+**VALIDADO (runtime, Mailpit):** carrinho de dev parado há 25h gerou 1 e-mail
+(REMIND, "Seu carrinho na Forja está guardado", item + link /pt-BR/cart);
+2ª execução do job: **0 envios** (attempts=1, notifications=1). **NÃO
+VALIDADO:** chamada real ao LLM (AI_AGENTS_ENABLED=false; testes usam FakeLLM);
+locale do destinatário vem do payload do job mas o job usa pt-BR (users não
+tem coluna de idioma — pendência); hint de estoque baixo neutro (catálogo não
+tem coluna de estoque); `item_removed_recently` é heurística (hint apenas);
+checkout de oferta validado por integração com Postgres real, não por e2e HTTP
+com Mailpit; frontend intocado.
+
+**Commits:** `a37c3d4` dados+política, `8e15d45` grafo+job+checkout, passo
+final (teardown de teste + PROGRESS).
+
+---
+
 ## Fase 12, FASE 3 — Canais de notificação: Resend, WhatsApp, templates 11 locales (2026-10-28)
 
 Templates por evento em `modules/notification/domain/data/templates.v1.json`
