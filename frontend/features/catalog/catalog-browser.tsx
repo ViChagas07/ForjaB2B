@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import type { SortField, SortOrder } from "@/core/domain/catalog";
 import { SORT_FIELDS, SORT_ORDERS } from "@/core/domain/catalog";
+import { useDebouncedValue } from "@/features/search";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
@@ -18,6 +19,8 @@ import { useBrands, useCategories, useProducts } from "./hooks";
 import { ProductCard } from "./product-card";
 
 const PAGE_SIZE = 20;
+/** Debounce do campo de busca do catálogo (ms): 1 request por pausa, não por tecla. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 function parseEnum<T extends string>(value: string | null, allowed: readonly T[]): T | undefined {
   return value && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
@@ -36,6 +39,27 @@ export function CatalogBrowser() {
   const sort = parseEnum<SortField>(searchParams.get("sort"), SORT_FIELDS) ?? "name";
   const order = parseEnum<SortOrder>(searchParams.get("order"), SORT_ORDERS) ?? "asc";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
+
+  // Estado local do campo: digitação responsiva; a URL (e a busca) acompanham
+  // com debounce, como no combobox do header. Sem isso, cada tecla dispara
+  // router.replace + fetch de /catalog/products.
+  const [searchInput, setSearchInput] = React.useState(search);
+  const debouncedSearch = useDebouncedValue(searchInput, SEARCH_DEBOUNCE_MS);
+
+  // A URL manda (voltar/avançar, submit do combobox, links): sincroniza o campo.
+  React.useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
+  // Atualiza a URL somente quando a digitação pausa (o `setParam` já reseta a
+  // página e é estável em comportamento; o sync acima evita valor defasado).
+  React.useEffect(() => {
+    if (debouncedSearch === search) {
+      return;
+    }
+    setParam("q", debouncedSearch || undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const categoriesQuery = useCategories();
   const brandsQuery = useBrands();
@@ -140,14 +164,14 @@ export function CatalogBrowser() {
       </div>
 
       <CatalogFilters
-        search={search}
+        search={searchInput}
         categoryId={categoryId}
         brandId={brandId}
         sort={sort}
         order={order}
         categories={categoriesQuery.data}
         brands={brandsQuery.data}
-        onSearchChange={(value) => setParam("q", value)}
+        onSearchChange={setSearchInput}
         onCategoryChange={(value) => setParam("category_id", value)}
         onBrandChange={(value) => setParam("brand_id", value)}
         onSortChange={(value) => setParam("sort", value)}
