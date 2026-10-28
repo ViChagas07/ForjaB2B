@@ -283,6 +283,31 @@ class Settings(BaseSettings):
     translation_provider: str = "null"
     translation_max_text_length: int = Field(default=4000, ge=1)
 
+    # Agentes de IA (Fase 12): chat no app e recuperacao de carrinho abandonado.
+    # `ai_agents_enabled` e o KILL SWITCH geral: false (default) desliga todos os
+    # endpoints e jobs de IA (endpoints respondem 503, jobs nao fazem nada) e
+    # nenhum caminho de requisicao importa pacotes de LLM. Falha de IA nunca
+    # bloqueia catalogo, carrinho, checkout ou pedido.
+    ai_agents_enabled: bool = False
+    # LLM via API compativel com OpenAI (qualquer endpoint: OpenAI, Azure,
+    # gateways, modelos locais). `llm_api_key` fica SOMENTE no backend, nunca
+    # vai para logs, respostas ou o frontend; string vazia conta como ausente.
+    llm_base_url: str | None = None
+    llm_api_key: str | None = None
+    llm_model: str = "gpt-4o-mini"
+    llm_timeout_s: float = Field(default=30.0, gt=0)
+    llm_max_tokens: int = Field(default=512, ge=1)
+    # Orcamento diario de tokens estimados por processo (contabilidade
+    # conservadora, reset diario); 0 = sem orcamento (so o kill switch limita).
+    ai_daily_token_budget: int = Field(default=200_000, ge=0)
+    # Limites do chat: mensagem do usuario (texto simples, sem HTML) e quantas
+    # rodadas (pergunta+resposta) de historico sao enviadas ao LLM. O historico
+    # NUNCA inclui precos, CNPJ, e-mail, telefone ou dados de contrato.
+    ai_chat_max_message_chars: int = Field(default=500, ge=1)
+    ai_chat_history_turns: int = Field(default=10, ge=1)
+    # Retencao da conversa do chat (agent_conversations) para auditoria/TTL.
+    ai_conversation_ttl_days: int = Field(default=30, ge=1)
+
     @property
     def supported_locale_list(self) -> list[str]:
         """Idiomas de conteudo suportados (CONTENT_LOCALES), na ordem configurada."""
@@ -331,6 +356,11 @@ class Settings(BaseSettings):
         return self.effective_stripe_secret_key is not None
 
     @property
+    def llm_ready(self) -> bool:
+        """LLM utilizavel: endpoint compativel com OpenAI totalmente configurado."""
+        return self.llm_base_url is not None and self.llm_api_key is not None
+
+    @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
@@ -359,6 +389,8 @@ class Settings(BaseSettings):
         "stripe_webhook_secret",
         "stripe_webhook_secret_previous",
         "payment_webhook_secret_previous",
+        "llm_base_url",
+        "llm_api_key",
         mode="before",
     )
     @classmethod
