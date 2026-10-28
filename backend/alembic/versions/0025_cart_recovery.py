@@ -132,10 +132,14 @@ def upgrade() -> None:
         ),
     )
     op.create_index("ix_cart_recovery_attempts_cart_id", "cart_recovery_attempts", ["cart_id"])
-    op.create_index("ix_cart_recovery_attempts_company_id", "cart_recovery_attempts", ["company_id"])
+    op.create_index(
+        "ix_cart_recovery_attempts_company_id", "cart_recovery_attempts", ["company_id"]
+    )
     op.create_index("ix_cart_recovery_attempts_user_id", "cart_recovery_attempts", ["user_id"])
     op.create_index("ix_cart_recovery_attempts_offer_id", "cart_recovery_attempts", ["offer_id"])
-    op.create_index("ix_cart_recovery_attempts_created_at", "cart_recovery_attempts", ["created_at"])
+    op.create_index(
+        "ix_cart_recovery_attempts_created_at", "cart_recovery_attempts", ["created_at"]
+    )
 
     _tenant_rls("cart_recovery_attempts")
     _tenant_rls("cart_recovery_offers")
@@ -145,9 +149,7 @@ def upgrade() -> None:
     # app.list_recovery_tenants tambem vive no bootstrap (02-rls-setup.sql),
     # como app.list_due_notifications — ownership exige superusuario.
     op.execute(f"GRANT SELECT ON carts TO {_RECOVERY_ROLE}")
-    op.execute(
-        f"CREATE POLICY carts_recovery ON carts FOR SELECT TO {_RECOVERY_ROLE} USING (true)"
-    )
+    op.execute(f"CREATE POLICY carts_recovery ON carts FOR SELECT TO {_RECOVERY_ROLE} USING (true)")
 
 
 def downgrade() -> None:
