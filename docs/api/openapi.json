@@ -4503,6 +4503,58 @@
         "title": "WebhookResponse",
         "type": "object"
       },
+      "WhatsAppOptInRequest": {
+        "additionalProperties": false,
+        "description": "Opt-in/opt-out do canal WhatsApp (usuario autenticado; E.164).",
+        "properties": {
+          "opt_in": {
+            "title": "Opt In",
+            "type": "boolean"
+          },
+          "whatsapp_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp Phone"
+          }
+        },
+        "required": [
+          "opt_in"
+        ],
+        "title": "WhatsAppOptInRequest",
+        "type": "object"
+      },
+      "WhatsAppOptInResponse": {
+        "additionalProperties": false,
+        "description": "Estado do opt-in WhatsApp apos atualizacao.",
+        "properties": {
+          "opt_in": {
+            "title": "Opt In",
+            "type": "boolean"
+          },
+          "whatsapp_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Whatsapp Phone"
+          }
+        },
+        "required": [
+          "opt_in"
+        ],
+        "title": "WhatsAppOptInResponse",
+        "type": "object"
+      },
       "app__modules__ordering__domain__payment__PaymentMethod": {
         "description": "Forma de pagamento de um pedido (simulada nesta fase).",
         "enum": [
@@ -10080,6 +10132,174 @@
         ]
       }
     },
+    "/api/v1/notifications/whatsapp/preferences": {
+      "put": {
+        "description": "Ativa/desativa o canal WhatsApp do USUARIO AUTENTICADO (opt-in explicito).\n\nuser_id/company_id vem do JWT (nunca do corpo). Falha de validacao E.164\nresponde 422 com mensagem neutra.",
+        "operationId": "update_whatsapp_preferences_api_v1_notifications_whatsapp_preferences_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatsAppOptInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppOptInResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update Whatsapp Preferences",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/notifications/{notification_id}/resend": {
       "post": {
         "operationId": "resend_notification_api_v1_notifications__notification_id__resend_post",
@@ -13233,7 +13453,7 @@
     },
     "/api/v1/search/suggest": {
       "get": {
-        "description": "Sugestoes do dropdown: termos, categorias e produtos por score.\n\nO rate limit e o mesmo de /search/products (middleware classifica\n``/api/v1/search*``). O preco dos produtos vem do PostgreSQL (lista para\nvisitante, por empresa para autenticado); o indice nunca guarda preco.",
+        "description": "Sugestoes do dropdown: termos, categorias e produtos por score.\n\nRate limit em balde PROPRIO (classe SUGGEST, mais folgado que o SEARCH).\nRespostas ANONIMAS passam por cache Redis curto (TTL 30 s; chave com q\nnormalizado + locale + versao do indice) e recebem ``Cache-Control:\npublic, max-age=30``. Respostas AUTENTICADAS (preco por empresa) nunca\nsao cacheadas — o middleware de security headers emite ``no-store``.",
         "operationId": "suggest_products_api_v1_search_suggest_get",
         "parameters": [
           {

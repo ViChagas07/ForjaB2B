@@ -128,7 +128,11 @@ from app.modules.identity.infrastructure.password import Argon2PasswordHasher
 from app.modules.identity.infrastructure.tokens import RedisRefreshTokenStore
 from app.modules.invoicing.application.invoice import CreateInvoice, GetInvoice, GetInvoiceByOrder
 from app.modules.invoicing.infrastructure.repository import SqlAlchemyInvoicingRepository
-from app.modules.notification.application.notification import ListNotifications, ResendNotification
+from app.modules.notification.application.notification import (
+    ListNotifications,
+    ResendNotification,
+    UpdateWhatsAppOptIn,
+)
 from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.infrastructure.repository import SqlAlchemyOrderingRepository
@@ -626,6 +630,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     notification_repository = SqlAlchemyNotificationRepository(app.state.uow_factory)
     app.state.notification_list = ListNotifications(repository=notification_repository)
     app.state.notification_resend = ResendNotification(repository=notification_repository)
+    app.state.notification_whatsapp = UpdateWhatsAppOptIn(repository=notification_repository)
 
     # Composicao do contexto de privacidade (LGPD, self-service do titular).
     privacy_repository = SqlAlchemyPrivacyRepository(app.state.uow_factory)

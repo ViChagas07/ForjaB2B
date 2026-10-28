@@ -16,9 +16,14 @@ from app.interface.deps import get_current_auth
 from app.modules.notification.application.notification import (
     ListNotifications,
     ResendNotification,
+    UpdateWhatsAppOptIn,
 )
 from app.modules.notification.application.ports import OutboxView
-from app.modules.notification.interface.schemas import NotificationResponse
+from app.modules.notification.interface.schemas import (
+    NotificationResponse,
+    WhatsAppOptInRequest,
+    WhatsAppOptInResponse,
+)
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -31,6 +36,10 @@ def _list_usecase(request: Request) -> ListNotifications:
 
 def _resend_usecase(request: Request) -> ResendNotification:
     return cast(ResendNotification, request.app.state.notification_resend)
+
+
+def _whatsapp_usecase(request: Request) -> UpdateWhatsAppOptIn:
+    return cast(UpdateWhatsAppOptIn, request.app.state.notification_whatsapp)
 
 
 def _to_response(view: OutboxView) -> NotificationResponse:
@@ -63,3 +72,26 @@ async def resend_notification(
 ) -> None:
     require_any_role(auth, _ADMIN_ROLES)
     await use_case.resend(auth.company_id, notification_id)
+
+
+@router.put("/whatsapp/preferences", response_model=WhatsAppOptInResponse)
+async def update_whatsapp_preferences(
+    body: WhatsAppOptInRequest,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[UpdateWhatsAppOptIn, Depends(_whatsapp_usecase)],
+) -> WhatsAppOptInResponse:
+    """Ativa/desativa o canal WhatsApp do USUARIO AUTENTICADO (opt-in explicito).
+
+    user_id/company_id vem do JWT (nunca do corpo). Falha de validacao E.164
+    responde 422 com mensagem neutra.
+    """
+    await use_case.update(
+        company_id=auth.company_id,
+        user_id=auth.user_id,
+        phone=body.whatsapp_phone,
+        opt_in=body.opt_in,
+    )
+    return WhatsAppOptInResponse(
+        opt_in=body.opt_in,
+        whatsapp_phone=body.whatsapp_phone if body.opt_in else None,
+    )

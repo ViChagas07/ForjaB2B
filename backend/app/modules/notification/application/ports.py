@@ -87,6 +87,16 @@ class NotificationRepository(Protocol):
     async def reset_for_resend(self, company_id: uuid.UUID, outbox_id: uuid.UUID) -> None:
         """Reabre uma notificacao (PENDING, attempts=0) para reenvio (admin)."""
 
+    async def update_whatsapp_opt_in(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        phone: str | None,
+        opt_in: bool,
+    ) -> None:
+        """Ativa/desativa WhatsApp do usuario (opt-in explicito; E.164)."""
+
 
 class EmailSender(Protocol):
     """Porta do canal de e-mail (SMTP Mailpit/fake ou Resend)."""

@@ -57,6 +57,11 @@ _RESET = text(
     "UPDATE notifications SET status = 'PENDING', attempts = 0, error = NULL, "
     "sent_at = NULL, updated_at = now() WHERE id = :id AND company_id = :company_id"
 )
+_UPDATE_WHATSAPP = text(
+    "UPDATE users SET whatsapp_phone = :phone, whatsapp_opt_in = :opt_in, "
+    "whatsapp_opt_in_at = CASE WHEN :opt_in THEN now() ELSE NULL END, "
+    "updated_at = now() WHERE id = :user_id AND company_id = :company_id"
+)
 
 
 def _to_view(row: Any) -> OutboxView:
@@ -186,4 +191,25 @@ class SqlAlchemyNotificationRepository:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
             await uow.session.execute(_RESET, {"id": outbox_id, "company_id": company_id})
+            await uow.commit()
+
+    async def update_whatsapp_opt_in(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        phone: str | None,
+        opt_in: bool,
+    ) -> None:
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            await uow.session.execute(
+                _UPDATE_WHATSAPP,
+                {
+                    "company_id": company_id,
+                    "user_id": user_id,
+                    "phone": phone,
+                    "opt_in": opt_in,
+                },
+            )
             await uow.commit()

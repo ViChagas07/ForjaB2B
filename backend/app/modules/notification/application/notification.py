@@ -203,3 +203,28 @@ class ResendNotification:
         if existing is None:
             raise NotificationNotFoundError()
         await self._repository.reset_for_resend(company_id, notification_id)
+
+
+class UpdateWhatsAppOptIn:
+    """Caso de uso: usuario ativa/desativa WhatsApp para si (opt-in explicito).
+
+    `user_id` vem do contexto de autenticacao (JWT) — nunca do corpo. Ativar
+    exige numero E.164 valido; desativar limpa o numero e o momento do opt-in.
+    """
+
+    def __init__(self, *, repository: NotificationRepository) -> None:
+        self._repository = repository
+
+    async def update(
+        self, *, company_id: uuid.UUID, user_id: uuid.UUID, phone: str | None, opt_in: bool
+    ) -> None:
+        if opt_in:
+            if phone is None or not is_e164(phone):
+                raise ValueError("whatsapp_phone deve ser E.164 valido")
+            await self._repository.update_whatsapp_opt_in(
+                company_id=company_id, user_id=user_id, phone=phone.strip(), opt_in=True
+            )
+            return
+        await self._repository.update_whatsapp_opt_in(
+            company_id=company_id, user_id=user_id, phone=None, opt_in=False
+        )
