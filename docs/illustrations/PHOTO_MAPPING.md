@@ -105,3 +105,27 @@ Cobertura resultante: **47 de 50 produtos com foto real**; ilustrações especí
 remanescentes: RES-004, OCV-006 e LUV-009 (sem foto fornecida; RES-004 ativo). Nenhum
 produto ativo usa o fallback de categoria — que segue existindo como última rede de
 segurança (`resolve_product_image_path`).
+
+## Lote 4 � fotos do responsável com o nome correto do produto (2026-10-28)
+
+Pedido do dono: aplicar as imagens nos produtos correspondentes, guiando-se pelo
+nome do arquivo. As duas primeiras **substituem as saídas do Lote 3**, que usaram
+proxies com outro nome ("Luva de Raspa Premium.jpg" e "Protetor Auricular Plug
+Silicone.jpg" — fotos de uso/origem distinta); o respirador estreia a foto própria
+do RES-004 (a saída anterior era um recorte apertado da mesma máscara azul, com as
+tiras cortadas, de uma rodada não documentada). Modos: `crop` para as duas quase
+quadradas (1192×1200 e 447×447 — o recorte central não corta o objeto) e `fit`
+para o respirador retrato (1019×1200; o recorte cortaria as tiras — padrão dos
+demais respiradores). Saídas substituídas e verificadas (`--verify`: 48/48,
+640×640, sem EXIF, ≤ 80 KB). Banco: nenhum ajuste — o seed (`_PRODUCT_IMAGES`)
+já vinculava os três SKUs.
+
+| Arquivo original | SKU | Confiança | Motivo / critério |
+|---|---|---|---|
+| Luvas de Raspa Premium.webp | LUV-004 | Alta | Nome = produto "Luvas de Raspa Premium"; foto de produto (par de luvas de raspa com punho), substitui a foto de uso com luvas de tecido do Lote 3. |
+| Protetor Auricular Plug Moldável.jpg | AUD-004 | Alta | Nome = produto "Protetor Auricular Plug Moldável"; plug de espuma com cordão, substitui a foto "em uso" do Lote 3. |
+| Respirador PFF2 Sem Válvula.webp | RES-004 | Alta | Nome = produto "Respirador PFF2 Sem Válvula"; máscara dobrável azul sem válvula visível (coerente com o nome). |
+
+Cobertura resultante: **48 de 50 produtos com foto real**; ilustrações específicas
+remanescentes: OCV-006 e LUV-009 (sem foto fornecida). Nenhum produto ativo usa o
+fallback de categoria.

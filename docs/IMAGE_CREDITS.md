@@ -101,3 +101,18 @@ nelas"). Origem/autor/licença: idênticos à entrada do Lote 2 do arquivo origi
 |---|---|---|---|---|---|
 | aud-004.webp | Protetor Auricular Plug Silicone.jpg (mesma foto do Lote 2) | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
 | luv-004.webp | Luva de Raspa Premium.jpg (mesma foto do Lote 2) | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+
+---
+
+## Lote 4 � fotos do responsável (2026-10-28)
+
+Fotos fornecidas pelo dono do projeto com o nome do produto no arquivo
+("guie-se pelo nome da imagem"). Substituem as saídas do Lote 3 e estreiam a
+foto do RES-004. Origem/autor/licença: a confirmar pelo responsável (mesmo
+padrão dos lotes anteriores).
+
+| Saída (SKU) | Arquivo original | Autor | source_url | Licença | license_url |
+|---|---|---|---|---|---|
+| luv-004.webp | Luvas de Raspa Premium.webp | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| aud-004.webp | Protetor Auricular Plug Moldável.jpg | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |
+| res-004.webp | Respirador PFF2 Sem Válvula.webp | [PREENCHER] | [PREENCHER] | [PREENCHER] | [PREENCHER] |

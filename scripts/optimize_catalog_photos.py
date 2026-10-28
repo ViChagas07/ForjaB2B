@@ -92,10 +92,13 @@ PHOTO_SOURCES: list[tuple[Path, str, str, str]] = [
     (OUTPUT_DIR, "Óculos de Proteção Incolor.jpg", "OCV-001", "fit"),
     (OUTPUT_DIR, "Óculos de Proteção para Sobrepor.jpg", "OCV-005", "crop"),
     (OUTPUT_DIR, "Óculos de Segurança Antiembaçante.jpg", "OCV-004", "crop"),
-    # Lote 3 (assets-src/photos-inbox/): fotos fornecidas pelo dono — aplicadas
-    # tambem nas variantes (moldavel/plural) que aparecem no catalogo.
-    (INBOX_DIR, "Protetor Auricular Plug Silicone.jpg", "AUD-004", "fit"),
-    (INBOX_DIR, "Luva de Raspa Premium.jpg", "LUV-004", "fit"),
+    # Lote 4 (assets-src/photos-inbox/): fotos fornecidas pelo dono com o nome
+    # correto do produto — substituem as saidas do Lote 3 (que usaram proxies
+    # com outro nome) e estreiam a foto do RES-004. Respirador em modo `fit`
+    # (retrato: o recorte central cortaria as tiras).
+    (INBOX_DIR, "Luvas de Raspa Premium.webp", "LUV-004", "crop"),
+    (INBOX_DIR, "Protetor Auricular Plug Moldável.jpg", "AUD-004", "crop"),
+    (INBOX_DIR, "Respirador PFF2 Sem Válvula.webp", "RES-004", "fit"),
 ]
 
 
