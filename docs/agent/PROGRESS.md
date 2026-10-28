@@ -6,6 +6,39 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 5a — Memória do chat (conversas/mensagens/TTL) (2026-10-28)
+
+Continuidade da FASE 5 sem refazer a migration 0026. Entregue:
+`docs/ai/AGENTS_CONTEXT.md` (contexto fixo para as próximas fases);
+`ConversationRepositoryPort` (+ `ChatTurn`/`ConversationView`) em
+`modules/ai/application/ports.py`; `SqlAlchemyConversationRepository`
+(`infrastructure/chat_repository.py`) com escopo em SQL: visitante só lê/escreve
+conversa sem dono (posse do UUID) e logado só a da MESMA empresa E usuário
+(escrita fora do escopo levanta `ConversationAccessError`); RLS do projeto via
+`TenantContext`; `ConversationService` com superfície estruturalmente limitada
+(apenas `append_user_message` sanitizada e `append_assistant_message` aprovada —
+não existe método para ferramenta/produto/system prompt), re-normalização na
+gravação, histórico truncado em `AI_CHAT_HISTORY_TURNS` e TTL
+`AI_CONVERSATION_TTL_DAYS` renovado a cada mensagem; task Celery diária
+`tasks/ai_chat.cleanup_chat_conversations` (beat 86400s, include no worker)
+chamando `app.delete_expired_chat_conversations` (lote `AI_CHAT_CLEANUP_BATCH`,
+default 500). Sem endpoint exposto (decisão da fase).
+
+**Checagens reais:** pytest unit **753 passed** (9 novos do serviço); integration
+**304 passed, 1 skipped** (pré-existente) com 5 novos contra Postgres real
+(visitante só a própria conversa, outra empresa/outro usuário não leem, escrita
+fora do escopo rejeitada, histórico truncado em ordem cronológica, limpeza TTL
+remove conversa + mensagens por CASCADE); ruff **492 OK**; mypy app **0 erros**
+(341); import-linter **5 kept**; compose config OK. **NÃO VALIDADO:** execução
+real do worker/beat da limpeza (task criada no padrão do dispatch_outbox, não
+disparada em runtime nesta sessão); endpoint/grafo do assistente seguem
+pendentes (FASE 5b).
+
+**Commits:** `a0f22a1` contexto+porta+repositório+serviço (+ .env.example),
+passo final (PROGRESS).
+
+---
+
 ## Fase 12, FASE 5 — Assistente de chat (PARCIAL: só dados) (2026-10-28)
 
 Passo 1 entregue: pg_dump prévio (`forja_db_20261028T173935Z.dump`, 251.016 B)

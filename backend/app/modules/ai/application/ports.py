@@ -16,7 +16,10 @@ contrato e o envelope transversal:
 from __future__ import annotations
 
 import asyncio
+import uuid
 from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol, TypedDict, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
@@ -87,3 +90,97 @@ class ResilientLLM:
                 # Nao-transitoria (ex.: saida invalida): converte sem retry.
                 raise LLMUnavailableError("llm_failed") from exc
         raise LLMUnavailableError("llm_unavailable_after_retries") from last_error
+
+
+# ---------------------------------------------------------------------------
+# Chat (FASE 5): persistencia de conversas/mensagens.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class ChatTurn:
+    """Mensagem JA sanitizada/aprovada (unico conteudo que entra na memoria)."""
+
+    role: str  # "user" | "assistant"
+    content: str
+    created_at: datetime
+
+
+@dataclass(frozen=True, kw_only=True)
+class ConversationView:
+    """Conversa de chat (visitante = company_id/user_id None)."""
+
+    id: uuid.UUID
+    company_id: uuid.UUID | None
+    user_id: uuid.UUID | None
+    locale: str
+    expires_at: datetime
+
+
+class ConversationRepositoryPort(Protocol):
+    """Persistencia de conversas. Escopo SEMPRE validado no servidor.
+
+    `company_id`/`user_id` nulos = VISITANTE: so enxerga conversas sem dono
+    (capacidade = conhecer o UUID). Logado: so conversas da MESMA empresa e do
+    MESMO usuario. Tentativas fora do escopo sao tratadas como inexistentes
+    (sem vazamento) ou levantam `ConversationAccessError` na escrita.
+    """
+
+    async def create(
+        self,
+        *,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+        locale: str,
+        expires_at: datetime,
+    ) -> uuid.UUID:
+        """Cria a conversa e devolve o UUID (nao adivinhavel)."""
+        ...
+
+    async def get(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+    ) -> ConversationView | None:
+        """Le a conversa dentro do escopo do chamador; None = fora do escopo."""
+        ...
+
+    async def append_message(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        role: str,
+        content: str,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+    ) -> None:
+        """Grava UMA mensagem ja sanitizada/aprovada no escopo do chamador."""
+        ...
+
+    async def last_messages(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        limit: int,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+    ) -> list[ChatTurn]:
+        """Ultimas `limit` mensagens (ordem cronologica), no escopo do chamador."""
+        ...
+
+    async def touch(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        expires_at: datetime,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+    ) -> None:
+        """Renova last_message_at/expires_at (TTL) no escopo do chamador."""
+        ...
+
+    async def delete_expired(self, *, limit: int) -> int:
+        """Limpeza TTL cross-tenant (funcao SECURITY DEFINER); devolve removidas."""
+        ...

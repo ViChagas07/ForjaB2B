@@ -327,6 +327,8 @@ class Settings(BaseSettings):
     ai_chat_history_turns: int = Field(default=10, ge=1)
     # Retencao da conversa do chat (agent_conversations) para auditoria/TTL.
     ai_conversation_ttl_days: int = Field(default=30, ge=1)
+    # Limpeza diaria de conversas de chat expiradas (lote por execucao).
+    ai_chat_cleanup_batch: int = Field(default=500, ge=1)
     # Agente de recuperacao de carrinho (FASE 4): limiares da politica (calc
     # em codigo, nunca no LLM) e lotes do job.
     cart_recovery_free_shipping_min_brl: Decimal = Field(default=Decimal("1500.00"), ge=0)

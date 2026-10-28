@@ -18,7 +18,12 @@ celery_app = Celery(
     backend=_settings.celery_result_backend,
     # Registra as tasks no worker (sem include o worker ignora as mensagens
     # do beat com "Received unregistered task").
-    include=["app.tasks.notifications", "app.tasks.search", "app.tasks.cart_recovery"],
+    include=[
+        "app.tasks.notifications",
+        "app.tasks.search",
+        "app.tasks.cart_recovery",
+        "app.tasks.ai_chat",
+    ],
 )
 
 celery_app.conf.update(
@@ -49,6 +54,10 @@ celery_app.conf.beat_schedule = {
     "cart-recovery": {
         "task": "app.tasks.cart_recovery.run_cart_recovery",
         "schedule": 900.0,  # a cada 15 minutos
+    },
+    "cleanup-chat-conversations": {
+        "task": "app.tasks.ai_chat.cleanup_chat_conversations",
+        "schedule": 86400.0,  # diariamente
     },
 }
 

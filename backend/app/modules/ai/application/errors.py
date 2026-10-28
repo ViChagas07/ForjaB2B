@@ -16,3 +16,7 @@ class LLMUnavailableError(RuntimeError):
 
 class AIDisabledError(RuntimeError):
     """IA desabilitada pelo kill switch (AI_AGENTS_ENABLED=false)."""
+
+
+class ConversationAccessError(RuntimeError):
+    """Acesso a conversa fora do escopo (visitante x dono x tenant)."""
