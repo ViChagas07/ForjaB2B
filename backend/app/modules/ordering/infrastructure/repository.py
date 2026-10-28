@@ -36,6 +36,7 @@ from app.modules.ordering.application.ports import (
     OrderItemView,
     OrderView,
     ProductForOrder,
+    RecoveryOfferView,
     ResolvedItem,
 )
 from app.modules.ordering.domain.enums import OrderStatus
@@ -63,10 +64,21 @@ _SELECT_ENTRIES = text(
     "SELECT entry_type, amount FROM credit_entries WHERE company_id = :company_id"
 )
 _INSERT_ORDER = text(
-    "INSERT INTO orders (company_id, buyer_user_id, subtotal, shipping_total, total, "
-    "idempotency_key, po_number, notes, content_locale) VALUES "
-    "(:company_id, :buyer_user_id, :subtotal, :shipping_total, :total, "
-    ":idempotency_key, :po_number, :notes, :content_locale) RETURNING id"
+    "INSERT INTO orders (company_id, buyer_user_id, subtotal, discount_total, shipping_total, "
+    "total, idempotency_key, po_number, notes, content_locale) VALUES "
+    "(:company_id, :buyer_user_id, :subtotal, :discount_total, :shipping_total, "
+    ":total, :idempotency_key, :po_number, :notes, :content_locale) RETURNING id"
+)
+_SELECT_ACTIVE_OFFER = text(
+    "SELECT o.id, o.type, o.percent FROM cart_recovery_offers o "
+    "JOIN carts c ON c.id = o.cart_id "
+    "WHERE o.company_id = :company_id AND c.company_id = :company_id "
+    "  AND c.user_id = :buyer_user_id AND o.redeemed_at IS NULL AND o.expires_at > now() "
+    "ORDER BY o.created_at DESC, o.id DESC LIMIT 1"
+)
+_REDEEM_OFFER = text(
+    "UPDATE cart_recovery_offers SET redeemed_at = now() "
+    "WHERE id = :offer_id AND company_id = :company_id AND redeemed_at IS NULL"
 )
 _INSERT_ITEM = text(
     "INSERT INTO order_items (order_id, company_id, product_id, price_tier_id, sku, "
@@ -171,6 +183,22 @@ class SqlAlchemyOrderingRepository:
                 company_rules=rules.get(product_id, []),
             )
 
+    async def find_active_offer(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID
+    ) -> RecoveryOfferView | None:
+        tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            row = (
+                await uow.session.execute(
+                    _SELECT_ACTIVE_OFFER,
+                    {"company_id": company_id, "buyer_user_id": buyer_user_id},
+                )
+            ).first()
+            await uow.commit()
+        if row is None:
+            return None
+        return RecoveryOfferView(id=row.id, type=row.type, percent=row.percent)
+
     async def create_order(
         self,
         *,
@@ -185,6 +213,8 @@ class SqlAlchemyOrderingRepository:
         shipping_total: Decimal,
         total: Decimal,
         content_locale: str,
+        discount_total: Decimal = Decimal("0.00"),
+        recovery_offer_id: uuid.UUID | None = None,
     ) -> OrderView:
         existing_id = await self._find_by_key(company_id, idempotency_key)
         if existing_id is not None:
@@ -202,6 +232,8 @@ class SqlAlchemyOrderingRepository:
                 shipping_total=shipping_total,
                 total=total,
                 content_locale=content_locale,
+                discount_total=discount_total,
+                recovery_offer_id=recovery_offer_id,
             )
         except Exception as exc:
             if _constraint_name(exc) == _ORDERS_KEY_UNIQUE:
@@ -224,11 +256,23 @@ class SqlAlchemyOrderingRepository:
         shipping_total: Decimal,
         total: Decimal,
         content_locale: str,
+        discount_total: Decimal = Decimal("0.00"),
+        recovery_offer_id: uuid.UUID | None = None,
     ) -> OrderView:
         tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
         async with self._uow_factory.begin(tenant) as uow:
             if payment_method == "BOLETO":
                 await self._check_credit_available(uow, company_id=company_id, amount=total)
+
+            if recovery_offer_id is not None:
+                # Uso unico: resgate DENTRO da transacao do pedido; corrida
+                # (outro checkout resgatou antes) falha fechado.
+                redeemed = await uow.session.execute(
+                    _REDEEM_OFFER,
+                    {"offer_id": recovery_offer_id, "company_id": company_id},
+                )
+                if redeemed.rowcount == 0:  # type: ignore[attr-defined]
+                    raise InvalidOrderStateError()
 
             order_id = (
                 await uow.session.execute(
@@ -237,6 +281,7 @@ class SqlAlchemyOrderingRepository:
                         "company_id": company_id,
                         "buyer_user_id": buyer_user_id,
                         "subtotal": subtotal,
+                        "discount_total": discount_total,
                         "shipping_total": shipping_total,
                         "total": total,
                         "idempotency_key": idempotency_key,

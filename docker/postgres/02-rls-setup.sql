@@ -39,6 +39,9 @@ GRANT USAGE ON SCHEMA app TO :"app_user";
 GRANT USAGE, CREATE ON SCHEMA app TO forja_auth;
 -- forja_notification (despacho da outbox) segue o mesmo padrao.
 GRANT USAGE, CREATE ON SCHEMA app TO forja_notification;
+-- forja_recovery (agente de recuperacao de carrinho) idem, para assumir o
+-- ownership da funcao app.list_recovery_tenants (SECURITY DEFINER).
+GRANT USAGE, CREATE ON SCHEMA app TO forja_recovery;
 
 -- -----------------------------------------------------------------------------
 -- 1. app.current_company_id(): UUID do tenant ativo ou NULL se ausente/invalido.

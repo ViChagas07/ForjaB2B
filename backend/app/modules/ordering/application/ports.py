@@ -48,6 +48,18 @@ class ResolvedItem:
     tier_min_quantity: int | None
     price_tier_id: uuid.UUID | None
     line_total: Decimal
+    # Recuperacao de carrinho (FASE 4): desconto de 3% NAO se aplica a linhas
+    # com preco negociado (PriceSource.NEGOTIATED).
+    is_negotiated: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecoveryOfferView:
+    """Oferta de recuperacao ativa do carrinho do comprador (uso unico)."""
+
+    id: uuid.UUID
+    type: str  # FREE_SHIPPING | PERCENT_DISCOUNT
+    percent: Decimal | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -86,6 +98,11 @@ class OrderingRepository(Protocol):
     ) -> ProductForOrder | None:
         """Le produto + tiers + regras da empresa para validacao/precificacao."""
 
+    async def find_active_offer(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID
+    ) -> RecoveryOfferView | None:
+        """Oferta nao expirada/nao resgatada do carrinho do comprador."""
+
     async def create_order(
         self,
         *,
@@ -100,8 +117,11 @@ class OrderingRepository(Protocol):
         shipping_total: Decimal,
         total: Decimal,
         content_locale: str,
+        discount_total: Decimal = Decimal("0.00"),
+        recovery_offer_id: uuid.UUID | None = None,
     ) -> OrderView:
-        """Cria pedido (snapshot) + reserva credito (boleto) atomicamente."""
+        """Cria pedido (snapshot) + reserva credito (boleto) + resgata oferta
+        de recuperacao na MESMA transacao (uso unico)."""
 
     async def get_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView | None:
         """Consulta um pedido do tenant (com itens)."""
