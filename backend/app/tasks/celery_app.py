@@ -16,6 +16,9 @@ celery_app = Celery(
     "forja",
     broker=_settings.celery_broker_url,
     backend=_settings.celery_result_backend,
+    # Registra as tasks no worker (sem include o worker ignora as mensagens
+    # do beat com "Received unregistered task").
+    include=["app.tasks.notifications", "app.tasks.search"],
 )
 
 celery_app.conf.update(

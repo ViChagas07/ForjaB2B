@@ -84,7 +84,7 @@ class DispatchOutbox:
     async def _dispatch_email(self, row: OutboxView, recipient: RecipientView) -> bool:
         slots = self._slots_for(row, recipient)
         subject, text, html_body = render_email(
-            event_type=row.event_type, locale=recipient.locale, slots=slots
+            event_type=row.event_type, locale=self._locale_for(row, recipient), slots=slots
         )
         try:
             await self._email_sender.send(
@@ -111,7 +111,7 @@ class DispatchOutbox:
             return False
         _subject, message = render_text(
             event_type=row.event_type,
-            locale=recipient.locale,
+            locale=self._locale_for(row, recipient),
             slots=self._slots_for(row, recipient),
         )
         try:
@@ -125,9 +125,17 @@ class DispatchOutbox:
         await self._sent(row)
         return True
 
+    def _locale_for(self, row: OutboxView, recipient: RecipientView) -> str | None:
+        """Idioma do destinatario: perfil (repo) ou payload do job (dados backend)."""
+        if recipient.locale:
+            return recipient.locale
+        payload = row.payload or {}
+        raw = payload.get("locale")
+        return str(raw) if raw else None
+
     def _slots_for(self, row: OutboxView, recipient: RecipientView) -> dict[str, str]:
         payload = row.payload or {}
-        locale = recipient.locale
+        locale = self._locale_for(row, recipient)
         if row.event_type == "cart.recovery":
             note = render_personal_note(
                 str(payload.get("personal_note", "")) if payload.get("personal_note") else None,

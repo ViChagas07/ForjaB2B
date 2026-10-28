@@ -19,7 +19,7 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import AliasChoices, Field, PostgresDsn, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "staging", "production"]
@@ -282,7 +282,10 @@ class Settings(BaseSettings):
     whatsapp_enabled: bool = False
     zapi_instance_id: str | None = None
     zapi_token: str | None = None
-    zapi_client_token: str | None = None
+    # Alias ZAPI_CLIENT_KEY: mesmo valor, nome que consta em instalacoes Z-API.
+    zapi_client_token: str | None = Field(
+        default=None, validation_alias=AliasChoices("zapi_client_token", "zapi_client_key")
+    )
 
     # Admin de plataforma (aprovacao de empresas e administracao de traducoes).
     # Em producao deve ser uma chave forte injetada via secrets. Ausente, 401.
