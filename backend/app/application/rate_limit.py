@@ -37,6 +37,7 @@ class RateLimitClass(StrEnum):
     PUBLIC_READ = "public_read"
     LOGIN_ACCOUNT = "login_account"
     WEBHOOK = "webhook"
+    AI = "ai"
 
 
 @dataclass(frozen=True, kw_only=True)

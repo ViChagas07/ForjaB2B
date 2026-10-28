@@ -244,6 +244,11 @@ class Settings(BaseSettings):
     # Webhooks de terceiros: limite proprio, por IP (sem JWT).
     rate_limit_webhook_capacity: int = Field(default=120, ge=1)
     rate_limit_webhook_refill_per_minute: float = Field(default=300.0, gt=0)
+    # Endpoints de IA (chat): classe propria, por IP ou por usuario; somada ao
+    # orcamento diario de tokens (AI_DAILY_TOKEN_BUDGET). Sem rota mapeada
+    # ainda (FASE 3) — a classe e a politica ja ficam definidas.
+    rate_limit_ai_capacity: int = Field(default=20, ge=1)
+    rate_limit_ai_refill_per_minute: float = Field(default=60.0, gt=0)
     # Quantidade de proxies confiaveis entre a internet e a aplicacao. Render
     # usa 1. Com 0 (default local), X-Forwarded-For e ignorado.
     trusted_proxy_count: int = Field(default=0, ge=0, le=10)

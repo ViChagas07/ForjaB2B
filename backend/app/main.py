@@ -323,6 +323,10 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_auth_capacity,
             refill_per_minute=settings.rate_limit_auth_refill_per_minute,
         ),
+        RateLimitClass.AI: RateLimitPolicy(
+            capacity=settings.rate_limit_ai_capacity,
+            refill_per_minute=settings.rate_limit_ai_refill_per_minute,
+        ),
     }
 
 
