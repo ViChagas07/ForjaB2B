@@ -1,5 +1,8 @@
 """Testes do canal WhatsApp (Fase 3, item 3) — NENHUM teste chama rede."""
 
+import uuid
+from datetime import UTC, datetime
+
 import httpx
 import pytest
 
@@ -13,8 +16,6 @@ from app.modules.notification.infrastructure.whatsapp import (
     ZApiWhatsAppSender,
     build_whatsapp_sender,
 )
-import uuid
-from datetime import UTC, datetime
 
 
 class FakeRepo:
@@ -24,7 +25,9 @@ class FakeRepo:
         self.recipient = recipient
         self.statuses: list[NotificationStatus] = []
 
-    async def list_due(self, *, company_id: object, limit: int, max_attempts: int) -> list[OutboxView]:
+    async def list_due(
+        self, *, company_id: object, limit: int, max_attempts: int
+    ) -> list[OutboxView]:
         return [
             OutboxView(
                 id=uuid.uuid4(),
@@ -48,11 +51,23 @@ class FakeRepo:
         return set()
 
     async def resolve_recipient(
-        self, *, company_id: object, event_type: str, aggregate_id: uuid.UUID, channel: str = "EMAIL"
+        self,
+        *,
+        company_id: object,
+        event_type: str,
+        aggregate_id: uuid.UUID,
+        channel: str = "EMAIL",
     ) -> RecipientView | None:
         return self.recipient
 
-    async def mark(self, *, company_id: object, outbox_id: uuid.UUID, status: NotificationStatus, error: str | None = None) -> None:
+    async def mark(
+        self,
+        *,
+        company_id: object,
+        outbox_id: uuid.UUID,
+        status: NotificationStatus,
+        error: str | None = None,
+    ) -> None:
         self.statuses.append(status)
 
     async def list_notifications(self, company_id: object) -> list[OutboxView]:

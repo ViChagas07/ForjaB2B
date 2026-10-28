@@ -323,7 +323,7 @@ async def test_webhook_assinatura_invalida_401(payment_client: httpx.AsyncClient
         provider_reference=payment["provider_reference"],
         event_id="evt-bad-sig",
         event_type="payment.paid",
-        secret="wrong-secret",  # noqa: S106 - credencial dummy de teste
+        secret="wrong-secret",
     )
     assert response.status_code == 401
     assert response.json()["type"] == "urn:forja:problem:invalid_webhook_signature"

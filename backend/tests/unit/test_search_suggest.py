@@ -148,7 +148,7 @@ def _auth() -> AuthContext:
         user_id=uuid.uuid4(),
         company_id=uuid.uuid4(),
         role="BUYER",
-        token_id="tok-1",  # noqa: S106 - identificador de token de teste, nao segredo
+        token_id="tok-1",
     )
 
 

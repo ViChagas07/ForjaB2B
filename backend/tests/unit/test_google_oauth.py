@@ -130,7 +130,7 @@ def _identity() -> ResolvedIdentity:
         user_id=uuid.UUID("aaaa0000-0000-4000-8000-000000000001"),
         company_id=uuid.UUID("aaaa0000-0000-4000-8000-000000000002"),
         status=UserStatus.ACTIVE,
-        password_hash="x",  # noqa: S106 - dado de teste, nao segredo real
+        password_hash="x",
     )
 
 
@@ -290,7 +290,7 @@ def test_settings_oauth_enabled() -> None:
     assert Settings().google_oauth_enabled is False
     enabled = Settings(
         google_client_id="id",
-        google_client_secret="secret",  # noqa: S106 - valor de teste, nao segredo real
+        google_client_secret="secret",
         google_redirect_uri="https://x/cb",
         google_oauth_frontend_redirect="https://x/f",
     )

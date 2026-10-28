@@ -36,7 +36,7 @@ _PAYMENT = uuid.UUID("bbbb0000-0000-4000-8000-000000000003")
 def test_config_aceita_chave_sk_no_alias_historico() -> None:
     settings = Settings(
         _env_file=None,
-        stripe_webhook_secret="sk_test_123",  # noqa: S106 - credencial dummy de teste
+        stripe_webhook_secret="sk_test_123",
     )
 
     assert settings.stripe_enabled is True
@@ -47,7 +47,7 @@ def test_config_aceita_chave_sk_no_alias_historico() -> None:
 def test_config_exige_whsec_para_webhook() -> None:
     settings = Settings(
         _env_file=None,
-        stripe_webhook_secret="whsec_abc",  # noqa: S106 - credencial dummy de teste
+        stripe_webhook_secret="whsec_abc",
     )
 
     assert settings.stripe_enabled is False
@@ -58,8 +58,8 @@ def test_config_exige_whsec_para_webhook() -> None:
 def test_config_aceita_ambas_as_credenciais() -> None:
     settings = Settings(
         _env_file=None,
-        stripe_secret_key="sk_test_abc",  # noqa: S106 - credencial dummy de teste
-        stripe_webhook_secret="whsec_def",  # noqa: S106 - credencial dummy de teste
+        stripe_secret_key="sk_test_abc",
+        stripe_webhook_secret="whsec_def",
     )
 
     assert settings.stripe_enabled is True

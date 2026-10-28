@@ -98,7 +98,7 @@ def _identity(
         user_id=user_id,
         company_id=company_id,
         status=status,
-        password_hash="hashed:senha",  # noqa: S106 - hash fake, nao segredo
+        password_hash="hashed:senha",
     )
 
 

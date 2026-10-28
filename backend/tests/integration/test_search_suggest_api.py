@@ -91,7 +91,7 @@ async def test_suggest_autenticado_recebe_preco(
             user_id=uuid.uuid4(),
             company_id=uuid.uuid4(),
             role="BUYER",
-            token_id="integration-token",  # noqa: S106 - id de token de teste
+            token_id="integration-token",
         )
     )
     response = await suggest_client.get(
@@ -150,7 +150,7 @@ async def test_suggest_autenticado_nao_escreve_cache_nem_permite_cache_http(
                 user_id=uuid.uuid4(),
                 company_id=uuid.uuid4(),
                 role="BUYER",
-                token_id="cache-bypass-token",  # noqa: S106 - id de token de teste
+                token_id="cache-bypass-token",
             )
         )
         response = await suggest_client.get(

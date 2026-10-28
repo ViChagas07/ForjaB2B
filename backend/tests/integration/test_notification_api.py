@@ -286,7 +286,8 @@ async def test_whatsapp_opt_in_endpoint(
 
     # Sem opt-in: numero invalido (sem "+") e rejeitado com 422.
     invalid = await client.put(
-        "/api/v1/notifications/whatsapp/preferences", json={"opt_in": True, "whatsapp_phone": "1198765432"}
+        "/api/v1/notifications/whatsapp/preferences",
+        json={"opt_in": True, "whatsapp_phone": "1198765432"},
     )
     assert invalid.status_code == 422
 
@@ -299,9 +300,7 @@ async def test_whatsapp_opt_in_endpoint(
     assert response.json() == {"opt_in": True, "whatsapp_phone": "+5511998765432"}
 
     # Opt-out limpa telefone e marca opt_in=false.
-    opt_out = await client.put(
-        "/api/v1/notifications/whatsapp/preferences", json={"opt_in": False}
-    )
+    opt_out = await client.put("/api/v1/notifications/whatsapp/preferences", json={"opt_in": False})
     assert opt_out.status_code == 200
     assert opt_out.json() == {"opt_in": False, "whatsapp_phone": None}
 
@@ -311,7 +310,8 @@ async def test_whatsapp_opt_in_exige_autenticacao() -> None:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as anon:
         response = await anon.put(
-            "/api/v1/notifications/whatsapp/preferences", json={"opt_in": True, "whatsapp_phone": "+5511998765432"}
+            "/api/v1/notifications/whatsapp/preferences",
+            json={"opt_in": True, "whatsapp_phone": "+5511998765432"},
         )
     assert response.status_code in (401, 403)
     await app.state.db_engine.dispose()

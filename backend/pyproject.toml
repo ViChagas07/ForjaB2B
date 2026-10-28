@@ -55,9 +55,9 @@ max-complexity = 8
 
 [tool.ruff.lint.per-file-ignores]
 # S101: assert e idiomático em pytest.
-# S105: credenciais efêmeras de containers descartáveis de teste, nunca reais.
+# S105/S106: credenciais efêmeras/fakes de containers e testes, nunca reais.
 # S608: SQL estático intencional nos testes de integração PostgreSQL.
-"tests/**" = ["S101", "S105", "S608"]
+"tests/**" = ["S101", "S105", "S106", "S608"]
 
 # S608: migrations Alembic emitem DDL determinístico com identificadores
 # estáticos (versionados), nunca SQL montado a partir de entrada do usuário.

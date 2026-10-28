@@ -87,7 +87,7 @@ async def test_autenticado_recebe_preco(
             user_id=uuid.uuid4(),
             company_id=uuid.uuid4(),
             role="BUYER",
-            token_id="integration-token",  # noqa: S106 - id de token de teste
+            token_id="integration-token",
         )
     )
     response = await search_client.get(

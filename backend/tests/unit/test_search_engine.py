@@ -50,7 +50,7 @@ async def test_check_health_indisponivel_sem_servidor() -> None:
     engine = ElasticsearchSearchEngine(
         url="http://127.0.0.1:9",
         username="elastic",
-        password="x",  # noqa: S106 - credencial descartavel de teste (sem valor real)
+        password="x",
         api_key=None,
         index="forja-products",
         request_timeout_seconds=1.0,

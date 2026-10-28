@@ -109,7 +109,7 @@ async def test_login_throttle_bloqueia_progressivamente_sem_revelar_conta() -> N
     throttle = LoginThrottle(
         store=InMemoryFailureStore(),
         fallback_store=InMemoryFailureStore(),
-        secret="segredo-de-teste",  # noqa: S106 - valor efemero de teste
+        secret="segredo-de-teste",
         ttl_seconds=900,
         threshold=3,
         base_backoff_seconds=30,
