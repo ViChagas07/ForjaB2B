@@ -100,7 +100,7 @@ disable_error_code = ["untyped-decorator"]
 # ------------------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m 'not llm_eval'"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = ["error"]
@@ -108,6 +108,7 @@ filterwarnings = ["error"]
 # o daemon nao esta acessivel, para que a suite padrao termine sem erros.
 markers = [
     "integration: testes de integracao que exigem Docker/Testcontainers",
+    "llm_eval: avaliacao contra LLM REAL (desligada por padrao; rode com pytest -m llm_eval)",
 ]
 
 # ------------------------------------------------------------------------------

@@ -6,6 +6,46 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Fase 12, FASE 2 — Segurança do pipeline de IA (2026-10-28)
+
+Defesa em camadas determinísticas (toda regra crítica fora do LLM), sem mudar
+nenhum comportamento existente e sem rota/job novo de IA: `domain/security/`
+com `normalize.py` (NFKC, largura-zero/controles, colapso, limite de chars;
+detecção de base64/hex/rot13/letra-a-letra/homóglifo + decodificação para
+re-escanear), `injection.py` (~40 padrões pt/en/es em arquivo de dados
+versionado `injection_patterns.v1.txt`, ALLOW/SANITIZE/BLOCK com reason_code;
+resposta neutra única em `neutral_responses.v1.json` nos 11 locales),
+`output_guard.py` (canary/system prompt vazado, HTML executável, URLs, PII,
+segredos, preços no texto, idioma divergente, tamanho), `tool_args.py`
+(identidade forjada removida; SQL/URL/caminho/instrução rejeitados) e
+`catalog_sanitizer.py` (allowlist de campos, descrição ≤ 300, quarentena com
+hash e product_id). `application/security/`: `input_gate.py` (toda mensagem +
+janela + pares consecutivos; 3 bloqueios = CLOSE), `prompt_builder.py`
+(system prompt versionado com hierarquia e canary; todo conteúdo não
+confiável em bloco `<dados_nao_confiaveis id=TAG>` com tag aleatória por
+requisição), `tools.py` (allowlist por nó, schema strict extra=forbid, máx.
+4 chamadas/turno, dedupe por (nome,args), ferramentas somente leitura),
+`memory.py` (só user sanitizado + assistant aprovado; sem resumo de LLM;
+isolada por conversa com TTL) e `budget.py` (estimate_tokens + orçamento
+diário). Rate limit classe `AI` (`RATE_LIMIT_AI_*`), mapeamento de rota na
+FASE 3. Suíte adversarial `tests/security/test_ai_guards.py`: **64 casos**
+pt/en/es com veredito declarado + `@pytest.mark.llm_eval` (desligado por
+padrão via `-m 'not llm_eval'`). Documentação: `docs/ai/SECURITY.md` (mapa
+ameaça→camada + o que NÃO é coberto). Sem migration nesta fase (pg_dump N/A).
+
+**Checagens reais:** ruff check/format **471 arquivos OK**; mypy app **0
+erros** (331); import-linter **5 kept**; pytest unit **689 passed**; pytest
+integration **290 passed, 1 skipped** (pré-existente); compose config
+`--quiet` OK. **NÃO VALIDADO:** avaliação contra LLM real (`pytest -m
+llm_eval`, exige credenciais); store de memória distribuído (Redis) e
+mapeamento de rate limit na rota — FASE 3.
+
+**Commits:** `9888a51` (normalização), `8a90f03` (detector+gate), `0235b7e`
+(prompt builder), `653da4f` (output guard), `69b702b` (tools+memória),
+`1757692` (catálogo+budget), passo 7 (suíte adversarial+SECURITY.md+registro).
+
+---
+
 ## Fase 12, FASE 1 — Fundação dos agentes de IA (2026-10-28)
 
 Módulo novo `backend/app/modules/ai/` (Clean Architecture): domain puro
