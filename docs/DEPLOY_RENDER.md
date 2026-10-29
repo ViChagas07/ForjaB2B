@@ -1,8 +1,29 @@
 # Deploy no Render — estado e pendências
 
-> **Status: NÃO EXECUTADO.** Não há `render.yaml`, Blueprint, URL pública, job de deploy ou
-> evidência de execução no Render neste repositório. O texto abaixo é um roteiro de
-> trabalho, não um relato de deploy.
+> **Status:** o backend está publicado no Render e é consumido pelo frontend no Vercel via
+> proxy `/api/v1`; a configuração do serviço vive no dashboard, não neste repositório. Não há
+> `render.yaml`/Blueprint versionado: o texto abaixo é o roteiro reproduzível, e divergências
+> em relação ao serviço real devem ser corrigidas no dashboard ou versionadas como Blueprint.
+
+## Pre-deploy de migrations (obrigatório)
+
+O código nunca deve subir esperando colunas que o banco ainda não possui. O Render executa
+o comando de pre-deploy com a imagem da **nova** versão, antes de liberar tráfego; se ele
+falhar, o deploy é abortado. Configure no serviço da API:
+
+1. **Settings → Pre-Deploy Command:** `python scripts/predeploy.py`
+2. **Environment:** `DATABASE_ADMIN_URL` com a URL da role de migrations (`forja_admin`),
+   nunca a role de runtime (`forja_app`). Marque como secret.
+3. O script valida a credencial (owner do schema e `CREATE` em `public`), aplica
+   `alembic upgrade head`, confere que a revisão atual é o head e só então retorna 0.
+   Credencial errada ou migration pendente/falha encerram com código 2 e bloqueiam o deploy.
+
+O pre-deploy exige instance type pago no Render. Em plano free, use um deploy hook/CI que
+rode o mesmo script antes de liberar tráfego; nunca remova a validação.
+
+Em banco gerenciado novo, o bootstrap de `docker/postgres` (roles, schema `app`, funções RLS)
+deve ser aplicado uma vez, de forma idempotente, antes da primeira migration que referencia
+as roles dedicadas `forja_recovery`/`forja_chat` (revisões 0025/0026).
 
 ## O que existe no repositório
 
@@ -50,7 +71,8 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 2. Criar o PostgreSQL/Redis gerenciados e validar extensões (`vector`, `unaccent`,
    `pg_trgm`) e roles. O bootstrap atual (`docker/postgres/init-roles.sql`) roda no initdb
    do Compose; em banco gerenciado, aplicar roles/ACLs por job idempotente.
-3. Rodar migrations como job one-off (`alembic upgrade head`) antes de liberar tráfego.
+3. Rodar migrations automaticamente no pre-deploy (`python scripts/predeploy.py`), que
+   aborta o deploy se o banco não estiver no head.
 4. Fazer seed **somente** se for uma demonstração; em produção real, não.
 5. Criar o índice de busca (`bootstrap --version 2`, `reindex --version 2`) e configurar
    `reconcile` no scheduler.
