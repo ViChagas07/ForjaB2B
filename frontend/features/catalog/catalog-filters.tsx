@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import type { BrandRef, Category, SortField, SortOrder } from "@/core/domain/catalog";
 import { SORT_FIELDS } from "@/core/domain/catalog";
+import { displayCategoryName } from "@/shared/lib/category-display";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
@@ -84,7 +85,7 @@ export function CatalogFilters({
           <option value="">{t("catalog.allCategories")}</option>
           {(categories ?? []).map((category) => (
             <option key={category.id} value={category.id}>
-              {category.name}
+              {displayCategoryName(category.name)}
             </option>
           ))}
         </select>

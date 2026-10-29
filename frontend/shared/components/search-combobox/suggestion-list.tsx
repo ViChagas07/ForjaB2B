@@ -4,6 +4,7 @@ import { Barcode, Folder, Search, Tag } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { components } from "@/core/domain/api-schema";
+import { displayCategoryName } from "@/shared/lib/category-display";
 import { cn } from "@/shared/lib/utils";
 
 import { HighlightMatch } from "./highlight-match";
@@ -111,7 +112,7 @@ export function SuggestionList({
             >
               <Folder aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 truncate text-muted-foreground">
-                {t("search.inCategory", { category: category.name })}
+                {t("search.inCategory", { category: displayCategoryName(category.name) })}
               </span>
             </li>
           );

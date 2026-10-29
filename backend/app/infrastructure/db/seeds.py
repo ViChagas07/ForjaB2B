@@ -541,7 +541,7 @@ _CATEGORIES = [
     {"id": CATEGORY_EPI_ID, "name": "EPIs", "slug": "epis", "is_active": True},
     {
         "id": CATEGORY_MAQUINAS_ID,
-        "name": "Maquinas e Ferramentas",
+        "name": "Máquinas e Ferramentas",
         "slug": "maquinas-e-ferramentas",
         "is_active": True,
     },

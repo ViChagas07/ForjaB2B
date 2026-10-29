@@ -18,6 +18,7 @@ import { AddToCartButton } from "@/features/cart";
 import { useRouter } from "@/i18n/navigation";
 import { isLocale, localeLabels } from "@/i18n/locales";
 import { errorMessageKey } from "@/shared/lib/api-error";
+import { displayCategoryName } from "@/shared/lib/category-display";
 import { formatNumber } from "@/shared/lib/money";
 import { ProductImage } from "@/shared/components/product-image";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
@@ -107,7 +108,7 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
           {t("catalog.backToCatalog")}
         </button>
         <span aria-hidden="true">/</span>
-        <span className="truncate">{product.category.name}</span>
+        <span className="truncate">{displayCategoryName(product.category.name)}</span>
         <span aria-hidden="true">/</span>
         <span className="truncate text-foreground/70">{product.name}</span>
       </nav>
@@ -186,7 +187,7 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
         <div className="space-y-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forge-700 dark:text-forge-300">
-              {product.category.name}
+              {displayCategoryName(product.category.name)}
             </p>
             <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight sm:text-4xl">
               {product.name}
@@ -297,7 +298,9 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
             <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
               <div>
                 <dt className="text-xs text-muted-foreground">{t("catalog.category")}</dt>
-                <dd className="mt-0.5 text-sm font-medium">{product.category.name}</dd>
+                <dd className="mt-0.5 text-sm font-medium">
+                  {displayCategoryName(product.category.name)}
+                </dd>
               </div>
               {product.brand ? (
                 <div>

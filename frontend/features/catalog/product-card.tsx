@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { ProductSummary } from "@/core/domain/catalog";
 import { AddToCartButton } from "@/features/cart";
 import { Link } from "@/i18n/navigation";
+import { displayCategoryName } from "@/shared/lib/category-display";
 import { cn } from "@/shared/lib/utils";
 import { ProductImage } from "@/shared/components/product-image";
 
@@ -54,7 +55,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          <span className="truncate">{product.category.name}</span>
+          <span className="truncate">{displayCategoryName(product.category.name)}</span>
           {product.brand ? <span className="shrink-0">{product.brand.name}</span> : null}
         </div>
 

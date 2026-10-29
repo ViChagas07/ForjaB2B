@@ -6,6 +6,12 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Correção de acentuação — "Máquinas e Ferramentas" — 2026-10-29
+
+- **Frontend:** `shared/lib/category-display.ts` corrige o nome legado `Maquinas e Ferramentas` para `Máquinas e Ferramentas` em home, filtros do catálogo, cards, detalhe do produto e sugestões de busca. Isso corrige a interface já no próximo deploy da Vercel, mesmo antes da migration.
+- **Backend:** o seed passou a gravar o nome correto e a migration `0027_category_name_maquinas.py` atualiza bancos existentes por `slug` de forma idempotente (upgrade/downgrade).
+- **Checagens:** frontend `npm run check` verde (200 testes/40 arquivos, typecheck/format/depcruise OK), build com `BACKEND_URL` OK; backend Ruff/mypy/import-linter OK e unit **787 passed**. Migration **não aplicada** aqui: o banco de produção precisa de `make migrate` (ou job equivalente) para o valor ficar correto também na API/admin.
+
 ## Performance do catálogo — FASE 5: validação final — 2026-10-29
 
 - **Checagens finais:** frontend `npm run check` **verde** (lint com 4 warnings pré-existentes de `<img>`, typecheck 0, format OK, vitest **198 passed/39 arquivos**, depcruise **0/220**) e `npm run build` com `BACKEND_URL=https://forjab2b.onrender.com` **OK**. Backend: Ruff check/format **508 OK**, mypy **0 erros/350**, import-linter **5 kept**, pytest unit **787 passed**. `pytest tests` completo: **859 passed, 311 skipped, 2 failed pré-existentes** (`test_backend_nao_usa_em_dash` e `test_nenhum_type_ignore_no_codigo`, 48+43 ocorrências em arquivos de IA/fases anteriores, nenhum tocado nesta tarefa); integração Testcontainers **NÃO VALIDADA** (daemon Docker indisponível).

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useCategories } from "@/features/catalog";
 import { categoryIllustration } from "@/features/home/category-illustrations";
+import { displayCategoryName } from "@/shared/lib/category-display";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -41,7 +42,8 @@ export function HomeCategories() {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {categories.map((category, index) => {
         const Icon = ICONS[index % ICONS.length] ?? HardHat;
-        const illustration = categoryIllustration(category.name);
+        const name = displayCategoryName(category.name);
+        const illustration = categoryIllustration(name);
         return (
           <Link
             key={category.id}
@@ -52,7 +54,7 @@ export function HomeCategories() {
               <Icon aria-hidden="true" className="h-5 w-5" />
             </span>
             <span>
-              <span className="block text-base font-semibold leading-snug">{category.name}</span>
+              <span className="block text-base font-semibold leading-snug">{name}</span>
               <span className="mt-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 {t("home.categoryExplore")}
                 <ArrowUpRight
