@@ -14,7 +14,7 @@ export const cartApi = {
   async get(accessToken: string, locale: string): Promise<Cart> {
     const response = await apiClient.request<Cart>({
       method: "GET",
-      path: "/api/v1/cart",
+      path: "/cart",
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });
@@ -24,7 +24,7 @@ export const cartApi = {
   async addItem(accessToken: string, input: AddCartItemInput, locale: string): Promise<Cart> {
     const response = await apiClient.request<Cart>({
       method: "POST",
-      path: "/api/v1/cart/items",
+      path: "/cart/items",
       headers: { Authorization: `Bearer ${accessToken}` },
       body: { product_id: input.product_id, quantity: input.quantity },
       locale,
@@ -40,7 +40,7 @@ export const cartApi = {
   ): Promise<Cart> {
     const response = await apiClient.request<Cart>({
       method: "PUT",
-      path: `/api/v1/cart/items/${productId}`,
+      path: `/cart/items/${productId}`,
       headers: { Authorization: `Bearer ${accessToken}` },
       body: { quantity: input.quantity },
       locale,
@@ -51,7 +51,7 @@ export const cartApi = {
   async removeItem(accessToken: string, productId: string, locale: string): Promise<Cart> {
     const response = await apiClient.request<Cart>({
       method: "DELETE",
-      path: `/api/v1/cart/items/${productId}`,
+      path: `/cart/items/${productId}`,
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });
@@ -61,7 +61,7 @@ export const cartApi = {
   async clear(accessToken: string, locale: string): Promise<Cart> {
     const response = await apiClient.request<Cart>({
       method: "DELETE",
-      path: "/api/v1/cart",
+      path: "/cart",
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });

@@ -1,5 +1,3 @@
-import { getApiBaseUrl } from "@/infrastructure/http";
-
 /**
  * Placeholder final de erro, servido pela PRÓPRIA origem do frontend
  * (pasta public): nunca depende da API responder, então um tile de imagem
@@ -10,22 +8,12 @@ export const PRODUCT_IMAGE_FALLBACK = "/catalog/illustrations/generic.svg";
 export type ProductImageKind = "photo" | "illustration";
 
 /**
- * Origem do caminho resolvida por prefixo:
- * - `/static/...` é servido pela API (pasta app/static do backend);
- * - `/catalog/...` é servido pela origem do frontend (pasta public);
- * - `https://...` é usado como está.
+ * Caminhos relativos do backend (`/static/...`) e do frontend (`/catalog/...`)
+ * são servidos na MESMA origem: `/static` é encaminhado pelo rewrite do Next
+ * para o backend, então nenhuma URL absoluta de API entra no bundle.
  */
 export function resolveProductImageSrc(src: string): string {
-  if (!src) {
-    return PRODUCT_IMAGE_FALLBACK;
-  }
-  if (/^https?:\/\//i.test(src)) {
-    return src;
-  }
-  if (src.startsWith("/catalog/")) {
-    return src;
-  }
-  return getApiBaseUrl() + src;
+  return src || PRODUCT_IMAGE_FALLBACK;
 }
 
 /**

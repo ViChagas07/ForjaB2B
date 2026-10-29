@@ -4,7 +4,15 @@ import { ApiError, isProblemDetails } from "./errors";
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 function buildUrl(baseUrl: string, request: HttpRequest): string {
-  const url = new URL(request.path, baseUrl);
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  const normalizedPath = request.path.startsWith("/") ? request.path : `/${request.path}`;
+  const isAbsolute = /^https?:\/\//i.test(normalizedBase);
+  // Em produção no navegador a base é relativa (`/api/v1`); a URL dummy só
+  // existe para o parser e nunca é usada na requisição.
+  const url = new URL(
+    `${normalizedBase}${normalizedPath}`,
+    isAbsolute ? undefined : "http://same-origin.local",
+  );
   if (request.query) {
     for (const [key, value] of Object.entries(request.query)) {
       if (value !== undefined) {
@@ -12,7 +20,7 @@ function buildUrl(baseUrl: string, request: HttpRequest): string {
       }
     }
   }
-  return url.toString();
+  return isAbsolute ? url.toString() : `${url.pathname}${url.search}`;
 }
 
 /** Gera um request ID (correlation) enviado no header `X-Request-ID`. */

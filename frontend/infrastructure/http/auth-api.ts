@@ -24,7 +24,7 @@ export const authApi = {
   async login(email: string, password: string): Promise<AuthSession> {
     const response = await apiClient.request<AuthSession>({
       method: "POST",
-      path: "/api/v1/auth/login",
+      path: "/auth/login",
       body: { email, password },
     });
     return response.body;
@@ -33,7 +33,7 @@ export const authApi = {
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const response = await apiClient.request<AuthTokens>({
       method: "POST",
-      path: "/api/v1/auth/refresh",
+      path: "/auth/refresh",
       body: { refresh_token: refreshToken },
     });
     return response.body;
@@ -42,7 +42,7 @@ export const authApi = {
   async logout(refreshToken: string): Promise<void> {
     await apiClient.request<void>({
       method: "POST",
-      path: "/api/v1/auth/logout",
+      path: "/auth/logout",
       body: { refresh_token: refreshToken },
     });
   },
@@ -50,7 +50,7 @@ export const authApi = {
   async exchangeOAuthCode(code: string): Promise<OAuthExchangeResult> {
     const response = await apiClient.request<OAuthExchangeResponseBody>({
       method: "POST",
-      path: "/api/v1/auth/oauth/exchange",
+      path: "/auth/oauth/exchange",
       body: { code },
     });
     const body = response.body;

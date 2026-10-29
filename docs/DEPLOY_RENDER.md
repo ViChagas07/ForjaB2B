@@ -19,7 +19,7 @@
 | :--- | :--- | :--- |
 | API | Web Service (Docker, `backend/Dockerfile`) | Health check em `/health/live`; readiness em `/health/ready` |
 | Worker/beat | Background Worker (Docker, `backend/Dockerfile.worker`) | Beat separado ou scheduler; ver falha local do beat |
-| Frontend | Web Service (Docker, `frontend/Dockerfile`) | `NEXT_PUBLIC_API_URL` aponta para a API; CORS/proxy necessário |
+| Frontend | Web Service (Docker, `frontend/Dockerfile`) | `BACKEND_URL` (somente servidor) alimenta o rewrite same-origin para `/api/v1` |
 | PostgreSQL | Render PostgreSQL | **Verificar suporte a `vector`/pgvector** na versão oferecida; se não houver, desabilitar embeddings |
 | Redis | Render Key Value | Refresh, cache, OAuth state/exchange; não há rate limiting |
 | Elasticsearch | Elastic Cloud ou VPS | Render não oferece Elasticsearch gerenciado; usar HTTPS + API key |
@@ -40,7 +40,7 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 - `SECRET_KEY`, `PEPPER`, `ENCRYPTION_KEY`, `PAYMENT_WEBHOOK_SECRET`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,
   `GOOGLE_OAUTH_FRONTEND_REDIRECT` (se OAuth for usado)
-- `NEXT_PUBLIC_API_URL` (frontend)
+- `BACKEND_URL` (frontend, somente servidor: destino dos rewrites `/api/v1` e `/static`)
 - `DEMO_USER_PASSWORD` **não** deve existir em produção; o seed é recusado por padrão e
   exige `SEED_ALLOW_PRODUCTION=true` para rodar conscientemente
 
@@ -54,8 +54,8 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 4. Fazer seed **somente** se for uma demonstração; em produção real, não.
 5. Criar o índice de busca (`bootstrap --version 2`, `reindex --version 2`) e configurar
    `reconcile` no scheduler.
-6. Configurar CORS ou um proxy same-origin entre frontend e API (a lacuna atual bloqueia
-   navegador).
+6. Configurar `BACKEND_URL` no frontend e confirmar o proxy same-origin `/api/v1`; o CORS
+   do backend permanece disponível para chamadas diretas em desenvolvimento.
 7. Configurar logs/métricas (OTel/Prometheus) e alertas; o Grafana local está quebrado.
 8. Validar login, catálogo, busca, preço por empresa, carrinho, pedido, admin e i18n em
    produção.

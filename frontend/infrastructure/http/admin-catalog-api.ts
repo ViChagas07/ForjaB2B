@@ -32,7 +32,7 @@ export const adminCatalogApi = {
 
     const response = await apiClient.request<AdminProductListResponse>({
       method: "GET",
-      path: `/api/v1/admin/catalog/products?${params.toString()}`,
+      path: `/admin/catalog/products?${params.toString()}`,
     });
     return response.body;
   },
@@ -40,7 +40,7 @@ export const adminCatalogApi = {
   async getProduct(productId: string): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "GET",
-      path: `/api/v1/admin/catalog/products/${productId}`,
+      path: `/admin/catalog/products/${productId}`,
     });
     return response.body;
   },
@@ -48,7 +48,7 @@ export const adminCatalogApi = {
   async createProduct(payload: AdminProductCreate): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "POST",
-      path: "/api/v1/admin/catalog/products",
+      path: "/admin/catalog/products",
       body: payload,
     });
     return response.body;
@@ -57,7 +57,7 @@ export const adminCatalogApi = {
   async updateProduct(productId: string, payload: AdminProductUpdate): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "PATCH",
-      path: `/api/v1/admin/catalog/products/${productId}`,
+      path: `/admin/catalog/products/${productId}`,
       body: payload,
     });
     return response.body;
@@ -69,7 +69,7 @@ export const adminCatalogApi = {
   ): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "POST",
-      path: `/api/v1/admin/catalog/products/${productId}/publish`,
+      path: `/admin/catalog/products/${productId}/publish`,
       body: payload,
     });
     return response.body;
@@ -81,7 +81,7 @@ export const adminCatalogApi = {
   ): Promise<AdminProductDetail> {
     const response = await apiClient.request<AdminProductDetail>({
       method: "POST",
-      path: `/api/v1/admin/catalog/products/${productId}/unpublish`,
+      path: `/admin/catalog/products/${productId}/unpublish`,
       body: payload,
     });
     return response.body;
@@ -90,7 +90,7 @@ export const adminCatalogApi = {
   async getAttributeDefinitions(categorySlug: string): Promise<AttributeDefinitionOut[]> {
     const response = await apiClient.request<AttributeDefinitionOut[]>({
       method: "GET",
-      path: `/api/v1/admin/catalog/categories/${categorySlug}/attributes`,
+      path: `/admin/catalog/categories/${categorySlug}/attributes`,
     });
     return response.body;
   },
@@ -98,7 +98,7 @@ export const adminCatalogApi = {
   async listStaticImages(): Promise<StaticImageOut[]> {
     const response = await apiClient.request<StaticImageOut[]>({
       method: "GET",
-      path: "/api/v1/admin/catalog/static-images",
+      path: "/admin/catalog/static-images",
     });
     return response.body;
   },
@@ -107,7 +107,7 @@ export const adminCatalogApi = {
   async listProductTranslations(productId: string): Promise<ProductTranslationAdmin[]> {
     const response = await apiClient.request<ProductTranslationAdmin[]>({
       method: "GET",
-      path: `/api/v1/admin/catalog/translations/products/${productId}`,
+      path: `/admin/catalog/translations/products/${productId}`,
     });
     return response.body;
   },
@@ -119,7 +119,7 @@ export const adminCatalogApi = {
   ): Promise<ProductTranslationAdmin> {
     const response = await apiClient.request<ProductTranslationAdmin>({
       method: "PATCH",
-      path: `/api/v1/admin/catalog/translations/products/${productId}/${locale}`,
+      path: `/admin/catalog/translations/products/${productId}/${locale}`,
       body: payload,
     });
     return response.body;

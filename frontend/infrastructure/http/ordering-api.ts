@@ -13,7 +13,7 @@ export const orderingApi = {
   async create(accessToken: string, input: CreateOrderInput, locale: string): Promise<Order> {
     const response = await apiClient.request<Order>({
       method: "POST",
-      path: "/api/v1/orders",
+      path: "/orders",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Idempotency-Key": input.idempotency_key,
@@ -32,7 +32,7 @@ export const orderingApi = {
   async get(accessToken: string, orderId: string, locale: string): Promise<Order> {
     const response = await apiClient.request<Order>({
       method: "GET",
-      path: `/api/v1/orders/${orderId}`,
+      path: `/orders/${orderId}`,
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });
@@ -42,7 +42,7 @@ export const orderingApi = {
   async cancel(accessToken: string, orderId: string, locale: string): Promise<Order> {
     const response = await apiClient.request<Order>({
       method: "POST",
-      path: `/api/v1/orders/${orderId}/cancel`,
+      path: `/orders/${orderId}/cancel`,
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });

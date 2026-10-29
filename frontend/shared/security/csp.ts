@@ -4,10 +4,10 @@
  * A politica e montada por requisicao porque o nonce muda a cada resposta.
  * Scripts usam nonce + strict-dynamic (sem `unsafe-inline`); o Next.js le o
  * cabecalho CSP da requisicao e aplica o nonce aos seus proprios scripts.
- * `connect-src`/`img-src` ficam restritos a origem da API configurada.
+ * `connect-src`/`img-src` ficam restritos a `'self'`: a API e os assets do
+ * backend sao same-origin pelos rewrites do Next. `apiUrl` existe apenas para
+ * cenarios controlados (ex.: desenvolvimento com chamada direta).
  */
-
-const DEFAULT_API_URL = "http://localhost:8000";
 
 export interface CspOptions {
   nonce: string;
@@ -17,8 +17,11 @@ export interface CspOptions {
 }
 
 function apiOrigin(apiUrl: string | null | undefined): string {
+  if (!apiUrl) {
+    return "";
+  }
   try {
-    return new URL(apiUrl ?? DEFAULT_API_URL).origin;
+    return new URL(apiUrl).origin;
   } catch {
     return "";
   }

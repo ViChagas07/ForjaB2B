@@ -10,7 +10,7 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface HttpRequest {
   method: HttpMethod;
-  /** Caminho relativo à base da API, ex.: "/api/v1/health". */
+  /** Caminho relativo à base da API (que já inclui `/api/v1`), ex.: "/health". */
   path: string;
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;

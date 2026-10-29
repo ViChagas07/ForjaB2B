@@ -480,6 +480,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
     container_name: forja-frontend
     restart: unless-stopped
     read_only: true
@@ -494,7 +496,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
     ports:
       - "${PORT:-3000}:3000"
     networks:

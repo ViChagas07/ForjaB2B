@@ -3,8 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { ProductImage } from "@/shared/components/product-image";
 
-const API = "http://localhost:8000";
-
 describe("ProductImage (renderizacao estatica)", () => {
   it("foto (/catalog/photos) renderiza com object-cover e origem do frontend", () => {
     const html = renderToStaticMarkup(
@@ -24,17 +22,15 @@ describe("ProductImage (renderizacao estatica)", () => {
     expect(html).toContain("object-contain");
   });
 
-  it("imagem da API (/static/...) recebe o prefixo da origem da API e contain", () => {
-    process.env.NEXT_PUBLIC_API_URL = API;
+  it("imagem da API (/static/...) permanece same-origin e contain", () => {
     const html = renderToStaticMarkup(
       <ProductImage src="/static/catalog/protecao-cabeca.svg" alt="Capacete" />,
     );
-    expect(html).toContain(`src="${API}/static/catalog/protecao-cabeca.svg"`);
+    expect(html).toContain('src="/static/catalog/protecao-cabeca.svg"');
     expect(html).toContain("object-contain");
   });
 
   it("fallback: src vazio renderiza o placeholder generico LOCAL (sem depender da API)", () => {
-    process.env.NEXT_PUBLIC_API_URL = API;
     const html = renderToStaticMarkup(<ProductImage src="" alt="Produto sem imagem" />);
     expect(html).toContain('src="/catalog/illustrations/generic.svg"');
     expect(html).toContain("object-contain");

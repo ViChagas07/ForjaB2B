@@ -7,7 +7,6 @@ import { buildContentSecurityPolicy, generateNonce } from "./shared/security/csp
 const intlMiddleware = createMiddleware(routing);
 
 const isProduction = process.env.NODE_ENV === "production";
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 function withSecurityHeaders(
   response: NextResponse,
@@ -35,7 +34,7 @@ export default function middleware(request: NextRequest): NextResponse {
   const nonce = generateNonce();
   const isSecure =
     request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
-  const csp = buildContentSecurityPolicy({ nonce, apiUrl, isProduction, isSecure });
+  const csp = buildContentSecurityPolicy({ nonce, isProduction, isSecure });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

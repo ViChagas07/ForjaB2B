@@ -30,7 +30,7 @@ export async function sendChatMessage(input: SendChatMessageInput): Promise<Chat
   }
   const response = await apiClient.request<ChatResponse>({
     method: "POST",
-    path: "/api/v1/ai/chat",
+    path: "/ai/chat",
     headers,
     body: {
       message: input.message,

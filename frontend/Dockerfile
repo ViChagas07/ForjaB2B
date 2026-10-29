@@ -25,8 +25,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Variáveis de build para o Next.js
+# BACKEND_URL é necessária em produção: os rewrites `/api/v1` e `/static` são
+# resolvidos no build. O Compose passa o nome interno do serviço; para Vercel,
+# configure a variável no painel antes do deploy.
+ARG BACKEND_URL=http://backend:8000
 ENV NEXT_TELEMETRY_DISABLED=1 \
-    NODE_ENV=production
+    NODE_ENV=production \
+    BACKEND_URL=${BACKEND_URL}
 
 RUN \
   if [ -f yarn.lock ]; then yarn build; \

@@ -22,7 +22,7 @@ export const searchApi = {
   ): Promise<SuggestResponse> {
     const response = await apiClient.request<SuggestResponse>({
       method: "GET",
-      path: "/api/v1/search/suggest",
+      path: "/search/suggest",
       query: { q },
       locale,
       signal,

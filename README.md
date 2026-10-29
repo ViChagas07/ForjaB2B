@@ -221,11 +221,11 @@ npm ci
 npm run dev   # http://localhost:3000
 ```
 
-> **CORS (lacuna conhecida):** o backend não envia `Access-Control-Allow-Origin` e o
-> frontend chama `NEXT_PUBLIC_API_URL` diretamente. Em um navegador comum, as chamadas do
-> frontend para a API são bloqueadas. A validação visual de i18n usou Chromium com
-> `--disable-web-security` apenas para capturar evidência. Para uso real, habilite CORS no
-> backend ou coloque frontend e API atrás do mesmo domínio/proxy.
+> **Proxy same-origin:** o navegador chama `/api/v1` na própria origem do frontend; o
+> Next encaminha para `BACKEND_URL` (variável somente de servidor). O CORS do backend
+> continua configurado para chamadas diretas em desenvolvimento. Em produção é preciso
+> definir `BACKEND_URL` no painel da Vercel e refazer o deploy, pois os rewrites são
+> resolvidos no build.
 
 ### Usuários de demonstração
 

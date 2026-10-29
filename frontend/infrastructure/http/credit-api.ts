@@ -12,7 +12,7 @@ export const creditApi = {
   async getAccount(accessToken: string, locale: string): Promise<CreditAccount> {
     const response = await apiClient.request<CreditAccount>({
       method: "GET",
-      path: "/api/v1/credit/account",
+      path: "/credit/account",
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });
@@ -22,7 +22,7 @@ export const creditApi = {
   async listEntries(accessToken: string, locale: string): Promise<CreditEntry[]> {
     const response = await apiClient.request<CreditEntry[]>({
       method: "GET",
-      path: "/api/v1/credit/entries",
+      path: "/credit/entries",
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });

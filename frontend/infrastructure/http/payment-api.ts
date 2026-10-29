@@ -13,7 +13,7 @@ export const paymentApi = {
   async methods(locale: string): Promise<PaymentMethods> {
     const response = await apiClient.request<PaymentMethods>({
       method: "GET",
-      path: "/api/v1/payments/methods",
+      path: "/payments/methods",
       locale,
     });
     return response.body;
@@ -26,7 +26,7 @@ export const paymentApi = {
   ): Promise<Payment> {
     const response = await apiClient.request<Payment>({
       method: "POST",
-      path: "/api/v1/payments",
+      path: "/payments",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Idempotency-Key": input.idempotency_key,

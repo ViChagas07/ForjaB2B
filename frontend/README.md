@@ -113,13 +113,19 @@ npm run check        # lint + typecheck + format:check + test + depcruise
 
 ## Variáveis de ambiente
 
-Somente variáveis **públicas** (`NEXT_PUBLIC_*`). Nenhum segredo de backend
-(DATABASE_URL, senhas, API secrets, chaves) pode viver no bundle do browser.
+O navegador chama a API por caminho relativo (`/api/v1/...`) na mesma origem do
+site. Os rewrites do Next encaminham `/api/v1` e `/static` para o backend, então
+nenhuma URL de backend entra no bundle e não há preflight CORS.
 
-| Variável               | Padrão                  | Uso                           |
-| :--------------------- | :---------------------- | :---------------------------- |
-| `NEXT_PUBLIC_API_URL`  | `http://localhost:8000` | Base da API (`/api/v1`)       |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | canonical/sitemap/OG/llms.txt |
+| Variável               | Padrão                  | Uso                                                                                                        |
+| :--------------------- | :---------------------- | :--------------------------------------------------------------------------------------------------------- |
+| `BACKEND_URL`          | `http://localhost:8000` | **Somente servidor**: destino dos rewrites e das chamadas de Server Components. Em produção é obrigatória. |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | canonical/sitemap/OG/llms.txt                                                                              |
+
+Em produção, defina `BACKEND_URL` no painel da Vercel (valor esperado:
+`https://forjab2b.onrender.com`) e faça um **novo deploy**: os rewrites do Next
+são resolvidos no build. O build falha com erro claro se a variável faltar em
+produção.
 
 ## Health
 

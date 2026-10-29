@@ -109,6 +109,36 @@ describe("FetchHttpClient", () => {
     expect(headers["Content-Type"]).toBe("application/json");
   });
 
+  it("monta URL relativa no navegador (base same-origin)", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new FetchHttpClient("/api/v1");
+    await client.request({
+      method: "GET",
+      path: "/catalog/products",
+      query: { page_size: 50 },
+    });
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe("/api/v1/catalog/products?page_size=50");
+  });
+
+  it("monta URL absoluta no servidor (BACKEND_URL)", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new FetchHttpClient("https://forjab2b.onrender.com/api/v1");
+    await client.request({
+      method: "GET",
+      path: "/catalog/products",
+      query: { page_size: 50 },
+    });
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      "https://forjab2b.onrender.com/api/v1/catalog/products?page_size=50",
+    );
+  });
+
   it("repassa o cancelamento externo como AbortError (não ApiError de rede)", async () => {
     // Simula o fetch real: rejeita com AbortError quando o signal interno aborta.
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(

@@ -14,7 +14,7 @@ export const companyApi = {
   async register(input: RegisterCompanyInput, locale: string): Promise<RegisterCompanyResult> {
     const response = await apiClient.request<RegisterCompanyResult>({
       method: "POST",
-      path: "/api/v1/companies",
+      path: "/companies",
       body: {
         cnpj: input.cnpj,
         legal_name: input.legal_name,
@@ -32,7 +32,7 @@ export const companyApi = {
   async getMe(accessToken: string, locale: string): Promise<Company> {
     const response = await apiClient.request<Company>({
       method: "GET",
-      path: "/api/v1/companies/me",
+      path: "/companies/me",
       headers: { Authorization: `Bearer ${accessToken}` },
       locale,
     });

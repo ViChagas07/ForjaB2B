@@ -32,6 +32,14 @@ describe("CSP do frontend", () => {
     expect(csp).not.toContain("*");
   });
 
+  it("sem URL de API (same-origin) limita connect-src e img-src a 'self'", () => {
+    const csp = buildContentSecurityPolicy({ nonce, isProduction: true });
+
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain("img-src 'self' data: blob:");
+    expect(csp).not.toContain("localhost");
+  });
+
   it("permite eval e websocket apenas em desenvolvimento", () => {
     const dev = buildContentSecurityPolicy({
       nonce,
