@@ -6,6 +6,16 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Performance do catálogo — FASE 0: diagnóstico (somente leitura) — 2026-10-29
+
+- **Versões/gerenciador:** Next **14.2.35**, React **18.3.1** (`frontend/package.json`); npm **11.6.2** (Node 22.20.0), `package-lock.json` v3. Backend FastAPI **0.119.1**, Python 3.12, venv em `backend/.venv`.
+- **Onde as 3 chamadas nascem:** tudo no cliente, sem Server Component buscando catálogo: `features/home/brand-strip.tsx:10` (`useBrands`), `features/home/home-categories.tsx:16` (`useCategories`) e `features/home/featured-products.tsx:19` (`useProducts({ page_size: 50 })`); a página do catálogo usa os mesmos hooks (`features/catalog/catalog-browser.tsx:64-72`, 20/página). Hooks em `features/catalog/hooks.ts`; cliente central `infrastructure/http/catalog-api.ts` sobre o singleton de `infrastructure/http/client.ts`/`api-client.ts`.
+- **Base URL:** `NEXT_PUBLIC_API_URL` em `frontend/infrastructure/http/config.ts:9-13` (default `http://localhost:8000`), injetada no bundle. `api-client.ts:119-125` usa `cache: "no-store"` e envia `X-Request-ID` (header customizado ? preflight) + `Accept-Language`; defaults do React Query em `shared/lib/query-client.ts` (retry 4 com backoff, `refetchOnReconnect: true`; `staleTime` 30 s, categorias/marcas 5 min).
+- **Middlewares do FastAPI (ordem):** CORS (mais externo) ? SecurityHeaders ? Prometheus ? CorrelationId ? RateLimit ? app (`backend/app/main.py:726-746`). Não há middleware de auth/tenant; auth é dependency por rota (`interface/deps.py`). RateLimit já isenta `/health`, `/metrics`, `/docs`, `/redoc`, `/openapi.json`, `/static` e `/favicon` (`interface/rate_limit.py:22-30`).
+- **Autenticação:** JWT `Authorization: Bearer`; tokens no `localStorage` (`shared/stores/auth-storage.ts`), refresh no corpo do POST. **Não usa cookie** e não há cookie emitido pelo domínio do Render — a Fase 2 não está bloqueada.
+- **Catálogo é público/idêntico?** `/catalog/categories` e `/catalog/brands` são públicos, sem auth/tenant/locale e iguais para todos (`modules/catalog/interface/router.py:88-109`; repositório ordena por nome). `/catalog/products` é público com auth **opcional**: visitante recebe preço mascarado/consultivo; autenticado recebe o preço da própria empresa (tenant do JWT), então a resposta **não pode ser compartilhada entre logados**. Texto/atributos variam por locale de conteúdo (pt-BR/en/es/ar): `?lang=` > `Accept-Language` > default (`interface/deps.py:42-62`); o front envia `Accept-Language`.
+- **Estado do `/health` atual:** alias GET de liveness (`{"status":"alive"}`), sem HEAD, e o `uvicorn.access` registra em INFO. `/health/live`, `/health/ready` e `/health/search` existem e devem ser preservados.
+
 ## Fase 12, FASE 6 — Widget de chat no frontend (2026-10-28)
 
 Ícone de IA no navbar (`HeaderActions`, animação de hover com glow/scale) e
