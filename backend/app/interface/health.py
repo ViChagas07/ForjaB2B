@@ -20,6 +20,7 @@ from fastapi import APIRouter, Request, Response, status
 from app.core.metrics import prometheus_metrics
 from app.interface.schemas import (
     CheckStatus,
+    HealthResponse,
     LivenessResponse,
     ReadinessResponse,
     SearchHealthResponse,
@@ -53,10 +54,19 @@ async def liveness() -> LivenessResponse:
     return LivenessResponse()
 
 
-@router.get("/health", response_model=LivenessResponse, include_in_schema=False)
-async def liveness_alias() -> LivenessResponse:
-    """Alias de liveness usado pelos healthchecks do Docker/Compose."""
-    return LivenessResponse()
+@router.api_route(
+    "/health",
+    methods=["GET", "HEAD"],
+    response_model=HealthResponse,
+    include_in_schema=False,
+)
+async def health() -> HealthResponse:
+    """Liveness minimo para Docker e monitores externos (GET e HEAD).
+
+    Nao acessa PostgreSQL, Redis nem Elasticsearch: responde em milissegundos
+    mesmo com dependencias fora do ar.
+    """
+    return HealthResponse()
 
 
 @router.get("/health/ready", response_model=ReadinessResponse)

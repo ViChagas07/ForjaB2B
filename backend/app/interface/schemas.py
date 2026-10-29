@@ -41,6 +41,14 @@ class ProblemDetails(BaseModel):
     )
 
 
+class HealthResponse(BaseModel):
+    """Resposta minima de liveness para monitores externos (sem dependencias)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    status: Literal["ok"] = "ok"
+
+
 class LivenessResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 

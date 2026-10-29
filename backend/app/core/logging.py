@@ -17,6 +17,32 @@ from app.core.config import Settings
 from app.core.correlation import get_request_id
 from app.core.telemetry import current_trace_id
 
+_SILENT_ACCESS_PATHS = frozenset({"/health", "/health/live"})
+
+
+class HealthAccessLogFilter(logging.Filter):
+    """Oculta o acesso de liveness do log do Uvicorn.
+
+    Monitores e healthchecks chamam a rota a cada poucos minutos; registrar
+    cada acesso em INFO gera ruido sem valor operacional. O log de readiness
+    continua visivel para diagnostico.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.name != "uvicorn.access":
+            return True
+        args = record.args
+        if not isinstance(args, tuple) or len(args) < 3:
+            return True
+        path = str(args[2]).split("?", 1)[0].rstrip("/") or "/"
+        return path not in _SILENT_ACCESS_PATHS
+
+
+def _install_health_access_filter() -> None:
+    access_logger = logging.getLogger("uvicorn.access")
+    if not any(isinstance(existing, HealthAccessLogFilter) for existing in access_logger.filters):
+        access_logger.addFilter(HealthAccessLogFilter())
+
 
 def _add_correlation_context(
     logger: WrappedLogger, method_name: str, event_dict: EventDict
@@ -82,6 +108,7 @@ def configure_logging(settings: Settings) -> None:
         uvicorn_logger = logging.getLogger(name)
         uvicorn_logger.handlers.clear()
         uvicorn_logger.propagate = True
+    _install_health_access_filter()
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:

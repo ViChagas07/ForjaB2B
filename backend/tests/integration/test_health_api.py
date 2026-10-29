@@ -48,7 +48,12 @@ async def test_health_live(api_client: httpx.AsyncClient) -> None:
 async def test_health_alias_do_docker(api_client: httpx.AsyncClient) -> None:
     response = await api_client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "alive"}
+    assert response.json() == {"status": "ok"}
+
+
+async def test_health_aceita_head(api_client: httpx.AsyncClient) -> None:
+    response = await api_client.head("/health")
+    assert response.status_code == 200
 
 
 async def test_health_ready_com_dependencias_saudaveis(api_client: httpx.AsyncClient) -> None:
