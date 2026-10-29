@@ -38,8 +38,9 @@ visibilidade e a autorização são resolvidos por empresa no PostgreSQL.
 
 ## Funcionalidades
 
-- **Catálogo:** categorias, marcas, produtos, imagens SVG por categoria, disponibilidade e
-  estado de CA (EPI vencido ou ausente não é vendável).
+- **Catálogo:** categorias, marcas, produtos, imagens SVG por categoria, disponibilidade,
+  estoque configurável por produto, compra direta e estado de CA (EPI vencido ou ausente não
+  é vendável).
 - **Busca:** lexical no Elasticsearch com prioridade para SKU, tolerância a acento e
   autocomplete; fallback textual no PostgreSQL. Semântica opcional com pgvector + RRF.
 - **Preços por empresa:** regra negociada (preço fixo por produto) > desconto percentual

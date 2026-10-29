@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "规格",
     "contentDisplayedIn": "内容以 {locale} 显示",
-    "sortDirection": "顺序"
+    "sortDirection": "顺序",
+    "buyNow": "立即购买",
+    "stockAvailable": "有 {count} 件现货",
+    "inStock": "库存 {count} 件",
+    "outOfStock": "缺货"
   },
   "cart": {
     "title": "购物车",
@@ -291,7 +295,8 @@
           "status": "状态",
           "price": "价格",
           "updatedAt": "更新时间",
-          "actions": "操作"
+          "actions": "操作",
+          "stock": "库存"
         },
         "status": {
           "draft": "草稿",
@@ -336,7 +341,9 @@
             "priceInvalid": "无效价格 (如 99.90)",
             "minOrderQty": "最小起订量",
             "isEpi": "属于个人防护装备 (EPI)",
-            "currency": "货币"
+            "currency": "货币",
+            "stockQuantity": "库存数量",
+            "stockInvalid": "库存数量无效"
           },
           "details": {
             "title": "产品详情",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "登录后加入购物车",
-    "description": "创建企业账户或登录，将商品保存到购物车。"
+    "description": "创建企业账户或登录，将商品保存到购物车。",
+    "buyTitle": "登录后购买",
+    "buyDescription": "创建企业账户或登录以完成购买。"
   },
   "search": {
     "suggestionsGroup": "搜索建议",

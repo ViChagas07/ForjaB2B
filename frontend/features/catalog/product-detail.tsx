@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
-import { AddToCartButton } from "@/features/cart";
+import { AddToCartButton, BuyNowButton } from "@/features/cart";
 import { useRouter } from "@/i18n/navigation";
 import { isLocale, localeLabels } from "@/i18n/locales";
 import { errorMessageKey } from "@/shared/lib/api-error";
@@ -27,7 +27,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 
-import { isDisplaySellable } from "./availability";
+import { isPurchasable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
 import { readCatalogReturn } from "./catalog-return";
 import { showContentLocaleNote } from "./content-locale";
@@ -85,15 +85,18 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
     );
   }
 
-  const sellable = isDisplaySellable(product);
+  const sellable = isPurchasable(product);
   const minQuantity = Math.max(1, product.min_order_qty);
-  const selectedQuantity = Math.max(minQuantity, quantity ?? minQuantity);
+  const stockQuantity = product.stock_quantity ?? 0;
+  const maxQuantity = Math.max(minQuantity, stockQuantity);
+  const selectedQuantity = Math.min(maxQuantity, Math.max(minQuantity, quantity ?? minQuantity));
+  const hasStock = stockQuantity > 0;
 
   function updateQuantity(next: number) {
     if (Number.isNaN(next)) {
       return;
     }
-    setQuantity(Math.max(minQuantity, Math.floor(next)));
+    setQuantity(Math.min(maxQuantity, Math.max(minQuantity, Math.floor(next))));
   }
 
   return (
@@ -220,6 +223,18 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
               <span className="font-semibold text-foreground">{minQuantity}</span>
               {product.unit_of_measure ? ` · ${product.unit_of_measure}` : ""}
             </p>
+            <p
+              className={
+                hasStock
+                  ? "mt-2 flex items-center gap-1.5 text-sm font-semibold text-success"
+                  : "mt-2 flex items-center gap-1.5 text-sm font-semibold text-destructive"
+              }
+            >
+              <PackageCheck aria-hidden="true" className="h-4 w-4" />
+              {hasStock
+                ? t("catalog.stockAvailable", { count: stockQuantity })
+                : t("catalog.outOfStock")}
+            </p>
 
             <div className="mt-5 space-y-2">
               <Label
@@ -245,6 +260,7 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
                   type="number"
                   inputMode="numeric"
                   min={minQuantity}
+                  max={maxQuantity}
                   step={1}
                   value={selectedQuantity}
                   disabled={!sellable}
@@ -258,7 +274,7 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
                   size="icon"
                   className="h-11 w-11 shrink-0 rounded-xl"
                   aria-label={t("cart.increaseQuantity")}
-                  disabled={!sellable}
+                  disabled={!sellable || selectedQuantity >= maxQuantity}
                   onClick={() => updateQuantity(selectedQuantity + 1)}
                 >
                   <Plus aria-hidden="true" className="h-4 w-4" />
@@ -266,14 +282,24 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
               </div>
             </div>
 
-            <AddToCartButton
-              productId={product.id}
-              minQuantity={minQuantity}
-              quantity={selectedQuantity}
-              disabled={!sellable}
-              size="lg"
-              className="mt-4 h-12 w-full rounded-xl text-sm font-semibold"
-            />
+            <div className="mt-4 grid gap-2">
+              <BuyNowButton
+                productId={product.id}
+                minQuantity={minQuantity}
+                quantity={selectedQuantity}
+                disabled={!sellable}
+                size="lg"
+                className="h-12 w-full rounded-xl text-sm font-semibold"
+              />
+              <AddToCartButton
+                productId={product.id}
+                minQuantity={minQuantity}
+                quantity={selectedQuantity}
+                disabled={!sellable}
+                size="lg"
+                className="h-12 w-full rounded-xl text-sm font-semibold"
+              />
+            </div>
 
             {!sellable ? (
               <p className="mt-3 text-center text-xs font-medium text-destructive">

@@ -4,13 +4,13 @@ import { ArrowUpRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { ProductSummary } from "@/core/domain/catalog";
-import { AddToCartButton } from "@/features/cart";
+import { AddToCartButton, BuyNowButton } from "@/features/cart";
 import { Link } from "@/i18n/navigation";
 import { displayCategoryName } from "@/shared/lib/category-display";
 import { cn } from "@/shared/lib/utils";
 import { ProductImage } from "@/shared/components/product-image";
 
-import { isDisplaySellable } from "./availability";
+import { isPurchasable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
 import { AvailabilityBadge, CaStatusBadge, EpiBadge } from "./product-badges";
 
@@ -21,11 +21,13 @@ interface ProductCardProps {
 
 /**
  * Cartão de produto do catálogo. O clique na imagem/nome abre o detalhe; a
- * compra é feita pelo botão de adicionar, que exige sessão autenticada.
+ * compra é feita pelos botões de compra/carrinho, que exigem sessão
+ * autenticada e respeitam o estoque disponível.
  */
 export function ProductCard({ product, className }: ProductCardProps) {
   const t = useTranslations();
-  const sellable = isDisplaySellable(product);
+  const purchasable = isPurchasable(product);
+  const hasStock = (product.stock_quantity ?? 0) > 0;
 
   return (
     <article
@@ -46,7 +48,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         <div className="absolute start-3 top-3 flex flex-wrap gap-1.5">
           <EpiBadge isEpi={product.is_epi} />
           <CaStatusBadge status={product.ca_status} />
-          <AvailabilityBadge isSellable={sellable} />
+          <AvailabilityBadge isSellable={purchasable} />
         </div>
         <span className="absolute end-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-foreground opacity-0 shadow-sm transition-opacity duration-300 group-hover:opacity-100">
           <ArrowUpRight aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
@@ -83,14 +85,32 @@ export function ProductCard({ product, className }: ProductCardProps) {
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {t("cart.minQuantity", { qty: product.min_order_qty })}
             </p>
+            <p
+              className={cn(
+                "mt-1 text-[11px] font-semibold",
+                hasStock ? "text-success" : "text-destructive",
+              )}
+            >
+              {hasStock
+                ? t("catalog.inStock", { count: product.stock_quantity })
+                : t("catalog.outOfStock")}
+            </p>
           </div>
 
-          <AddToCartButton
-            productId={product.id}
-            minQuantity={product.min_order_qty}
-            disabled={!sellable}
-            className="h-10 w-full rounded-xl"
-          />
+          <div className="grid gap-2">
+            <BuyNowButton
+              productId={product.id}
+              minQuantity={product.min_order_qty}
+              disabled={!purchasable}
+              className="h-10 w-full rounded-xl"
+            />
+            <AddToCartButton
+              productId={product.id}
+              minQuantity={product.min_order_qty}
+              disabled={!purchasable}
+              className="h-10 w-full rounded-xl"
+            />
+          </div>
         </div>
       </div>
     </article>

@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "Specifiche",
     "contentDisplayedIn": "Contenuto visualizzato in {locale}",
-    "sortDirection": "Ordine"
+    "sortDirection": "Ordine",
+    "buyNow": "Acquista ora",
+    "stockAvailable": "{count} unità disponibili",
+    "inStock": "{count} disponibili",
+    "outOfStock": "Non disponibile"
   },
   "cart": {
     "title": "Carrello",
@@ -291,7 +295,8 @@
           "status": "Stato",
           "price": "Prezzo",
           "updatedAt": "Aggiornato il",
-          "actions": "Azioni"
+          "actions": "Azioni",
+          "stock": "Magazzino"
         },
         "status": {
           "draft": "Bozza",
@@ -336,7 +341,9 @@
             "priceInvalid": "Prezzo non valido (es. 99,90)",
             "minOrderQty": "Quantità minima d'ordine",
             "isEpi": "È un DPI (Dispositivo di Protezione Individuale)",
-            "currency": "Valuta"
+            "currency": "Valuta",
+            "stockQuantity": "Quantità in magazzino",
+            "stockInvalid": "Scorta non valida"
           },
           "details": {
             "title": "Dettagli del prodotto",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "Accedi per aggiungere al carrello",
-    "description": "Crea il tuo account aziendale o accedi per salvare articoli nel carrello."
+    "description": "Crea il tuo account aziendale o accedi per salvare articoli nel carrello.",
+    "buyTitle": "Accedi per acquistare",
+    "buyDescription": "Crea l'account della tua azienda o accedi per completare l'acquisto."
   },
   "search": {
     "suggestionsGroup": "Suggerimenti",

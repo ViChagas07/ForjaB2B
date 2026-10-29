@@ -49,6 +49,7 @@ export interface ProductSummary {
   base_unit_price: string | null;
   currency: string;
   min_order_qty: number;
+  stock_quantity: number;
   price_on_request: boolean;
   image_url: string;
   image_alt: string;
@@ -118,6 +119,7 @@ export interface AdminProductSummary {
   brand: AdminBrandRef | null;
   base_unit_price: string | null;
   currency: string;
+  stock_quantity: number;
   image_url: string | null;
   version: number;
   updated_at: string;
@@ -186,6 +188,7 @@ export interface AdminProductCreate {
   unit_of_measure?: string | null;
   weight_kg?: string | null;
   min_order_qty?: number;
+  stock_quantity?: number;
   base_unit_price: string;
   currency?: string;
   image_url?: string | null;
@@ -204,6 +207,7 @@ export interface AdminProductUpdate {
   unit_of_measure?: string | null;
   weight_kg?: string | null;
   min_order_qty?: number | null;
+  stock_quantity?: number | null;
   base_unit_price?: string | null;
   currency?: string | null;
   image_url?: string | null;

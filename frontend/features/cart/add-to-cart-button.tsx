@@ -1,20 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { LockKeyhole, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Link } from "@/i18n/navigation";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
 
+import { AuthGateDialog } from "./auth-gate-dialog";
 import { useAddCartItem } from "./hooks";
 
 interface AddToCartButtonProps {
@@ -24,7 +17,7 @@ interface AddToCartButtonProps {
   disabled?: boolean;
   className?: string;
   size?: "default" | "sm" | "lg" | "icon";
-  variant?: "default" | "secondary" | "outline" | "ghost" | "link" | "destructive";
+  variant?: "default" | "ink" | "secondary" | "outline" | "ghost" | "link" | "destructive";
 }
 
 /**
@@ -42,7 +35,7 @@ export function AddToCartButton({
   disabled,
   className,
   size = "default",
-  variant = "default",
+  variant = "ink",
 }: AddToCartButtonProps) {
   const t = useTranslations();
   const status = useAuthStore((s) => s.status);
@@ -72,25 +65,12 @@ export function AddToCartButton({
         {mutation.isPending ? t("loading") : t("catalog.addToCart")}
       </Button>
 
-      <Dialog open={gateOpen} onOpenChange={setGateOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader className="space-y-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-              <LockKeyhole aria-hidden="true" className="h-5 w-5" />
-            </span>
-            <DialogTitle className="text-xl">{t("authGate.title")}</DialogTitle>
-            <DialogDescription>{t("authGate.description")}</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2 pt-2">
-            <Button asChild size="lg" className="rounded-xl">
-              <Link href="/login">{t("nav.login")}</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-xl">
-              <Link href="/onboarding">{t("nav.register")}</Link>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AuthGateDialog
+        open={gateOpen}
+        onOpenChange={setGateOpen}
+        title={t("authGate.title")}
+        description={t("authGate.description")}
+      />
     </>
   );
 }

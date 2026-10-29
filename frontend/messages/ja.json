@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "仕様",
     "contentDisplayedIn": "{locale}でコンテンツを表示",
-    "sortDirection": "順序"
+    "sortDirection": "順序",
+    "buyNow": "今すぐ購入",
+    "stockAvailable": "{count}点在庫あり",
+    "inStock": "在庫{count}点",
+    "outOfStock": "在庫切れ"
   },
   "cart": {
     "title": "カート",
@@ -291,7 +295,8 @@
           "status": "ステータス",
           "price": "価格",
           "updatedAt": "更新日",
-          "actions": "アクション"
+          "actions": "アクション",
+          "stock": "在庫"
         },
         "status": {
           "draft": "下書き",
@@ -336,7 +341,9 @@
             "priceInvalid": "無効な価格 (例: 99.90)",
             "minOrderQty": "最小注文数量",
             "isEpi": "保護具 (EPI) です",
-            "currency": "通貨"
+            "currency": "通貨",
+            "stockQuantity": "在庫数",
+            "stockInvalid": "在庫数が無効です"
           },
           "details": {
             "title": "製品詳細",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "カートに追加するにはログイン",
-    "description": "法人アカウントを作成するかログインして、商品をカートに保存します。"
+    "description": "法人アカウントを作成するかログインして、商品をカートに保存します。",
+    "buyTitle": "購入するにはログインしてください",
+    "buyDescription": "企業アカウントを作成するか、ログインして購入を完了してください。"
   },
   "search": {
     "suggestionsGroup": "候補",

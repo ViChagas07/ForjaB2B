@@ -61,6 +61,7 @@ export function ChatProductCardView({ card }: { card: ChatProductCard }) {
           </Button>
           <Button
             size="sm"
+            variant="ink"
             className="h-7 gap-1 px-2 text-xs"
             onClick={handleAddToCart}
             disabled={addItem.isPending}

@@ -92,6 +92,7 @@ class Product(TimestampMixin, Base):
     __table_args__ = (
         enum_check("status", ProductStatus),
         CheckConstraint("min_order_qty >= 1", name="min_order_qty"),
+        CheckConstraint("stock_quantity >= 0", name="stock_quantity"),
         CheckConstraint("weight_kg IS NULL OR weight_kg > 0", name="weight"),
         CheckConstraint("base_unit_price >= 0", name="base_price"),
         Index("ix_products_attributes_gin", "attributes", postgresql_using="gin"),
@@ -128,6 +129,7 @@ class Product(TimestampMixin, Base):
     unit_of_measure: Mapped[str | None] = mapped_column(String(10))
     weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
     min_order_qty: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
+    stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     base_unit_price: Mapped[Decimal] = mapped_column(unit_money(), nullable=False)
     currency: Mapped[str] = currency_column()
     attributes: Mapped[dict[str, object] | None] = mapped_column(JSONB)

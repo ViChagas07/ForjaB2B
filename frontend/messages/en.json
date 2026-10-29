@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "Specifications",
     "contentDisplayedIn": "Content displayed in {locale}",
-    "sortDirection": "Order"
+    "sortDirection": "Order",
+    "buyNow": "Buy",
+    "stockAvailable": "{count} units available",
+    "inStock": "{count} in stock",
+    "outOfStock": "Out of stock"
   },
   "cart": {
     "title": "Cart",
@@ -291,7 +295,8 @@
           "status": "Status",
           "price": "Price",
           "updatedAt": "Updated at",
-          "actions": "Actions"
+          "actions": "Actions",
+          "stock": "Stock"
         },
         "status": {
           "draft": "Draft",
@@ -336,7 +341,9 @@
             "priceInvalid": "Invalid price (e.g. 99.90)",
             "minOrderQty": "Minimum order quantity",
             "isEpi": "Is PPE (Personal Protective Equipment)",
-            "currency": "Currency"
+            "currency": "Currency",
+            "stockQuantity": "Stock quantity",
+            "stockInvalid": "Invalid stock"
           },
           "details": {
             "title": "Product details",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "Sign in to add to cart",
-    "description": "Create your business account or sign in to save items to your cart."
+    "description": "Create your business account or sign in to save items to your cart.",
+    "buyTitle": "Sign in to buy",
+    "buyDescription": "Create your business account or sign in to complete your purchase."
   },
   "search": {
     "suggestionsGroup": "Suggestions",

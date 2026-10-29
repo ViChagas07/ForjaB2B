@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "Spécifications",
     "contentDisplayedIn": "Contenu affiché en {locale}",
-    "sortDirection": "Ordre"
+    "sortDirection": "Ordre",
+    "buyNow": "Acheter maintenant",
+    "stockAvailable": "{count} unités disponibles",
+    "inStock": "{count} en stock",
+    "outOfStock": "Rupture de stock"
   },
   "cart": {
     "title": "Panier",
@@ -291,7 +295,8 @@
           "status": "Statut",
           "price": "Prix",
           "updatedAt": "Mis à jour le",
-          "actions": "Actions"
+          "actions": "Actions",
+          "stock": "Stock"
         },
         "status": {
           "draft": "Brouillon",
@@ -336,7 +341,9 @@
             "priceInvalid": "Prix invalide (ex. 99,90)",
             "minOrderQty": "Quantité minimale de commande",
             "isEpi": "Est un EPI (Équipement de Protection Individuelle)",
-            "currency": "Devise"
+            "currency": "Devise",
+            "stockQuantity": "Quantité en stock",
+            "stockInvalid": "Stock invalide"
           },
           "details": {
             "title": "Détails du produit",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "Connectez-vous pour ajouter au panier",
-    "description": "Créez votre compte entreprise ou connectez-vous pour enregistrer des articles dans votre panier."
+    "description": "Créez votre compte entreprise ou connectez-vous pour enregistrer des articles dans votre panier.",
+    "buyTitle": "Connectez-vous pour acheter",
+    "buyDescription": "Créez le compte de votre entreprise ou connectez-vous pour finaliser l'achat."
   },
   "search": {
     "suggestionsGroup": "Suggestions",

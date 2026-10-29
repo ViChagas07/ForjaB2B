@@ -122,6 +122,7 @@ class SqlAlchemyCatalogAdminRepository:
                 unit_of_measure=product.unit_of_measure,
                 weight_kg=product.weight_kg,
                 min_order_qty=product.min_order_qty,
+                stock_quantity=product.stock_quantity,
                 base_unit_price=product.base_unit_price,
                 currency=product.currency,
                 image_url=product.image_url,
@@ -215,6 +216,7 @@ class SqlAlchemyCatalogAdminRepository:
             current.unit_of_measure = product.unit_of_measure
             current.weight_kg = product.weight_kg
             current.min_order_qty = product.min_order_qty
+            current.stock_quantity = product.stock_quantity
             current.base_unit_price = product.base_unit_price
             current.currency = product.currency
             current.image_url = product.image_url
@@ -264,6 +266,7 @@ class SqlAlchemyCatalogAdminRepository:
             unit_of_measure=product.unit_of_measure,
             weight_kg=product.weight_kg,
             min_order_qty=product.min_order_qty,
+            stock_quantity=product.stock_quantity,
             base_unit_price=product.base_unit_price,
             currency=product.currency,
             image_url=product.image_url,

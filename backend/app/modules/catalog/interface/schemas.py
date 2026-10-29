@@ -63,6 +63,7 @@ class ProductSummary(BaseModel):
     base_unit_price: Decimal | None
     currency: str
     min_order_qty: int
+    stock_quantity: int
     price_on_request: bool
     image_url: str
     image_alt: str

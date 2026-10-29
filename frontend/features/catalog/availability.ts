@@ -15,3 +15,8 @@ export function isDisplaySellable(product: ProductSummary): boolean {
   }
   return true;
 }
+
+/** Produto pode ir ao carrinho: vendável e com ao menos o lote mínimo em estoque. */
+export function isPurchasable(product: ProductSummary): boolean {
+  return isDisplaySellable(product) && product.stock_quantity >= Math.max(1, product.min_order_qty);
+}

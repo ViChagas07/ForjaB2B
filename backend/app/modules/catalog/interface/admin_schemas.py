@@ -31,6 +31,7 @@ class ProductCreate(BaseModel):
     unit_of_measure: str | None = Field(default=None, max_length=10)
     weight_kg: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=3)
     min_order_qty: int = Field(default=1, ge=1)
+    stock_quantity: int = Field(default=0, ge=0)
     base_unit_price: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
     currency: str = Field(default="BRL", min_length=3, max_length=3)
     image_url: str | None = Field(default=None, max_length=500)
@@ -71,6 +72,7 @@ class ProductUpdate(BaseModel):
     unit_of_measure: str | None = Field(default=None, max_length=10)
     weight_kg: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=3)
     min_order_qty: int | None = Field(default=None, ge=1)
+    stock_quantity: int | None = Field(default=None, ge=0)
     base_unit_price: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     image_url: str | None = Field(default=None, max_length=500)
@@ -160,6 +162,7 @@ class ProductAdminSummary(BaseModel):
     brand: BrandRefAdmin | None
     base_unit_price: Decimal
     currency: str
+    stock_quantity: int
     image_url: str | None
     version: int
     updated_at: datetime

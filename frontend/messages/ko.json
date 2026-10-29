@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "사양",
     "contentDisplayedIn": "{locale}로 콘텐츠 표시",
-    "sortDirection": "정렬 방향"
+    "sortDirection": "정렬 방향",
+    "buyNow": "바로 구매",
+    "stockAvailable": "{count}개 재고 있음",
+    "inStock": "재고 {count}개",
+    "outOfStock": "품절"
   },
   "cart": {
     "title": "장바구니",
@@ -291,7 +295,8 @@
           "status": "상태",
           "price": "가격",
           "updatedAt": "업데이트일",
-          "actions": "작업"
+          "actions": "작업",
+          "stock": "재고"
         },
         "status": {
           "draft": "초안",
@@ -336,7 +341,9 @@
             "priceInvalid": "잘못된 가격 (예: 99.90)",
             "minOrderQty": "최소 주문 수량",
             "isEpi": "보호구 (EPI) 여부",
-            "currency": "통화"
+            "currency": "통화",
+            "stockQuantity": "재고 수량",
+            "stockInvalid": "재고 수량이 올바르지 않습니다"
           },
           "details": {
             "title": "제품 상세",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "장바구니에 담으려면 로그인하세요",
-    "description": "기업 계정을 만들거나 로그인하여 상품을 장바구니에 저장하세요."
+    "description": "기업 계정을 만들거나 로그인하여 상품을 장바구니에 저장하세요.",
+    "buyTitle": "구매하려면 로그인하세요",
+    "buyDescription": "기업 계정을 만들거나 로그인하여 구매를 완료하세요."
   },
   "search": {
     "suggestionsGroup": "추천",

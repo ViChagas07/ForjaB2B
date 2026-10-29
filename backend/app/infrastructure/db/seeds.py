@@ -1409,6 +1409,28 @@ _ALL_PRODUCTS: list[dict[str, object]] = [*_PRODUCTS, *_DEMO_PRODUCTS]
 _ALL_TIERS: list[dict[str, object]] = [*_TIERS, *_DEMO_TIERS]
 
 
+def _demo_stock_quantity(product: dict[str, object]) -> int:
+    """Estoque ficticio e reproduzivel: zero para itens nao vendaveis.
+
+    Produtos ativos recebem lotes deterministicos (hash do SKU) proporcionais
+    ao lote minimo. EPI sem CA valido e produto inativo ficam sem estoque.
+    """
+    if product.get("status") != "ACTIVE":
+        return 0
+    ca_valid_until = product.get("ca_valid_until")
+    if bool(product.get("is_epi")) and (
+        not isinstance(ca_valid_until, date) or ca_valid_until < date.today()
+    ):
+        return 0
+    digest = hashlib.sha256(cast(str, product["sku"]).encode("utf-8")).digest()
+    lots = 5 + int.from_bytes(digest[:2], "big") % 50
+    return cast(int, product.get("min_order_qty", 1)) * lots
+
+
+for _product in _ALL_PRODUCTS:
+    _product["stock_quantity"] = _demo_stock_quantity(_product)
+
+
 def _apply_reference_prices() -> None:
     """Sobrepõe os precos de referencia nos dados do seed (idempotente).
 

@@ -79,6 +79,7 @@ def _to_summary(view: ProductView, language_fallback: bool = False) -> ProductSu
         base_unit_price=view.base_unit_price,
         currency=view.currency,
         min_order_qty=view.min_order_qty,
+        stock_quantity=view.stock_quantity,
         price_on_request=view.price_on_request,
         image_url=view.image_url or "",
         image_alt=view.image_alt,

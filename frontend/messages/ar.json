@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "المواصفات",
     "contentDisplayedIn": "المحتوى معروض بـ {locale}",
-    "sortDirection": "الاتجاه"
+    "sortDirection": "الاتجاه",
+    "buyNow": "اشترِ الآن",
+    "stockAvailable": "متوفر {count} وحدة",
+    "inStock": "{count} متوفر",
+    "outOfStock": "غير متوفر"
   },
   "cart": {
     "title": "السلة",
@@ -291,7 +295,8 @@
           "status": "الحالة",
           "price": "السعر",
           "updatedAt": "تم التحديث في",
-          "actions": "الإجراءات"
+          "actions": "الإجراءات",
+          "stock": "المخزون"
         },
         "status": {
           "draft": "مسودة",
@@ -336,7 +341,9 @@
             "priceInvalid": "سعر غير صالح (مثال: 99.90)",
             "minOrderQty": "الحد الأدنى للطلب",
             "isEpi": "معدات حماية فردية (EPI)",
-            "currency": "العملة"
+            "currency": "العملة",
+            "stockQuantity": "كمية المخزون",
+            "stockInvalid": "كمية مخزون غير صالحة"
           },
           "details": {
             "title": "تفاصيل المنتج",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "سجّل الدخول للإضافة إلى السلة",
-    "description": "أنشئ حساب أعمالك أو سجّل الدخول لحفظ العناصر في سلتك."
+    "description": "أنشئ حساب أعمالك أو سجّل الدخول لحفظ العناصر في سلتك.",
+    "buyTitle": "سجّل الدخول للشراء",
+    "buyDescription": "أنشئ حساب شركتك أو سجّل الدخول لإتمام عملية الشراء."
   },
   "search": {
     "suggestionsGroup": "اقتراحات",

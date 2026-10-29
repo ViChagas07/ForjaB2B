@@ -2255,6 +2255,10 @@
             "title": "Status",
             "type": "string"
           },
+          "stock_quantity": {
+            "title": "Stock Quantity",
+            "type": "integer"
+          },
           "unit_of_measure": {
             "anyOf": [
               {
@@ -2311,6 +2315,7 @@
           "brand",
           "base_unit_price",
           "currency",
+          "stock_quantity",
           "image_url",
           "version",
           "updated_at",
@@ -2435,6 +2440,10 @@
             "title": "Status",
             "type": "string"
           },
+          "stock_quantity": {
+            "title": "Stock Quantity",
+            "type": "integer"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -2468,6 +2477,7 @@
           "brand",
           "base_unit_price",
           "currency",
+          "stock_quantity",
           "image_url",
           "version",
           "updated_at",
@@ -2538,6 +2548,10 @@
             "title": "Status",
             "type": "string"
           },
+          "stock_quantity": {
+            "title": "Stock Quantity",
+            "type": "integer"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -2571,6 +2585,7 @@
           "brand",
           "base_unit_price",
           "currency",
+          "stock_quantity",
           "image_url",
           "version",
           "updated_at",
@@ -2803,6 +2818,12 @@
             "title": "Sku",
             "type": "string"
           },
+          "stock_quantity": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Stock Quantity",
+            "type": "integer"
+          },
           "unit_of_measure": {
             "anyOf": [
               {
@@ -2980,6 +3001,10 @@
             "title": "Status",
             "type": "string"
           },
+          "stock_quantity": {
+            "title": "Stock Quantity",
+            "type": "integer"
+          },
           "unit_of_measure": {
             "anyOf": [
               {
@@ -3017,6 +3042,7 @@
           "base_unit_price",
           "currency",
           "min_order_qty",
+          "stock_quantity",
           "price_on_request",
           "image_url",
           "image_alt",
@@ -3282,6 +3308,10 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "stock_quantity": {
+            "title": "Stock Quantity",
+            "type": "integer"
           }
         },
         "required": [
@@ -3297,6 +3327,7 @@
           "base_unit_price",
           "currency",
           "min_order_qty",
+          "stock_quantity",
           "price_on_request",
           "image_url",
           "image_alt",
@@ -3390,6 +3421,10 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "stock_quantity": {
+            "title": "Stock Quantity",
+            "type": "integer"
           }
         },
         "required": [
@@ -3405,6 +3440,7 @@
           "base_unit_price",
           "currency",
           "min_order_qty",
+          "stock_quantity",
           "price_on_request",
           "image_url",
           "image_alt",
@@ -3603,6 +3639,18 @@
               }
             ],
             "title": "Ncm"
+          },
+          "stock_quantity": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stock Quantity"
           },
           "unit_of_measure": {
             "anyOf": [

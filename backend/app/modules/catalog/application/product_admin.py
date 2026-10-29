@@ -153,6 +153,7 @@ class CreateProduct:
             currency=input_data.currency,
             image_url=input_data.image_url,
             attributes=normalized_attrs if normalized_attrs else None,
+            stock_quantity=input_data.stock_quantity,
             version=int(now.timestamp() * 1000),
             created_at=now,
             updated_at=now,

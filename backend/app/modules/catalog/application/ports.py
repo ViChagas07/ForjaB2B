@@ -69,6 +69,7 @@ class ProductView:
     attributes: dict[str, object] | None
     content_locale: str
     fallback: bool
+    stock_quantity: int = 0
 
 
 @dataclass(frozen=True, kw_only=True)

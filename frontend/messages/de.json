@@ -164,7 +164,11 @@
     "ncm": "NCM",
     "attributes": "Spezifikationen",
     "contentDisplayedIn": "Inhalt angezeigt in {locale}",
-    "sortDirection": "Richtung"
+    "sortDirection": "Richtung",
+    "buyNow": "Jetzt kaufen",
+    "stockAvailable": "{count} Einheiten verfügbar",
+    "inStock": "{count} auf Lager",
+    "outOfStock": "Nicht auf Lager"
   },
   "cart": {
     "title": "Warenkorb",
@@ -291,7 +295,8 @@
           "status": "Status",
           "price": "Preis",
           "updatedAt": "Aktualisiert am",
-          "actions": "Aktionen"
+          "actions": "Aktionen",
+          "stock": "Bestand"
         },
         "status": {
           "draft": "Entwurf",
@@ -336,7 +341,9 @@
             "priceInvalid": "Ungültiger Preis (z. B. 99,90)",
             "minOrderQty": "Mindestbestellmenge",
             "isEpi": "Ist PSA (Persönliche Schutzausrüstung)",
-            "currency": "Währung"
+            "currency": "Währung",
+            "stockQuantity": "Lagermenge",
+            "stockInvalid": "Ungültiger Lagerbestand"
           },
           "details": {
             "title": "Produktdetails",
@@ -487,7 +494,9 @@
   },
   "authGate": {
     "title": "Anmelden, um in den Warenkorb zu legen",
-    "description": "Erstellen Sie Ihr Firmenkonto oder melden Sie sich an, um Artikel im Warenkorb zu speichern."
+    "description": "Erstellen Sie Ihr Firmenkonto oder melden Sie sich an, um Artikel im Warenkorb zu speichern.",
+    "buyTitle": "Anmelden zum Kaufen",
+    "buyDescription": "Erstellen Sie Ihr Firmenkonto oder melden Sie sich an, um den Kauf abzuschließen."
   },
   "search": {
     "suggestionsGroup": "Vorschläge",

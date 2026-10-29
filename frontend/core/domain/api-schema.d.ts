@@ -1886,6 +1886,8 @@ export interface components {
             slug: string;
             /** Status */
             status: string;
+            /** Stock Quantity */
+            stock_quantity: number;
             /** Unit Of Measure */
             unit_of_measure: string | null;
             /**
@@ -1941,6 +1943,8 @@ export interface components {
             slug: string;
             /** Status */
             status: string;
+            /** Stock Quantity */
+            stock_quantity: number;
             /**
              * Updated At
              * Format: date-time
@@ -1979,6 +1983,8 @@ export interface components {
             slug: string;
             /** Status */
             status: string;
+            /** Stock Quantity */
+            stock_quantity: number;
             /**
              * Updated At
              * Format: date-time
@@ -2081,6 +2087,11 @@ export interface components {
             ncm?: string | null;
             /** Sku */
             sku: string;
+            /**
+             * Stock Quantity
+             * @default 0
+             */
+            stock_quantity: number;
             /** Unit Of Measure */
             unit_of_measure?: string | null;
             /** Weight Kg */
@@ -2133,6 +2144,8 @@ export interface components {
             slug: string;
             /** Status */
             status: string;
+            /** Stock Quantity */
+            stock_quantity: number;
             /** Unit Of Measure */
             unit_of_measure: string | null;
             /** Weight Kg */
@@ -2242,6 +2255,8 @@ export interface components {
             slug: string;
             /** Status */
             status: string;
+            /** Stock Quantity */
+            stock_quantity: number;
         };
         /** ProductSummary */
         "ProductSummary-Output": {
@@ -2280,6 +2295,8 @@ export interface components {
             slug: string;
             /** Status */
             status: string;
+            /** Stock Quantity */
+            stock_quantity: number;
         };
         /**
          * ProductTranslationsListResponse
@@ -2327,6 +2344,8 @@ export interface components {
             name?: string | null;
             /** Ncm */
             ncm?: string | null;
+            /** Stock Quantity */
+            stock_quantity?: number | null;
             /** Unit Of Measure */
             unit_of_measure?: string | null;
             /**

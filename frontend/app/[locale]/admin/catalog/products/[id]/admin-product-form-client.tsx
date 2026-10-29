@@ -63,6 +63,7 @@ const basicInfoSchema = z.object({
   base_unit_price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Preço inválido"),
   currency: z.string().length(3).default("BRL"),
   min_order_qty: z.coerce.number().int().min(1).default(1),
+  stock_quantity: z.coerce.number().int().min(0).default(0),
   // Optional fields for preview (not required for validation)
   ca_number: z.string().optional().nullable(),
   ca_valid_until: z.string().optional().nullable(),
@@ -107,6 +108,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
     base_unit_price: "0.00",
     currency: "BRL",
     min_order_qty: 1,
+    stock_quantity: 0,
     ca_number: null,
     ca_valid_until: null,
     unit_of_measure: null,
@@ -206,6 +208,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
         base_unit_price: product.base_unit_price ?? "0.00",
         currency: product.currency,
         min_order_qty: product.min_order_qty,
+        stock_quantity: product.stock_quantity,
         ca_number: product.ca_number ?? null,
         ca_valid_until: product.ca_valid_until ?? null,
         unit_of_measure: product.unit_of_measure ?? null,
@@ -302,6 +305,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
           newErrors.base_unit_price = t("priceInvalid");
         else delete newErrors.base_unit_price;
         break;
+      case "stock_quantity":
+        if (!Number.isInteger(Number(value)) || Number(value) < 0)
+          newErrors.stock_quantity = t("stockInvalid");
+        else delete newErrors.stock_quantity;
+        break;
       default:
         if (attributeDefs) {
           const def = attributeDefs.find((d) => d.key === name);
@@ -373,7 +381,7 @@ export function AdminProductFormClient({ productId }: { productId: string | null
       : "NOT_APPLICABLE";
     const hasValidCa = basicInfo.is_epi ? caStatus === "VALID" : true;
     const isActive = !isEdit || product?.status === "ACTIVE"; // For preview, assume published
-    return isActive && hasValidCa;
+    return isActive && hasValidCa && basicInfo.stock_quantity > 0;
   };
 
   // Helper: get CA status label
@@ -930,6 +938,28 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                 />
               </div>
 
+              {/* Stock Quantity */}
+              <div className="space-y-1">
+                <Label htmlFor="stock_quantity">{t("basicInfo.stockQuantity")}</Label>
+                <Input
+                  id="stock_quantity"
+                  name="stock_quantity"
+                  type="number"
+                  value={basicInfo.stock_quantity}
+                  onChange={(e) => handleBasicInfoChange("stock_quantity", Number(e.target.value))}
+                  onBlur={() => setTouched((prev) => ({ ...prev, stock_quantity: true }))}
+                  min={0}
+                  className={cn(errors.stock_quantity && "border-destructive", "w-24")}
+                  aria-invalid={!!errors.stock_quantity}
+                  aria-describedby={errors.stock_quantity ? "stock-error" : undefined}
+                />
+                {errors.stock_quantity && touched.stock_quantity && (
+                  <p id="stock-error" className="text-sm text-destructive" role="alert">
+                    {errors.stock_quantity}
+                  </p>
+                )}
+              </div>
+
               {/* Is EPI */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -1270,6 +1300,11 @@ export function AdminProductFormClient({ productId }: { productId: string | null
                               {tCatalog("priceOnRequest")}
                             </span>
                           )}
+                        </div>
+                        <div className="text-sm font-medium">
+                          {basicInfo.stock_quantity > 0
+                            ? tCatalog("stockAvailable", { count: basicInfo.stock_quantity })
+                            : tCatalog("outOfStock")}
                         </div>
                       </div>
 

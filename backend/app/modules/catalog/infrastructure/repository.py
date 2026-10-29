@@ -201,6 +201,7 @@ class SqlAlchemyCatalogRepository:
             unit_of_measure=product.unit_of_measure,
             weight_kg=product.weight_kg,
             min_order_qty=product.min_order_qty,
+            stock_quantity=product.stock_quantity,
             base_unit_price=product.base_unit_price,
             currency=product.currency,
             price_on_request=False,

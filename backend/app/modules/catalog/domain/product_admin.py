@@ -122,6 +122,7 @@ class ProductAdminView:
     updated_at: datetime
     created_by: uuid.UUID | None = None
     updated_by: uuid.UUID | None = None
+    stock_quantity: int = 0
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -168,6 +169,7 @@ class CreateProductInput:
     currency: str = "BRL"
     image_url: str | None = None
     attributes: dict[str, Any] | None = None
+    stock_quantity: int = 0
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -190,6 +192,7 @@ class UpdateProductInput:
     image_url: str | None = None
     attributes: dict[str, Any] | None = None
     version: int  # obrigatório para concorrência otimista
+    stock_quantity: int | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -347,6 +350,11 @@ def apply_update_to_product(
             input_data.min_order_qty
             if input_data.min_order_qty is not None
             else product.min_order_qty
+        ),
+        stock_quantity=(
+            input_data.stock_quantity
+            if input_data.stock_quantity is not None
+            else product.stock_quantity
         ),
         base_unit_price=(
             input_data.base_unit_price

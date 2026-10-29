@@ -309,6 +309,9 @@ export function AdminProductListClient() {
                     {t("table.price")}
                   </th>
                   <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+                    {t("table.stock")}
+                  </th>
+                  <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
                     {t("table.updatedAt")}
                   </th>
                   <th className="h-10 px-4 text-right align-middle font-medium text-muted-foreground">
@@ -319,7 +322,7 @@ export function AdminProductListClient() {
               <tbody className="[&_tr:last-child]:border-0">
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <td colSpan={8} className="h-24 text-center text-muted-foreground">
                       {t("noResults")}
                     </td>
                   </tr>
@@ -349,6 +352,7 @@ export function AdminProductListClient() {
                           <span className="text-muted-foreground">{t("priceOnRequest")}</span>
                         )}
                       </td>
+                      <td className="p-4 font-medium tabular-nums">{product.stock_quantity}</td>
                       <td className="p-4 text-sm text-muted-foreground">
                         {new Date(product.updated_at).toLocaleDateString("pt-BR")}
                       </td>
