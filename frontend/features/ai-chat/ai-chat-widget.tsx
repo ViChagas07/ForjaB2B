@@ -161,9 +161,9 @@ export function AiChatWidget() {
       >
         <span
           aria-hidden="true"
-          className="absolute inset-0 rounded-lg bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 opacity-0 blur-[6px] transition-all duration-300 group-hover:from-primary/60 group-hover:via-sky-400/40 group-hover:to-accent/60 group-hover:opacity-100"
+          className="absolute inset-0 rounded-lg bg-gradient-to-tr from-white/0 via-primary/0 to-ink/0 opacity-0 blur-[6px] transition-all duration-300 group-hover:from-white/50 group-hover:via-primary/60 group-hover:to-ink/50 group-hover:opacity-100"
         />
-        <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-primary/90 to-sky-500/90 text-primary-foreground shadow-sm transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:scale-105">
+        <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(135deg,#FFFFFF_0%,#FFFFFF_20%,#F59E0B_55%,#0A0A0A_100%)] text-ink shadow-sm transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:scale-105">
           <RobotFaceIcon />
         </span>
       </button>

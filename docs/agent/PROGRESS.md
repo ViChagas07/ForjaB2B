@@ -35,6 +35,13 @@ grupo `.ai-eyes` presentes no gatilho) e e2e; `npm run check` verde de novo
 (vitest **170**, depcruise 0). Aparência exata do vídeo segue como referência
 visual subjetiva (a animação foi implementada conforme descrição do dono).
 
+**Ajuste visual (2026-10-29):** o degradê do gatilho do assistente passou às
+cores do site — branco ? âmbar (#F59E0B) ? preto (#0A0A0A) em
+`linear-gradient(135deg, …)` — com o rostinho em tinta escura; glow do hover
+também em branco/âmbar/preto. Conferido por screenshot do botão em hover no
+dev e por `getComputedStyle`; `npm run check` verde (vitest **170**, depcruise
+0) e e2e do chat 4/4.
+
 **Checagens reais:** `npm run check` **verde** (lint, typecheck, format,
 vitest **170 passed** com 7 novos do widget: abrir/fechar com foco, limite de
 500 + contador, Enter/Shift+Enter, texto puro sem HTML injetado, cartões com
