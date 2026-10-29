@@ -6,6 +6,15 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Performance do catálogo — FASE 4: Server Components + prefetch/hidratação — 2026-10-29
+
+- **Páginas assíncronas:** home, catálogo, detalhe do produto e o bloco de catálogo da home fazem prefetch no servidor e entregam `dehydrate` + `HydrationBoundary`; as folhas interativas (filtros, busca, carrinho, idioma) continuam `'use client'`. A home isola o bloco de catálogo em `<Suspense>` para o hero não esperar o backend.
+- **Prefetch:** `features/catalog/server-prefetch.ts` prefetcha categories, brands e products (page_size 50 na home, 20 na listagem) com as MESMAS `catalogKeys` da Fase 3. A listagem usa `features/catalog/search-params.ts` como fonte única de parse no servidor e no cliente, evitando key diferente na hidratação. O detalhe do produto também é prefetchado.
+- **Cache do Next:** `fetch` no servidor usa `BACKEND_URL` absoluta, `next: { revalidate: 300, tags: ["catalog", "catalog:<recurso>:<locale>"] }`, `lang` na URL + `Accept-Language`, `credentials: "omit"`, timeout de 5 s e **sem** `X-Request-ID` aleatório (que invalidaria a cache key). Só dados públicos entram nesse cache; nenhum Authorization/cookie/tenant é enviado. O locale fica na URL/tags e separa as entradas (validado com pt-BR e en).
+- **Loading/erro:** `app/[locale]/catalog/loading.tsx` + `error.tsx`, `Suspense` com skeletons na home/listagem/detalhe. Falha de prefetch não derruba a página: o Client Component assume a busca e mostra loading/erro.
+- **Arquivos:** `frontend/app/[locale]/{page.tsx,home-catalog-sections.tsx,catalog/page.tsx,catalog/loading.tsx,catalog/error.tsx,catalog/[id]/page.tsx}`, `frontend/features/catalog/{server-prefetch.ts,search-params.ts,catalog-skeleton.tsx,catalog-browser.tsx}`, `frontend/features/home/{featured-products.tsx,featured-products-constants.ts}`, testes novos de parser e prefetch.
+- **Checagens reais:** `npm run check` **verde** (lint com 4 warnings pré-existentes de `<img>`, typecheck 0, format OK, vitest **198 passed** em 39 arquivos, depcruise **0 violações/220 módulos**); `npm run build` com `BACKEND_URL` **OK**. Runtime Next de produção + backend mock local: HTML SSR da home/listagem/detalhe continha produto/categoria/marca prefetchados; Playwright não registrou nenhuma chamada do navegador a `/api/v1` após a hidratação; o backend recebeu `lang`/`Accept-Language`, nenhum `Authorization`, e a segunda visita pt-BR não refez fetch (cache do Next), enquanto `en` gerou entradas separadas. **NÃO VALIDADO:** Vercel/Render/Elasticsearch reais, suíte Playwright completa e tempo real de cold start/meta de 500 ms (o backend local é mock e não representa a latência de produção).
+
 ## Performance do catálogo — FASE 3: React Query no App Router — 2026-10-29
 
 - **Dependência:** `@tanstack/react-query@5.104.1` já estava instalada (`^5.59.16` no package.json); nenhum pacote novo foi necessário.

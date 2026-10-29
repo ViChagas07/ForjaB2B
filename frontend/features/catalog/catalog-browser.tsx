@@ -5,8 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import type { SortField, SortOrder } from "@/core/domain/catalog";
-import { SORT_FIELDS, SORT_ORDERS } from "@/core/domain/catalog";
 import { useDebouncedValue } from "@/features/search";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
@@ -17,14 +15,10 @@ import { CatalogFilters } from "./catalog-filters";
 import { saveCatalogReturn } from "./catalog-return";
 import { useBrands, useCategories, useProducts } from "./hooks";
 import { ProductCard } from "./product-card";
+import { parseCatalogSearchParams } from "./search-params";
 
-const PAGE_SIZE = 20;
 /** Debounce do campo de busca do catálogo (ms): 1 request por pausa, não por tecla. */
 const SEARCH_DEBOUNCE_MS = 300;
-
-function parseEnum<T extends string>(value: string | null, allowed: readonly T[]): T | undefined {
-  return value && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
-}
 
 export function CatalogBrowser() {
   const t = useTranslations();
@@ -32,13 +26,11 @@ export function CatalogBrowser() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Estado derivado da URL (fonte de verdade para filtros/paginacao).
-  const search = searchParams.get("q") ?? "";
-  const categoryId = searchParams.get("category_id") ?? "";
-  const brandId = searchParams.get("brand_id") ?? "";
-  const sort = parseEnum<SortField>(searchParams.get("sort"), SORT_FIELDS) ?? "name";
-  const order = parseEnum<SortOrder>(searchParams.get("order"), SORT_ORDERS) ?? "asc";
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  // Estado derivado da URL (fonte de verdade para filtros/paginacao). O mesmo
+  // parser roda no Server Component para o prefetch usar a mesma query key.
+  const { search, categoryId, brandId, sort, order, page, query } = parseCatalogSearchParams(
+    Object.fromEntries(searchParams.entries()),
+  );
 
   // Estado local do campo: digitação responsiva; a URL (e a busca) acompanham
   // com debounce, como no combobox do header. Sem isso, cada tecla dispara
@@ -63,15 +55,7 @@ export function CatalogBrowser() {
 
   const categoriesQuery = useCategories();
   const brandsQuery = useBrands();
-  const productsQuery = useProducts({
-    q: search || undefined,
-    category_id: categoryId || undefined,
-    brand_id: brandId || undefined,
-    sort,
-    order,
-    page,
-    page_size: PAGE_SIZE,
-  });
+  const productsQuery = useProducts(query);
 
   function setParam(key: string, value: string | undefined, resetPage = true) {
     const params = new URLSearchParams(searchParams.toString());

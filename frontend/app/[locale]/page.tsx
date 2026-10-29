@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -12,12 +13,10 @@ import {
 } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { BrandStrip } from "@/features/home/brand-strip";
-import { FeaturedProducts } from "@/features/home/featured-products";
 import { HERO_PROMO_BANNERS, randomPromoIndex } from "@/features/home/hero-promo-banners";
 import { HeroPromoCarousel } from "@/features/home/hero-promo-carousel";
 import { HeroFlamesBackground } from "@/features/home/hero-flames-background";
-import { HomeCategories } from "@/features/home/home-categories";
+import { HomeCatalogSections, HomeCatalogSkeleton } from "./home-catalog-sections";
 import { Link } from "@/i18n/navigation";
 import { SiteFooter } from "@/shared/components/site-footer";
 import { SiteHeader } from "@/shared/components/site-header";
@@ -246,63 +245,9 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <BrandStrip />
-
-        <section id="solucoes" className="border-b border-border bg-secondary/40">
-          <div className="container py-20">
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forge-700 dark:text-forge-300">
-                  {t("home.categoriesEyebrow")}
-                </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                  {t("home.categoriesTitle")}
-                </h2>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  {t("home.categoriesDescription")}
-                </p>
-              </div>
-              <Button asChild variant="outline" className="w-fit rounded-xl bg-card">
-                <Link href="/catalog">
-                  {t("home.categoriesCta")}
-                  <ArrowRight aria-hidden="true" className="rtl:-scale-x-100" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="mt-10">
-              <HomeCategories />
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-background">
-          <div className="container py-20">
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-forge-700 dark:text-forge-300">
-                  {t("home.featuredEyebrow")}
-                </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-                  {t("home.featuredTitle")}
-                </h2>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  {t("home.featuredDescription")}
-                </p>
-              </div>
-              <Button asChild variant="outline" className="w-fit rounded-xl bg-card">
-                <Link href="/catalog">
-                  {t("home.featuredCta")}
-                  <ArrowRight aria-hidden="true" className="rtl:-scale-x-100" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="mt-10">
-              <FeaturedProducts />
-            </div>
-          </div>
-        </section>
+        <Suspense fallback={<HomeCatalogSkeleton />}>
+          <HomeCatalogSections locale={locale} />
+        </Suspense>
 
         <section id="a-forja" className="border-y border-border bg-card">
           <div className="container grid gap-12 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">

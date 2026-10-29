@@ -9,14 +9,14 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { HOME_FEATURED_POOL_SIZE } from "./featured-products-constants";
 import { randomSample } from "./random-sample";
 
 const FEATURED_COUNT = 4;
-const FEATURED_POOL_SIZE = 50;
 
 export function FeaturedProducts() {
   const t = useTranslations();
-  const query = useProducts({ page_size: FEATURED_POOL_SIZE });
+  const query = useProducts({ page_size: HOME_FEATURED_POOL_SIZE });
   const pool = React.useMemo(() => query.data?.items ?? [], [query.data]);
   const [products, setProducts] = React.useState<ProductSummary[]>([]);
 
