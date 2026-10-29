@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState, type FocusEvent } from "react";
+import { useEffect, useRef, useState, type FocusEvent } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
-import { heroPromoImageForLocale, type HeroPromoBanner } from "@/features/home/hero-promo-banners";
+import {
+  heroPromoImageForLocale,
+  nextRandomPromoIndex,
+  type HeroPromoBanner,
+} from "@/features/home/hero-promo-banners";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/utils";
 
@@ -14,6 +18,7 @@ const DESKTOP_IMAGE_QUERY = "(min-width: 1024px)";
 
 interface HeroPromoCarouselProps {
   banners: readonly HeroPromoBanner[];
+  initialIndex?: number;
 }
 
 function usePrefersReducedMotion() {
@@ -30,14 +35,22 @@ function usePrefersReducedMotion() {
   return prefersReducedMotion;
 }
 
-export function HeroPromoCarousel({ banners }: HeroPromoCarouselProps) {
+export function HeroPromoCarousel({ banners, initialIndex = 0 }: HeroPromoCarouselProps) {
   const t = useTranslations();
   const locale = useLocale();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (banners.length === 0) {
+      return 0;
+    }
+    const normalized = initialIndex % banners.length;
+    return normalized < 0 ? normalized + banners.length : normalized;
+  });
   const [autoRotationStopped, setAutoRotationStopped] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hasFocusWithin, setHasFocusWithin] = useState(false);
+  const [rotationEpoch, setRotationEpoch] = useState(0);
   const prefersReducedMotion = usePrefersReducedMotion();
+  const hasBeenVisibleRef = useRef(false);
 
   const activeBanner = banners[activeIndex] ?? banners[0];
   const hasMultipleBanners = banners.length > 1;
@@ -49,7 +62,7 @@ export function HeroPromoCarousel({ banners }: HeroPromoCarouselProps) {
 
     const isDesktop = window.matchMedia(DESKTOP_IMAGE_QUERY).matches;
     const timer = window.setTimeout(() => {
-      for (const banner of banners.slice(1)) {
+      for (const banner of banners) {
         const variant = heroPromoImageForLocale(banner, locale);
         const image = new window.Image();
         image.decoding = "async";
@@ -59,6 +72,28 @@ export function HeroPromoCarousel({ banners }: HeroPromoCarouselProps) {
 
     return () => window.clearTimeout(timer);
   }, [banners, locale]);
+
+  useEffect(() => {
+    if (banners.length < 2) {
+      return;
+    }
+
+    hasBeenVisibleRef.current = document.visibilityState === "visible";
+
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      if (hasBeenVisibleRef.current) {
+        setActiveIndex((current) => nextRandomPromoIndex(current, banners.length));
+        setRotationEpoch((value) => value + 1);
+      }
+      hasBeenVisibleRef.current = true;
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [banners.length]);
 
   useEffect(() => {
     if (
@@ -79,7 +114,14 @@ export function HeroPromoCarousel({ banners }: HeroPromoCarouselProps) {
     }, AUTO_ROTATE_INTERVAL_MS);
 
     return () => window.clearInterval(interval);
-  }, [autoRotationStopped, banners.length, hasFocusWithin, isHovered, prefersReducedMotion]);
+  }, [
+    autoRotationStopped,
+    banners.length,
+    hasFocusWithin,
+    isHovered,
+    prefersReducedMotion,
+    rotationEpoch,
+  ]);
 
   function goTo(index: number) {
     setActiveIndex(index);
@@ -117,12 +159,12 @@ export function HeroPromoCarousel({ banners }: HeroPromoCarouselProps) {
       className="relative overflow-hidden rounded-2xl border border-white/10 bg-ink shadow-[0_30px_80px_-52px_rgba(245,158,11,0.65)]"
     >
       <Link
-        key={activeBanner.id}
         href={activeBanner.href}
         aria-label={t(activeBanner.labelKey)}
         className="group relative block aspect-[1760/638] w-full overflow-hidden bg-ink focus-visible:outline-none"
       >
         <img
+          key={activeBanner.id}
           src={activeImage.image.src}
           srcSet={activeImage.image.srcSet}
           sizes="(min-width: 1152px) 1152px, calc(100vw - 3rem)"

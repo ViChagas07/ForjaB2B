@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { HERO_PROMO_BANNERS, heroPromoImageForLocale } from "@/features/home/hero-promo-banners";
+import {
+  HERO_PROMO_BANNERS,
+  heroPromoImageForLocale,
+  nextRandomPromoIndex,
+  randomPromoIndex,
+} from "@/features/home/hero-promo-banners";
 
 const PUBLIC_DIR = join(process.cwd(), "public");
 
@@ -83,5 +88,29 @@ describe("banners promocionais do hero", () => {
     expect(new Set(HERO_PROMO_BANNERS.map((banner) => banner.href)).size).toBe(
       HERO_PROMO_BANNERS.length,
     );
+  });
+});
+
+describe("sorteio do banner do hero", () => {
+  it("retorna um índice inicial válido", () => {
+    expect(randomPromoIndex(3, () => 0)).toBe(0);
+    expect(randomPromoIndex(3, () => 0.5)).toBe(1);
+    expect(randomPromoIndex(3, () => 0.999999)).toBe(2);
+    expect(randomPromoIndex(3, () => 1)).toBe(2);
+    expect(randomPromoIndex(1, () => 0.9)).toBe(0);
+    expect(randomPromoIndex(0, () => 0.9)).toBe(0);
+  });
+
+  it("sorteia um próximo banner diferente do atual", () => {
+    for (const current of [0, 1, 2]) {
+      for (const value of [0, 0.2, 0.5, 0.8, 0.999999, 1]) {
+        const next = nextRandomPromoIndex(current, 3, () => value);
+        expect(next).toBeGreaterThanOrEqual(0);
+        expect(next).toBeLessThan(3);
+        expect(next).not.toBe(current);
+      }
+    }
+
+    expect(nextRandomPromoIndex(0, 1, () => 0.5)).toBe(0);
   });
 });

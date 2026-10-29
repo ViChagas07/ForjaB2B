@@ -14,7 +14,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { BrandStrip } from "@/features/home/brand-strip";
 import { FeaturedProducts } from "@/features/home/featured-products";
-import { HERO_PROMO_BANNERS } from "@/features/home/hero-promo-banners";
+import { HERO_PROMO_BANNERS, randomPromoIndex } from "@/features/home/hero-promo-banners";
 import { HeroPromoCarousel } from "@/features/home/hero-promo-carousel";
 import { HeroFlamesBackground } from "@/features/home/hero-flames-background";
 import { HomeCategories } from "@/features/home/home-categories";
@@ -35,6 +35,7 @@ const CHART_BARS = ["42%", "58%", "36%", "72%", "54%", "86%", "64%"];
 export default async function HomePage() {
   const t = await getTranslations();
   const locale = await getLocale();
+  const initialPromoIndex = randomPromoIndex(HERO_PROMO_BANNERS.length);
 
   const trustItems = [
     { icon: BadgeCheck, label: t("home.trustCnpj") },
@@ -240,7 +241,7 @@ export default async function HomePage() {
                 aria-hidden="true"
                 className="absolute -inset-3 rounded-[1.75rem] bg-gradient-to-r from-primary/20 via-primary/5 to-primary/15 blur-2xl"
               />
-              <HeroPromoCarousel banners={HERO_PROMO_BANNERS} />
+              <HeroPromoCarousel banners={HERO_PROMO_BANNERS} initialIndex={initialPromoIndex} />
             </div>
           </div>
         </section>

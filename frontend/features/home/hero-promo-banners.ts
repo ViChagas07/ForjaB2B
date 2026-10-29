@@ -52,6 +52,28 @@ export function heroPromoImageForLocale(
   return locale === "pt-BR" ? banner.images["pt-BR"] : banner.images.en;
 }
 
+export function randomPromoIndex(total: number, random: () => number = Math.random): number {
+  if (total <= 1) {
+    return 0;
+  }
+
+  const index = Math.floor(random() * total);
+  return Math.min(Math.max(index, 0), total - 1);
+}
+
+export function nextRandomPromoIndex(
+  current: number,
+  total: number,
+  random: () => number = Math.random,
+): number {
+  if (total <= 1) {
+    return 0;
+  }
+
+  const offset = 1 + Math.min(Math.floor(random() * (total - 1)), total - 2);
+  return (current + offset) % total;
+}
+
 export const HERO_PROMO_BANNERS: readonly HeroPromoBanner[] = [
   {
     id: "epis",

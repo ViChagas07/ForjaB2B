@@ -1,6 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 const EPIS_CATEGORY_URL = /\/pt-BR\/catalog\?category_id=00000000-0000-0000-0000-000000000401$/;
+
+async function selectFirstBanner(region: Locator) {
+  await region.getByRole("button").first().click();
+}
 
 test.describe("banners promocionais do hero", () => {
   test.use({ locale: "pt-BR", reducedMotion: "reduce" });
@@ -10,6 +14,7 @@ test.describe("banners promocionais do hero", () => {
 
     const region = page.getByRole("region", { name: "Promoções em destaque" });
     await expect(region).toBeVisible();
+    await selectFirstBanner(region);
 
     const episLink = region.getByRole("link", {
       name: "Ver EPIs e equipamentos de segurança",
@@ -19,15 +24,12 @@ test.describe("banners promocionais do hero", () => {
       "/pt-BR/catalog?category_id=00000000-0000-0000-0000-000000000401",
     );
 
-    const box = await episLink.boundingBox();
-    expect(box).not.toBeNull();
-    if (!box) return;
-
-    await page.mouse.click(box.x + 6, box.y + 6);
+    await episLink.click({ position: { x: 6, y: 6 } });
     await expect(page).toHaveURL(EPIS_CATEGORY_URL);
 
     await page.goBack();
     await expect(page).toHaveURL(/\/pt-BR$/);
+    await selectFirstBanner(region);
 
     await page.getByRole("button", { name: "Próximo banner" }).click();
     await expect(region.getByRole("link", { name: "Ver ferramentas elétricas" })).toBeVisible();
@@ -63,6 +65,27 @@ test.describe("banners promocionais do hero", () => {
       /\/pt-BR\/catalog\?category_id=209f1617-a444-583c-9eea-5cb136a25ffb$/,
     );
   });
+
+  test("sorteia outro banner ao retornar para a aba", async ({ page }) => {
+    await page.goto("/pt-BR");
+
+    const region = page.getByRole("region", { name: "Promoções em destaque" });
+    await expect(region).toBeVisible();
+    await selectFirstBanner(region);
+
+    const firstLabel = await region.getByRole("link").getAttribute("aria-label");
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await expect
+      .poll(() => region.getByRole("link").getAttribute("aria-label"))
+      .not.toBe(firstLabel);
+  });
 });
 
 test.describe("banners promocionais em inglês", () => {
@@ -72,6 +95,8 @@ test.describe("banners promocionais em inglês", () => {
     await page.goto("/en");
 
     const region = page.getByRole("region", { name: "Featured promotions" });
+    await expect(region).toBeVisible();
+    await selectFirstBanner(region);
     const episLink = region.getByRole("link", {
       name: "View PPE and safety equipment",
     });
@@ -112,6 +137,7 @@ test.describe("carrossel promocional em RTL", () => {
 
     const region = page.getByRole("region", { name: "العروض المميزة" });
     await expect(region).toBeVisible();
+    await selectFirstBanner(region);
     await expect(region.locator('span[aria-hidden="true"][dir="ltr"]')).toHaveText("1 / 3");
     await expect(region.getByRole("link").locator("img")).toHaveAttribute(
       "src",
@@ -147,6 +173,7 @@ test.describe("banners promocionais no mobile", () => {
 
     const region = page.getByRole("region", { name: "Promoções em destaque" });
     await expect(region).toBeVisible();
+    await selectFirstBanner(region);
 
     const link = region.getByRole("link", {
       name: "Ver EPIs e equipamentos de segurança",
