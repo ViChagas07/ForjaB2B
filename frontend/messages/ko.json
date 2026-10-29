@@ -432,6 +432,16 @@
     "openOrders": "미처리 주문",
     "avgSavings": "평균 절감액",
     "invoiceDescription": "주문 #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "추천 프로모션",
+      "previous": "이전 배너",
+      "next": "다음 배너",
+      "goTo": "배너 {index}(으)로 이동: {title}",
+      "status": "배너 {current}/{total}",
+      "episLink": "PPE 및 안전 장비 보기",
+      "ferramentasLink": "전동 공구 보기",
+      "botasLink": "보호 부츠 및 안전화 보기"
+    },
     "brandsEyebrow": "파트너 브랜드",
     "brandsTitle": "산업을 움직이는 브랜드",
     "categoriesEyebrow": "필요한 것을 찾으세요",

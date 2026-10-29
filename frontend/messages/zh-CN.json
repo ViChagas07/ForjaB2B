@@ -432,6 +432,16 @@
     "openOrders": "待处理订单",
     "avgSavings": "平均节省",
     "invoiceDescription": "订单 #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "精选促销",
+      "previous": "上一张横幅",
+      "next": "下一张横幅",
+      "goTo": "转到第 {index} 张横幅：{title}",
+      "status": "第 {current} 张，共 {total} 张",
+      "episLink": "查看个人防护装备与安全设备",
+      "ferramentasLink": "查看电动工具",
+      "botasLink": "查看防护靴与安全鞋"
+    },
     "brandsEyebrow": "合作品牌",
     "brandsTitle": "推动工业前进的品牌",
     "categoriesEyebrow": "找到您需要的产品",

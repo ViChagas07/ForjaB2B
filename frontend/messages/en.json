@@ -432,6 +432,16 @@
     "openOrders": "Open orders",
     "avgSavings": "Average savings",
     "invoiceDescription": "Order #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Featured promotions",
+      "previous": "Previous banner",
+      "next": "Next banner",
+      "goTo": "Go to banner {index}: {title}",
+      "status": "Banner {current} of {total}",
+      "episLink": "View PPE and safety equipment",
+      "ferramentasLink": "View power tools",
+      "botasLink": "View protective boots and footwear"
+    },
     "brandsEyebrow": "PARTNER BRANDS",
     "brandsTitle": "The brands that keep industry moving",
     "categoriesEyebrow": "FIND WHAT YOU NEED",

@@ -432,6 +432,16 @@
     "openOrders": "Offene Bestellungen",
     "avgSavings": "Durchschnittliche Ersparnis",
     "invoiceDescription": "Bestellung #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Ausgewählte Angebote",
+      "previous": "Vorheriges Banner",
+      "next": "Nächstes Banner",
+      "goTo": "Zu Banner {index}: {title}",
+      "status": "Banner {current} von {total}",
+      "episLink": "PSA und Sicherheitsausrüstung ansehen",
+      "ferramentasLink": "Elektrowerkzeuge ansehen",
+      "botasLink": "Schutzstiefel und Sicherheitsschuhe ansehen"
+    },
     "brandsEyebrow": "PARTNERMARKEN",
     "brandsTitle": "Marken, die die Industrie bewegen",
     "categoriesEyebrow": "FINDEN SIE, WAS SIE BRAUCHEN",

@@ -432,6 +432,16 @@
     "openOrders": "Открытые заказы",
     "avgSavings": "Средняя экономия",
     "invoiceDescription": "Заказ #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Избранные акции",
+      "previous": "Предыдущий баннер",
+      "next": "Следующий баннер",
+      "goTo": "Перейти к баннеру {index}: {title}",
+      "status": "Баннер {current} из {total}",
+      "episLink": "Смотреть СИЗ и средства безопасности",
+      "ferramentasLink": "Смотреть электроинструменты",
+      "botasLink": "Смотреть защитные ботинки и обувь"
+    },
     "brandsEyebrow": "БРЕНДЫ-ПАРТНЁРЫ",
     "brandsTitle": "Бренды, которые двигают промышленность",
     "categoriesEyebrow": "НАЙДИТЕ НУЖНОЕ",

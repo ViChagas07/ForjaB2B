@@ -432,6 +432,16 @@
     "openOrders": "Órdenes abiertas",
     "avgSavings": "Ahorro promedio",
     "invoiceDescription": "Orden #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Promociones destacadas",
+      "previous": "Anuncio anterior",
+      "next": "Anuncio siguiente",
+      "goTo": "Ir al anuncio {index}: {title}",
+      "status": "Anuncio {current} de {total}",
+      "episLink": "Ver EPP y equipos de seguridad",
+      "ferramentasLink": "Ver herramientas eléctricas",
+      "botasLink": "Ver botas y calzado de protección"
+    },
     "brandsEyebrow": "MARCAS ALIADAS",
     "brandsTitle": "Las marcas que impulsan la industria",
     "categoriesEyebrow": "ENCUENTRA LO QUE NECESITAS",

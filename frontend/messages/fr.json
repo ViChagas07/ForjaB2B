@@ -432,6 +432,16 @@
     "openOrders": "Commandes ouvertes",
     "avgSavings": "Économie moyenne",
     "invoiceDescription": "Commande #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Promotions à la une",
+      "previous": "Bannière précédente",
+      "next": "Bannière suivante",
+      "goTo": "Aller à la bannière {index} : {title}",
+      "status": "Bannière {current} sur {total}",
+      "episLink": "Voir les EPI et équipements de sécurité",
+      "ferramentasLink": "Voir les outils électriques",
+      "botasLink": "Voir les bottes et chaussures de protection"
+    },
     "brandsEyebrow": "MARQUES PARTENAIRES",
     "brandsTitle": "Les marques qui font avancer l'industrie",
     "categoriesEyebrow": "TROUVEZ CE QU'IL VOUS FAUT",

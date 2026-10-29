@@ -432,6 +432,16 @@
     "openOrders": "未処理の注文",
     "avgSavings": "平均削減額",
     "invoiceDescription": "注文 #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "注目のプロモーション",
+      "previous": "前のバナー",
+      "next": "次のバナー",
+      "goTo": "バナー{index}「{title}」へ移動",
+      "status": "バナー{current}/{total}",
+      "episLink": "保護具と安全装備を見る",
+      "ferramentasLink": "電動工具を見る",
+      "botasLink": "保護ブーツと安全靴を見る"
+    },
     "brandsEyebrow": "パートナーブランド",
     "brandsTitle": "産業を動かすブランド",
     "categoriesEyebrow": "必要なものを探す",

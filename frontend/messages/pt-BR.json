@@ -432,6 +432,16 @@
     "openOrders": "Pedidos em aberto",
     "avgSavings": "Economia média",
     "invoiceDescription": "Pedido #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Promoções em destaque",
+      "previous": "Banner anterior",
+      "next": "Próximo banner",
+      "goTo": "Ir para o banner {index}: {title}",
+      "status": "Banner {current} de {total}",
+      "episLink": "Ver EPIs e equipamentos de segurança",
+      "ferramentasLink": "Ver ferramentas elétricas",
+      "botasLink": "Ver botas e calçados de proteção"
+    },
     "brandsEyebrow": "MARCAS PARCEIRAS",
     "brandsTitle": "Quem move a indústria com a Forja",
     "categoriesEyebrow": "ENCONTRE O QUE PRECISA",

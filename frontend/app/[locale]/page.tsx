@@ -14,6 +14,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { BrandStrip } from "@/features/home/brand-strip";
 import { FeaturedProducts } from "@/features/home/featured-products";
+import { HERO_PROMO_BANNERS } from "@/features/home/hero-promo-banners";
+import { HeroPromoCarousel } from "@/features/home/hero-promo-carousel";
 import { HeroFlamesBackground } from "@/features/home/hero-flames-background";
 import { HomeCategories } from "@/features/home/home-categories";
 import { Link } from "@/i18n/navigation";
@@ -79,7 +81,7 @@ export default async function HomePage() {
             className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-ink via-ink/60 to-transparent"
           />
 
-          <div className="container relative grid gap-14 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
+          <div className="container relative grid gap-14 pb-12 pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-14 lg:pt-24">
             <div className="animate-rise">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">
                 <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-primary" />
@@ -229,6 +231,16 @@ export default async function HomePage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="container relative pb-16 lg:pb-20">
+            <div className="relative mx-auto max-w-6xl">
+              <div
+                aria-hidden="true"
+                className="absolute -inset-3 rounded-[1.75rem] bg-gradient-to-r from-primary/20 via-primary/5 to-primary/15 blur-2xl"
+              />
+              <HeroPromoCarousel banners={HERO_PROMO_BANNERS} />
             </div>
           </div>
         </section>

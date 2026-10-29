@@ -432,6 +432,16 @@
     "openOrders": "Ordini aperti",
     "avgSavings": "Risparmio medio",
     "invoiceDescription": "Ordine #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "Promozioni in evidenza",
+      "previous": "Banner precedente",
+      "next": "Banner successivo",
+      "goTo": "Vai al banner {index}: {title}",
+      "status": "Banner {current} di {total}",
+      "episLink": "Vedi DPI e dispositivi di sicurezza",
+      "ferramentasLink": "Vedi utensili elettrici",
+      "botasLink": "Vedi stivali e calzature di protezione"
+    },
     "brandsEyebrow": "MARCHI PARTNER",
     "brandsTitle": "I marchi che muovono l'industria",
     "categoriesEyebrow": "TROVA CIÒ CHE TI SERVE",

@@ -432,6 +432,16 @@
     "openOrders": "الطلبات المفتوحة",
     "avgSavings": "متوسط التوفير",
     "invoiceDescription": "الطلب #1042 · CAP-002",
+    "promos": {
+      "regionLabel": "العروض المميزة",
+      "previous": "البانر السابق",
+      "next": "البانر التالي",
+      "goTo": "الانتقال إلى البانر {index}: {title}",
+      "status": "البانر {current} من {total}",
+      "episLink": "عرض معدات الحماية الشخصية ومعدات السلامة",
+      "ferramentasLink": "عرض الأدوات الكهربائية",
+      "botasLink": "عرض أحذية الحماية والأحذية الآمنة"
+    },
     "brandsEyebrow": "العلامات الشريكة",
     "brandsTitle": "علامات تحرك الصناعة",
     "categoriesEyebrow": "اعثر على ما تحتاجه",
