@@ -1,24 +1,21 @@
 import { QueryClient } from "@tanstack/react-query";
 
 /**
- * Defaults sensatos para o TanStack Query (server state).
+ * Defaults do TanStack Query (server state).
  *
- * - staleTime curto o bastante para não servir dados velhos;
- * - gcTime de 5 min libera o cache de queries inativas;
- * - retry com backoff exponencial cobre a janela de cold start/redeploy do
- *   backend hospedado (plano gratuito dorme após ociosidade): 5 tentativas
- *   com timeout de 15 s cada + 1-8 s de espera ≈ até ~90 s de tolerância,
- *   em vez de falhar com "Falha de conexão" nos primeiros 30 s;
- * - refetchOnWindowFocus desligado (evita requisições redundantes).
+ * - staleTime de 5 min: navegar entre páginas reutiliza o cache das mesmas
+ *   query keys (locale + parâmetros) em vez de refazer as 3 chamadas;
+ * - gcTime de 30 min mantém entradas inativas no cache durante a sessão;
+ * - retry 1 cobre uma falha transitória sem multiplicar a espera do cold start;
+ * - refetchOnWindowFocus desligado evita requisições redundantes ao voltar
+ *   para a aba.
  */
 
 export const DEFAULT_QUERY_DEFAULTS = {
-  staleTime: 30_000,
-  gcTime: 5 * 60_000,
-  retry: 4,
-  retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 8000),
+  staleTime: 5 * 60_000,
+  gcTime: 30 * 60_000,
   refetchOnWindowFocus: false,
-  refetchOnReconnect: true,
+  retry: 1,
 } as const;
 
 export const DEFAULT_MUTATION_DEFAULTS = {
@@ -32,4 +29,20 @@ export function createQueryClient(): QueryClient {
       mutations: { ...DEFAULT_MUTATION_DEFAULTS },
     },
   });
+}
+
+let browserQueryClient: QueryClient | undefined;
+
+/**
+ * Padrão oficial do App Router: no servidor cada requisição recebe um
+ * QueryClient novo; no navegador ele é um singleton durante a sessão.
+ */
+export function getQueryClient(): QueryClient {
+  if (typeof window === "undefined") {
+    return createQueryClient();
+  }
+  if (!browserQueryClient) {
+    browserQueryClient = createQueryClient();
+  }
+  return browserQueryClient;
 }

@@ -16,43 +16,51 @@ import { apiClient } from "./client";
  * traduzidos para query string; o backend valida por whitelist e resolve preços.
  */
 export const catalogApi = {
-  async listCategories(locale: string): Promise<Category[]> {
+  async listCategories(locale: string, signal?: AbortSignal): Promise<Category[]> {
     const response = await apiClient.request<Category[]>({
       method: "GET",
       path: "/catalog/categories",
       locale,
+      signal,
     });
     return response.body;
   },
 
-  async getCategory(categoryId: string, locale: string): Promise<Category> {
+  async getCategory(categoryId: string, locale: string, signal?: AbortSignal): Promise<Category> {
     const response = await apiClient.request<Category>({
       method: "GET",
       path: `/catalog/categories/${categoryId}`,
       locale,
+      signal,
     });
     return response.body;
   },
 
-  async listBrands(locale: string): Promise<BrandRef[]> {
+  async listBrands(locale: string, signal?: AbortSignal): Promise<BrandRef[]> {
     const response = await apiClient.request<BrandRef[]>({
       method: "GET",
       path: "/catalog/brands",
       locale,
+      signal,
     });
     return response.body;
   },
 
-  async getBrand(brandId: string, locale: string): Promise<BrandRef> {
+  async getBrand(brandId: string, locale: string, signal?: AbortSignal): Promise<BrandRef> {
     const response = await apiClient.request<BrandRef>({
       method: "GET",
       path: `/catalog/brands/${brandId}`,
       locale,
+      signal,
     });
     return response.body;
   },
 
-  async listProducts(query: ProductListQuery = {}, locale: string): Promise<ProductListResponse> {
+  async listProducts(
+    query: ProductListQuery = {},
+    locale: string,
+    signal?: AbortSignal,
+  ): Promise<ProductListResponse> {
     const response = await apiClient.request<ProductListResponse>({
       method: "GET",
       path: "/catalog/products",
@@ -68,15 +76,21 @@ export const catalogApi = {
         page_size: query.page_size,
       },
       locale,
+      signal,
     });
     return response.body;
   },
 
-  async getProduct(productId: string, locale: string): Promise<ProductDetail> {
+  async getProduct(
+    productId: string,
+    locale: string,
+    signal?: AbortSignal,
+  ): Promise<ProductDetail> {
     const response = await apiClient.request<ProductDetail>({
       method: "GET",
       path: `/catalog/products/${productId}`,
       locale,
+      signal,
     });
     return response.body;
   },
@@ -86,11 +100,12 @@ export const catalogApi = {
 export function useCatalogApi() {
   const locale = useLocale();
   return {
-    listCategories: () => catalogApi.listCategories(locale),
-    getCategory: (id: string) => catalogApi.getCategory(id, locale),
-    listBrands: () => catalogApi.listBrands(locale),
-    getBrand: (id: string) => catalogApi.getBrand(id, locale),
-    listProducts: (query?: ProductListQuery) => catalogApi.listProducts(query, locale),
-    getProduct: (id: string) => catalogApi.getProduct(id, locale),
+    listCategories: (signal?: AbortSignal) => catalogApi.listCategories(locale, signal),
+    getCategory: (id: string, signal?: AbortSignal) => catalogApi.getCategory(id, locale, signal),
+    listBrands: (signal?: AbortSignal) => catalogApi.listBrands(locale, signal),
+    getBrand: (id: string, signal?: AbortSignal) => catalogApi.getBrand(id, locale, signal),
+    listProducts: (query?: ProductListQuery, signal?: AbortSignal) =>
+      catalogApi.listProducts(query, locale, signal),
+    getProduct: (id: string, signal?: AbortSignal) => catalogApi.getProduct(id, locale, signal),
   };
 }

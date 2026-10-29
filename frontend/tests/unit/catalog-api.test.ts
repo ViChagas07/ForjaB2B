@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { catalogApi } from "@/infrastructure/http";
+import { apiClient, catalogApi } from "@/infrastructure/http";
 
 function jsonResponse(body: unknown, init?: { status?: number }): Response {
   return new Response(JSON.stringify(body), {
@@ -59,6 +59,22 @@ describe("catalogApi.listProducts", () => {
     const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).not.toContain("q=");
     expect(url).not.toContain("category_id=");
+  });
+});
+
+describe("catalogApi abort", () => {
+  it("repassa o AbortSignal do React Query ao cliente HTTP", async () => {
+    const requestSpy = vi.spyOn(apiClient, "request").mockResolvedValue({
+      status: 200,
+      headers: {},
+      body: { items: [], total: 0, page: 1, page_size: 50, pages: 0 },
+    } as never);
+    const controller = new AbortController();
+
+    await catalogApi.listProducts({ page_size: 50 }, "pt-BR", controller.signal);
+
+    expect(requestSpy).toHaveBeenCalledWith(expect.objectContaining({ signal: controller.signal }));
+    requestSpy.mockRestore();
   });
 });
 

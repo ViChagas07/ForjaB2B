@@ -7,12 +7,23 @@ import { orderKey } from "@/features/ordering/hooks";
 
 describe("cache por idioma", () => {
   it("inclui o locale nas chaves de catálogo, carrinho e pedido", () => {
+    expect(catalogKeys.categories("pt-BR")).not.toEqual(catalogKeys.categories("en"));
+    expect(catalogKeys.brands("pt-BR")).not.toEqual(catalogKeys.brands("ar"));
     expect(catalogKeys.product("pt-BR", "p1")).not.toEqual(catalogKeys.product("en", "p1"));
     expect(catalogKeys.products("pt-BR", { q: "x" })).not.toEqual(
       catalogKeys.products("en", { q: "x" }),
     );
     expect(cartKey("pt-BR")).not.toEqual(cartKey("ar"));
     expect(orderKey("o1", "pt-BR")).not.toEqual(orderKey("o1", "en"));
+  });
+
+  it("inclui parâmetros que alteram a resposta de produtos", () => {
+    expect(catalogKeys.products("pt-BR", { page_size: 50 })).not.toEqual(
+      catalogKeys.products("pt-BR", { page_size: 20 }),
+    );
+    expect(catalogKeys.products("pt-BR", { q: "capacete" })).not.toEqual(
+      catalogKeys.products("pt-BR", { q: "luva" }),
+    );
   });
 
   it("guarda respostas de idiomas diferentes em entradas diferentes", () => {

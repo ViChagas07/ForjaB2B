@@ -6,6 +6,14 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Performance do catálogo — FASE 3: React Query no App Router — 2026-10-29
+
+- **Dependência:** `@tanstack/react-query@5.104.1` já estava instalada (`^5.59.16` no package.json); nenhum pacote novo foi necessário.
+- **QueryClient:** `shared/lib/query-client.ts` agora expõe `getQueryClient()` no padrão do App Router - cliente novo a cada render/requisição no servidor e singleton no navegador. `shared/providers.tsx` usa esse cliente (sem `useState`) e continua no layout `[locale]`. Defaults: `staleTime` **5 min**, `gcTime` **30 min**, `refetchOnWindowFocus: false`, `retry: 1`; mutações continuam com `retry: 0`.
+- **Hooks/keys:** `features/catalog/query-keys.ts` inclui locale e todo o `ProductListQuery`; `features/catalog/hooks.ts` usa `useBrands`/`useCategories`/`useProducts` com `queryFn` recebendo `{ signal }` e repassando ao adapter. `catalog-api.ts` aceita `AbortSignal` em todas as leituras. Nenhum `fetch`/`useEffect` solto sobrou para os três recursos; home e catálogo compartilham as mesmas keys e o cache, e mutações de carrinho/pedido não foram tocadas.
+- **Arquivos:** `frontend/shared/lib/query-client.ts`, `frontend/shared/providers.tsx`, `frontend/features/catalog/hooks.ts`, `frontend/features/catalog/query-keys.ts`, `frontend/infrastructure/http/catalog-api.ts`, `frontend/tests/unit/{query-client,catalog-hooks,catalog-api,query-keys-locale}.test.*`.
+- **Checagens reais:** `npm run check` **verde** (lint com 4 warnings pré-existentes de `<img>`, typecheck 0, format OK, vitest **192 passed** em 37 arquivos, depcruise 0 violações/211 módulos). `npm run build` com `BACKEND_URL` **OK**. Testes novos cobrem defaults (5/30 min, retry 1, sem refetch no focus), singleton no navegador x cliente novo no servidor, deduplicação/cache por key do catálogo, keys com locale/parâmetros e cancelamento real do fetch via `AbortSignal`. **NÃO VALIDADO:** contagem de requisições em navegador real contra a Vercel/Render e suíte Playwright completa (backend/DB local sem Docker); não há dados reais de catálogo no ambiente local para medir a meta de 500 ms.
+
 ## Performance do catálogo — FASE 2: proxy same-origin via rewrites — 2026-10-29
 
 - **Rewrites:** `frontend/next.config.mjs` mapeia `/api/v1/:path*` -> `${BACKEND_URL}/api/v1/:path*` e `/static/:path*` -> `${BACKEND_URL}/static/:path*` (o segundo mantém as imagens da API same-origin, sem URL de backend no bundle). `trailingSlash: false` garante que a barra final seja normalizada por um 308 da própria Vercel ANTES do rewrite; o `redirect_slashes` do FastAPI nunca vira um redirect para o Render. Build de produção falha com erro claro se `BACKEND_URL` faltar (checagem pelo subcomando real, sem quebrar `next lint`).
