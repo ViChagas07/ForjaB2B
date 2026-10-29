@@ -156,87 +156,110 @@ export function HeroPromoCarousel({ banners, initialIndex = 0 }: HeroPromoCarous
       onMouseLeave={() => setIsHovered(false)}
       onFocus={() => setHasFocusWithin(true)}
       onBlur={handleBlur}
-      className="relative overflow-hidden rounded-2xl border border-white/10 bg-ink shadow-[0_30px_80px_-52px_rgba(245,158,11,0.65)]"
+      className="relative"
     >
-      <Link
-        href={activeBanner.href}
-        aria-label={t(activeBanner.labelKey)}
-        className="group relative block aspect-[1760/638] w-full overflow-hidden bg-ink focus-visible:outline-none"
-      >
-        <img
-          key={activeBanner.id}
-          src={activeImage.image.src}
-          srcSet={activeImage.image.srcSet}
-          sizes="(min-width: 1152px) 1152px, calc(100vw - 3rem)"
-          width={activeImage.image.width}
-          height={activeImage.image.height}
-          alt=""
-          loading="eager"
-          decoding="async"
-          draggable={false}
-          className="h-full w-full animate-fade-in object-cover"
-        />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-2 ring-inset ring-primary transition-opacity group-focus-visible:opacity-100"
-        />
-      </Link>
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink shadow-[0_30px_80px_-52px_rgba(245,158,11,0.65)]">
+        <Link
+          href={activeBanner.href}
+          aria-label={t(activeBanner.labelKey)}
+          className="group relative block aspect-[1760/638] w-full overflow-hidden bg-ink focus-visible:outline-none"
+        >
+          <img
+            key={activeBanner.id}
+            src={activeImage.image.src}
+            srcSet={activeImage.image.srcSet}
+            sizes="(min-width: 1152px) 1152px, calc(100vw - 3rem)"
+            width={activeImage.image.width}
+            height={activeImage.image.height}
+            alt=""
+            loading="eager"
+            decoding="async"
+            draggable={false}
+            className="h-full w-full animate-fade-in object-cover"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-2 ring-inset ring-primary transition-opacity group-focus-visible:opacity-100"
+          />
+        </Link>
+
+        {hasMultipleBanners ? (
+          <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#0d0d0e]/95 px-3 py-2 sm:px-4">
+            <div className="flex items-center gap-1">
+              {banners.map((banner, index) => {
+                const isActive = index === activeIndex;
+                return (
+                  <button
+                    key={banner.id}
+                    type="button"
+                    onClick={() => goTo(index)}
+                    aria-label={t("home.promos.goTo", {
+                      index: index + 1,
+                      title: t(banner.labelKey),
+                    })}
+                    aria-current={isActive ? "true" : undefined}
+                    className="group flex h-8 min-w-6 items-center justify-center rounded-full px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "block h-1.5 rounded-full transition-all",
+                        isActive ? "w-7 bg-primary" : "w-3 bg-white/30 group-hover:bg-white/55",
+                      )}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                dir="ltr"
+                className="hidden text-[10px] font-semibold tabular-nums tracking-[0.18em] text-white/45 sm:inline"
+              >
+                {activeIndex + 1} / {banners.length}
+              </span>
+              <button
+                type="button"
+                onClick={goPrevious}
+                aria-label={t("home.promos.previous")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/65 transition-colors hover:border-primary/40 hover:bg-primary/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+              >
+                <ChevronLeft aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label={t("home.promos.next")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/65 transition-colors hover:border-primary/40 hover:bg-primary/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+              >
+                <ChevronRight aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       {hasMultipleBanners ? (
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#0d0d0e]/95 px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-1">
-            {banners.map((banner, index) => {
-              const isActive = index === activeIndex;
-              return (
-                <button
-                  key={banner.id}
-                  type="button"
-                  onClick={() => goTo(index)}
-                  aria-label={t("home.promos.goTo", {
-                    index: index + 1,
-                    title: t(banner.labelKey),
-                  })}
-                  aria-current={isActive ? "true" : undefined}
-                  className="group flex h-8 min-w-6 items-center justify-center rounded-full px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "block h-1.5 rounded-full transition-all",
-                      isActive ? "w-7 bg-primary" : "w-3 bg-white/30 group-hover:bg-white/55",
-                    )}
-                  />
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              dir="ltr"
-              className="hidden text-[10px] font-semibold tabular-nums tracking-[0.18em] text-white/45 sm:inline"
-            >
-              {activeIndex + 1} / {banners.length}
-            </span>
-            <button
-              type="button"
-              onClick={goPrevious}
-              aria-label={t("home.promos.previous")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/65 transition-colors hover:border-primary/40 hover:bg-primary/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
-            >
-              <ChevronLeft aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label={t("home.promos.next")}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/65 transition-colors hover:border-primary/40 hover:bg-primary/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
-            >
-              <ChevronRight aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
-            </button>
-          </div>
-        </div>
+        <>
+          <button
+            type="button"
+            onClick={goPrevious}
+            aria-label={t("catalog.previous")}
+            className="absolute start-0 top-[calc(50%_-_1.5rem)] z-10 inline-flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-primary/50 bg-ink/80 text-primary shadow-[0_14px_36px_-10px_rgba(0,0,0,0.95)] backdrop-blur-md transition-colors hover:border-primary/80 hover:bg-primary/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink rtl:translate-x-1/2 sm:h-12 sm:w-12"
+          >
+            <ChevronLeft aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100 sm:h-5 sm:w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label={t("catalog.next")}
+            className="absolute end-0 top-[calc(50%_-_1.5rem)] z-10 inline-flex h-10 w-10 -translate-y-1/2 translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-primary/50 bg-ink/80 text-primary shadow-[0_14px_36px_-10px_rgba(0,0,0,0.95)] backdrop-blur-md transition-colors hover:border-primary/80 hover:bg-primary/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink rtl:-translate-x-1/2 sm:h-12 sm:w-12"
+          >
+            <ChevronRight aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100 sm:h-5 sm:w-5" />
+          </button>
+        </>
       ) : null}
 
       {hasMultipleBanners ? (

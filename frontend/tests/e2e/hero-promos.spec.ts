@@ -24,6 +24,11 @@ test.describe("banners promocionais do hero", () => {
       "/pt-BR/catalog?category_id=00000000-0000-0000-0000-000000000401",
     );
 
+    await region.getByRole("button", { name: "Próxima", exact: true }).click();
+    await expect(region.getByRole("link", { name: "Ver ferramentas elétricas" })).toBeVisible();
+    await region.getByRole("button", { name: "Anterior", exact: true }).click();
+    await expect(episLink).toBeVisible();
+
     await episLink.click({ position: { x: 6, y: 6 } });
     await expect(page).toHaveURL(EPIS_CATEGORY_URL);
 
@@ -190,7 +195,7 @@ test.describe("banners promocionais no mobile", () => {
       ),
     ).toBe(false);
 
-    await link.click({ position: { x: box.width - 8, y: box.height / 2 } });
+    await link.click({ position: { x: box.width - 8, y: 12 } });
     await expect(page).toHaveURL(EPIS_CATEGORY_URL);
   });
 });
