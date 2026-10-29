@@ -50,6 +50,9 @@ _UPDATE_ANONYMIZE = text(
     "cpf_encrypted = NULL, status = 'SUSPENDED', updated_at = now() "
     "WHERE id = :user_id AND company_id = :company_id"
 )
+_DELETE_CONSUMER_PROFILE = text(
+    "DELETE FROM consumer_profiles WHERE user_id = :user_id AND company_id = :company_id"
+)
 _INSERT_AUDIT = text(
     "INSERT INTO audit_log (company_id, actor_user_id, action, resource, resource_id, details) "
     "VALUES (:company_id, :actor_user_id, :action, :resource, :resource_id, :details)"
@@ -164,6 +167,12 @@ class SqlAlchemyPrivacyRepository:
                     "email": anonymized_email(user_id),
                     "full_name": anonymized_name(),
                 },
+            )
+            # Dados de perfil do consumidor nao devem sobreviver a exclusao,
+            # mesmo que o usuario seja mantido anonimizado para historico.
+            await uow.session.execute(
+                _DELETE_CONSUMER_PROFILE,
+                {"user_id": user_id, "company_id": company_id},
             )
             await uow.session.execute(
                 _INSERT_AUDIT,

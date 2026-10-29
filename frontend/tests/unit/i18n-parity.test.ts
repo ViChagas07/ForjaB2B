@@ -61,6 +61,9 @@ const ALLOWED_IDENTICAL_KEYS = new Set([
   "homeTitle",
   "onboarding.cnpjPlaceholder",
   "onboarding.adminCpfPlaceholder",
+  "consumer.cpfLabel",
+  "consumer.cpfPlaceholder",
+  "consumer.postalCodePlaceholder",
   "catalog.weightKg", // "{weight} kg" é numérico + unidade
   // Siglas, códigos e nomes de meios de pagamento (não se traduzem)
   "catalog.sku",
@@ -122,9 +125,13 @@ const ALLOWED_IDENTICAL_VALUES: Record<string, Set<string>> = {
     "Crédito",
     // Dropdown de busca: "Resultados populares para {q}" é cognato exato em es.
     "Resultados populares para “{q}”",
+    // Termos curtos idênticos em espanhol e português.
+    "Masculino",
+    "CPF inválido.",
+    "Cliente",
   ]),
   fr: new Set(["E-mail", "ou"]),
-  it: new Set(["E-mail", "Nome completo"]),
+  it: new Set(["E-mail", "Nome completo", "Cliente"]),
 };
 
 function isAllowedIdentical(locale: string, key: string, value: string): boolean {

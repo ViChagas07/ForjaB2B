@@ -31,6 +31,7 @@ class RedisRefreshTokenStore:
             "user_id": str(payload.user_id),
             "company_id": str(payload.company_id),
             "role": payload.role,
+            "account_type": payload.account_type,
         }
         await self._client.set(f"{_KEY_PREFIX}{refresh_token_id}", json.dumps(data), ex=ttl_seconds)
 
@@ -43,6 +44,7 @@ class RedisRefreshTokenStore:
             user_id=uuid.UUID(data["user_id"]),
             company_id=uuid.UUID(data["company_id"]),
             role=data["role"],
+            account_type=data.get("account_type", "COMPANY"),
         )
 
     async def delete(self, refresh_token_id: str) -> None:

@@ -725,11 +725,22 @@
       },
       "CompanyResponse": {
         "additionalProperties": false,
-        "description": "Visao publica da empresa (sem dados sensiveis).",
+        "description": "Visao publica da empresa/conta (sem dados sensiveis).",
         "properties": {
-          "cnpj": {
-            "title": "Cnpj",
+          "account_type": {
+            "title": "Account Type",
             "type": "string"
+          },
+          "cnpj": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj"
           },
           "id": {
             "format": "uuid",
@@ -761,7 +772,8 @@
           "cnpj",
           "legal_name",
           "trade_name",
-          "status"
+          "status",
+          "account_type"
         ],
         "title": "CompanyResponse",
         "type": "object"
@@ -1148,6 +1160,18 @@
         "title": "FieldError",
         "type": "object"
       },
+      "Gender": {
+        "description": "Genero informado pelo consumidor (opcional, com opcao de nao informar).",
+        "enum": [
+          "FEMININO",
+          "MASCULINO",
+          "NAO_BINARIO",
+          "OUTRO",
+          "PREFIRO_NAO_INFORMAR"
+        ],
+        "title": "Gender",
+        "type": "string"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1323,6 +1347,21 @@
         "additionalProperties": false,
         "description": "Credenciais de login. Nunca aceitar senha via query string (so no body).",
         "properties": {
+          "account_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PERSON",
+                  "COMPANY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Type"
+          },
           "email": {
             "maxLength": 320,
             "minLength": 3,
@@ -3878,6 +3917,90 @@
         "title": "RegisterCompanyResponse",
         "type": "object"
       },
+      "RegisterConsumerRequest": {
+        "additionalProperties": false,
+        "description": "Entrada do cadastro de cliente consumidor (CPF).",
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "title": "Birth Date",
+            "type": "string"
+          },
+          "consent": {
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "cpf": {
+            "maxLength": 14,
+            "minLength": 11,
+            "title": "Cpf",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 320,
+            "minLength": 3,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Full Name",
+            "type": "string"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          },
+          "postal_code": {
+            "maxLength": 9,
+            "minLength": 8,
+            "pattern": "^\\d{8}$",
+            "title": "Postal Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "full_name",
+          "email",
+          "password",
+          "cpf",
+          "birth_date",
+          "postal_code",
+          "gender",
+          "consent"
+        ],
+        "title": "RegisterConsumerRequest",
+        "type": "object"
+      },
+      "RegisterConsumerResponse": {
+        "additionalProperties": false,
+        "description": "Resultado do cadastro de consumidor.",
+        "properties": {
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company_id",
+          "user_id"
+        ],
+        "title": "RegisterConsumerResponse",
+        "type": "object"
+      },
       "SearchHealthResponse": {
         "description": "Estado do motor de busca (nao essencial ao readiness da aplicacao).",
         "properties": {
@@ -4594,6 +4717,11 @@
         "additionalProperties": false,
         "description": "Perfil minimo devolvido apos o login (sem hash/senha/token interno).",
         "properties": {
+          "account_type": {
+            "default": "COMPANY",
+            "title": "Account Type",
+            "type": "string"
+          },
           "email": {
             "title": "Email",
             "type": "string"
@@ -7055,6 +7183,22 @@
                 }
               ],
               "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
             }
           }
         ],
@@ -9660,6 +9804,131 @@
         "summary": "Approve Company",
         "tags": [
           "companies"
+        ]
+      }
+    },
+    "/api/v1/consumers": {
+      "post": {
+        "operationId": "register_consumer_api_v1_consumers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterConsumerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterConsumerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "summary": "Register Consumer",
+        "tags": [
+          "consumers"
         ]
       }
     },
@@ -14321,6 +14590,10 @@
     {
       "description": "Cadastro, aprovacao e consulta da empresa do tenant.",
       "name": "companies"
+    },
+    {
+      "description": "Operacoes da API.",
+      "name": "consumers"
     },
     {
       "description": "Conta de credito e lancamentos do tenant.",

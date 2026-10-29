@@ -104,7 +104,7 @@ async def test_registro_cnpj_duplicado_409(companies_client: httpx.AsyncClient) 
 
     second = await companies_client.post(
         "/api/v1/companies",
-        json=_payload(_CNPJ_DUP, "dup2@empresa-a.com", "Empresa A", "31096288851"),
+        json=_payload(_CNPJ_DUP, "dup2@empresa-a.com", "Empresa A", "31096288800"),
     )
     assert second.status_code == 409
     assert second.json()["type"] == "urn:forja:problem:company_already_exists"
@@ -123,11 +123,11 @@ async def test_empresa_me_isolada_por_tenant(
 ) -> None:
     reg_a = await companies_client.post(
         "/api/v1/companies",
-        json=_payload(_CNPJ_TENANT_A, "b@empresa-a.com", "Empresa A", "66677788899"),
+        json=_payload(_CNPJ_TENANT_A, "b@empresa-a.com", "Empresa A", "66677788830"),
     )
     reg_b = await companies_client.post(
         "/api/v1/companies",
-        json=_payload(_CNPJ_TENANT_B, "b@empresa-b.com", "Empresa B", "77788899900"),
+        json=_payload(_CNPJ_TENANT_B, "b@empresa-b.com", "Empresa B", "77788899941"),
     )
     assert reg_a.status_code == 201 and reg_b.status_code == 201
 

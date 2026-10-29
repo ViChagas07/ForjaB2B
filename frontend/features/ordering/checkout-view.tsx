@@ -45,6 +45,8 @@ export function CheckoutView({
   const t = useTranslations();
   const locale = useLocale();
   const status = useAuthStore((s) => s.status);
+  const session = useAuthStore((s) => s.session);
+  const isConsumer = (session?.user.account_type ?? "COMPANY") === "PERSON";
 
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("PIX");
   const [notes, setNotes] = React.useState("");
@@ -93,7 +95,17 @@ export function CheckoutView({
   const available = credit ? Number(credit.available) : null;
   const creditInsufficient = isBoleto && available != null && available < subtotal;
 
-  const availableMethods = PAYMENT_METHODS.filter((method) => method !== "CARD" || stripeEnabled);
+  const availableMethods = PAYMENT_METHODS.filter((method) => {
+    if (method === "CARD") {
+      return stripeEnabled;
+    }
+    // Boleto é crédito faturado B2B: não existe para consumidor (PF) e exige
+    // conta de crédito ativa para empresa.
+    if (method === "BOLETO") {
+      return !isConsumer && Boolean(credit);
+    }
+    return true;
+  });
 
   function methodLabel(method: PaymentMethod): string {
     if (method === "PIX") return t("ordering.pix");

@@ -24,3 +24,14 @@ class AddressType(StrEnum):
 
     BILLING = "BILLING"
     SHIPPING = "SHIPPING"
+
+
+class AccountType(StrEnum):
+    """Tipo da conta na raiz do tenant.
+
+    ``COMPANY`` representa o onboarding B2B (CNPJ + aprovacao manual);
+    ``PERSON`` representa o cliente consumidor (CPF, ativo imediatamente).
+    """
+
+    COMPANY = "COMPANY"
+    PERSON = "PERSON"

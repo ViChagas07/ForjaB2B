@@ -12,10 +12,11 @@ export type CompanyStatus = (typeof COMPANY_STATUSES)[number];
 
 export interface Company {
   id: string;
-  cnpj: string;
+  cnpj: string | null;
   legal_name: string;
   trade_name: string | null;
   status: CompanyStatus;
+  account_type: "PERSON" | "COMPANY";
 }
 
 export interface RegisterCompanyInput {

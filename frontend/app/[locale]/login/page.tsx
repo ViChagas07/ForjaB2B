@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { Link } from "@/i18n/navigation";
-import { LoginForm } from "@/features/auth";
+import type { AccountType } from "@/core/domain/auth";
+import { LoginTabs } from "@/features/auth";
 import { SiteHeader } from "@/shared/components/site-header";
-import { Card, CardContent, CardDescription, CardHeader } from "@/shared/ui/card";
+import { Card, CardContent } from "@/shared/ui/card";
 
 interface LoginPageProps {
   params: { locale: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }
 
 export async function generateMetadata({ params }: LoginPageProps): Promise<Metadata> {
@@ -15,9 +16,12 @@ export async function generateMetadata({ params }: LoginPageProps): Promise<Meta
   return { title: t("auth.loginTitle") };
 }
 
-export default async function LoginPage() {
-  const t = await getTranslations();
+function parseAccountType(value: string | string[] | undefined): AccountType {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "cnpj" ? "COMPANY" : "PERSON";
+}
 
+export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <>
       <SiteHeader />
@@ -26,21 +30,8 @@ export default async function LoginPage() {
         className="container flex flex-1 items-start justify-center py-12 sm:items-center"
       >
         <Card className="w-full max-w-md">
-          <CardHeader>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("auth.loginTitle")}</h1>
-            <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <LoginForm />
-            <p className="text-center text-sm text-muted-foreground">
-              {t("auth.loginNoAccount")}{" "}
-              <Link
-                href="/onboarding"
-                className="font-medium text-foreground underline underline-offset-4"
-              >
-                {t("auth.loginCreateAccount")}
-              </Link>
-            </p>
+          <CardContent className="p-6 sm:p-8">
+            <LoginTabs initialType={parseAccountType(searchParams?.tipo)} />
           </CardContent>
         </Card>
       </main>

@@ -34,7 +34,12 @@
     "logoutLoading": "Выполняется выход…",
     "signedInAs": "Вы вошли как",
     "googleCallbackLoading": "Завершение входа…",
-    "googleCallbackError": "Не удалось завершить вход через Google."
+    "googleCallbackError": "Не удалось завершить вход через Google.",
+    "googleButton": "Продолжить с Google",
+    "or": "или",
+    "loginSubtitlePerson": "Войдите в свой клиентский аккаунт.",
+    "loginSubtitleCompany": "Войдите в аккаунт вашей компании.",
+    "companyPasswordOnly": "Аккаунты компаний входят только по e-mail и паролю."
   },
   "onboarding": {
     "title": "Зарегистрируйте компанию",
@@ -72,6 +77,38 @@
     "consentLabel": "Я прочитал(а) <terms>Условия обслуживания</terms> и <privacy>Политику конфиденциальности</privacy> и согласен с ними.",
     "consentRequired": "Чтобы создать аккаунт, необходимо согласиться с Условиями обслуживания и Политикой конфиденциальности."
   },
+  "consumer": {
+    "title": "Создайте аккаунт",
+    "subtitle": "Покупайте как физическое лицо по CPF.",
+    "fullNameLabel": "Полное имя",
+    "fullNamePlaceholder": "Ваше полное имя",
+    "fullNameRequired": "Введите полное имя.",
+    "birthDateLabel": "Дата рождения",
+    "birthDateRequired": "Введите дату рождения.",
+    "birthDateInvalid": "Некорректная дата рождения.",
+    "birthDateMinAge": "Для создания аккаунта необходимо достичь 18 лет.",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "Введите CPF.",
+    "cpfInvalid": "Некорректный CPF.",
+    "postalCodeLabel": "Почтовый индекс (CEP)",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "Введите почтовый индекс.",
+    "postalCodeInvalid": "Некорректный почтовый индекс.",
+    "genderLabel": "Пол",
+    "genderPlaceholder": "Выберите",
+    "genderRequired": "Выберите вариант.",
+    "genderFemale": "Женский",
+    "genderMale": "Мужской",
+    "genderNonBinary": "Небинарный",
+    "genderOther": "Другой",
+    "genderPreferNotToSay": "Предпочитаю не указывать",
+    "submit": "Создать аккаунт",
+    "submitLoading": "Создание аккаунта…",
+    "successTitle": "Аккаунт создан",
+    "successDescription": "Ваш клиентский аккаунт готов. Войдите, чтобы начать покупки.",
+    "successLogin": "Перейти к входу"
+  },
   "company": {
     "title": "Данные компании",
     "loadError": "Не удалось загрузить компанию",
@@ -84,12 +121,15 @@
     "statusPending": "Ожидание",
     "statusActive": "Активна",
     "statusSuspended": "Приостановлена",
-    "statusRejected": "Отклонена"
+    "statusRejected": "Отклонена",
+    "personalTitle": "Данные аккаунта"
   },
   "dashboard": {
     "title": "Панель",
     "loginRequired": "Для доступа к панели необходимо войти.",
-    "loginLink": "Перейти ко входу"
+    "loginLink": "Перейти ко входу",
+    "accountType": "Тип аккаунта",
+    "consumerBadge": "Клиент"
   },
   "error": {
     "invalidCredentials": "Неверный адрес электронной почты или пароль.",
@@ -114,7 +154,13 @@
     "invalidOrderState": "Заказ не поддерживает эту операцию.",
     "stripeUnavailable": "Оплата картой сейчас недоступна.",
     "paymentProvider": "Не удалось начать платеж. Попробуйте снова.",
-    "paymentAmountTooLow": "Сумма ниже минимума провайдера (R$ 0,50)."
+    "paymentAmountTooLow": "Сумма ниже минимума провайдера (R$ 0,50).",
+    "invalidCpf": "Некорректный CPF.",
+    "emailAlreadyExists": "Этот e-mail уже зарегистрирован.",
+    "consentRequired": "Необходимо принять условия и политику конфиденциальности.",
+    "invalidBirthDate": "Некорректная дата рождения.",
+    "invalidPostalCode": "Некорректный почтовый индекс.",
+    "oauthCompanyAccount": "Аккаунты компаний входят только по e-mail и паролю."
   },
   "catalog": {
     "title": "Каталог",

@@ -34,7 +34,12 @@
     "logoutLoading": "Saindo…",
     "signedInAs": "Conectado como",
     "googleCallbackLoading": "Concluindo autenticação…",
-    "googleCallbackError": "Falha ao concluir o login com Google."
+    "googleCallbackError": "Falha ao concluir o login com Google.",
+    "googleButton": "Continuar com Google",
+    "or": "ou",
+    "loginSubtitlePerson": "Acesse sua conta de cliente.",
+    "loginSubtitleCompany": "Acesse a conta da sua empresa.",
+    "companyPasswordOnly": "Contas empresariais entram somente com e-mail e senha."
   },
   "onboarding": {
     "title": "Cadastre sua empresa",
@@ -72,6 +77,38 @@
     "haveAccount": "Já tem uma conta?",
     "loginLink": "Entrar"
   },
+  "consumer": {
+    "title": "Crie sua conta",
+    "subtitle": "Compre como pessoa física com CPF.",
+    "fullNameLabel": "Nome completo",
+    "fullNamePlaceholder": "Seu nome completo",
+    "fullNameRequired": "Informe seu nome completo.",
+    "birthDateLabel": "Data de nascimento",
+    "birthDateRequired": "Informe sua data de nascimento.",
+    "birthDateInvalid": "Data de nascimento inválida.",
+    "birthDateMinAge": "É necessário ter 18 anos ou mais para criar a conta.",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "Informe seu CPF.",
+    "cpfInvalid": "CPF inválido.",
+    "postalCodeLabel": "CEP",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "Informe seu CEP.",
+    "postalCodeInvalid": "CEP inválido.",
+    "genderLabel": "Gênero",
+    "genderPlaceholder": "Selecione",
+    "genderRequired": "Selecione uma opção.",
+    "genderFemale": "Feminino",
+    "genderMale": "Masculino",
+    "genderNonBinary": "Não binário",
+    "genderOther": "Outro",
+    "genderPreferNotToSay": "Prefiro não informar",
+    "submit": "Criar conta",
+    "submitLoading": "Criando conta…",
+    "successTitle": "Conta criada",
+    "successDescription": "Sua conta de cliente está pronta. Entre para começar a comprar.",
+    "successLogin": "Ir para o login"
+  },
   "company": {
     "title": "Dados da empresa",
     "loadError": "Não foi possível carregar a empresa",
@@ -84,12 +121,15 @@
     "statusPending": "Pendente",
     "statusActive": "Ativa",
     "statusSuspended": "Suspensa",
-    "statusRejected": "Rejeitada"
+    "statusRejected": "Rejeitada",
+    "personalTitle": "Dados da conta"
   },
   "dashboard": {
     "title": "Painel",
     "loginRequired": "Você precisa entrar para acessar o painel.",
-    "loginLink": "Ir para o login"
+    "loginLink": "Ir para o login",
+    "accountType": "Tipo de conta",
+    "consumerBadge": "Cliente"
   },
   "catalog": {
     "title": "Catálogo",
@@ -271,7 +311,13 @@
     "generic": "Algo deu errado. Tente novamente.",
     "stripeUnavailable": "Pagamento com cartão indisponível no momento.",
     "paymentProvider": "Falha ao iniciar o pagamento. Tente novamente.",
-    "paymentAmountTooLow": "Valor abaixo do mínimo aceito pelo provedor (R$ 0,50)."
+    "paymentAmountTooLow": "Valor abaixo do mínimo aceito pelo provedor (R$ 0,50).",
+    "invalidCpf": "CPF inválido.",
+    "emailAlreadyExists": "Este e-mail já está cadastrado.",
+    "consentRequired": "É obrigatório aceitar os termos e a política de privacidade.",
+    "invalidBirthDate": "Data de nascimento inválida.",
+    "invalidPostalCode": "CEP inválido.",
+    "oauthCompanyAccount": "Contas empresariais entram somente com e-mail e senha."
   },
   "admin": {
     "catalog": {

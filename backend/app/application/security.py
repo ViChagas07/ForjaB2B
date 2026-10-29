@@ -62,6 +62,7 @@ class AuthContext:
     company_id: uuid.UUID
     role: str
     token_id: str
+    account_type: str = "COMPANY"
 
 
 def require_role(auth: AuthContext, *allowed_roles: str) -> None:
@@ -90,6 +91,7 @@ class TokenService:
             "sub": str(auth.user_id),
             "company_id": str(auth.company_id),
             "role": auth.role,
+            "account_type": auth.account_type,
             "type": _ACCESS_TOKEN_TYPE,
             "jti": auth.token_id,
             "iat": now,
@@ -119,6 +121,15 @@ class TokenService:
             raise InvalidTokenError() from exc
         role = payload.get("role")
         token_id = payload.get("jti")
+        account_type = payload.get("account_type", "COMPANY")
         if not isinstance(role, str) or not role or not isinstance(token_id, str) or not token_id:
             raise InvalidTokenError()
-        return AuthContext(user_id=user_id, company_id=company_id, role=role, token_id=token_id)
+        if not isinstance(account_type, str) or not account_type:
+            raise InvalidTokenError()
+        return AuthContext(
+            user_id=user_id,
+            company_id=company_id,
+            role=role,
+            token_id=token_id,
+            account_type=account_type,
+        )

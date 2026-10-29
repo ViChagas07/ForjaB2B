@@ -9,3 +9,9 @@ class InvalidCnpjError(DomainError):
     """CNPJ com formato ou digitos verificadores invalidos."""
 
     code = "invalid_cnpj"
+
+
+class InvalidCpfError(DomainError):
+    """CPF com formato ou digitos verificadores invalidos."""
+
+    code = "invalid_cpf"

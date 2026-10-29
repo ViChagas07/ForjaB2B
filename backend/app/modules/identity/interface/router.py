@@ -27,7 +27,9 @@ from app.modules.identity.application.auth import AuthenticateUser, Logout, Refr
 from app.modules.identity.application.errors import (
     InvalidCredentialsError,
     OAuthCodeError,
+    OAuthCompanyAccountError,
     OAuthConfigurationError,
+    OAuthEmailNotVerifiedError,
     OAuthStateError,
     UserInactiveError,
 )
@@ -96,8 +98,33 @@ def _code_redirect(base_url: str, result: GoogleOAuthResult) -> RedirectResponse
     )
 
 
+def _error_redirect(base_url: str, code: str) -> RedirectResponse:
+    """Redirect de erro esperado do OAuth para a tela de callback do frontend.
+
+    O codigo e estavel e nao contem detalhes sensiveis; a UI traduz a mensagem.
+    """
+    separator = "&" if "?" in base_url else "?"
+    return RedirectResponse(
+        f"{base_url}{separator}{urlencode({'error': code})}",
+        status_code=status.HTTP_302_FOUND,
+    )
+
+
+def _callback_error_code(exc: Exception) -> str:
+    """Traduz a excecao esperada do callback para um codigo curto e publico."""
+    if isinstance(exc, OAuthCompanyAccountError):
+        return "oauth_company_account"
+    if isinstance(exc, OAuthEmailNotVerifiedError):
+        return "oauth_email_not_verified"
+    if isinstance(exc, UserInactiveError):
+        return "user_inactive"
+    if isinstance(exc, OAuthStateError):
+        return "oauth_state_invalid"
+    return "oauth_code_invalid"
+
+
 def _to_exchange_response(exchange: OAuthExchange) -> OAuthExchangeResponse:
-    """Traduz o payload trocado para o contrato HTTP (sessao OU onboarding)."""
+    """Traduz o payload trocado para o contrato HTTP (sessao OU cadastro)."""
     if exchange.status == "authenticated" and exchange.user_id is not None:
         return OAuthExchangeResponse(
             status="authenticated",
@@ -110,10 +137,11 @@ def _to_exchange_response(exchange: OAuthExchange) -> OAuthExchangeResponse:
                 email=exchange.email or "",
                 full_name=exchange.full_name or "",
                 role=exchange.role or "",
+                account_type=exchange.account_type or "COMPANY",
             ),
         )
     return OAuthExchangeResponse(
-        status="onboarding",
+        status="registration_required",
         email=exchange.email,
         full_name=exchange.full_name,
     )
@@ -154,7 +182,11 @@ async def login(
         )
 
     try:
-        result = await use_case.login(payload.email, payload.password)
+        result = await use_case.login(
+            payload.email,
+            payload.password,
+            expected_account_type=payload.account_type,
+        )
     except (InvalidCredentialsError, UserInactiveError):
         blocked = await throttle.record_failure(email=payload.email, client_ip=ip)
         if blocked > 0:
@@ -176,6 +208,7 @@ async def login(
             email=result.email,
             full_name=result.full_name,
             role=result.role,
+            account_type=result.account_type,
         ),
     )
 
@@ -207,7 +240,7 @@ async def google_start(request: Request) -> RedirectResponse:
     """Inicia o OAuth Google (redirect para o provider com state anti-CSRF)."""
     use_case = _oauth_start_usecase(request)
     if use_case is None:
-        raise OAuthConfigurationError()
+        return _error_redirect(_frontend_redirect(request), "oauth_unavailable")
     return RedirectResponse(await use_case.build(), status_code=status.HTTP_302_FOUND)
 
 
@@ -216,17 +249,30 @@ async def google_callback(
     request: Request,
     code: Annotated[str | None, Query()] = None,
     state: Annotated[str | None, Query()] = None,
+    error: Annotated[str | None, Query()] = None,
 ) -> RedirectResponse:
     """Callback OAuth: valida state/code e redireciona com um exchange code."""
     use_case = _oauth_callback_usecase(request)
     if use_case is None:
-        raise OAuthConfigurationError()
+        return _error_redirect(_frontend_redirect(request), "oauth_unavailable")
+    base_url = _frontend_redirect(request)
+    if error == "access_denied":
+        return _error_redirect(base_url, "oauth_access_denied")
     if not code:
-        raise OAuthCodeError()
+        return _error_redirect(base_url, "oauth_code_invalid")
     if not state:
-        raise OAuthStateError()
-    result = await use_case.complete(code=code, state=state)
-    return _code_redirect(_frontend_redirect(request), result)
+        return _error_redirect(base_url, "oauth_state_invalid")
+    try:
+        result = await use_case.complete(code=code, state=state)
+    except (
+        OAuthCompanyAccountError,
+        OAuthEmailNotVerifiedError,
+        OAuthStateError,
+        OAuthCodeError,
+        UserInactiveError,
+    ) as exc:
+        return _error_redirect(base_url, _callback_error_code(exc))
+    return _code_redirect(base_url, result)
 
 
 @router.post(

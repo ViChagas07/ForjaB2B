@@ -24,7 +24,7 @@ from app.infrastructure.db.models.companies import Company, CompanyAddress
 from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
 from app.infrastructure.db.models.idempotency import IdempotencyKey
-from app.infrastructure.db.models.identity import CompanyMember, User
+from app.infrastructure.db.models.identity import CompanyMember, ConsumerProfile, User
 from app.infrastructure.db.models.invoicing import Invoice
 from app.infrastructure.db.models.notification import Notification, NotificationPreference
 from app.infrastructure.db.models.ordering import Order, OrderItem
@@ -50,6 +50,7 @@ __all__ = [
     "CompanyMember",
     "CompanyPriceRule",
     "ConsentRecord",
+    "ConsumerProfile",
     "CreditAccount",
     "CreditEntry",
     "IdempotencyKey",

@@ -6,6 +6,18 @@ import { problemCode } from "@/infrastructure/http";
  * mesmo vocabulário de erro, sem duplicar switches.
  */
 
+/** Erros esperados do callback OAuth chegam como código curto na URL. */
+export function oauthErrorMessageKey(code: string | null | undefined): string {
+  switch (code) {
+    case "oauth_company_account":
+      return "error.oauthCompanyAccount";
+    case "user_inactive":
+      return "error.userInactive";
+    default:
+      return "auth.googleCallbackError";
+  }
+}
+
 export function errorMessageKey(error: unknown): string {
   const code = problemCode(error);
 
@@ -20,10 +32,22 @@ export function errorMessageKey(error: unknown): string {
       return "error.sessionExpired";
     case "invalid_cnpj":
       return "error.invalidCnpj";
+    case "invalid_cpf":
+      return "error.invalidCpf";
     case "company_already_exists":
       return "error.companyAlreadyExists";
     case "cpf_already_exists":
       return "error.cpfAlreadyExists";
+    case "email_already_exists":
+      return "error.emailAlreadyExists";
+    case "consent_required":
+      return "error.consentRequired";
+    case "invalid_birth_date":
+      return "error.invalidBirthDate";
+    case "invalid_postal_code":
+      return "error.invalidPostalCode";
+    case "oauth_company_account":
+      return "error.oauthCompanyAccount";
     case "company_not_found":
       return "error.companyNotFound";
     case "weak_password":

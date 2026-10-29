@@ -10,7 +10,7 @@ const SESSION: AuthSession = {
   refresh_token: "refresh-1",
   token_type: "bearer",
   expires_in: 900,
-  user: { id: "user-1", email: "a@b.com", full_name: "A", role: "ADMIN" },
+  user: { id: "user-1", email: "a@b.com", full_name: "A", role: "ADMIN", account_type: "COMPANY" },
 };
 
 function jsonResponse(body: unknown, init?: { status?: number }): Response {

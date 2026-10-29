@@ -1,4 +1,4 @@
-import type { AuthSession, AuthTokens, OAuthExchangeResult } from "@/core/domain/auth";
+import type { AccountType, AuthSession, AuthTokens, OAuthExchangeResult } from "@/core/domain/auth";
 
 import { apiClient } from "./client";
 
@@ -21,11 +21,11 @@ interface OAuthExchangeResponseBody {
  * propagam como `ApiError` e são tratados pela UI.
  */
 export const authApi = {
-  async login(email: string, password: string): Promise<AuthSession> {
+  async login(email: string, password: string, accountType: AccountType): Promise<AuthSession> {
     const response = await apiClient.request<AuthSession>({
       method: "POST",
       path: "/auth/login",
-      body: { email, password },
+      body: { email, password, account_type: accountType },
     });
     return response.body;
   },
@@ -76,7 +76,7 @@ export const authApi = {
     }
 
     return {
-      status: "onboarding",
+      status: "registration_required",
       email: body.email ?? null,
       full_name: body.full_name ?? null,
     };

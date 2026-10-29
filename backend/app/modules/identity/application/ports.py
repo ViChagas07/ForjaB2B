@@ -22,6 +22,7 @@ class ResolvedIdentity:
     company_id: uuid.UUID
     status: UserStatus
     password_hash: str | None
+    account_type: str = "COMPANY"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -41,6 +42,7 @@ class RefreshTokenPayload:
     user_id: uuid.UUID
     company_id: uuid.UUID
     role: str
+    account_type: str = "COMPANY"
 
 
 class PasswordHasher(Protocol):
@@ -134,7 +136,7 @@ class OAuthExchange:
 
     Nunca vai em URL: fica no servidor (Redis) e e consumido uma unica vez pelo
     endpoint de troca. Para ``status == "authenticated"`` os campos de token e
-    perfil estao preenchidos; para ``status == "onboarding"`` apenas
+    perfil estao preenchidos; para ``status == "registration_required"`` apenas
     ``email``/``full_name`` (identidade Google) estao disponiveis.
     """
 
@@ -147,6 +149,7 @@ class OAuthExchange:
     email: str | None = None
     full_name: str | None = None
     role: str | None = None
+    account_type: str | None = None
 
 
 class OAuthExchangeCodeStore(Protocol):

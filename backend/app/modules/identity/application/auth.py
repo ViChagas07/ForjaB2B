@@ -41,6 +41,7 @@ class AuthenticationResult:
     role: str
     email: str
     full_name: str
+    account_type: str = "COMPANY"
 
 
 class AuthenticateUser:
@@ -65,7 +66,12 @@ class AuthenticateUser:
         self._access_token_expire_minutes = access_token_expire_minutes
         self._refresh_token_expire_seconds = refresh_token_expire_seconds
 
-    async def login(self, email: str, password: str) -> AuthenticationResult:
+    async def login(
+        self,
+        email: str,
+        password: str,
+        expected_account_type: str | None = None,
+    ) -> AuthenticationResult:
         identity = await self._resolver.resolve_by_email(email)
 
         # Verificar SEMPRE (mesmo sem usuario) mitiga enumeracao por timing.
@@ -75,6 +81,12 @@ class AuthenticateUser:
 
         if identity is None or identity.status is not UserStatus.ACTIVE:
             raise UserInactiveError()
+
+        # A aba escolhida no frontend e apenas UX; a decisao e sempre do
+        # servidor. Mismatch responde como credencial invalida para nao
+        # revelar que o e-mail existe em outro tipo de conta.
+        if expected_account_type is not None and identity.account_type != expected_account_type:
+            raise InvalidCredentialsError()
 
         membership = await self._membership_reader.get_membership(
             identity.company_id, identity.user_id
@@ -88,6 +100,7 @@ class AuthenticateUser:
                 user_id=identity.user_id,
                 company_id=identity.company_id,
                 role=role,
+                account_type=identity.account_type,
                 token_id=secrets.token_hex(16),
             )
         )
@@ -95,7 +108,10 @@ class AuthenticateUser:
         await self._refresh_store.put(
             refresh_token,
             RefreshTokenPayload(
-                user_id=identity.user_id, company_id=identity.company_id, role=role
+                user_id=identity.user_id,
+                company_id=identity.company_id,
+                role=role,
+                account_type=identity.account_type,
             ),
             self._refresh_token_expire_seconds,
         )
@@ -109,6 +125,7 @@ class AuthenticateUser:
             role=role,
             email=membership.email,
             full_name=membership.full_name,
+            account_type=identity.account_type,
         )
 
 
@@ -141,6 +158,7 @@ class RefreshSession:
                 user_id=payload.user_id,
                 company_id=payload.company_id,
                 role=payload.role,
+                account_type=payload.account_type,
                 token_id=secrets.token_hex(16),
             )
         )
@@ -158,6 +176,7 @@ class RefreshSession:
             role=payload.role,
             email="",
             full_name="",
+            account_type=payload.account_type,
         )
 
 

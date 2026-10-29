@@ -5,6 +5,7 @@ export type { ProblemDetails } from "./errors";
 export { getApiBaseUrl, DEFAULT_API_BASE_URL } from "./config";
 export { authApi } from "./auth-api";
 export { companyApi, useCompanyApi } from "./company-api";
+export { consumerApi, useConsumerApi } from "./consumer-api";
 export { catalogApi, useCatalogApi } from "./catalog-api";
 export { searchApi } from "./search-api";
 export type { SearchSuggestResponse } from "./search-api";

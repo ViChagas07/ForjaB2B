@@ -34,7 +34,12 @@
     "logoutLoading": "Déconnexion…",
     "signedInAs": "Connecté en tant que",
     "googleCallbackLoading": "Finalisation de la connexion…",
-    "googleCallbackError": "Impossible de finaliser la connexion avec Google."
+    "googleCallbackError": "Impossible de finaliser la connexion avec Google.",
+    "googleButton": "Continuer avec Google",
+    "or": "ou",
+    "loginSubtitlePerson": "Accédez à votre compte client.",
+    "loginSubtitleCompany": "Accédez au compte de votre entreprise.",
+    "companyPasswordOnly": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe."
   },
   "onboarding": {
     "title": "Enregistrer votre entreprise",
@@ -72,6 +77,38 @@
     "consentLabel": "J'ai lu les <terms>Conditions d'utilisation</terms> et la <privacy>Politique de confidentialité</privacy> et je les accepte.",
     "consentRequired": "Vous devez accepter les Conditions d'utilisation et la Politique de confidentialité pour créer le compte."
   },
+  "consumer": {
+    "title": "Créez votre compte",
+    "subtitle": "Achetez en tant que particulier avec votre CPF.",
+    "fullNameLabel": "Nom complet",
+    "fullNamePlaceholder": "Votre nom complet",
+    "fullNameRequired": "Saisissez votre nom complet.",
+    "birthDateLabel": "Date de naissance",
+    "birthDateRequired": "Saisissez votre date de naissance.",
+    "birthDateInvalid": "Date de naissance invalide.",
+    "birthDateMinAge": "Vous devez avoir 18 ans ou plus pour créer un compte.",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "Saisissez votre CPF.",
+    "cpfInvalid": "CPF invalide.",
+    "postalCodeLabel": "Code postal (CEP)",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "Saisissez votre code postal.",
+    "postalCodeInvalid": "Code postal invalide.",
+    "genderLabel": "Genre",
+    "genderPlaceholder": "Sélectionnez",
+    "genderRequired": "Sélectionnez une option.",
+    "genderFemale": "Féminin",
+    "genderMale": "Masculin",
+    "genderNonBinary": "Non binaire",
+    "genderOther": "Autre",
+    "genderPreferNotToSay": "Je préfère ne pas répondre",
+    "submit": "Créer un compte",
+    "submitLoading": "Création du compte…",
+    "successTitle": "Compte créé",
+    "successDescription": "Votre compte client est prêt. Connectez-vous pour commencer vos achats.",
+    "successLogin": "Aller à la connexion"
+  },
   "company": {
     "title": "Informations de l'entreprise",
     "loadError": "Impossible de charger l'entreprise",
@@ -84,12 +121,15 @@
     "statusPending": "En attente",
     "statusActive": "Active",
     "statusSuspended": "Suspendue",
-    "statusRejected": "Rejetée"
+    "statusRejected": "Rejetée",
+    "personalTitle": "Informations du compte"
   },
   "dashboard": {
     "title": "Tableau de bord",
     "loginRequired": "Vous devez vous connecter pour accéder au tableau de bord.",
-    "loginLink": "Aller à la connexion"
+    "loginLink": "Aller à la connexion",
+    "accountType": "Type de compte",
+    "consumerBadge": "Client"
   },
   "error": {
     "invalidCredentials": "E-mail ou mot de passe incorrect.",
@@ -114,7 +154,13 @@
     "invalidOrderState": "La commande n'accepte pas cette opération.",
     "stripeUnavailable": "Le paiement par carte est indisponible pour le moment.",
     "paymentProvider": "Impossible de démarrer le paiement. Réessayez.",
-    "paymentAmountTooLow": "Montant inférieur au minimum du fournisseur (R$ 0,50)."
+    "paymentAmountTooLow": "Montant inférieur au minimum du fournisseur (R$ 0,50).",
+    "invalidCpf": "CPF invalide.",
+    "emailAlreadyExists": "Cet e-mail est déjà enregistré.",
+    "consentRequired": "Vous devez accepter les conditions et la politique de confidentialité.",
+    "invalidBirthDate": "Date de naissance invalide.",
+    "invalidPostalCode": "Code postal invalide.",
+    "oauthCompanyAccount": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe."
   },
   "catalog": {
     "title": "Catalogue",

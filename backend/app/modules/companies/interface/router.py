@@ -91,6 +91,7 @@ async def register_company(
             legal_name=result.legal_name,
             trade_name=payload.trade_name,
             status=result.status,
+            account_type="COMPANY",
         ),
         admin_user_id=result.admin_user_id,
     )
@@ -108,6 +109,7 @@ async def get_current_company(
         legal_name=view.legal_name,
         trade_name=view.trade_name,
         status=view.status,
+        account_type=view.account_type,
     )
 
 

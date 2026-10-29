@@ -113,6 +113,7 @@ from app.modules.companies.application.company import (
     GetCurrentCompany,
     RegisterCompany,
 )
+from app.modules.companies.application.consumer import RegisterConsumer
 from app.modules.companies.infrastructure.cpf import HmacCpfHasher
 from app.modules.companies.infrastructure.repository import SqlAlchemyCompanyRepository
 from app.modules.credit.application.credit import (
@@ -592,6 +593,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # o pepper de Settings (mesmo esquema do seed).
     company_repository = SqlAlchemyCompanyRepository(app.state.uow_factory)
     app.state.companies_register = RegisterCompany(
+        repository=company_repository,
+        password_hasher=Argon2PasswordHasher(),
+        cpf_hasher=HmacCpfHasher(settings.pepper),
+    )
+    app.state.companies_register_consumer = RegisterConsumer(
         repository=company_repository,
         password_hasher=Argon2PasswordHasher(),
         cpf_hasher=HmacCpfHasher(settings.pepper),

@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from app.modules.ai.interface.router import router as ai_router
 from app.modules.cart.interface.router import router as cart_router
 from app.modules.catalog.interface.router import router as catalog_router
+from app.modules.companies.interface.consumer_router import router as consumers_router
 from app.modules.companies.interface.router import router as companies_router
 from app.modules.credit.interface.router import router as credit_router
 from app.modules.identity.interface.router import router as identity_router
@@ -25,6 +26,7 @@ api_v1_router = APIRouter(prefix="/api/v1")
 
 api_v1_router.include_router(identity_router)
 api_v1_router.include_router(companies_router)
+api_v1_router.include_router(consumers_router)
 api_v1_router.include_router(catalog_router)
 api_v1_router.include_router(credit_router)
 api_v1_router.include_router(cart_router)

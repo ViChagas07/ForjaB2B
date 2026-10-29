@@ -4,8 +4,9 @@ Fluxo:
 
     GET  /auth/google            -> state anti-CSRF + redirect para o Google
     GET  /auth/google/callback   -> valida state/code, resolve identidade,
-                                    vincula ao usuario (ou onboarding) e devolve
-                                    apenas um exchange code de uso unico
+                                    vincula ao usuario ou sinaliza que o
+                                    cadastro CPF e obrigatorio; devolve apenas
+                                    um exchange code de uso unico
     POST /auth/oauth/exchange    -> troca o exchange code pela sessao (JSON)
 
 Nenhum access/refresh token, authorization code, secret ou identidade e exposto
@@ -22,6 +23,7 @@ from urllib.parse import urlencode
 from app.application.security import AuthContext, TokenService
 from app.modules.identity.application.errors import (
     OAuthCodeError,
+    OAuthCompanyAccountError,
     OAuthEmailNotVerifiedError,
     OAuthExchangeError,
     OAuthStateError,
@@ -52,7 +54,7 @@ _EXCHANGE_CODE_BYTES = 32
 class GoogleOAuthResult:
     """Resultado do callback OAuth: apenas um exchange code de uso unico."""
 
-    status: str  # "authenticated" | "onboarding"
+    status: str  # "authenticated" | "registration_required"
     exchange_code: str
 
 
@@ -130,12 +132,18 @@ class CompleteGoogleOAuth:
         email = userinfo.email.strip().lower()
         identity = await self._resolver.resolve_by_email(email)
         if identity is None:
+            # Portao de cadastro: o Google nao cria conta sozinho. O frontend
+            # recebe a identidade verificada apenas para pre-preencher o
+            # formulario CPF; nenhum token de sessao e emitido.
             payload = OAuthExchange(
-                status="onboarding",
+                status="registration_required",
                 email=email,
                 full_name=userinfo.name,
             )
             return await self._issue(payload)
+
+        if identity.account_type != "PERSON":
+            raise OAuthCompanyAccountError()
 
         if identity.status is not UserStatus.ACTIVE:
             raise UserInactiveError()
@@ -160,6 +168,7 @@ class CompleteGoogleOAuth:
                 user_id=identity.user_id,
                 company_id=identity.company_id,
                 role=role,
+                account_type=identity.account_type,
                 token_id=secrets.token_hex(16),
             )
         )
@@ -167,7 +176,10 @@ class CompleteGoogleOAuth:
         await self._refresh_store.put(
             refresh_token,
             RefreshTokenPayload(
-                user_id=identity.user_id, company_id=identity.company_id, role=role
+                user_id=identity.user_id,
+                company_id=identity.company_id,
+                role=role,
+                account_type=identity.account_type,
             ),
             self._refresh_token_expire_seconds,
         )
@@ -182,6 +194,7 @@ class CompleteGoogleOAuth:
             email=membership.email,
             full_name=membership.full_name,
             role=role,
+            account_type=identity.account_type,
         )
         return await self._issue(payload)
 

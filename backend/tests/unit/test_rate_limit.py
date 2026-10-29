@@ -195,6 +195,7 @@ def test_classificacao_de_rotas() -> None:
     assert classify_request("/metrics", "GET") is None
     assert classify_request("/api/v1/auth/login", "POST") is RateLimitClass.AUTH
     assert classify_request("/api/v1/companies", "POST") is RateLimitClass.REGISTRATION
+    assert classify_request("/api/v1/consumers", "POST") is RateLimitClass.REGISTRATION
     assert classify_request("/api/v1/search/products", "GET") is RateLimitClass.SEARCH
     assert classify_request("/api/v1/search/suggest", "GET") is RateLimitClass.SUGGEST
     assert classify_request("/api/v1/admin/catalog/products", "POST") is RateLimitClass.ADMIN_WRITE

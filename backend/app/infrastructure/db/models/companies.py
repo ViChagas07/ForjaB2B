@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.models.common import TimestampMixin, enum_check
-from app.modules.companies.domain.enums import AddressType, CompanyStatus
+from app.modules.companies.domain.enums import AccountType, AddressType, CompanyStatus
 
 if TYPE_CHECKING:  # pragma: no cover - apenas para o type checker
     from app.infrastructure.db.models.audit import AuditLog
@@ -28,18 +28,24 @@ if TYPE_CHECKING:  # pragma: no cover - apenas para o type checker
 
 
 class Company(TimestampMixin, Base):
-    """Empresa B2B (tenant). CNPJ normalizado em 14 digitos, unico."""
+    """Raiz do tenant: empresa B2B (CNPJ) ou conta pessoal (CPF)."""
 
     __tablename__ = "companies"
     __table_args__ = (
         CheckConstraint("cnpj ~ '^[0-9]{14}$'", name="cnpj_format"),
         enum_check("status", CompanyStatus),
+        enum_check("account_type", AccountType),
+        CheckConstraint(
+            "(account_type = 'COMPANY' AND cnpj IS NOT NULL) "
+            "OR (account_type = 'PERSON' AND cnpj IS NULL)",
+            name="account_type_cnpj",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, server_default=text("gen_random_uuid()")
     )
-    cnpj: Mapped[str] = mapped_column(String(14), nullable=False, unique=True)
+    cnpj: Mapped[str | None] = mapped_column(String(14), unique=True)
     legal_name: Mapped[str] = mapped_column(String(200), nullable=False)
     trade_name: Mapped[str | None] = mapped_column(String(200))
     state_registration: Mapped[str | None] = mapped_column(String(20))
@@ -47,6 +53,11 @@ class Company(TimestampMixin, Base):
         Enum(CompanyStatus, native_enum=False, create_constraint=False, length=24),
         nullable=False,
         server_default=CompanyStatus.PENDING.value,
+    )
+    account_type: Mapped[AccountType] = mapped_column(
+        Enum(AccountType, native_enum=False, create_constraint=False, length=24),
+        nullable=False,
+        server_default=AccountType.COMPANY.value,
     )
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     rejection_reason: Mapped[str | None] = mapped_column(Text)

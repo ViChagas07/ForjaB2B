@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,6 +15,7 @@ class LoginRequest(BaseModel):
 
     email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=1, max_length=128)
+    account_type: Literal["PERSON", "COMPANY"] | None = None
 
 
 class RefreshRequest(BaseModel):
@@ -33,6 +35,7 @@ class UserProfile(BaseModel):
     email: str
     full_name: str
     role: str
+    account_type: str = "COMPANY"
 
 
 class LoginResponse(BaseModel):

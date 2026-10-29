@@ -49,6 +49,8 @@ export function DashboardClient() {
     );
   }
 
+  const isConsumer = (session.user.account_type ?? "COMPANY") === "PERSON";
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <section className="surface-ink amber-glow relative overflow-hidden rounded-3xl p-7 sm:p-10">
@@ -88,20 +90,22 @@ export function DashboardClient() {
 
           <div className="flex flex-col items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-5 lg:min-w-52">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
-              {t("company.status")}
+              {isConsumer ? t("dashboard.accountType") : t("company.status")}
             </p>
             <Badge className="border-transparent bg-primary text-primary-foreground">
-              {session.user.role}
+              {isConsumer ? t("dashboard.consumerBadge") : session.user.role}
             </Badge>
             <LogoutButton />
           </div>
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CompanyProfile />
-        <CreditAccountCard />
-      </div>
+      {!isConsumer ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <CompanyProfile />
+          <CreditAccountCard />
+        </div>
+      ) : null}
     </div>
   );
 }

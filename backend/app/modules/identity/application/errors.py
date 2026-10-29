@@ -67,6 +67,14 @@ class OAuthEmailNotVerifiedError(AppError):
     code = "oauth_email_not_verified"
 
 
+class OAuthCompanyAccountError(AppError):
+    """Conta empresarial tentou entrar pelo Google (permitido apenas por senha)."""
+
+    status_code = 403
+    title = "Forbidden"
+    code = "oauth_company_account"
+
+
 class OAuthAccountLinkConflictError(AppError):
     """Identidade externa ja vinculada a outro usuario."""
 

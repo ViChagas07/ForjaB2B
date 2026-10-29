@@ -2,8 +2,8 @@ export { DomainError } from "./errors";
 export { ok, err, isOk, isErr, mapResult } from "./result";
 export type { Result } from "./result";
 
-export { ROLES } from "./auth";
-export type { Role, UserProfile, AuthSession, AuthTokens } from "./auth";
+export { ACCOUNT_TYPES, ROLES } from "./auth";
+export type { AccountType, Role, UserProfile, AuthSession, AuthTokens } from "./auth";
 export { COMPANY_STATUSES } from "./company";
 export type {
   CompanyStatus,
@@ -11,6 +11,8 @@ export type {
   RegisterCompanyInput,
   RegisterCompanyResult,
 } from "./company";
+export { GENDERS } from "./consumer";
+export type { Gender, RegisterConsumerInput, RegisterConsumerResult } from "./consumer";
 export { normalizeCnpj, isValidCnpj } from "./cnpj";
 export { normalizeCpf, isValidCpf } from "./cpf";
 

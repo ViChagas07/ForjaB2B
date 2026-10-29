@@ -92,13 +92,18 @@ def _authenticate(
 
 
 def _identity(
-    *, user_id: uuid.UUID, company_id: uuid.UUID, status: UserStatus = UserStatus.ACTIVE
+    *,
+    user_id: uuid.UUID,
+    company_id: uuid.UUID,
+    status: UserStatus = UserStatus.ACTIVE,
+    account_type: str = "COMPANY",
 ) -> ResolvedIdentity:
     return ResolvedIdentity(
         user_id=user_id,
         company_id=company_id,
         status=status,
         password_hash="hashed:senha",
+        account_type=account_type,
     )
 
 
@@ -122,6 +127,7 @@ async def test_login_sucesso_emite_tokens_e_perfil() -> None:
     )
     result = await use_case.login("c@t.com", "senha")
     assert result.role == "BUYER"
+    assert result.account_type == "COMPANY"
     assert result.email == "comprador@teste.com"
     assert result.access_token and result.refresh_token
     assert len(store.store) == 1
@@ -142,6 +148,21 @@ async def test_login_usuario_inexistente() -> None:
     use_case, _ = _authenticate(identities={})
     with pytest.raises(InvalidCredentialsError):
         await use_case.login("ninguem@t.com", "qualquer")
+
+
+async def test_login_tipo_de_conta_divergente() -> None:
+    company = uuid.uuid4()
+    user = uuid.uuid4()
+    use_case, _ = _authenticate(
+        identities={
+            "c@t.com": _identity(
+                user_id=user, company_id=company, account_type="PERSON"
+            )
+        },
+        memberships={(company, user): _membership(company_id=company, user_id=user)},
+    )
+    with pytest.raises(InvalidCredentialsError):
+        await use_case.login("c@t.com", "senha", expected_account_type="COMPANY")
 
 
 async def test_login_usuario_inativo() -> None:

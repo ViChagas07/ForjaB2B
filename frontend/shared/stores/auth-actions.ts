@@ -1,4 +1,4 @@
-import type { AuthSession, OAuthExchangeResult } from "@/core/domain/auth";
+import type { AccountType, AuthSession, OAuthExchangeResult } from "@/core/domain/auth";
 
 import { authApi, problemCode } from "@/infrastructure/http";
 
@@ -12,8 +12,12 @@ import { useAuthStore } from "./auth-store";
  * (fonte de verdade) + persistência local.
  */
 
-export async function login(email: string, password: string): Promise<AuthSession> {
-  const session = await authApi.login(email, password);
+export async function login(
+  email: string,
+  password: string,
+  accountType: AccountType,
+): Promise<AuthSession> {
+  const session = await authApi.login(email, password, accountType);
   useAuthStore.getState().setSession(session);
   return session;
 }

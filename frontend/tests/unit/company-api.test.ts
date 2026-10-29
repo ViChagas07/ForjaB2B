@@ -33,6 +33,7 @@ describe("companyApi.register", () => {
         legal_name: "Empresa Teste Ltda",
         trade_name: "Empresa Teste",
         status: "PENDING",
+        account_type: "COMPANY",
       },
       admin_user_id: "user-1",
     };
@@ -55,6 +56,7 @@ describe("companyApi.register", () => {
             legal_name: "X",
             trade_name: null,
             status: "PENDING",
+            account_type: "COMPANY",
           },
           admin_user_id: "u",
         },
@@ -102,6 +104,7 @@ describe("companyApi.getMe", () => {
       legal_name: "Empresa Teste Ltda",
       trade_name: null,
       status: "ACTIVE",
+      account_type: "COMPANY",
     };
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(company));
     vi.stubGlobal("fetch", fetchMock);

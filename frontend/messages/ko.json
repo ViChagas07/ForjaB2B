@@ -34,7 +34,12 @@
     "logoutLoading": "로그아웃 중…",
     "signedInAs": "로그인됨",
     "googleCallbackLoading": "로그인을 완료하는 중…",
-    "googleCallbackError": "Google 로그인을 완료하지 못했습니다."
+    "googleCallbackError": "Google 로그인을 완료하지 못했습니다.",
+    "googleButton": "Google로 계속하기",
+    "or": "또는",
+    "loginSubtitlePerson": "고객 계정에 로그인하세요.",
+    "loginSubtitleCompany": "기업 계정에 로그인하세요.",
+    "companyPasswordOnly": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다."
   },
   "onboarding": {
     "title": "회사 등록",
@@ -72,6 +77,38 @@
     "consentLabel": "<terms>서비스 약관</terms>과 <privacy>개인정보 처리방침</privacy>을 읽었으며 이에 동의합니다.",
     "consentRequired": "계정을 만들려면 서비스 약관과 개인정보 처리방침에 동의해야 합니다."
   },
+  "consumer": {
+    "title": "계정 만들기",
+    "subtitle": "CPF로 개인 고객으로 구매하세요.",
+    "fullNameLabel": "성명",
+    "fullNamePlaceholder": "성명을 입력하세요",
+    "fullNameRequired": "성명을 입력하세요.",
+    "birthDateLabel": "생년월일",
+    "birthDateRequired": "생년월일을 입력하세요.",
+    "birthDateInvalid": "생년월일이 올바르지 않습니다.",
+    "birthDateMinAge": "계정을 만들려면 만 18세 이상이어야 합니다.",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "CPF를 입력하세요.",
+    "cpfInvalid": "CPF가 올바르지 않습니다.",
+    "postalCodeLabel": "우편번호(CEP)",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "우편번호를 입력하세요.",
+    "postalCodeInvalid": "우편번호가 올바르지 않습니다.",
+    "genderLabel": "성별",
+    "genderPlaceholder": "선택",
+    "genderRequired": "옵션을 선택하세요.",
+    "genderFemale": "여성",
+    "genderMale": "남성",
+    "genderNonBinary": "논바이너리",
+    "genderOther": "기타",
+    "genderPreferNotToSay": "응답하지 않음",
+    "submit": "계정 만들기",
+    "submitLoading": "계정 생성 중…",
+    "successTitle": "계정이 생성되었습니다",
+    "successDescription": "고객 계정이 준비되었습니다. 로그인하여 구매를 시작하세요.",
+    "successLogin": "로그인으로 이동"
+  },
   "company": {
     "title": "회사 정보",
     "loadError": "회사 정보를 불러올 수 없습니다",
@@ -84,12 +121,15 @@
     "statusPending": "대기 중",
     "statusActive": "활성",
     "statusSuspended": "정지됨",
-    "statusRejected": "거부됨"
+    "statusRejected": "거부됨",
+    "personalTitle": "계정 정보"
   },
   "dashboard": {
     "title": "대시보드",
     "loginRequired": "대시보드에 접근하려면 로그인이 필요합니다.",
-    "loginLink": "로그인으로 이동"
+    "loginLink": "로그인으로 이동",
+    "accountType": "계정 유형",
+    "consumerBadge": "고객"
   },
   "error": {
     "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
@@ -114,7 +154,13 @@
     "invalidOrderState": "이 주문에서는 이 작업을 수행할 수 없습니다.",
     "stripeUnavailable": "현재 카드 결제를 사용할 수 없습니다.",
     "paymentProvider": "결제를 시작하지 못했습니다. 다시 시도해 주세요.",
-    "paymentAmountTooLow": "공급자 최소 금액(R$ 0.50) 미만입니다."
+    "paymentAmountTooLow": "공급자 최소 금액(R$ 0.50) 미만입니다.",
+    "invalidCpf": "CPF가 올바르지 않습니다.",
+    "emailAlreadyExists": "이 이메일은 이미 등록되어 있습니다.",
+    "consentRequired": "약관 및 개인정보 처리방침에 동의해야 합니다.",
+    "invalidBirthDate": "생년월일이 올바르지 않습니다.",
+    "invalidPostalCode": "우편번호가 올바르지 않습니다.",
+    "oauthCompanyAccount": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다."
   },
   "catalog": {
     "title": "카탈로그",

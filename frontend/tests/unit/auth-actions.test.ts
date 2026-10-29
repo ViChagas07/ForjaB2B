@@ -9,7 +9,13 @@ const SESSION: AuthSession = {
   refresh_token: "refresh-1",
   token_type: "bearer",
   expires_in: 900,
-  user: { id: "user-1", email: "admin@empresa.com", full_name: "Admin", role: "ADMIN" },
+  user: {
+    id: "user-1",
+    email: "admin@empresa.com",
+    full_name: "Admin",
+    role: "ADMIN",
+    account_type: "COMPANY",
+  },
 };
 
 function jsonResponse(body: unknown, init?: { status?: number; contentType?: string }): Response {
@@ -35,7 +41,7 @@ describe("login", () => {
   it("faz login com sucesso e atualiza a store", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(SESSION)));
 
-    const session = await login("admin@empresa.com", "senha");
+    const session = await login("admin@empresa.com", "senha", "COMPANY");
 
     expect(session).toEqual(SESSION);
     expect(useAuthStore.getState().session).toEqual(SESSION);
@@ -45,7 +51,7 @@ describe("login", () => {
   it("propaga credenciais inválidas sem alterar a store", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(problemResponse("invalid_credentials", 401)));
 
-    await expect(login("admin@empresa.com", "errada")).rejects.toMatchObject({
+    await expect(login("admin@empresa.com", "errada", "COMPANY")).rejects.toMatchObject({
       code: "urn:forja:problem:invalid_credentials",
       status: 401,
     });

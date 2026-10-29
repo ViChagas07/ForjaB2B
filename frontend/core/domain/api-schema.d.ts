@@ -506,6 +506,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/consumers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register Consumer */
+        post: operations["register_consumer_api_v1_consumers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/credit/account": {
         parameters: {
             query?: never;
@@ -1290,11 +1307,13 @@ export interface components {
         CheckStatus: "ok" | "error";
         /**
          * CompanyResponse
-         * @description Visao publica da empresa (sem dados sensiveis).
+         * @description Visao publica da empresa/conta (sem dados sensiveis).
          */
         CompanyResponse: {
+            /** Account Type */
+            account_type: string;
             /** Cnpj */
-            cnpj: string;
+            cnpj: string | null;
             /**
              * Id
              * Format: uuid
@@ -1452,6 +1471,12 @@ export interface components {
              */
             message: string;
         };
+        /**
+         * Gender
+         * @description Genero informado pelo consumidor (opcional, com opcao de nao informar).
+         * @enum {string}
+         */
+        Gender: "FEMININO" | "MASCULINO" | "NAO_BINARIO" | "OUTRO" | "PREFIRO_NAO_INFORMAR";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1538,6 +1563,8 @@ export interface components {
          * @description Credenciais de login. Nunca aceitar senha via query string (so no body).
          */
         LoginRequest: {
+            /** Account Type */
+            account_type?: ("PERSON" | "COMPANY") | null;
             /** Email */
             email: string;
             /** Password */
@@ -2433,6 +2460,46 @@ export interface components {
             company: components["schemas"]["CompanyResponse"];
         };
         /**
+         * RegisterConsumerRequest
+         * @description Entrada do cadastro de cliente consumidor (CPF).
+         */
+        RegisterConsumerRequest: {
+            /**
+             * Birth Date
+             * Format: date
+             */
+            birth_date: string;
+            /** Consent */
+            consent: boolean;
+            /** Cpf */
+            cpf: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            gender: components["schemas"]["Gender"];
+            /** Password */
+            password: string;
+            /** Postal Code */
+            postal_code: string;
+        };
+        /**
+         * RegisterConsumerResponse
+         * @description Resultado do cadastro de consumidor.
+         */
+        RegisterConsumerResponse: {
+            /**
+             * Company Id
+             * Format: uuid
+             */
+            company_id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
          * SearchHealthResponse
          * @description Estado do motor de busca (nao essencial ao readiness da aplicacao).
          */
@@ -2718,6 +2785,11 @@ export interface components {
          * @description Perfil minimo devolvido apos o login (sem hash/senha/token interno).
          */
         UserProfile: {
+            /**
+             * Account Type
+             * @default COMPANY
+             */
+            account_type: string;
             /** Email */
             email: string;
             /** Full Name */
@@ -4537,6 +4609,7 @@ export interface operations {
             query?: {
                 code?: string | null;
                 state?: string | null;
+                error?: string | null;
             };
             header?: never;
             path?: never;
@@ -6611,6 +6684,121 @@ export interface operations {
                      *       "title": "Not Found",
                      *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
                      *       "type": "urn:forja:problem:http_404"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    register_consumer_api_v1_consumers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterConsumerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterConsumerResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
                      *     }
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];

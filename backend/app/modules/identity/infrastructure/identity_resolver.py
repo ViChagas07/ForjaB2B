@@ -19,6 +19,8 @@ from app.modules.identity.domain.enums import UserStatus
 _RESOLVE_SQL = text(
     "SELECT user_id, company_id, status, password_hash FROM app.resolve_user_by_email(:email)"
 )
+_SET_TENANT_SQL = text("SELECT app.set_tenant_context(:company_id, :user_id)")
+_ACCOUNT_TYPE_SQL = text("SELECT account_type FROM companies WHERE id = :company_id")
 
 
 class SqlAlchemyUserIdentityResolver:
@@ -37,9 +39,22 @@ class SqlAlchemyUserIdentityResolver:
             company_id: uuid.UUID = row["company_id"]
             status = UserStatus(row["status"])
             password_hash: str | None = row["password_hash"]
+
+            # A funcao SECURITY DEFINER devolve apenas o minimo (inclusive para
+            # nao ampliar o bypass de RLS de forja_auth). O tipo da conta e
+            # lido depois, com o tenant ja resolvido pelo proprio banco.
+            await session.execute(
+                _SET_TENANT_SQL, {"company_id": company_id, "user_id": user_id}
+            )
+            account_row = (
+                await session.execute(_ACCOUNT_TYPE_SQL, {"company_id": company_id})
+            ).mappings().first()
+            account_type = str(account_row["account_type"]) if account_row else "COMPANY"
+
             return ResolvedIdentity(
                 user_id=user_id,
                 company_id=company_id,
                 status=status,
                 password_hash=password_hash,
+                account_type=account_type,
             )

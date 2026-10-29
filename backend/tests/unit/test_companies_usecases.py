@@ -12,7 +12,12 @@ from app.modules.companies.application.company import (
     RegisterCompanyCommand,
 )
 from app.modules.companies.application.errors import CompanyAlreadyExistsError, CompanyNotFoundError
-from app.modules.companies.application.ports import CompanyRecord, OperatorRecord
+from app.modules.companies.application.ports import (
+    CompanyRecord,
+    ConsentRecordData,
+    ConsumerProfileRecord,
+    OperatorRecord,
+)
 from app.modules.companies.domain.errors import InvalidCnpjError
 
 _VALID_CNPJ = "11222333000181"
@@ -37,6 +42,15 @@ class FakeRepository:
         if company.cnpj in self._existing_cnpjs:
             raise CompanyAlreadyExistsError()
         self.added = (company, operator)
+
+    async def add_consumer(
+        self,
+        company: CompanyRecord,
+        operator: OperatorRecord,
+        profile: ConsumerProfileRecord,
+        consents: tuple[ConsentRecordData, ...],
+    ) -> None:
+        raise AssertionError("add_consumer nao deveria ser chamado neste teste")
 
     async def get_by_id(self, company_id: uuid.UUID) -> CompanyRecord | None:
         return None

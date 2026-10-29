@@ -12,23 +12,25 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import date
 from typing import Protocol
 
 
 @dataclass(frozen=True, kw_only=True)
 class CompanyRecord:
-    """Dados da empresa a persistir/ler."""
+    """Dados da empresa (ou conta pessoal) a persistir/ler."""
 
     id: uuid.UUID
-    cnpj: str
+    cnpj: str | None
     legal_name: str
     trade_name: str | None
     status: str
+    account_type: str = "COMPANY"
 
 
 @dataclass(frozen=True, kw_only=True)
 class OperatorRecord:
-    """Operador inicial (usuario + vinculo ADMIN) criado no onboarding."""
+    """Operador inicial (usuario + vinculo) criado no onboarding."""
 
     user_id: uuid.UUID
     member_id: uuid.UUID
@@ -39,6 +41,25 @@ class OperatorRecord:
     user_status: str
     role: str
     member_status: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class ConsumerProfileRecord:
+    """Dados pessoais do consumidor (nao sensiveis alem do necessario)."""
+
+    birth_date: date
+    gender: str
+    postal_code: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class ConsentRecordData:
+    """Aceite LGPD a persistir na trilha append-only de consentimentos."""
+
+    purpose: str
+    action: str
+    version: str
+    document_hash: str
 
 
 class PasswordHasher(Protocol):
@@ -58,6 +79,15 @@ class CompanyRepository(Protocol):
 
     async def add(self, company: CompanyRecord, operator: OperatorRecord) -> None:
         """Registra empresa + operador inicial + vinculo ADMIN atomicamente."""
+
+    async def add_consumer(
+        self,
+        company: CompanyRecord,
+        operator: OperatorRecord,
+        profile: ConsumerProfileRecord,
+        consents: tuple[ConsentRecordData, ...],
+    ) -> None:
+        """Registra conta pessoal + usuario + perfil + consentimentos atomicamente."""
 
     async def get_by_id(self, company_id: uuid.UUID) -> CompanyRecord | None:
         """Le a empresa do tenant (RLS limita ao proprio tenant)."""

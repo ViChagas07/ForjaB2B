@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useTranslations } from "next-intl";
 
+import type { AccountType } from "@/core/domain/auth";
 import { useRouter } from "@/i18n/navigation";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { login } from "@/shared/stores/auth-actions";
@@ -11,11 +12,16 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
+import { GoogleIcon } from "./google-icon";
 import { loginFormSchema } from "./schemas";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
-export function LoginForm() {
+interface LoginFormProps {
+  accountType: AccountType;
+}
+
+export function LoginForm({ accountType }: LoginFormProps) {
   const t = useTranslations();
   const router = useRouter();
 
@@ -43,7 +49,7 @@ export function LoginForm() {
     setFieldErrors({});
     setIsLoading(true);
     try {
-      await login(parsed.data.email, parsed.data.password);
+      await login(parsed.data.email, parsed.data.password, accountType);
       router.replace("/dashboard");
       router.refresh();
     } catch (error) {
@@ -55,6 +61,22 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      {accountType === "PERSON" ? (
+        <>
+          <Button asChild variant="outline" className="h-11 w-full rounded-xl">
+            <a href="/api/v1/auth/google">
+              <GoogleIcon />
+              {t("auth.googleButton")}
+            </a>
+          </Button>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            {t("auth.or")}
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="login-email">{t("auth.emailLabel")}</Label>
         <Input

@@ -34,7 +34,12 @@
     "logoutLoading": "جارٍ تسجيل الخروج…",
     "signedInAs": "مسجّل الدخول باسم",
     "googleCallbackLoading": "جارٍ إكمال تسجيل الدخول…",
-    "googleCallbackError": "تعذر إكمال تسجيل الدخول باستخدام Google."
+    "googleCallbackError": "تعذر إكمال تسجيل الدخول باستخدام Google.",
+    "googleButton": "المتابعة باستخدام Google",
+    "or": "أو",
+    "loginSubtitlePerson": "سجّل الدخول إلى حساب العميل.",
+    "loginSubtitleCompany": "سجّل الدخول إلى حساب شركتك.",
+    "companyPasswordOnly": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط."
   },
   "onboarding": {
     "title": "سجّل شركتك",
@@ -72,6 +77,38 @@
     "consentLabel": "لقد قرأت <terms>شروط الخدمة</terms> و<privacy>سياسة الخصوصية</privacy> وأوافق عليهما.",
     "consentRequired": "يجب الموافقة على شروط الخدمة وسياسة الخصوصية لإنشاء الحساب."
   },
+  "consumer": {
+    "title": "أنشئ حسابك",
+    "subtitle": "تسوّق كشخص طبيعي باستخدام CPF.",
+    "fullNameLabel": "الاسم الكامل",
+    "fullNamePlaceholder": "اسمك الكامل",
+    "fullNameRequired": "أدخل اسمك الكامل.",
+    "birthDateLabel": "تاريخ الميلاد",
+    "birthDateRequired": "أدخل تاريخ ميلادك.",
+    "birthDateInvalid": "تاريخ الميلاد غير صالح.",
+    "birthDateMinAge": "يجب أن يكون عمرك 18 عامًا أو أكثر لإنشاء حساب.",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "أدخل رقم CPF.",
+    "cpfInvalid": "رقم CPF غير صالح.",
+    "postalCodeLabel": "الرمز البريدي (CEP)",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "أدخل الرمز البريدي.",
+    "postalCodeInvalid": "الرمز البريدي غير صالح.",
+    "genderLabel": "الجنس",
+    "genderPlaceholder": "اختر",
+    "genderRequired": "اختر خيارًا.",
+    "genderFemale": "أنثى",
+    "genderMale": "ذكر",
+    "genderNonBinary": "غير ثنائي",
+    "genderOther": "آخر",
+    "genderPreferNotToSay": "أفضّل عدم الإفصاح",
+    "submit": "إنشاء حساب",
+    "submitLoading": "جارٍ إنشاء الحساب…",
+    "successTitle": "تم إنشاء الحساب",
+    "successDescription": "حساب العميل جاهز. سجّل الدخول لبدء التسوق.",
+    "successLogin": "الانتقال إلى تسجيل الدخول"
+  },
   "company": {
     "title": "بيانات الشركة",
     "loadError": "تعذّر تحميل بيانات الشركة",
@@ -84,12 +121,15 @@
     "statusPending": "قيد الانتظار",
     "statusActive": "نشطة",
     "statusSuspended": "موقوفة",
-    "statusRejected": "مرفوضة"
+    "statusRejected": "مرفوضة",
+    "personalTitle": "بيانات الحساب"
   },
   "dashboard": {
     "title": "لوحة التحكم",
     "loginRequired": "تحتاج إلى تسجيل الدخول للوصول إلى لوحة التحكم.",
-    "loginLink": "الانتقال إلى تسجيل الدخول"
+    "loginLink": "الانتقال إلى تسجيل الدخول",
+    "accountType": "نوع الحساب",
+    "consumerBadge": "عميل"
   },
   "error": {
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -114,7 +154,13 @@
     "invalidOrderState": "الطلب لا يقبل هذه العملية.",
     "stripeUnavailable": "الدفع بالبطاقة غير متاح حالياً.",
     "paymentProvider": "تعذر بدء الدفع. حاول مرة أخرى.",
-    "paymentAmountTooLow": "المبلغ أقل من الحد الأدنى للمزود (R$ 0.50)."
+    "paymentAmountTooLow": "المبلغ أقل من الحد الأدنى للمزود (R$ 0.50).",
+    "invalidCpf": "رقم CPF غير صالح.",
+    "emailAlreadyExists": "هذا البريد الإلكتروني مسجّل بالفعل.",
+    "consentRequired": "يجب قبول الشروط وسياسة الخصوصية.",
+    "invalidBirthDate": "تاريخ الميلاد غير صالح.",
+    "invalidPostalCode": "الرمز البريدي غير صالح.",
+    "oauthCompanyAccount": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط."
   },
   "catalog": {
     "title": "الكتالوج",

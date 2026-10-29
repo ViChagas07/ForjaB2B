@@ -8,7 +8,13 @@ const SESSION: AuthSession = {
   refresh_token: "refresh-1",
   token_type: "bearer",
   expires_in: 900,
-  user: { id: "user-1", email: "admin@empresa.com", full_name: "Admin", role: "ADMIN" },
+  user: {
+    id: "user-1",
+    email: "admin@empresa.com",
+    full_name: "Admin",
+    role: "ADMIN",
+    account_type: "COMPANY",
+  },
 };
 
 const STORAGE_KEY = "forja-auth-session";

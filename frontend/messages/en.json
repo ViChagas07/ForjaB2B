@@ -34,7 +34,12 @@
     "logoutLoading": "Signing out…",
     "signedInAs": "Signed in as",
     "googleCallbackLoading": "Completing sign-in…",
-    "googleCallbackError": "Could not complete Google sign-in."
+    "googleCallbackError": "Could not complete Google sign-in.",
+    "googleButton": "Continue with Google",
+    "or": "or",
+    "loginSubtitlePerson": "Sign in to your customer account.",
+    "loginSubtitleCompany": "Sign in to your company account.",
+    "companyPasswordOnly": "Company accounts can only sign in with email and password."
   },
   "onboarding": {
     "title": "Register your company",
@@ -72,6 +77,38 @@
     "consentLabel": "I have read the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy> and agree to them.",
     "consentRequired": "You must agree to the Terms of Service and the Privacy Policy to create an account."
   },
+  "consumer": {
+    "title": "Create your account",
+    "subtitle": "Shop as an individual with your CPF.",
+    "fullNameLabel": "Full name",
+    "fullNamePlaceholder": "Your full name",
+    "fullNameRequired": "Enter your full name.",
+    "birthDateLabel": "Date of birth",
+    "birthDateRequired": "Enter your date of birth.",
+    "birthDateInvalid": "Invalid date of birth.",
+    "birthDateMinAge": "You must be 18 or older to create an account.",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "Enter your CPF.",
+    "cpfInvalid": "Invalid CPF.",
+    "postalCodeLabel": "Postal code (CEP)",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "Enter your postal code.",
+    "postalCodeInvalid": "Invalid postal code.",
+    "genderLabel": "Gender",
+    "genderPlaceholder": "Select",
+    "genderRequired": "Select an option.",
+    "genderFemale": "Female",
+    "genderMale": "Male",
+    "genderNonBinary": "Non-binary",
+    "genderOther": "Other",
+    "genderPreferNotToSay": "Prefer not to say",
+    "submit": "Create account",
+    "submitLoading": "Creating account…",
+    "successTitle": "Account created",
+    "successDescription": "Your customer account is ready. Sign in to start shopping.",
+    "successLogin": "Go to sign in"
+  },
   "company": {
     "title": "Company details",
     "loadError": "Could not load the company",
@@ -84,12 +121,15 @@
     "statusPending": "Pending",
     "statusActive": "Active",
     "statusSuspended": "Suspended",
-    "statusRejected": "Rejected"
+    "statusRejected": "Rejected",
+    "personalTitle": "Account details"
   },
   "dashboard": {
     "title": "Dashboard",
     "loginRequired": "You need to sign in to access the dashboard.",
-    "loginLink": "Go to sign in"
+    "loginLink": "Go to sign in",
+    "accountType": "Account type",
+    "consumerBadge": "Customer"
   },
   "error": {
     "invalidCredentials": "Incorrect email or password.",
@@ -114,7 +154,13 @@
     "invalidOrderState": "The order does not accept this operation.",
     "stripeUnavailable": "Card payment is currently unavailable.",
     "paymentProvider": "Could not start the payment. Try again.",
-    "paymentAmountTooLow": "Amount below the provider minimum (R$ 0.50)."
+    "paymentAmountTooLow": "Amount below the provider minimum (R$ 0.50).",
+    "invalidCpf": "Invalid CPF.",
+    "emailAlreadyExists": "This email is already registered.",
+    "consentRequired": "You must accept the terms and privacy policy.",
+    "invalidBirthDate": "Invalid date of birth.",
+    "invalidPostalCode": "Invalid postal code.",
+    "oauthCompanyAccount": "Company accounts can only sign in with email and password."
   },
   "catalog": {
     "title": "Catalog",

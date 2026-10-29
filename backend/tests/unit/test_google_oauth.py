@@ -16,6 +16,7 @@ from app.application.security import TokenService
 from app.core.config import Settings
 from app.modules.identity.application.errors import (
     OAuthCodeError,
+    OAuthCompanyAccountError,
     OAuthEmailNotVerifiedError,
     OAuthExchangeError,
     OAuthStateError,
@@ -131,6 +132,7 @@ def _identity() -> ResolvedIdentity:
         company_id=uuid.UUID("aaaa0000-0000-4000-8000-000000000002"),
         status=UserStatus.ACTIVE,
         password_hash="x",
+        account_type="PERSON",
     )
 
 
@@ -206,6 +208,7 @@ async def test_callback_valido_gera_exchange_code_sem_token_na_url() -> None:
     assert payload.refresh_token
     assert payload.email == "buyer@empresa.com"
     assert payload.role == "BUYER"
+    assert payload.account_type == "PERSON"
     assert len(links.links) == 1
     assert len(refresh_store.tokens) == 1
 
@@ -248,18 +251,32 @@ async def test_callback_email_nao_verificado() -> None:
         await use_case.complete(code="code", state="state")
 
 
-async def test_callback_conta_inexistente_vai_para_onboarding() -> None:
+async def test_callback_conta_inexistente_exige_cadastro_cpf() -> None:
     exchange_store = FakeExchangeCodeStore()
     use_case = _complete_usecase(resolver=FakeResolver(None), exchange_code_store=exchange_store)
     result = await use_case.complete(code="code", state="state")
 
-    assert result.status == "onboarding"
+    assert result.status == "registration_required"
     assert result.exchange_code
     payload = await exchange_store.consume(result.exchange_code)
     assert payload is not None
-    assert payload.status == "onboarding"
+    assert payload.status == "registration_required"
     assert payload.access_token is None
     assert payload.email == "buyer@empresa.com"
+
+
+async def test_callback_conta_empresarial_rejeita_google() -> None:
+    identity = _identity()
+    company_identity = ResolvedIdentity(
+        user_id=identity.user_id,
+        company_id=identity.company_id,
+        status=UserStatus.ACTIVE,
+        password_hash=identity.password_hash,
+        account_type="COMPANY",
+    )
+    use_case = _complete_usecase(resolver=FakeResolver(company_identity))
+    with pytest.raises(OAuthCompanyAccountError):
+        await use_case.complete(code="code", state="state")
 
 
 async def test_callback_usuario_inativo() -> None:
@@ -269,6 +286,7 @@ async def test_callback_usuario_inativo() -> None:
         company_id=identity.company_id,
         status=UserStatus.SUSPENDED,
         password_hash=identity.password_hash,
+        account_type="PERSON",
     )
     use_case = _complete_usecase(resolver=FakeResolver(inactive))
     with pytest.raises(UserInactiveError):

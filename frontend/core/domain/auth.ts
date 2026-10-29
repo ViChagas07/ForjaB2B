@@ -12,11 +12,17 @@ export const ROLES = ["ADMIN", "BUYER", "APPROVER", "FINANCE"] as const;
 
 export type Role = (typeof ROLES)[number];
 
+/** Tipo da conta: pessoa física (CPF) x empresa (CNPJ). */
+export const ACCOUNT_TYPES = ["PERSON", "COMPANY"] as const;
+
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
 export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
   role: Role;
+  account_type: AccountType;
 }
 
 export interface AuthSession {
@@ -38,11 +44,12 @@ export interface AuthTokens {
  * Resultado da troca do exchange code OAuth (`POST /api/v1/auth/oauth/exchange`).
  *
  * - `authenticated`: sessão completa (mesma forma de `AuthSession`).
- * - `onboarding`: usuário ainda não existe; o frontend redireciona para o
- *   onboarding pré-preenchendo email/nome vindos do Google.
+ * - `registration_required`: o e-mail verificado pelo Google ainda não possui
+ *   conta; o frontend redireciona para o cadastro CPF com os dados
+ *   pré-preenchidos. Nenhuma conta é criada automaticamente.
  *
  * Nenhum token/secret trafega na URL de redirect; apenas o exchange code opaco.
  */
 export type OAuthExchangeResult =
   | { status: "authenticated"; session: AuthSession }
-  | { status: "onboarding"; email: string | null; full_name: string | null };
+  | { status: "registration_required"; email: string | null; full_name: string | null };

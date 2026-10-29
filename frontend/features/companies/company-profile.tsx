@@ -91,11 +91,12 @@ export function CompanyProfile() {
   }
 
   const statusKey = statusLabelKey(company.status);
+  const isPerson = company.account_type === "PERSON";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("company.title")}</CardTitle>
+        <CardTitle>{isPerson ? t("company.personalTitle") : t("company.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <dl className="grid gap-4 sm:grid-cols-2">
@@ -103,14 +104,18 @@ export function CompanyProfile() {
             <dt className="text-sm text-muted-foreground">{t("company.legalName")}</dt>
             <dd className="font-medium">{company.legal_name}</dd>
           </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("company.tradeName")}</dt>
-            <dd className="font-medium">{company.trade_name ?? t("company.notProvided")}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("company.cnpj")}</dt>
-            <dd className="font-mono font-medium">{company.cnpj}</dd>
-          </div>
+          {!isPerson ? (
+            <div>
+              <dt className="text-sm text-muted-foreground">{t("company.tradeName")}</dt>
+              <dd className="font-medium">{company.trade_name ?? t("company.notProvided")}</dd>
+            </div>
+          ) : null}
+          {company.cnpj ? (
+            <div>
+              <dt className="text-sm text-muted-foreground">{t("company.cnpj")}</dt>
+              <dd className="font-mono font-medium">{company.cnpj}</dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-sm text-muted-foreground">{t("company.status")}</dt>
             <dd className="font-medium">{statusKey ? t(statusKey) : company.status}</dd>

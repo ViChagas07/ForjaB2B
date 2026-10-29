@@ -12,7 +12,6 @@ independentes (sem importar o modulo identity).
 
 from __future__ import annotations
 
-import re
 import uuid
 from dataclasses import dataclass
 
@@ -25,9 +24,8 @@ from app.modules.companies.application.ports import (
     PasswordHasher,
 )
 from app.modules.companies.domain.cnpj import validate_cnpj
-from app.modules.companies.domain.enums import CompanyStatus
-
-_NON_DIGITS = re.compile(r"\D")
+from app.modules.companies.domain.cpf import validate_cpf
+from app.modules.companies.domain.enums import AccountType, CompanyStatus
 
 # Valores do vocabulario identity (MemberRole/MemberStatus/UserStatus), mantidos
 # como constantes locais para nao importar o modulo identity (bounded contexts
@@ -66,15 +64,11 @@ class CompanyView:
     """Visao de leitura da empresa (sem dados sensiveis)."""
 
     id: uuid.UUID
-    cnpj: str
+    cnpj: str | None
     legal_name: str
     trade_name: str | None
     status: str
-
-
-def normalize_cpf(raw: str) -> str:
-    """Remove mascara do CPF (mantem apenas digitos)."""
-    return _NON_DIGITS.sub("", raw)
+    account_type: str
 
 
 class RegisterCompany:
@@ -93,6 +87,7 @@ class RegisterCompany:
 
     async def register(self, command: RegisterCompanyCommand) -> CompanyRegistered:
         cnpj = validate_cnpj(command.cnpj)
+        admin_cpf = validate_cpf(command.admin_cpf)
 
         company_id = uuid.uuid4()
         admin_user_id = uuid.uuid4()
@@ -103,13 +98,14 @@ class RegisterCompany:
             legal_name=command.legal_name,
             trade_name=command.trade_name,
             status=CompanyStatus.PENDING.value,
+            account_type=AccountType.COMPANY.value,
         )
         operator = OperatorRecord(
             user_id=admin_user_id,
             member_id=uuid.uuid4(),
             full_name=command.admin_full_name,
             email=command.admin_email.strip().lower(),
-            cpf_hash=self._cpf_hasher.hash(normalize_cpf(command.admin_cpf)),
+            cpf_hash=self._cpf_hasher.hash(admin_cpf),
             password_hash=self._password_hasher.hash(command.password),
             user_status=_USER_PENDING_APPROVAL,
             role=_ADMIN_ROLE,
@@ -143,6 +139,7 @@ class GetCurrentCompany:
             legal_name=company.legal_name,
             trade_name=company.trade_name,
             status=company.status,
+            account_type=company.account_type,
         )
 
 

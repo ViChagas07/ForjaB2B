@@ -41,7 +41,15 @@ export function loadStoredSession(): AuthSession | null {
       return null;
     }
     const parsed = JSON.parse(raw) as unknown;
-    return isAuthSession(parsed) ? parsed : null;
+    if (!isAuthSession(parsed)) {
+      return null;
+    }
+    // Sessões criadas antes do tipo de conta ganham o padrão CORPORATIVO;
+    // novas sessões sempre trazem o campo do backend.
+    if (!parsed.user.account_type) {
+      parsed.user.account_type = "COMPANY";
+    }
+    return parsed;
   } catch {
     return null;
   }

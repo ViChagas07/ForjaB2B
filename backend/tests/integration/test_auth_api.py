@@ -154,12 +154,22 @@ async def test_login_sucesso_retorna_tokens_e_perfil(auth_client: httpx.AsyncCli
     assert body["user"]["role"] == "ADMIN"
     assert body["user"]["email"] == AUTH_ADMIN_EMAIL
     assert body["user"]["id"] == str(AUTH_ADMIN_USER_ID)
+    assert body["user"]["account_type"] == "COMPANY"
 
 
 async def test_login_senha_incorreta_401(auth_client: httpx.AsyncClient) -> None:
     response = await _login(auth_client, AUTH_ADMIN_EMAIL, "Senha@Errada000")
     assert response.status_code == 401
     assert response.headers["content-type"].startswith(_PROBLEM_JSON)
+    assert response.json()["type"] == "urn:forja:problem:invalid_credentials"
+
+
+async def test_login_tipo_de_conta_divergente_401(auth_client: httpx.AsyncClient) -> None:
+    response = await auth_client.post(
+        "/api/v1/auth/login",
+        json={"email": AUTH_ADMIN_EMAIL, "password": AUTH_PASSWORD, "account_type": "PERSON"},
+    )
+    assert response.status_code == 401
     assert response.json()["type"] == "urn:forja:problem:invalid_credentials"
 
 

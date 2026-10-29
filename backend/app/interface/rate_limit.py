@@ -41,7 +41,7 @@ def _classify_auth(path: str) -> RateLimitClass | None:
 
 
 def _classify_registration(path: str, method: str) -> RateLimitClass | None:
-    if path == "/api/v1/companies" and method == "POST":
+    if method == "POST" and path in {"/api/v1/companies", "/api/v1/consumers"}:
         return RateLimitClass.REGISTRATION
     return None
 

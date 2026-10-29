@@ -18,15 +18,22 @@ from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.companies.application.errors import (
     CompanyAlreadyExistsError,
     CpfAlreadyExistsError,
+    EmailAlreadyExistsError,
 )
-from app.modules.companies.application.ports import CompanyRecord, OperatorRecord
+from app.modules.companies.application.ports import (
+    CompanyRecord,
+    ConsentRecordData,
+    ConsumerProfileRecord,
+    OperatorRecord,
+)
 
 _CNPJ_UNIQUE = "uq_companies_cnpj"
 _CPF_UNIQUE = "uq_users_cpf_hash"
+_EMAIL_UNIQUE = "uq_users_email"
 
 _INSERT_COMPANY = text(
-    "INSERT INTO companies (id, cnpj, legal_name, trade_name, status) "
-    "VALUES (:id, :cnpj, :legal_name, :trade_name, :status)"
+    "INSERT INTO companies (id, cnpj, legal_name, trade_name, status, account_type) "
+    "VALUES (:id, :cnpj, :legal_name, :trade_name, :status, :account_type)"
 )
 _INSERT_USER = text(
     "INSERT INTO users (id, company_id, email, full_name, cpf_hash, password_hash, status) "
@@ -36,8 +43,18 @@ _INSERT_MEMBER = text(
     "INSERT INTO company_members (id, company_id, user_id, role, status) "
     "VALUES (:id, :company_id, :user_id, :role, :status)"
 )
+_INSERT_CONSUMER_PROFILE = text(
+    "INSERT INTO consumer_profiles (user_id, company_id, birth_date, gender, postal_code) "
+    "VALUES (:user_id, :company_id, :birth_date, :gender, :postal_code)"
+)
+_INSERT_CONSENT = text(
+    "INSERT INTO consent_records "
+    "(company_id, user_id, purpose, action, version, document_hash) "
+    "VALUES (:company_id, :user_id, :purpose, :action, :version, :document_hash)"
+)
 _SELECT_COMPANY = text(
-    "SELECT id, cnpj, legal_name, trade_name, status FROM companies WHERE id = :company_id"
+    "SELECT id, cnpj, legal_name, trade_name, status, account_type "
+    "FROM companies WHERE id = :company_id"
 )
 _APPROVE_COMPANY = text(
     "UPDATE companies SET status = 'ACTIVE', approved_at = now(), updated_at = now() "
@@ -84,6 +101,7 @@ class SqlAlchemyCompanyRepository:
                         "legal_name": company.legal_name,
                         "trade_name": company.trade_name,
                         "status": company.status,
+                        "account_type": company.account_type,
                     },
                 )
                 await uow.session.execute(
@@ -115,6 +133,82 @@ class SqlAlchemyCompanyRepository:
                 raise CompanyAlreadyExistsError() from exc
             if constraint == _CPF_UNIQUE:
                 raise CpfAlreadyExistsError() from exc
+            if constraint == _EMAIL_UNIQUE:
+                raise EmailAlreadyExistsError() from exc
+            raise
+
+    async def add_consumer(
+        self,
+        company: CompanyRecord,
+        operator: OperatorRecord,
+        profile: ConsumerProfileRecord,
+        consents: tuple[ConsentRecordData, ...],
+    ) -> None:
+        tenant = TenantContext(company_id=company.id, user_id=operator.user_id)
+        try:
+            async with self._uow_factory.begin(tenant) as uow:
+                await uow.session.execute(
+                    _INSERT_COMPANY,
+                    {
+                        "id": company.id,
+                        "cnpj": company.cnpj,
+                        "legal_name": company.legal_name,
+                        "trade_name": company.trade_name,
+                        "status": company.status,
+                        "account_type": company.account_type,
+                    },
+                )
+                await uow.session.execute(
+                    _INSERT_USER,
+                    {
+                        "id": operator.user_id,
+                        "company_id": company.id,
+                        "email": operator.email,
+                        "full_name": operator.full_name,
+                        "cpf_hash": operator.cpf_hash,
+                        "password_hash": operator.password_hash,
+                        "status": operator.user_status,
+                    },
+                )
+                await uow.session.execute(
+                    _INSERT_MEMBER,
+                    {
+                        "id": operator.member_id,
+                        "company_id": company.id,
+                        "user_id": operator.user_id,
+                        "role": operator.role,
+                        "status": operator.member_status,
+                    },
+                )
+                await uow.session.execute(
+                    _INSERT_CONSUMER_PROFILE,
+                    {
+                        "user_id": operator.user_id,
+                        "company_id": company.id,
+                        "birth_date": profile.birth_date,
+                        "gender": profile.gender,
+                        "postal_code": profile.postal_code,
+                    },
+                )
+                for consent in consents:
+                    await uow.session.execute(
+                        _INSERT_CONSENT,
+                        {
+                            "company_id": company.id,
+                            "user_id": operator.user_id,
+                            "purpose": consent.purpose,
+                            "action": consent.action,
+                            "version": consent.version,
+                            "document_hash": consent.document_hash,
+                        },
+                    )
+                await uow.commit()
+        except Exception as exc:
+            constraint = _constraint_name(exc)
+            if constraint == _CPF_UNIQUE:
+                raise CpfAlreadyExistsError() from exc
+            if constraint == _EMAIL_UNIQUE:
+                raise EmailAlreadyExistsError() from exc
             raise
 
     async def get_by_id(self, company_id: uuid.UUID) -> CompanyRecord | None:
@@ -130,6 +224,7 @@ class SqlAlchemyCompanyRepository:
                 legal_name=row.legal_name,
                 trade_name=row.trade_name,
                 status=row.status,
+                account_type=row.account_type,
             )
 
     async def approve(self, company_id: uuid.UUID) -> bool:

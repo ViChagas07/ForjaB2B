@@ -34,7 +34,12 @@
     "logoutLoading": "ログアウト中…",
     "signedInAs": "ログイン中：",
     "googleCallbackLoading": "サインインを完了しています…",
-    "googleCallbackError": "Google でのサインインを完了できませんでした。"
+    "googleCallbackError": "Google でのサインインを完了できませんでした。",
+    "googleButton": "Googleで続行",
+    "or": "または",
+    "loginSubtitlePerson": "お客様アカウントにサインインします。",
+    "loginSubtitleCompany": "企業アカウントにサインインします。",
+    "companyPasswordOnly": "企業アカウントはメールアドレスとパスワードでのみサインインできます。"
   },
   "onboarding": {
     "title": "会社を登録",
@@ -72,6 +77,38 @@
     "consentLabel": "<terms>利用規約</terms>と<privacy>プライバシーポリシー</privacy>を読み、これらに同意します。",
     "consentRequired": "アカウント作成には、利用規約とプライバシーポリシーへの同意が必要です。"
   },
+  "consumer": {
+    "title": "アカウントを作成",
+    "subtitle": "CPFで個人として購入できます。",
+    "fullNameLabel": "氏名",
+    "fullNamePlaceholder": "氏名を入力",
+    "fullNameRequired": "氏名を入力してください。",
+    "birthDateLabel": "生年月日",
+    "birthDateRequired": "生年月日を入力してください。",
+    "birthDateInvalid": "生年月日が無効です。",
+    "birthDateMinAge": "アカウント作成には18歳以上である必要があります。",
+    "cpfLabel": "CPF",
+    "cpfPlaceholder": "000.000.000-00",
+    "cpfRequired": "CPFを入力してください。",
+    "cpfInvalid": "CPFが無効です。",
+    "postalCodeLabel": "郵便番号（CEP）",
+    "postalCodePlaceholder": "00000-000",
+    "postalCodeRequired": "郵便番号を入力してください。",
+    "postalCodeInvalid": "郵便番号が無効です。",
+    "genderLabel": "性別",
+    "genderPlaceholder": "選択",
+    "genderRequired": "オプションを選択してください。",
+    "genderFemale": "女性",
+    "genderMale": "男性",
+    "genderNonBinary": "ノンバイナリー",
+    "genderOther": "その他",
+    "genderPreferNotToSay": "回答しない",
+    "submit": "アカウントを作成",
+    "submitLoading": "アカウントを作成中…",
+    "successTitle": "アカウントを作成しました",
+    "successDescription": "お客様アカウントの準備ができました。サインインして購入を開始してください。",
+    "successLogin": "サインインへ"
+  },
   "company": {
     "title": "会社情報",
     "loadError": "会社情報を読み込めませんでした",
@@ -84,12 +121,15 @@
     "statusPending": "保留中",
     "statusActive": "有効",
     "statusSuspended": "停止中",
-    "statusRejected": "却下"
+    "statusRejected": "却下",
+    "personalTitle": "アカウント情報"
   },
   "dashboard": {
     "title": "ダッシュボード",
     "loginRequired": "ダッシュボードを表示するにはログインが必要です。",
-    "loginLink": "ログインへ"
+    "loginLink": "ログインへ",
+    "accountType": "アカウント種別",
+    "consumerBadge": "お客様"
   },
   "error": {
     "invalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
@@ -114,7 +154,13 @@
     "invalidOrderState": "この注文ではこの操作を実行できません。",
     "stripeUnavailable": "現在カード決済は利用できません。",
     "paymentProvider": "支払いを開始できませんでした。もう一度お試しください。",
-    "paymentAmountTooLow": "プロバイダーの最低金額（R$ 0.50）未満です。"
+    "paymentAmountTooLow": "プロバイダーの最低金額（R$ 0.50）未満です。",
+    "invalidCpf": "CPFが無効です。",
+    "emailAlreadyExists": "このメールアドレスは既に登録されています。",
+    "consentRequired": "利用規約とプライバシーポリシーに同意する必要があります。",
+    "invalidBirthDate": "生年月日が無効です。",
+    "invalidPostalCode": "郵便番号が無効です。",
+    "oauthCompanyAccount": "企業アカウントはメールアドレスとパスワードでのみサインインできます。"
   },
   "catalog": {
     "title": "カタログ",

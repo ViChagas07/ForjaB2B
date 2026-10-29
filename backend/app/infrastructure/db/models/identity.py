@@ -10,11 +10,13 @@ Privacidade (MEGA-PROMPT, secao 5/8): o CPF nunca e armazenado em texto claro.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -26,6 +28,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.domain.consumer import Gender
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.models.common import TimestampMixin, enum_check
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
@@ -77,6 +80,9 @@ class User(TimestampMixin, Base):
     consent_records: Mapped[list[ConsentRecord]] = relationship(back_populates="user")
     audit_logs: Mapped[list[AuditLog]] = relationship(back_populates="actor")
     external_identities: Mapped[list[UserExternalIdentity]] = relationship(back_populates="user")
+    consumer_profile: Mapped[ConsumerProfile | None] = relationship(
+        back_populates="user", uselist=False
+    )
 
 
 class CompanyMember(TimestampMixin, Base):
@@ -111,3 +117,33 @@ class CompanyMember(TimestampMixin, Base):
 
     company: Mapped[Company] = relationship(back_populates="members")
     user: Mapped[User] = relationship(back_populates="members")
+
+
+class ConsumerProfile(TimestampMixin, Base):
+    """Perfil pessoal do consumidor (conta ``PERSON``).
+
+    A data de nascimento permite calcular a idade e validar maioridade sem
+    armazenar um numero que envelhece. O CEP e apenas o dado inicial de
+    localizacao; o endereco completo de entrega continua no fluxo de checkout.
+    """
+
+    __tablename__ = "consumer_profiles"
+    __table_args__ = (
+        CheckConstraint("postal_code ~ '^[0-9]{8}$'", name="postal_code_format"),
+        enum_check("gender", Gender),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    company_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    birth_date: Mapped[date] = mapped_column(Date, nullable=False)
+    gender: Mapped[Gender] = mapped_column(
+        Enum(Gender, native_enum=False, create_constraint=False, length=24),
+        nullable=False,
+    )
+    postal_code: Mapped[str] = mapped_column(String(8), nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="consumer_profile")
