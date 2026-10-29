@@ -60,13 +60,14 @@ export function HeroPromoCarousel({ banners, initialIndex = 0 }: HeroPromoCarous
       return;
     }
 
-    const isDesktop = window.matchMedia(DESKTOP_IMAGE_QUERY).matches;
+    const prefersLargeImage =
+      window.matchMedia(DESKTOP_IMAGE_QUERY).matches || window.devicePixelRatio > 1;
     const timer = window.setTimeout(() => {
       for (const banner of banners) {
         const variant = heroPromoImageForLocale(banner, locale);
         const image = new window.Image();
         image.decoding = "async";
-        image.src = isDesktop ? variant.image.src : variant.image.smallSrc;
+        image.src = prefersLargeImage ? variant.image.src : variant.image.smallSrc;
       }
     }, PREFETCH_DELAY_MS);
 
@@ -162,20 +163,20 @@ export function HeroPromoCarousel({ banners, initialIndex = 0 }: HeroPromoCarous
         <Link
           href={activeBanner.href}
           aria-label={t(activeBanner.labelKey)}
-          className="group relative block aspect-[1760/638] w-full overflow-hidden bg-ink focus-visible:outline-none"
+          className="group relative block aspect-[8/5] max-h-56 w-full overflow-hidden bg-ink focus-visible:outline-none sm:aspect-[1760/638] sm:max-h-none"
         >
           <img
             key={activeBanner.id}
             src={activeImage.image.src}
             srcSet={activeImage.image.srcSet}
-            sizes="(min-width: 1152px) 1152px, calc(100vw - 3rem)"
+            sizes="(min-width: 1152px) 1152px, (min-width: 640px) calc(100vw - 3rem), 700px"
             width={activeImage.image.width}
             height={activeImage.image.height}
             alt=""
             loading="eager"
             decoding="async"
             draggable={false}
-            className="h-full w-full animate-fade-in object-cover"
+            className="h-full w-full animate-fade-in object-cover object-left sm:object-center"
           />
           <span
             aria-hidden="true"

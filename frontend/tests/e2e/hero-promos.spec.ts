@@ -189,6 +189,7 @@ test.describe("banners promocionais no mobile", () => {
 
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(390);
+    expect(box.height).toBeGreaterThan(190);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
