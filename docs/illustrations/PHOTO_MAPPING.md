@@ -49,7 +49,7 @@ objeto), `crop` = recorte quadrado central.
 | Arquivo original | SKU | Confiança | Motivo / critério |
 |---|---|---|---|
 | Abafador de Ruído Acoplado ao Capacete.jpg | AUD-003 | Alta | Nome exato; concha + arco no capacete visíveis. |
-| Bomba d'Água Autoaspirante.jpg | MAQ-009 | Alta | Nome exato; bomba com voluta e motor. |
+| Bomba d'Ýgua Autoaspirante.jpg | MAQ-009 | Alta | Nome exato; bomba com voluta e motor. |
 | Bota de Segurança Bico Composite.jpg | BOT-002 | Alta | Nome exato; botas de trabalho. |
 | Botas de Segurança Impermeáveis.jpg | BOT-003 | Alta | Nome exato; botas de borracha impermeáveis. |
 | Botina Eletricista.jpg | BOT-004 | Alta | Nome exato; botina de couro. |
@@ -129,3 +129,16 @@ já vinculava os três SKUs.
 Cobertura resultante: **48 de 50 produtos com foto real**; ilustrações específicas
 remanescentes: OCV-006 e LUV-009 (sem foto fornecida). Nenhum produto ativo usa o
 fallback de categoria.
+
+## Lote 5 - luva de raspa descontinuada (2026-10-29)
+
+Pedido do dono: aplicar `Luva de Raspa Descontinuada.webp` ao produto
+"Luva de Raspa Descontinuada" (SKU `LUV-009`, vendido como "Luva de Raspa
+Fora de Linha" no seed). O arquivo foi normalizado para o padrao do
+repositorio (`luv-009.webp`) e o vinculo entrou em `_PRODUCT_IMAGES` e na
+migration `0029`. A foto de produto (par de luvas de raspa) substitui a
+ilustracao `luva-de-raspa.svg`.
+
+Cobertura resultante: **49 de 50 produtos com foto real**; ilustracao
+especifica remanescente: OCV-006. Nenhum produto ativo usa o fallback de
+categoria.

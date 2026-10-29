@@ -1397,9 +1397,9 @@ _PRODUCT_IMAGES: dict[str, str] = {
     "LUV-004": "/catalog/photos/luv-004.webp",
     "RES-004": "/catalog/photos/res-004.webp",
     "AUD-004": "/catalog/photos/aud-004.webp",
+    "LUV-009": "/catalog/photos/luv-009.webp",
     # --- Ilustracoes SVG especificas (fallback do proprio produto; sem foto) ---
     "OCV-006": "/catalog/illustrations/oculos-de-protecao.svg",
-    "LUV-009": "/catalog/illustrations/luva-de-raspa.svg",
 }
 
 # Listas efetivamente usadas pelo seed (base + demonstracao).
