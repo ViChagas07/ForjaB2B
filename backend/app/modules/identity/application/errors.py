@@ -27,6 +27,22 @@ class UserInactiveError(AppError):
     code = "user_inactive"
 
 
+class InvalidAccountProfileError(AppError):
+    """Perfil de conta com dados invalidos (nome, data, CEP...)."""
+
+    status_code = 422
+    title = "Unprocessable Entity"
+    code = "invalid_account_profile"
+
+
+class AccountNotFoundError(AppError):
+    """Usuario autenticado nao encontrado no tenant."""
+
+    status_code = 404
+    title = "Not Found"
+    code = "account_not_found"
+
+
 class RefreshTokenRejectedError(AppError):
     """Refresh token invalido, revogado ou ja rotacionado."""
 

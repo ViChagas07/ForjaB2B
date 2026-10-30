@@ -124,11 +124,15 @@ from app.modules.credit.application.credit import (
     ReserveCredit,
 )
 from app.modules.credit.infrastructure.repository import SqlAlchemyCreditRepository
+from app.modules.identity.application.account import GetAccount, UpdateAccount
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,
     ExchangeOAuthCode,
+)
+from app.modules.identity.infrastructure.account_repository import (
+    SqlAlchemyAccountRepository,
 )
 from app.modules.identity.infrastructure.external_identity import (
     SqlAlchemyExternalIdentityRepository,
@@ -613,6 +617,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         refresh_token_expire_seconds=settings.refresh_token_expire_days * 24 * 3600,
     )
     app.state.identity_logout = Logout(refresh_store=refresh_store)
+
+    account_repository = SqlAlchemyAccountRepository(app.state.uow_factory)
+    app.state.account_get = GetAccount(repository=account_repository)
+    app.state.account_update = UpdateAccount(repository=account_repository)
 
     # Composicao do OAuth Google (redirect tradicional). So e montado quando a
     # configuracao esta completa; ausente, os endpoints retornam 503 e o

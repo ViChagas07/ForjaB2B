@@ -32,6 +32,7 @@ _WRITE_METHODS = frozenset({"post", "put", "patch", "delete"})
 
 _TAG_DESCRIPTIONS: dict[str, str] = {
     "auth": "Autenticacao, sessao e OAuth Google.",
+    "account": "Perfil da conta autenticada.",
     "companies": "Cadastro, aprovacao e consulta da empresa do tenant.",
     "catalog": "Catalogo publico de categorias, marcas e produtos.",
     "catalog-admin": "Administracao de catalogo (somente papel ADMIN).",

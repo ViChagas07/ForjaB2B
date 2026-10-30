@@ -626,7 +626,8 @@
     "login": "Anmelden",
     "register": "Konto erstellen",
     "menu": "Menü öffnen",
-    "account": "Konto"
+    "account": "Konto",
+    "settings": "Settings"
   },
   "home": {
     "eyebrow": "INTEGRIERTE INDUSTRIEVERTEILUNG",
@@ -934,6 +935,83 @@
       "unavailable": "Der Assistent ist derzeit nicht verfügbar.",
       "timeout": "Die Antwort dauerte zu lange. Versuchen Sie es erneut.",
       "generic": "Antwort derzeit nicht möglich. Versuchen Sie es erneut."
+    }
+  },
+  "account": {
+    "title": "Profilinformationen",
+    "subtitle": "Aktualisieren Sie Ihre persönlichen und Kontaktdaten.",
+    "avatarHint": "Ihr Foto stammt von Ihrem Anmeldeanbieter.",
+    "name": "Name",
+    "email": "E-Mail",
+    "emailHint": "Die E-Mail kann hier nicht geändert werden.",
+    "phone": "Telefon",
+    "birthDate": "Geburtsdatum",
+    "gender": "Geschlecht",
+    "genderNone": "Keine Angabe",
+    "postalCode": "Postleitzahl",
+    "save": "Änderungen speichern",
+    "saving": "Speichern…",
+    "saved": "Profil aktualisiert.",
+    "loadError": "Ihr Konto konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "loginRequiredTitle": "Melden Sie sich an, um Ihr Konto zu öffnen",
+    "loginRequired": "Melden Sie sich an, um Ihr Profil zu bearbeiten.",
+    "goToLogin": "Zur Anmeldung",
+    "errors": {
+      "name": "Geben Sie einen Namen mit mindestens 2 Zeichen ein.",
+      "postalCode": "Geben Sie eine 8-stellige Postleitzahl ein.",
+      "birthDate": "Geben Sie ein gültiges Geburtsdatum ein.",
+      "invalid": "Bitte prüfen Sie die Angaben.",
+      "generic": "Das Profil konnte nicht gespeichert werden."
+    },
+    "genders": {
+      "FEMININO": "Weiblich",
+      "MASCULINO": "Männlich",
+      "NAO_BINARIO": "Nicht binär",
+      "OUTRO": "Andere",
+      "PREFIRO_NAO_INFORMAR": "Keine Angabe"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Adjust the app appearance, language and privacy.",
+    "navLabel": "Settings sections",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "accent": "Accent color",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Default",
+    "fontLarge": "Large",
+    "language": "Language",
+    "privacy": "Privacy",
+    "privacyDescription": "Review our policies and the data we keep to operate your account.",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "dataStoredTitle": "Data we store",
+    "dataOrders": "Orders and purchased items",
+    "dataAddresses": "Shipping and billing addresses",
+    "dataPreferences": "Appearance and language preferences",
+    "lgpdNote": "Privacy requests can be sent through the channel listed in the policy.",
+    "about": "About",
+    "aboutApp": "Forja B2B Plattform",
+    "aboutDescription": "B2B platform for PPE and industrial machines.",
+    "portfolioNote": "Portfolio project; all data is fictional.",
+    "loginRequiredTitle": "Sign in to access settings",
+    "loginRequired": "Sign in to adjust the app.",
+    "goToLogin": "Go to sign in",
+    "accents": {
+      "amber": "Amber",
+      "red": "Red",
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "yellow": "Yellow",
+      "green": "Green",
+      "cyan": "Cyan"
     }
   }
 }

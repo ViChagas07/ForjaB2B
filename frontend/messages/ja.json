@@ -626,7 +626,8 @@
     "login": "ログイン",
     "register": "アカウント作成",
     "menu": "メニューを開く",
-    "account": "アカウント"
+    "account": "アカウント",
+    "settings": "Settings"
   },
   "home": {
     "eyebrow": "統合産業流通",
@@ -934,6 +935,83 @@
       "unavailable": "アシスタントは現在利用できません。",
       "timeout": "応答に時間がかかりすぎました。もう一度お試しください。",
       "generic": "現在応答できません。もう一度お試しください。"
+    }
+  },
+  "account": {
+    "title": "プロフィール情報",
+    "subtitle": "個人情報と連絡先を更新します。",
+    "avatarHint": "写真はログインプロバイダーから取得されます。",
+    "name": "名前",
+    "email": "メールアドレス",
+    "emailHint": "メールアドレスはここでは変更できません。",
+    "phone": "電話番号",
+    "birthDate": "生年月日",
+    "gender": "性別",
+    "genderNone": "回答しない",
+    "postalCode": "郵便番号",
+    "save": "変更を保存",
+    "saving": "保存中…",
+    "saved": "プロフィールを更新しました。",
+    "loadError": "アカウントを読み込めませんでした。",
+    "retry": "再試行",
+    "loginRequiredTitle": "アカウントにアクセスするにはログインしてください",
+    "loginRequired": "プロフィールを編集するにはログインしてください。",
+    "goToLogin": "ログインへ",
+    "errors": {
+      "name": "2文字以上の名前を入力してください。",
+      "postalCode": "8桁の郵便番号を入力してください。",
+      "birthDate": "有効な生年月日を入力してください。",
+      "invalid": "入力内容を確認してください。",
+      "generic": "プロフィールを保存できませんでした。"
+    },
+    "genders": {
+      "FEMININO": "女性",
+      "MASCULINO": "男性",
+      "NAO_BINARIO": "ノンバイナリー",
+      "OUTRO": "その他",
+      "PREFIRO_NAO_INFORMAR": "回答しない"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Adjust the app appearance, language and privacy.",
+    "navLabel": "Settings sections",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "accent": "Accent color",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Default",
+    "fontLarge": "Large",
+    "language": "Language",
+    "privacy": "Privacy",
+    "privacyDescription": "Review our policies and the data we keep to operate your account.",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "dataStoredTitle": "Data we store",
+    "dataOrders": "Orders and purchased items",
+    "dataAddresses": "Shipping and billing addresses",
+    "dataPreferences": "Appearance and language preferences",
+    "lgpdNote": "Privacy requests can be sent through the channel listed in the policy.",
+    "about": "About",
+    "aboutApp": "Forja B2B プラットフォーム",
+    "aboutDescription": "B2B platform for PPE and industrial machines.",
+    "portfolioNote": "Portfolio project; all data is fictional.",
+    "loginRequiredTitle": "Sign in to access settings",
+    "loginRequired": "Sign in to adjust the app.",
+    "goToLogin": "Go to sign in",
+    "accents": {
+      "amber": "Amber",
+      "red": "Red",
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "yellow": "Yellow",
+      "green": "Green",
+      "cyan": "Cyan"
     }
   }
 }

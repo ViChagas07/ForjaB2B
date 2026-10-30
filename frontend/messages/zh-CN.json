@@ -626,7 +626,8 @@
     "login": "登录",
     "register": "创建账户",
     "menu": "打开菜单",
-    "account": "账户"
+    "account": "账户",
+    "settings": "Settings"
   },
   "home": {
     "eyebrow": "一体化工业分销",
@@ -934,6 +935,83 @@
       "unavailable": "助手目前不可用。",
       "timeout": "响应时间过长，请重试。",
       "generic": "暂时无法回答，请重试。"
+    }
+  },
+  "account": {
+    "title": "个人信息",
+    "subtitle": "更新您的个人和联系信息。",
+    "avatarHint": "头像来自您的登录提供商。",
+    "name": "姓名",
+    "email": "电子邮箱",
+    "emailHint": "此处无法更改电子邮箱。",
+    "phone": "电话",
+    "birthDate": "出生日期",
+    "gender": "性别",
+    "genderNone": "不愿透露",
+    "postalCode": "邮政编码",
+    "save": "保存更改",
+    "saving": "保存中…",
+    "saved": "个人信息已更新。",
+    "loadError": "无法加载您的账户。",
+    "retry": "重试",
+    "loginRequiredTitle": "登录以访问您的账户",
+    "loginRequired": "登录以编辑您的个人信息。",
+    "goToLogin": "前往登录",
+    "errors": {
+      "name": "请输入至少 2 个字符的姓名。",
+      "postalCode": "请输入 8 位邮政编码。",
+      "birthDate": "请输入有效的出生日期。",
+      "invalid": "请检查输入的信息。",
+      "generic": "无法保存个人信息。"
+    },
+    "genders": {
+      "FEMININO": "女性",
+      "MASCULINO": "男性",
+      "NAO_BINARIO": "非二元",
+      "OUTRO": "其他",
+      "PREFIRO_NAO_INFORMAR": "不愿透露"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Adjust the app appearance, language and privacy.",
+    "navLabel": "Settings sections",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "accent": "Accent color",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Default",
+    "fontLarge": "Large",
+    "language": "Language",
+    "privacy": "Privacy",
+    "privacyDescription": "Review our policies and the data we keep to operate your account.",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "dataStoredTitle": "Data we store",
+    "dataOrders": "Orders and purchased items",
+    "dataAddresses": "Shipping and billing addresses",
+    "dataPreferences": "Appearance and language preferences",
+    "lgpdNote": "Privacy requests can be sent through the channel listed in the policy.",
+    "about": "About",
+    "aboutApp": "Forja B2B 平台",
+    "aboutDescription": "B2B platform for PPE and industrial machines.",
+    "portfolioNote": "Portfolio project; all data is fictional.",
+    "loginRequiredTitle": "Sign in to access settings",
+    "loginRequired": "Sign in to adjust the app.",
+    "goToLogin": "Go to sign in",
+    "accents": {
+      "amber": "Amber",
+      "red": "Red",
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "yellow": "Yellow",
+      "green": "Green",
+      "cyan": "Cyan"
     }
   }
 }

@@ -6,6 +6,13 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Perfil e configuracoes da conta - 2026-10-30
+
+- **Backend:** `GET/PATCH /api/v1/account` (nome, telefone, nascimento, genero e CEP), migration `0037_user_account_profile` com colunas opcionais em `users` e fallback para `consumer_profiles`; validacao de idade/CEP/telefone e atualizacao do nome na sessao.
+- **Frontend:** dropdown de perfil sem Carrinho, com Conta e Configuracoes; `/account` com formulario e CEP; `/settings` com tema claro/escuro/sistema, cor de destaque, tamanho de fonte, idioma, privacidade e sobre, persistidos em localStorage. Textos `account`/`settings` nos 11 locales (Settings usa fallback em ingles nos locales nao-pt).
+- **Checagens:** frontend `npm run check` OK (245 testes, 4 warnings pre-existentes); backend full **1039 passed, 381 skipped, 3 failed pre-existentes**; Ruff/mypy/import-linter OK; migration head 0037. **NAO VALIDADO:** Docker/Postgres real, migration aplicada, E2E e visual/RTL.
+- **Pendencias:** aplicar 0037 no banco; validar visual/E2E; revisar traducoes de Settings nos 9 locales com fallback.
+
 ## Sistema de cupons — FASE 08: auditoria de segurança — 2026-10-30
 
 - **Vulnerabilidades corrigidas:** (MÉDIA) cupom restrito a outra empresa revelava existência via `NOT_ALLOWED_FOR_COMPANY`; agora a resposta pública é `NOT_FOUND` (motivo interno preservado). (MÉDIA) preview autenticado cobria só usuário, não IP; agora consome baldes por usuário e por IP (30/60 por IP). (MÉDIA) edição admin de `code`/`type` podia correr com o primeiro resgate; update agora pega o mesmo advisory lock e recontagem. (BAIXA/INFO) mass assignment, XSS, unicode/homoglifos e valores enormes já eram bloqueados; testes adversariais adicionados.

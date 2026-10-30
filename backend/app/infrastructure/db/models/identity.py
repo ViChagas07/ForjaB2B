@@ -45,7 +45,14 @@ class User(TimestampMixin, Base):
     """Usuario (conta) vinculado a uma empresa. Email e cpf_hash sao unicos."""
 
     __tablename__ = "users"
-    __table_args__ = (enum_check("status", UserStatus),)
+    __table_args__ = (
+        enum_check("status", UserStatus),
+        enum_check("gender", Gender),
+        CheckConstraint(
+            "postal_code IS NULL OR postal_code ~ '^[0-9]{8}$'",
+            name="postal_code_format",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, server_default=text("gen_random_uuid()")
@@ -56,6 +63,11 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    gender: Mapped[Gender | None] = mapped_column(
+        Enum(Gender, native_enum=False, create_constraint=False, length=24)
+    )
+    postal_code: Mapped[str | None] = mapped_column(String(8))
     # WhatsApp (Fase 3, recuperacao de carrinho): opt-in EXPLICITO do usuario.
     # Nulo/falso = NUNCA enviar. `whatsapp_phone` e o numero E.164 confirmado.
     whatsapp_phone: Mapped[str | None] = mapped_column(String(20))

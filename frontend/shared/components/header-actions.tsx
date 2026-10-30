@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, LayoutDashboard, LogIn, LogOut, Menu, ShoppingCart } from "lucide-react";
+import {
+  ChevronDown,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Menu,
+  Settings,
+  ShoppingCart,
+  User,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Link, useRouter } from "@/i18n/navigation";
@@ -95,9 +104,15 @@ export function HeaderActions() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/cart">
-                <ShoppingCart aria-hidden="true" className="me-2 h-4 w-4" />
-                {t("nav.cart")}
+              <Link href="/account">
+                <User aria-hidden="true" className="me-2 h-4 w-4" />
+                {t("nav.account")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <Settings aria-hidden="true" className="me-2 h-4 w-4" />
+                {t("nav.settings")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -154,6 +169,12 @@ export function HeaderActions() {
             <>
               <DropdownMenuItem asChild>
                 <Link href="/dashboard">{t("nav.dashboard")}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/account">{t("nav.account")}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings">{t("nav.settings")}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/cart">{t("nav.cart")}</Link>

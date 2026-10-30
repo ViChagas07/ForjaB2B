@@ -626,7 +626,8 @@
     "login": "Войти",
     "register": "Создать аккаунт",
     "menu": "Открыть меню",
-    "account": "Аккаунт"
+    "account": "Аккаунт",
+    "settings": "Settings"
   },
   "home": {
     "eyebrow": "ИНТЕГРИРОВАННАЯ ПРОМЫШЛЕННАЯ ДИСТРИБУЦИЯ",
@@ -934,6 +935,83 @@
       "unavailable": "Ассистент сейчас недоступен.",
       "timeout": "Ответ занял слишком много времени. Повторите.",
       "generic": "Сейчас не удалось ответить. Повторите."
+    }
+  },
+  "account": {
+    "title": "Информация профиля",
+    "subtitle": "Обновите личные и контактные данные.",
+    "avatarHint": "Фото берется у вашего провайдера входа.",
+    "name": "Имя",
+    "email": "Эл. почта",
+    "emailHint": "Эл. почту здесь изменить нельзя.",
+    "phone": "Телефон",
+    "birthDate": "Дата рождения",
+    "gender": "Пол",
+    "genderNone": "Предпочитаю не указывать",
+    "postalCode": "Почтовый индекс",
+    "save": "Сохранить изменения",
+    "saving": "Сохранение…",
+    "saved": "Профиль обновлен.",
+    "loadError": "Не удалось загрузить аккаунт.",
+    "retry": "Повторить",
+    "loginRequiredTitle": "Войдите, чтобы открыть аккаунт",
+    "loginRequired": "Войдите, чтобы изменить профиль.",
+    "goToLogin": "Перейти к входу",
+    "errors": {
+      "name": "Введите имя не короче 2 символов.",
+      "postalCode": "Введите 8-значный почтовый индекс.",
+      "birthDate": "Введите корректную дату рождения.",
+      "invalid": "Проверьте введенные данные.",
+      "generic": "Не удалось сохранить профиль."
+    },
+    "genders": {
+      "FEMININO": "Женский",
+      "MASCULINO": "Мужской",
+      "NAO_BINARIO": "Небинарный",
+      "OUTRO": "Другой",
+      "PREFIRO_NAO_INFORMAR": "Предпочитаю не указывать"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Adjust the app appearance, language and privacy.",
+    "navLabel": "Settings sections",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "accent": "Accent color",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Default",
+    "fontLarge": "Large",
+    "language": "Language",
+    "privacy": "Privacy",
+    "privacyDescription": "Review our policies and the data we keep to operate your account.",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "dataStoredTitle": "Data we store",
+    "dataOrders": "Orders and purchased items",
+    "dataAddresses": "Shipping and billing addresses",
+    "dataPreferences": "Appearance and language preferences",
+    "lgpdNote": "Privacy requests can be sent through the channel listed in the policy.",
+    "about": "About",
+    "aboutApp": "Платформа Forja B2B",
+    "aboutDescription": "B2B platform for PPE and industrial machines.",
+    "portfolioNote": "Portfolio project; all data is fictional.",
+    "loginRequiredTitle": "Sign in to access settings",
+    "loginRequired": "Sign in to adjust the app.",
+    "goToLogin": "Go to sign in",
+    "accents": {
+      "amber": "Amber",
+      "red": "Red",
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "yellow": "Yellow",
+      "green": "Green",
+      "cyan": "Cyan"
     }
   }
 }

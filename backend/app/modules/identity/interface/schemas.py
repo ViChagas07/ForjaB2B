@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.domain.consumer import Gender
 
 
 class LoginRequest(BaseModel):
@@ -83,3 +86,31 @@ class OAuthExchangeResponse(BaseModel):
     user: UserProfile | None = None
     email: str | None = None
     full_name: str | None = None
+
+
+class AccountProfileResponse(BaseModel):
+    """Perfil da conta autenticada (e-mail somente leitura)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: uuid.UUID
+    email: str
+    full_name: str
+    phone: str | None
+    birth_date: date | None
+    gender: Gender | None
+    postal_code: str | None
+    account_type: str
+    role: str
+
+
+class UpdateAccountRequest(BaseModel):
+    """Dados editaveis do perfil; e-mail/CPF/CNPJ nao entram aqui."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    full_name: str = Field(min_length=2, max_length=200)
+    phone: str | None = Field(default=None, max_length=20)
+    birth_date: date | None = None
+    gender: Gender | None = None
+    postal_code: str | None = Field(default=None, max_length=9)

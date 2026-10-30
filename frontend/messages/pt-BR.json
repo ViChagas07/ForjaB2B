@@ -626,7 +626,8 @@
     "login": "Entrar",
     "register": "Criar conta",
     "menu": "Abrir menu",
-    "account": "Conta"
+    "account": "Conta",
+    "settings": "Configurações"
   },
   "home": {
     "eyebrow": "DISTRIBUIÇÃO INDUSTRIAL INTEGRADA",
@@ -934,6 +935,83 @@
       "unavailable": "O assistente está indisponível no momento.",
       "timeout": "A resposta demorou demais. Tente de novo.",
       "generic": "Não foi possível responder agora. Tente de novo."
+    }
+  },
+  "account": {
+    "title": "Informações de perfil",
+    "subtitle": "Atualize seus dados pessoais e de contato.",
+    "avatarHint": "Sua foto vem do provedor de login.",
+    "name": "Nome",
+    "email": "E-mail",
+    "emailHint": "O e-mail não pode ser alterado por aqui.",
+    "phone": "Telefone",
+    "birthDate": "Data de nascimento",
+    "gender": "Gênero",
+    "genderNone": "Não informar",
+    "postalCode": "CEP",
+    "save": "Salvar alterações",
+    "saving": "Salvando…",
+    "saved": "Perfil atualizado.",
+    "loadError": "Não foi possível carregar sua conta.",
+    "retry": "Tentar novamente",
+    "loginRequiredTitle": "Entre para acessar sua conta",
+    "loginRequired": "Faça login para editar seu perfil.",
+    "goToLogin": "Ir para o login",
+    "errors": {
+      "name": "Informe um nome com pelo menos 2 caracteres.",
+      "postalCode": "Informe um CEP com 8 dígitos.",
+      "birthDate": "Informe uma data de nascimento válida.",
+      "invalid": "Revise os dados informados.",
+      "generic": "Não foi possível salvar o perfil."
+    },
+    "genders": {
+      "FEMININO": "Feminino",
+      "MASCULINO": "Masculino",
+      "NAO_BINARIO": "Não binário",
+      "OUTRO": "Outro",
+      "PREFIRO_NAO_INFORMAR": "Prefiro não informar"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Ajuste a aparência, o idioma e a privacidade do app.",
+    "navLabel": "Seções de configurações",
+    "appearance": "Aparência",
+    "theme": "Tema",
+    "themeDark": "Escuro",
+    "themeLight": "Claro",
+    "themeSystem": "Sistema",
+    "accent": "Cor de destaque",
+    "fontSize": "Tamanho da fonte",
+    "fontSmall": "Pequeno",
+    "fontNormal": "Padrão",
+    "fontLarge": "Grande",
+    "language": "Idioma",
+    "privacy": "Privacidade",
+    "privacyDescription": "Consulte as políticas e saiba quais dados mantemos para operar sua conta.",
+    "privacyPolicy": "Política de Privacidade",
+    "terms": "Termos de Uso",
+    "dataStoredTitle": "Dados que armazenamos",
+    "dataOrders": "Pedidos e itens comprados",
+    "dataAddresses": "Endereços de entrega e cobrança",
+    "dataPreferences": "Preferências de aparência e idioma",
+    "lgpdNote": "Solicitações LGPD podem ser feitas pelo canal indicado na política.",
+    "about": "Sobre",
+    "aboutApp": "Forja B2B",
+    "aboutDescription": "Plataforma B2B de EPIs e máquinas industriais.",
+    "portfolioNote": "Projeto de portfólio; todos os dados são fictícios.",
+    "loginRequiredTitle": "Entre para acessar as configurações",
+    "loginRequired": "Faça login para ajustar o app.",
+    "goToLogin": "Ir para o login",
+    "accents": {
+      "amber": "Âmbar",
+      "red": "Vermelho",
+      "violet": "Violeta",
+      "blue": "Azul",
+      "pink": "Rosa",
+      "yellow": "Amarelo",
+      "green": "Verde",
+      "cyan": "Ciano"
     }
   }
 }

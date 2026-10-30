@@ -626,7 +626,8 @@
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
     "menu": "فتح القائمة",
-    "account": "الحساب"
+    "account": "الحساب",
+    "settings": "Settings"
   },
   "home": {
     "eyebrow": "توزيع صناعي متكامل",
@@ -934,6 +935,83 @@
       "unavailable": "المساعد غير متاح الآن.",
       "timeout": "استغرق الرد وقتًا طويلاً. حاول مجددًا.",
       "generic": "تعذر الرد الآن. حاول مجددًا."
+    }
+  },
+  "account": {
+    "title": "معلومات الملف الشخصي",
+    "subtitle": "حدّث بياناتك الشخصية ومعلومات الاتصال.",
+    "avatarHint": "صورتك تأتي من مزود تسجيل الدخول.",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "emailHint": "لا يمكن تغيير البريد الإلكتروني هنا.",
+    "phone": "الهاتف",
+    "birthDate": "تاريخ الميلاد",
+    "gender": "الجنس",
+    "genderNone": "أفضل عدم الإفصاح",
+    "postalCode": "الرمز البريدي",
+    "save": "حفظ التغييرات",
+    "saving": "جارٍ الحفظ…",
+    "saved": "تم تحديث الملف الشخصي.",
+    "loadError": "تعذر تحميل حسابك.",
+    "retry": "حاول مرة أخرى",
+    "loginRequiredTitle": "سجّل الدخول للوصول إلى حسابك",
+    "loginRequired": "سجّل الدخول لتعديل ملفك الشخصي.",
+    "goToLogin": "الانتقال إلى تسجيل الدخول",
+    "errors": {
+      "name": "أدخل اسمًا من حرفين على الأقل.",
+      "postalCode": "أدخل رمزًا بريديًا من 8 أرقام.",
+      "birthDate": "أدخل تاريخ ميلاد صالحًا.",
+      "invalid": "راجع البيانات المدخلة.",
+      "generic": "تعذر حفظ الملف الشخصي."
+    },
+    "genders": {
+      "FEMININO": "أنثى",
+      "MASCULINO": "ذكر",
+      "NAO_BINARIO": "غير ثنائي",
+      "OUTRO": "آخر",
+      "PREFIRO_NAO_INFORMAR": "أفضل عدم الإفصاح"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Adjust the app appearance, language and privacy.",
+    "navLabel": "Settings sections",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "accent": "Accent color",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Default",
+    "fontLarge": "Large",
+    "language": "Language",
+    "privacy": "Privacy",
+    "privacyDescription": "Review our policies and the data we keep to operate your account.",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "dataStoredTitle": "Data we store",
+    "dataOrders": "Orders and purchased items",
+    "dataAddresses": "Shipping and billing addresses",
+    "dataPreferences": "Appearance and language preferences",
+    "lgpdNote": "Privacy requests can be sent through the channel listed in the policy.",
+    "about": "About",
+    "aboutApp": "منصة Forja B2B",
+    "aboutDescription": "B2B platform for PPE and industrial machines.",
+    "portfolioNote": "Portfolio project; all data is fictional.",
+    "loginRequiredTitle": "Sign in to access settings",
+    "loginRequired": "Sign in to adjust the app.",
+    "goToLogin": "Go to sign in",
+    "accents": {
+      "amber": "Amber",
+      "red": "Red",
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "yellow": "Yellow",
+      "green": "Green",
+      "cyan": "Cyan"
     }
   }
 }

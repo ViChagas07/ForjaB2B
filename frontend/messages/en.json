@@ -626,7 +626,8 @@
     "login": "Sign in",
     "register": "Create account",
     "menu": "Open menu",
-    "account": "Account"
+    "account": "Account",
+    "settings": "Settings"
   },
   "home": {
     "eyebrow": "INTEGRATED INDUSTRIAL DISTRIBUTION",
@@ -934,6 +935,83 @@
       "unavailable": "The assistant is unavailable right now.",
       "timeout": "The answer took too long. Try again.",
       "generic": "Could not answer right now. Try again."
+    }
+  },
+  "account": {
+    "title": "Profile information",
+    "subtitle": "Update your personal and contact details.",
+    "avatarHint": "Your photo comes from your sign-in provider.",
+    "name": "Name",
+    "email": "Email",
+    "emailHint": "Email cannot be changed here.",
+    "phone": "Phone",
+    "birthDate": "Date of birth",
+    "gender": "Gender",
+    "genderNone": "Prefer not to say",
+    "postalCode": "Postal code",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Profile updated.",
+    "loadError": "Could not load your account.",
+    "retry": "Try again",
+    "loginRequiredTitle": "Sign in to access your account",
+    "loginRequired": "Sign in to edit your profile.",
+    "goToLogin": "Go to sign in",
+    "errors": {
+      "name": "Enter a name with at least 2 characters.",
+      "postalCode": "Enter an 8-digit postal code.",
+      "birthDate": "Enter a valid date of birth.",
+      "invalid": "Please review the information.",
+      "generic": "Could not save the profile."
+    },
+    "genders": {
+      "FEMININO": "Female",
+      "MASCULINO": "Male",
+      "NAO_BINARIO": "Non-binary",
+      "OUTRO": "Other",
+      "PREFIRO_NAO_INFORMAR": "Prefer not to say"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Adjust the app appearance, language and privacy.",
+    "navLabel": "Settings sections",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
+    "accent": "Accent color",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontNormal": "Default",
+    "fontLarge": "Large",
+    "language": "Language",
+    "privacy": "Privacy",
+    "privacyDescription": "Review our policies and the data we keep to operate your account.",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "dataStoredTitle": "Data we store",
+    "dataOrders": "Orders and purchased items",
+    "dataAddresses": "Shipping and billing addresses",
+    "dataPreferences": "Appearance and language preferences",
+    "lgpdNote": "Privacy requests can be sent through the channel listed in the policy.",
+    "about": "About",
+    "aboutApp": "Forja B2B Platform",
+    "aboutDescription": "B2B platform for PPE and industrial machines.",
+    "portfolioNote": "Portfolio project; all data is fictional.",
+    "loginRequiredTitle": "Sign in to access settings",
+    "loginRequired": "Sign in to adjust the app.",
+    "goToLogin": "Go to sign in",
+    "accents": {
+      "amber": "Amber",
+      "red": "Red",
+      "violet": "Violet",
+      "blue": "Blue",
+      "pink": "Pink",
+      "yellow": "Yellow",
+      "green": "Green",
+      "cyan": "Cyan"
     }
   }
 }

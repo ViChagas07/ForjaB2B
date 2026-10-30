@@ -106,6 +106,18 @@
     scroll-behavior: smooth;
   }
 
+  html[data-font-size="small"] {
+    font-size: 15px;
+  }
+
+  html[data-font-size="normal"] {
+    font-size: 16px;
+  }
+
+  html[data-font-size="large"] {
+    font-size: 18px;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings:

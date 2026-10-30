@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from datetime import date
 from typing import Protocol
 
+from app.domain.consumer import Gender
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
 
 
@@ -43,6 +45,40 @@ class RefreshTokenPayload:
     company_id: uuid.UUID
     role: str
     account_type: str = "COMPANY"
+
+
+@dataclass(frozen=True, kw_only=True)
+class AccountRecord:
+    """Perfil persistido do usuario (users + fallback consumer_profiles)."""
+
+    id: uuid.UUID
+    email: str
+    full_name: str
+    phone: str | None
+    birth_date: date | None
+    gender: Gender | None
+    postal_code: str | None
+    account_type: str
+
+
+class AccountRepository(Protocol):
+    """Leitura/atualizacao do perfil da propria conta no tenant."""
+
+    async def get(self, company_id: uuid.UUID, user_id: uuid.UUID) -> AccountRecord | None:
+        """Perfil do usuario ou None quando nao pertence ao tenant."""
+
+    async def update(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        full_name: str,
+        phone: str | None,
+        birth_date: date | None,
+        gender: Gender | None,
+        postal_code: str | None,
+    ) -> AccountRecord | None:
+        """Atualiza nome/telefone/perfil pessoal; None se o usuario sumiu."""
 
 
 class PasswordHasher(Protocol):
