@@ -39,7 +39,10 @@
     "or": "or",
     "loginSubtitlePerson": "Sign in to your customer account.",
     "loginSubtitleCompany": "Sign in to your company account.",
-    "companyPasswordOnly": "Company accounts can only sign in with email and password."
+    "companyPasswordOnly": "Company accounts can only sign in with email and password.",
+    "logoutConfirmTitle": "Are you sure you want to sign out?",
+    "logoutConfirmCancel": "Cancel",
+    "logoutConfirmYes": "Yes"
   },
   "onboarding": {
     "title": "Register your company",

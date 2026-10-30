@@ -39,7 +39,10 @@
     "or": "または",
     "loginSubtitlePerson": "お客様アカウントにサインインします。",
     "loginSubtitleCompany": "企業アカウントにサインインします。",
-    "companyPasswordOnly": "企業アカウントはメールアドレスとパスワードでのみサインインできます。"
+    "companyPasswordOnly": "企業アカウントはメールアドレスとパスワードでのみサインインできます。",
+    "logoutConfirmTitle": "本当にログアウトしますか？",
+    "logoutConfirmCancel": "キャンセル",
+    "logoutConfirmYes": "はい"
   },
   "onboarding": {
     "title": "会社を登録",

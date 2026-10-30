@@ -39,7 +39,10 @@
     "or": "oder",
     "loginSubtitlePerson": "Melden Sie sich in Ihrem Kundenkonto an.",
     "loginSubtitleCompany": "Melden Sie sich im Konto Ihres Unternehmens an.",
-    "companyPasswordOnly": "Unternehmenskonten melden sich nur mit E-Mail und Passwort an."
+    "companyPasswordOnly": "Unternehmenskonten melden sich nur mit E-Mail und Passwort an.",
+    "logoutConfirmTitle": "Möchten Sie sich wirklich abmelden?",
+    "logoutConfirmCancel": "Abbrechen",
+    "logoutConfirmYes": "Ja"
   },
   "onboarding": {
     "title": "Unternehmen registrieren",

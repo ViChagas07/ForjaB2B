@@ -39,7 +39,10 @@
     "or": "ou",
     "loginSubtitlePerson": "Accédez à votre compte client.",
     "loginSubtitleCompany": "Accédez au compte de votre entreprise.",
-    "companyPasswordOnly": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe."
+    "companyPasswordOnly": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe.",
+    "logoutConfirmTitle": "Voulez-vous vraiment vous déconnecter ?",
+    "logoutConfirmCancel": "Annuler",
+    "logoutConfirmYes": "Oui"
   },
   "onboarding": {
     "title": "Enregistrer votre entreprise",

@@ -39,7 +39,10 @@
     "or": "أو",
     "loginSubtitlePerson": "سجّل الدخول إلى حساب العميل.",
     "loginSubtitleCompany": "سجّل الدخول إلى حساب شركتك.",
-    "companyPasswordOnly": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط."
+    "companyPasswordOnly": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط.",
+    "logoutConfirmTitle": "هل تريد تسجيل الخروج فعلاً؟",
+    "logoutConfirmCancel": "إلغاء",
+    "logoutConfirmYes": "نعم"
   },
   "onboarding": {
     "title": "سجّل شركتك",

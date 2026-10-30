@@ -39,7 +39,10 @@
     "or": "oppure",
     "loginSubtitlePerson": "Accedi al tuo account cliente.",
     "loginSubtitleCompany": "Accedi all'account della tua azienda.",
-    "companyPasswordOnly": "Gli account aziendali accedono solo con e-mail e password."
+    "companyPasswordOnly": "Gli account aziendali accedono solo con e-mail e password.",
+    "logoutConfirmTitle": "Vuoi davvero uscire?",
+    "logoutConfirmCancel": "Annulla",
+    "logoutConfirmYes": "Sì"
   },
   "onboarding": {
     "title": "Registra la tua azienda",

@@ -39,7 +39,10 @@
     "or": "или",
     "loginSubtitlePerson": "Войдите в свой клиентский аккаунт.",
     "loginSubtitleCompany": "Войдите в аккаунт вашей компании.",
-    "companyPasswordOnly": "Аккаунты компаний входят только по e-mail и паролю."
+    "companyPasswordOnly": "Аккаунты компаний входят только по e-mail и паролю.",
+    "logoutConfirmTitle": "Вы действительно хотите выйти?",
+    "logoutConfirmCancel": "Отмена",
+    "logoutConfirmYes": "Да"
   },
   "onboarding": {
     "title": "Зарегистрируйте компанию",

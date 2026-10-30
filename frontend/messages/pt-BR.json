@@ -39,7 +39,10 @@
     "or": "ou",
     "loginSubtitlePerson": "Acesse sua conta de cliente.",
     "loginSubtitleCompany": "Acesse a conta da sua empresa.",
-    "companyPasswordOnly": "Contas empresariais entram somente com e-mail e senha."
+    "companyPasswordOnly": "Contas empresariais entram somente com e-mail e senha.",
+    "logoutConfirmTitle": "Deseja mesmo sair da conta?",
+    "logoutConfirmCancel": "Cancelar",
+    "logoutConfirmYes": "Sim"
   },
   "onboarding": {
     "title": "Cadastre sua empresa",

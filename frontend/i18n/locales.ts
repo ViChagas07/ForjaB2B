@@ -1,8 +1,8 @@
 /**
- * Configuração central de locales do Forja B2B.
+ * Configuracao central de locales do Forja B2B.
  *
- * `pt-BR` é o locale padrão. `ar` é RTL. O nome dos arquivos em `messages/`
- * deve corresponder exatamente a estes códigos (ex.: messages/pt-BR.json).
+ * `pt-BR` e o locale padrao. `ar` e RTL. O nome dos arquivos em `messages/`
+ * deve corresponder exatamente a estes codigos (ex.: messages/pt-BR.json).
  */
 
 export const locales = [
@@ -39,6 +39,20 @@ export const localeLabels: Record<Locale, string> = {
   ar: "العربية",
 };
 
+export const localeFlags: Record<Locale, string> = {
+  "pt-BR": "🇧🇷",
+  en: "🇬🇧",
+  "zh-CN": "🇨🇳",
+  ja: "🇯🇵",
+  ko: "🇰🇷",
+  ru: "🇷🇺",
+  es: "🇪🇸",
+  de: "🇩🇪",
+  fr: "🇫🇷",
+  it: "🇮🇹",
+  ar: "🇸🇦",
+};
+
 export function isLocale(value: string): value is Locale {
   return (locales as readonly string[]).includes(value);
 }
@@ -47,7 +61,7 @@ export function isRtlLocale(locale: string): boolean {
   return (rtlLocales as readonly string[]).includes(locale);
 }
 
-/** Direção de escrita derivada da lista única `rtlLocales`. */
+/** Direcao de escrita derivada da lista unica `rtlLocales`. */
 export function directionForLocale(locale: string): "rtl" | "ltr" {
   return isRtlLocale(locale) ? "rtl" : "ltr";
 }

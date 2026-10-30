@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   ChevronDown,
+  Files,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -18,6 +19,7 @@ import { AiChatWidget } from "@/features/ai-chat/ai-chat-widget";
 import { logout } from "@/shared/stores/auth-actions";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Button } from "@/shared/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,7 @@ export function HeaderActions() {
   const status = useAuthStore((s) => s.status);
   const session = useAuthStore((s) => s.session);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
 
   const isAuthenticated = status === "authenticated" && Boolean(session);
 
@@ -51,6 +54,7 @@ export function HeaderActions() {
       router.refresh();
     } finally {
       setIsLoggingOut(false);
+      setLogoutDialogOpen(false);
     }
   }
 
@@ -117,14 +121,14 @@ export function HeaderActions() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              disabled={isLoggingOut}
+              className="justify-between text-destructive focus:text-destructive"
               onSelect={(event) => {
                 event.preventDefault();
-                void handleLogout();
+                setLogoutDialogOpen(true);
               }}
             >
-              <LogOut aria-hidden="true" className="me-2 h-4 w-4" />
-              {isLoggingOut ? t("auth.logoutLoading") : t("auth.logout")}
+              <span>{t("auth.logout")}</span>
+              <LogOut aria-hidden="true" className="h-4 w-4" />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -156,38 +160,42 @@ export function HeaderActions() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 p-2">
           <DropdownMenuItem asChild>
-            <Link href="/catalog">{t("catalog.title")}</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/#solucoes">{t("nav.solutions")}</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/#a-forja">{t("nav.about")}</Link>
+            <Link href="/catalog" className="flex w-full items-center justify-between gap-3">
+              <span>{t("catalog.title")}</span>
+              <Files aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {isAuthenticated ? (
             <>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard">{t("nav.dashboard")}</Link>
+                <Link href="/dashboard" className="flex w-full items-center justify-between gap-3">
+                  <span>{t("nav.dashboard")}</span>
+                  <LayoutDashboard aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/account">{t("nav.account")}</Link>
+                <Link href="/account" className="flex w-full items-center justify-between gap-3">
+                  <span>{t("nav.account")}</span>
+                  <User aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings">{t("nav.settings")}</Link>
+                <Link href="/settings" className="flex w-full items-center justify-between gap-3">
+                  <span>{t("nav.settings")}</span>
+                  <Settings aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/cart">{t("nav.cart")}</Link>
-              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                disabled={isLoggingOut}
+                className="justify-between text-destructive focus:text-destructive"
                 onSelect={(event) => {
                   event.preventDefault();
-                  void handleLogout();
+                  setLogoutDialogOpen(true);
                 }}
               >
-                <LogOut aria-hidden="true" className="me-2 h-4 w-4" />
-                {isLoggingOut ? t("auth.logoutLoading") : t("auth.logout")}
+                <span>{t("auth.logout")}</span>
+                <LogOut aria-hidden="true" className="h-4 w-4" />
               </DropdownMenuItem>
             </>
           ) : (
@@ -214,6 +222,32 @@ export function HeaderActions() {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("auth.logoutConfirmTitle")}</DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLogoutDialogOpen(false)}
+              disabled={isLoggingOut}
+            >
+              {t("auth.logoutConfirmCancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void handleLogout()}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? t("auth.logoutLoading") : t("auth.logoutConfirmYes")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

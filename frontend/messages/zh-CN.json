@@ -39,7 +39,10 @@
     "or": "或",
     "loginSubtitlePerson": "登录您的客户账户。",
     "loginSubtitleCompany": "登录您的企业账户。",
-    "companyPasswordOnly": "企业账户只能使用邮箱和密码登录。"
+    "companyPasswordOnly": "企业账户只能使用邮箱和密码登录。",
+    "logoutConfirmTitle": "确定要退出登录吗？",
+    "logoutConfirmCancel": "取消",
+    "logoutConfirmYes": "是"
   },
   "onboarding": {
     "title": "注册您的公司",

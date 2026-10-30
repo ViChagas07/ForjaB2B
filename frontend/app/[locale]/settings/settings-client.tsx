@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
-import { isRtlLocale, localeLabels, locales, type Locale } from "@/i18n/locales";
+import { isRtlLocale, localeFlags, localeLabels, locales, type Locale } from "@/i18n/locales";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import {
@@ -217,7 +217,9 @@ export function SettingsClient() {
                     )}
                   >
                     <span className="flex items-center gap-3">
-                      <Globe2 aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+                      <span aria-hidden="true" className="text-base leading-none">
+                        {localeFlags[code]}
+                      </span>
                       {localeLabels[code]}
                     </span>
                     {selected ? (
@@ -249,9 +251,9 @@ export function SettingsClient() {
                   {t("dataStoredTitle")}
                 </p>
                 <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                  <li>• {t("dataOrders")}</li>
-                  <li>• {t("dataAddresses")}</li>
-                  <li>• {t("dataPreferences")}</li>
+                  <li>â€¢ {t("dataOrders")}</li>
+                  <li>â€¢ {t("dataAddresses")}</li>
+                  <li>â€¢ {t("dataPreferences")}</li>
                 </ul>
               </div>
               <p className="text-xs text-muted-foreground">{t("lgpdNote")}</p>

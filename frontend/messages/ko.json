@@ -39,7 +39,10 @@
     "or": "또는",
     "loginSubtitlePerson": "고객 계정에 로그인하세요.",
     "loginSubtitleCompany": "기업 계정에 로그인하세요.",
-    "companyPasswordOnly": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다."
+    "companyPasswordOnly": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다.",
+    "logoutConfirmTitle": "정말 로그아웃하시겠습니까?",
+    "logoutConfirmCancel": "취소",
+    "logoutConfirmYes": "예"
   },
   "onboarding": {
     "title": "회사 등록",
