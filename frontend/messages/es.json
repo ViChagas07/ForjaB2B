@@ -305,7 +305,37 @@
     "backToOrders": "Ver mis pedidos",
     "backToCart": "Volver al carrito",
     "statusPaid": "Pagado",
-    "summaryTitle": "Resumen del pedido"
+    "summaryTitle": "Resumen del pedido",
+    "coupon": {
+      "insertCode": "Ingresar código de cupón",
+      "label": "Cupón de descuento",
+      "placeholder": "Ingresa el código",
+      "apply": "Aplicar cupón",
+      "applying": "Aplicando cupón…",
+      "remove": "Quitar",
+      "removeAria": "Quitar cupón {code}",
+      "appliedShort": "Cupón aplicado",
+      "applied": "Cupón {code} aplicado.",
+      "revalidating": "Revalidando cupón…",
+      "freeShipping": "Gratis",
+      "recoveryDiscount": "Oferta de recuperación",
+      "pixDiscount": "Descuento PIX",
+      "shippingDiscount": "{amount} de descuento",
+      "summaryLine": "Cupón ({code})",
+      "errors": {
+        "codeRequired": "Ingresa un código.",
+        "generic": "No se pudo validar el cupón. Inténtalo de nuevo.",
+        "NOT_FOUND": "Cupón no encontrado.",
+        "INACTIVE": "Este cupón está inactivo.",
+        "NOT_STARTED": "Este cupón aún no es válido.",
+        "EXPIRED": "Este cupón ha expirado.",
+        "EXHAUSTED": "Este cupón agotó su límite de usos.",
+        "COMPANY_LIMIT_REACHED": "Tu empresa ya alcanzó el límite de usos de este cupón.",
+        "MIN_ORDER_NOT_MET": "No se alcanzó el pedido mínimo.",
+        "minOrderMissing": "No se alcanzó el pedido mínimo. Faltan {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "Este cupón no es válido para tu empresa."
+      }
+    }
   },
   "credit": {
     "title": "Crédito",

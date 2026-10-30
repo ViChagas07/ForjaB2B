@@ -305,7 +305,37 @@
     "backToOrders": "View orders",
     "backToCart": "Back to cart",
     "statusPaid": "Paid",
-    "summaryTitle": "Order summary"
+    "summaryTitle": "Order summary",
+    "coupon": {
+      "insertCode": "Add coupon code",
+      "label": "Discount coupon",
+      "placeholder": "Enter code",
+      "apply": "Apply",
+      "applying": "Applying…",
+      "remove": "Remove",
+      "removeAria": "Remove coupon {code}",
+      "appliedShort": "Coupon applied",
+      "applied": "Coupon {code} applied.",
+      "revalidating": "Revalidating coupon…",
+      "freeShipping": "Free",
+      "recoveryDiscount": "Recovery offer",
+      "pixDiscount": "PIX discount",
+      "shippingDiscount": "{amount} off",
+      "summaryLine": "Coupon ({code})",
+      "errors": {
+        "codeRequired": "Enter a code.",
+        "generic": "Could not validate the coupon. Try again.",
+        "NOT_FOUND": "Coupon not found.",
+        "INACTIVE": "This coupon is inactive.",
+        "NOT_STARTED": "This coupon is not valid yet.",
+        "EXPIRED": "This coupon has expired.",
+        "EXHAUSTED": "This coupon has reached its usage limit.",
+        "COMPANY_LIMIT_REACHED": "Your company has reached the usage limit for this coupon.",
+        "MIN_ORDER_NOT_MET": "Minimum order not met.",
+        "minOrderMissing": "Minimum order not met. {amount} short.",
+        "NOT_ALLOWED_FOR_COMPANY": "This coupon is not valid for your company."
+      }
+    }
   },
   "credit": {
     "title": "Credit",

@@ -305,7 +305,37 @@
     "backToOrders": "Voir les commandes",
     "backToCart": "Retour au panier",
     "statusPaid": "Payé",
-    "summaryTitle": "Récapitulatif de la commande"
+    "summaryTitle": "Récapitulatif de la commande",
+    "coupon": {
+      "insertCode": "Insérer un code promo",
+      "label": "Code promo",
+      "placeholder": "Saisissez le code",
+      "apply": "Appliquer",
+      "applying": "Application…",
+      "remove": "Retirer",
+      "removeAria": "Retirer le code promo {code}",
+      "appliedShort": "Code promo appliqué",
+      "applied": "Code promo {code} appliqué.",
+      "revalidating": "Nouvelle vérification du code promo…",
+      "freeShipping": "Gratuit",
+      "recoveryDiscount": "Offre de récupération",
+      "pixDiscount": "Remise PIX",
+      "shippingDiscount": "{amount} de remise",
+      "summaryLine": "Code promo ({code})",
+      "errors": {
+        "codeRequired": "Saisissez un code.",
+        "generic": "Impossible de vérifier le code promo. Réessayez.",
+        "NOT_FOUND": "Code promo introuvable.",
+        "INACTIVE": "Ce code promo est inactif.",
+        "NOT_STARTED": "Ce code promo n'est pas encore valide.",
+        "EXPIRED": "Ce code promo a expiré.",
+        "EXHAUSTED": "Ce code promo a atteint sa limite d'utilisation.",
+        "COMPANY_LIMIT_REACHED": "Votre entreprise a atteint la limite d'utilisation de ce code promo.",
+        "MIN_ORDER_NOT_MET": "Le montant minimum de commande n'est pas atteint.",
+        "minOrderMissing": "Le montant minimum n'est pas atteint. Il manque {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "Ce code promo n'est pas valable pour votre entreprise."
+      }
+    }
   },
   "credit": {
     "title": "Crédit",

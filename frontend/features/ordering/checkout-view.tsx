@@ -10,6 +10,7 @@ import { newIdempotencyKey } from "@/core/domain/idempotency";
 import type { PaymentMethod } from "@/core/domain/ordering";
 import { PAYMENT_METHODS } from "@/core/domain/ordering";
 import { Link } from "@/i18n/navigation";
+import { problemCode } from "@/infrastructure/http";
 import { ProductImage } from "@/shared/components/product-image";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { DEFAULT_CURRENCY, formatMoney } from "@/shared/lib/money";
@@ -18,6 +19,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader } from "@/shared/ui/card";
 
+import { CheckoutCouponSection } from "./checkout-coupon-section";
+import { useCheckoutCoupon } from "./use-checkout-coupon";
+
 interface CheckoutViewProps {
   cart: Cart;
   cartError: unknown;
@@ -25,7 +29,12 @@ interface CheckoutViewProps {
   stripeEnabled: boolean;
   isPlacingOrder: boolean;
   orderError: unknown;
-  onPlaceOrder: (paymentMethod: PaymentMethod, notes: string, idempotencyKey: string) => void;
+  onPlaceOrder: (
+    paymentMethod: PaymentMethod,
+    notes: string,
+    idempotencyKey: string,
+    couponCode: string | null,
+  ) => void;
 }
 
 /**
@@ -54,6 +63,19 @@ export function CheckoutView({
   // mesmo formulario reutilizam a chave; o backend responde o pedido original.
   const [idempotencyKey] = React.useState(newIdempotencyKey);
 
+  const items = cart.items ?? [];
+  const cartSignature = React.useMemo(
+    () =>
+      `${cart.subtotal}|${items.map((item) => `${item.product_id}:${item.quantity}`).join("|")}`,
+    [cart.subtotal, items],
+  );
+  const coupon = useCheckoutCoupon({
+    paymentMethod,
+    cartSignature,
+    hasItems: status === "authenticated" && items.length > 0,
+    orderError,
+  });
+
   if (status !== "authenticated") {
     return (
       <Card className="mx-auto w-full max-w-md rounded-2xl">
@@ -81,7 +103,6 @@ export function CheckoutView({
     );
   }
 
-  const items = cart.items ?? [];
   if (items.length === 0) {
     return (
       <Alert variant="info">
@@ -90,10 +111,23 @@ export function CheckoutView({
     );
   }
 
+  const preview = coupon.preview;
   const isBoleto = paymentMethod === "BOLETO";
-  const subtotal = Number(cart.subtotal);
+  const currency = preview?.currency ?? DEFAULT_CURRENCY;
+  const subtotal = preview?.subtotal ?? cart.subtotal;
+  const shippingTotal = preview?.shipping_total ?? null;
+  const shippingDiscount = preview?.shipping_discount ?? "0.00";
+  const couponDiscount = preview?.coupon_discount ?? "0.00";
+  const recoveryDiscount = preview?.recovery_discount ?? "0.00";
+  const pixDiscount = preview?.pix_discount ?? "0.00";
+  const total = preview?.total ?? cart.subtotal;
+  const hasShippingDiscount = Number(shippingDiscount) > 0;
+  const isFreeShipping = shippingTotal !== null && Number(shippingTotal) === 0;
+  const hasRecovery = Number(recoveryDiscount) > 0;
+  const hasPixDiscount = Number(pixDiscount) > 0;
   const available = credit ? Number(credit.available) : null;
-  const creditInsufficient = isBoleto && available != null && available < subtotal;
+  const creditInsufficient = isBoleto && available != null && available < Number(total);
+  const couponOrderError = problemCode(orderError)?.startsWith("coupon_") ?? false;
 
   const availableMethods = PAYMENT_METHODS.filter((method) => {
     if (method === "CARD") {
@@ -121,7 +155,12 @@ export function CheckoutView({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onPlaceOrder(paymentMethod, notes.trim() ? notes.trim() : "", idempotencyKey);
+    onPlaceOrder(
+      paymentMethod,
+      notes.trim() ? notes.trim() : "",
+      idempotencyKey,
+      coupon.appliedCode,
+    );
   }
 
   return (
@@ -235,30 +274,93 @@ export function CheckoutView({
               <CardContent className="space-y-4 p-5">
                 <h2 className="text-base font-bold">{t("ordering.summaryTitle")}</h2>
 
+                <CheckoutCouponSection
+                  expanded={coupon.expanded}
+                  input={coupon.input}
+                  appliedCode={coupon.appliedCode}
+                  error={coupon.error}
+                  isLoading={coupon.isLoading}
+                  isRevalidating={coupon.isRevalidating}
+                  onToggle={coupon.toggle}
+                  onInputChange={coupon.setInput}
+                  onApply={coupon.apply}
+                  onRemove={coupon.remove}
+                />
+
                 <dl className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
                     <dt className="text-muted-foreground">{t("ordering.subtotal")}</dt>
-                    <dd className="font-semibold">
-                      {formatMoney(cart.subtotal, DEFAULT_CURRENCY, locale)}
+                    <dd className="font-semibold" data-testid="checkout-subtotal">
+                      {formatMoney(subtotal, currency, locale)}
                     </dd>
                   </div>
+                  {hasRecovery ? (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">
+                        {t("ordering.coupon.recoveryDiscount")}
+                      </dt>
+                      <dd className="font-semibold text-success">
+                        {formatMoney(`-${recoveryDiscount}`, currency, locale)}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {coupon.appliedCode && Number(couponDiscount) > 0 ? (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">
+                        {t("ordering.coupon.summaryLine", {
+                          code: coupon.appliedCode,
+                        })}
+                      </dt>
+                      <dd className="font-semibold text-success" data-testid="checkout-coupon-line">
+                        {formatMoney(`-${couponDiscount}`, currency, locale)}
+                      </dd>
+                    </div>
+                  ) : null}
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-muted-foreground">{t("ordering.shippingTotal")}</dt>
+                    <dd className="text-end font-semibold" data-testid="checkout-shipping">
+                      {shippingTotal === null
+                        ? "—"
+                        : isFreeShipping
+                          ? t("ordering.coupon.freeShipping")
+                          : formatMoney(shippingTotal, currency, locale)}
+                      {hasShippingDiscount && !isFreeShipping ? (
+                        <span className="block text-[11px] font-normal text-success">
+                          {t("ordering.coupon.shippingDiscount", {
+                            amount: formatMoney(shippingDiscount, currency, locale),
+                          })}
+                        </span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  {hasPixDiscount ? (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">{t("ordering.coupon.pixDiscount")}</dt>
+                      <dd className="font-semibold text-success" data-testid="checkout-pix">
+                        {formatMoney(`-${pixDiscount}`, currency, locale)}
+                      </dd>
+                    </div>
+                  ) : null}
                   {credit != null ? (
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">{t("credit.available")}</dt>
                       <dd className="font-semibold" data-testid="credit-available">
-                        {formatMoney(credit.available, DEFAULT_CURRENCY, locale)}
+                        {formatMoney(credit.available, currency, locale)}
                       </dd>
                     </div>
                   ) : null}
                   <div className="flex items-center justify-between border-t border-border pt-3">
                     <dt className="text-base font-bold">{t("ordering.total")}</dt>
-                    <dd className="text-xl font-black tracking-tight">
-                      {formatMoney(cart.subtotal, DEFAULT_CURRENCY, locale)}
+                    <dd
+                      className="text-end text-xl font-black tracking-tight"
+                      data-testid="checkout-total"
+                    >
+                      {formatMoney(total, currency, locale)}
                     </dd>
                   </div>
                 </dl>
 
-                {orderError ? (
+                {orderError && !couponOrderError ? (
                   <Alert variant="destructive">
                     <AlertDescription>{t(errorMessageKey(orderError))}</AlertDescription>
                   </Alert>

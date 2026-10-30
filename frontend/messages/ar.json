@@ -305,7 +305,37 @@
     "backToOrders": "عرض الطلبات",
     "backToCart": "العودة إلى السلة",
     "statusPaid": "مدفوع",
-    "summaryTitle": "ملخص الطلب"
+    "summaryTitle": "ملخص الطلب",
+    "coupon": {
+      "insertCode": "إدخال رمز القسيمة",
+      "label": "قسيمة خصم",
+      "placeholder": "أدخل الرمز",
+      "apply": "تطبيق",
+      "applying": "جارٍ التطبيق…",
+      "remove": "إزالة",
+      "removeAria": "إزالة القسيمة {code}",
+      "appliedShort": "تم تطبيق القسيمة",
+      "applied": "تم تطبيق القسيمة {code}.",
+      "revalidating": "جارٍ إعادة التحقق من القسيمة…",
+      "freeShipping": "مجاني",
+      "recoveryDiscount": "عرض استعادة",
+      "pixDiscount": "خصم PIX",
+      "shippingDiscount": "خصم {amount}",
+      "summaryLine": "القسيمة ({code})",
+      "errors": {
+        "codeRequired": "أدخل رمزًا.",
+        "generic": "تعذر التحقق من القسيمة. حاول مرة أخرى.",
+        "NOT_FOUND": "القسيمة غير موجودة.",
+        "INACTIVE": "هذه القسيمة غير نشطة.",
+        "NOT_STARTED": "هذه القسيمة غير صالحة بعد.",
+        "EXPIRED": "انتهت صلاحية هذه القسيمة.",
+        "EXHAUSTED": "استنفدت هذه القسيمة حد الاستخدام.",
+        "COMPANY_LIMIT_REACHED": "وصلت شركتك إلى حد استخدام هذه القسيمة.",
+        "MIN_ORDER_NOT_MET": "لم يتم بلوغ الحد الأدنى للطلب.",
+        "minOrderMissing": "لم يتم بلوغ الحد الأدنى للطلب. المتبقي {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "هذه القسيمة غير صالحة لشركتك."
+      }
+    }
   },
   "credit": {
     "title": "ائتمان",

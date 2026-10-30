@@ -114,6 +114,23 @@ def _preview(
     )
 
 
+async def test_preview_sem_cupom_para_resumo_do_checkout() -> None:
+    use_case = _preview(coupon=None)
+    result = await use_case.execute(
+        company_id=_COMPANY,
+        user_id=_USER,
+        code=None,
+        payment_method=PaymentMethod.PIX,
+    )
+    assert result.valid is True
+    assert result.reason is None
+    assert result.subtotal == Decimal("100.00")
+    assert result.shipping_total == Decimal("25.00")
+    assert result.coupon_discount == Decimal("0.00")
+    assert result.pix_discount == Decimal("6.25")
+    assert result.total == Decimal("118.75")
+
+
 async def test_preview_produto_com_pix() -> None:
     use_case = _preview(coupon=_coupon())
     result = await use_case.execute(

@@ -1,4 +1,9 @@
-import type { CreateOrderInput, Order } from "@/core/domain/ordering";
+import type {
+  CouponPreview,
+  CouponPreviewInput,
+  CreateOrderInput,
+  Order,
+} from "@/core/domain/ordering";
 import { useLocale } from "next-intl";
 
 import { apiClient } from "./client";
@@ -23,6 +28,25 @@ export const orderingApi = {
         payment_method: input.payment_method,
         po_number: input.po_number ?? null,
         notes: input.notes ?? null,
+        coupon_code: input.coupon_code ?? null,
+      },
+      locale,
+    });
+    return response.body;
+  },
+
+  async previewCoupon(
+    accessToken: string,
+    input: CouponPreviewInput,
+    locale: string,
+  ): Promise<CouponPreview> {
+    const response = await apiClient.request<CouponPreview>({
+      method: "POST",
+      path: "/orders/coupon-preview",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: {
+        code: input.code ?? null,
+        payment_method: input.payment_method,
       },
       locale,
     });
@@ -55,6 +79,8 @@ export function useOrderingApi() {
   const locale = useLocale();
   return {
     create: (token: string, input: CreateOrderInput) => orderingApi.create(token, input, locale),
+    previewCoupon: (token: string, input: CouponPreviewInput) =>
+      orderingApi.previewCoupon(token, input, locale),
     get: (token: string, orderId: string) => orderingApi.get(token, orderId, locale),
     cancel: (token: string, orderId: string) => orderingApi.cancel(token, orderId, locale),
   };

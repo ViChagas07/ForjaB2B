@@ -305,7 +305,37 @@
     "backToOrders": "Vedi ordini",
     "backToCart": "Torna al carrello",
     "statusPaid": "Pagato",
-    "summaryTitle": "Riepilogo dell'ordine"
+    "summaryTitle": "Riepilogo dell'ordine",
+    "coupon": {
+      "insertCode": "Inserisci codice coupon",
+      "label": "Coupon sconto",
+      "placeholder": "Inserisci il codice",
+      "apply": "Applica",
+      "applying": "Applicazione…",
+      "remove": "Rimuovi",
+      "removeAria": "Rimuovi coupon {code}",
+      "appliedShort": "Coupon applicato",
+      "applied": "Coupon {code} applicato.",
+      "revalidating": "Verifica del coupon…",
+      "freeShipping": "Gratis",
+      "recoveryDiscount": "Offerta di recupero",
+      "pixDiscount": "Sconto PIX",
+      "shippingDiscount": "{amount} di sconto",
+      "summaryLine": "Coupon ({code})",
+      "errors": {
+        "codeRequired": "Inserisci un codice.",
+        "generic": "Impossibile verificare il coupon. Riprova.",
+        "NOT_FOUND": "Coupon non trovato.",
+        "INACTIVE": "Questo coupon è inattivo.",
+        "NOT_STARTED": "Questo coupon non è ancora valido.",
+        "EXPIRED": "Questo coupon è scaduto.",
+        "EXHAUSTED": "Questo coupon ha raggiunto il limite di utilizzo.",
+        "COMPANY_LIMIT_REACHED": "La tua azienda ha raggiunto il limite di utilizzo di questo coupon.",
+        "MIN_ORDER_NOT_MET": "L'importo minimo dell'ordine non è stato raggiunto.",
+        "minOrderMissing": "L'importo minimo non è stato raggiunto. Mancano {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "Questo coupon non è valido per la tua azienda."
+      }
+    }
   },
   "credit": {
     "title": "Credito",

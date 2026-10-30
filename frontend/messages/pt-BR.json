@@ -270,7 +270,37 @@
     "backToOrders": "Ver pedidos",
     "backToCart": "Voltar ao carrinho",
     "statusPaid": "Pago",
-    "summaryTitle": "Resumo do pedido"
+    "summaryTitle": "Resumo do pedido",
+    "coupon": {
+      "insertCode": "Inserir código de cupom",
+      "label": "Cupom de desconto",
+      "placeholder": "Digite o código",
+      "apply": "Aplicar",
+      "applying": "Aplicando…",
+      "remove": "Remover",
+      "removeAria": "Remover cupom {code}",
+      "appliedShort": "Cupom aplicado",
+      "applied": "Cupom {code} aplicado.",
+      "revalidating": "Revalidando cupom…",
+      "freeShipping": "Grátis",
+      "recoveryDiscount": "Oferta de recuperação",
+      "pixDiscount": "Desconto PIX",
+      "shippingDiscount": "{amount} de desconto",
+      "summaryLine": "Cupom ({code})",
+      "errors": {
+        "codeRequired": "Digite um código.",
+        "generic": "Não foi possível validar o cupom. Tente novamente.",
+        "NOT_FOUND": "Cupom não encontrado.",
+        "INACTIVE": "Este cupom está inativo.",
+        "NOT_STARTED": "Este cupom ainda não está válido.",
+        "EXPIRED": "Este cupom expirou.",
+        "EXHAUSTED": "Este cupom esgotou.",
+        "COMPANY_LIMIT_REACHED": "Sua empresa já atingiu o limite de usos deste cupom.",
+        "MIN_ORDER_NOT_MET": "Pedido mínimo não atingido.",
+        "minOrderMissing": "Pedido mínimo não atingido. Faltam {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "Este cupom não é válido para sua empresa."
+      }
+    }
   },
   "credit": {
     "title": "Crédito",

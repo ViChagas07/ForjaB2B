@@ -305,7 +305,37 @@
     "backToOrders": "Bestellungen ansehen",
     "backToCart": "Zurück zum Warenkorb",
     "statusPaid": "Bezahlt",
-    "summaryTitle": "Bestellübersicht"
+    "summaryTitle": "Bestellübersicht",
+    "coupon": {
+      "insertCode": "Gutscheincode eingeben",
+      "label": "Rabattgutschein",
+      "placeholder": "Code eingeben",
+      "apply": "Anwenden",
+      "applying": "Wird angewendet…",
+      "remove": "Entfernen",
+      "removeAria": "Gutschein {code} entfernen",
+      "appliedShort": "Gutschein angewendet",
+      "applied": "Gutschein {code} angewendet.",
+      "revalidating": "Gutschein wird erneut geprüft…",
+      "freeShipping": "Kostenlos",
+      "recoveryDiscount": "Rückgewinnungsangebot",
+      "pixDiscount": "PIX-Rabatt",
+      "shippingDiscount": "{amount} Rabatt",
+      "summaryLine": "Gutschein ({code})",
+      "errors": {
+        "codeRequired": "Geben Sie einen Code ein.",
+        "generic": "Der Gutschein konnte nicht geprüft werden. Versuchen Sie es erneut.",
+        "NOT_FOUND": "Gutschein nicht gefunden.",
+        "INACTIVE": "Dieser Gutschein ist inaktiv.",
+        "NOT_STARTED": "Dieser Gutschein ist noch nicht gültig.",
+        "EXPIRED": "Dieser Gutschein ist abgelaufen.",
+        "EXHAUSTED": "Dieser Gutschein hat sein Nutzungslimit erreicht.",
+        "COMPANY_LIMIT_REACHED": "Ihr Unternehmen hat das Nutzungslimit dieses Gutscheins erreicht.",
+        "MIN_ORDER_NOT_MET": "Der Mindestbestellwert wurde nicht erreicht.",
+        "minOrderMissing": "Der Mindestbestellwert wurde nicht erreicht. Es fehlen {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "Dieser Gutschein gilt nicht für Ihr Unternehmen."
+      }
+    }
   },
   "credit": {
     "title": "Kredit",

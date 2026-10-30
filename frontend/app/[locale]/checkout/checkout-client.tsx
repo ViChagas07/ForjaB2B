@@ -26,7 +26,12 @@ export function CheckoutClient() {
   const isPlacingOrder = createOrderMutation.isPending || initiatePaymentMutation.isPending;
   const orderError = createOrderMutation.error ?? initiatePaymentMutation.error;
 
-  function handlePlaceOrder(paymentMethod: PaymentMethod, notes: string, idempotencyKey: string) {
+  function handlePlaceOrder(
+    paymentMethod: PaymentMethod,
+    notes: string,
+    idempotencyKey: string,
+    couponCode: string | null,
+  ) {
     const cart = cartQuery.data;
     if (!cart) {
       return;
@@ -40,6 +45,7 @@ export function CheckoutClient() {
         payment_method: paymentMethod,
         idempotency_key: idempotencyKey,
         notes: notes || null,
+        coupon_code: couponCode,
       },
       {
         onSuccess: (order) => {

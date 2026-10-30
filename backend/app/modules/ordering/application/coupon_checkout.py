@@ -20,6 +20,7 @@ from app.modules.ordering.application.ports import (
 )
 from app.modules.ordering.domain.checkout import calculate_recovery
 from app.modules.ordering.domain.coupon import (
+    Coupon,
     CouponRejectionReason,
     CouponType,
     DiscountKind,
@@ -71,7 +72,7 @@ class PreviewCoupon:
         *,
         company_id: uuid.UUID,
         user_id: uuid.UUID,
-        code: str,
+        code: str | None = None,
         payment_method: PaymentMethod = PaymentMethod.PIX,
         locale: str = "pt-BR",
     ) -> CouponPreviewResult:
@@ -79,23 +80,13 @@ class PreviewCoupon:
         if cart is None or not cart.items:
             raise EmptyOrderError("O carrinho precisa ter ao menos um item.")
 
-        normalized = normalize_coupon_code(code)
-        if not is_valid_coupon_code(normalized):
-            return _invalid(CouponRejectionReason.NOT_FOUND)
-        coupon_view = await self._repository.get_coupon_for_checkout(normalized, company_id)
-        if coupon_view is None:
-            return _invalid(CouponRejectionReason.NOT_FOUND)
-
-        eligibility = evaluate_coupon_eligibility(
-            coupon=coupon_view.coupon,
+        coupon, invalid = await self._coupon_for_preview(
+            code=code,
             company_id=company_id,
             subtotal=cart.subtotal,
-            total_uses=coupon_view.total_uses,
-            company_uses=coupon_view.company_uses,
-            now=datetime.now(UTC),
         )
-        if not eligibility.ok:
-            return _invalid(eligibility.reason, eligibility.missing_amount)
+        if invalid is not None:
+            return invalid
 
         shipping = compute_shipping(
             total_weight_kg=compute_total_weight(
@@ -105,7 +96,7 @@ class PreviewCoupon:
         recovery_discount = _ZERO
         recovery_applied = False
         effective_shipping = shipping
-        if coupon_view.coupon.type != CouponType.PRODUCT_TOTAL:
+        if coupon is None or coupon.type != CouponType.PRODUCT_TOTAL:
             offer = await self._repository.find_active_offer(company_id, user_id)
             if offer is not None:
                 eligible_total = sum(
@@ -125,13 +116,37 @@ class PreviewCoupon:
         totals = calculate_order_totals(
             subtotal=cart.subtotal,
             shipping=effective_shipping,
-            coupon=coupon_view.coupon,
+            coupon=coupon,
             recovery_discount=recovery_discount,
             pix_discount_rate=(
                 self._pix_discount_rate if payment_method == PaymentMethod.PIX else None
             ),
         )
         return _valid(totals, effective_shipping, recovery_applied)
+
+    async def _coupon_for_preview(
+        self, *, code: str | None, company_id: uuid.UUID, subtotal: Decimal
+    ) -> tuple[Coupon | None, CouponPreviewResult | None]:
+        """Resolve o cupom ou devolve o resultado invalido tipado."""
+        if code is None or not code.strip():
+            return None, None
+        normalized = normalize_coupon_code(code)
+        if not is_valid_coupon_code(normalized):
+            return None, _invalid(CouponRejectionReason.NOT_FOUND)
+        coupon_view = await self._repository.get_coupon_for_checkout(normalized, company_id)
+        if coupon_view is None:
+            return None, _invalid(CouponRejectionReason.NOT_FOUND)
+        eligibility = evaluate_coupon_eligibility(
+            coupon=coupon_view.coupon,
+            company_id=company_id,
+            subtotal=subtotal,
+            total_uses=coupon_view.total_uses,
+            company_uses=coupon_view.company_uses,
+            now=datetime.now(UTC),
+        )
+        if not eligibility.ok:
+            return None, _invalid(eligibility.reason, eligibility.missing_amount)
+        return coupon_view.coupon, None
 
 
 def _invalid(

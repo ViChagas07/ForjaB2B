@@ -276,6 +276,20 @@ def _state(pg: PostgresInstance, sql: str, params: tuple[object, ...]) -> object
         conn.close()
 
 
+async def test_preview_sem_cupom_para_resumo(
+    checkout_client: httpx.AsyncClient,
+) -> None:
+    response = await checkout_client.post("/api/v1/orders/coupon-preview", json={})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True
+    assert body["subtotal"] == "100.00"
+    assert body["shipping_total"] == "25.00"
+    assert body["coupon_discount"] == "0.00"
+    assert body["pix_discount"] == "6.25"
+    assert body["total"] == "118.75"
+
+
 async def test_preview_produto_valido_com_pix(
     checkout_client: httpx.AsyncClient, pg: PostgresInstance
 ) -> None:

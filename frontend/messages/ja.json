@@ -305,7 +305,37 @@
     "backToOrders": "注文を見る",
     "backToCart": "カートに戻る",
     "statusPaid": "支払い済み",
-    "summaryTitle": "注文概要"
+    "summaryTitle": "注文概要",
+    "coupon": {
+      "insertCode": "クーポンコードを入力",
+      "label": "割引クーポン",
+      "placeholder": "コードを入力",
+      "apply": "適用",
+      "applying": "適用中…",
+      "remove": "削除",
+      "removeAria": "クーポン {code} を削除",
+      "appliedShort": "クーポン適用済み",
+      "applied": "クーポン {code} を適用しました。",
+      "revalidating": "クーポンを再確認中…",
+      "freeShipping": "無料",
+      "recoveryDiscount": "復帰オファー",
+      "pixDiscount": "PIX割引",
+      "shippingDiscount": "{amount} 割引",
+      "summaryLine": "クーポン ({code})",
+      "errors": {
+        "codeRequired": "コードを入力してください。",
+        "generic": "クーポンを確認できませんでした。もう一度お試しください。",
+        "NOT_FOUND": "クーポンが見つかりません。",
+        "INACTIVE": "このクーポンは無効です。",
+        "NOT_STARTED": "このクーポンはまだ有効ではありません。",
+        "EXPIRED": "このクーポンは期限切れです。",
+        "EXHAUSTED": "このクーポンは利用上限に達しました。",
+        "COMPANY_LIMIT_REACHED": "貴社はこのクーポンの利用上限に達しています。",
+        "MIN_ORDER_NOT_MET": "最低注文金額に達していません。",
+        "minOrderMissing": "最低注文金額に達していません。あと {amount} です。",
+        "NOT_ALLOWED_FOR_COMPANY": "このクーポンは貴社では利用できません。"
+      }
+    }
   },
   "credit": {
     "title": "クレジット",

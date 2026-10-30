@@ -6,6 +6,14 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 06: cupom no checkout — 2026-10-30
+
+- **Entregue:** bloco "Cupom de desconto" recolhido no resumo (não no carrinho), input em maiúsculas com Enter, loading, chip com remover, mensagens por motivo com valor faltante, `aria-live`, foco ao expandir e layout mobile/RTL. Resumo com subtotal, recovery, cupom, frete/grátis, PIX e total vindos do backend; revalidação automática ao mudar carrinho ou pagamento; `coupon_code` enviado na criação e erro tipado devolvido ao bloco sem perder o formulário.
+- **Suporte backend:** a prévia agora aceita `code` nulo para o resumo base sem cupom; rate limit do preview ajustado para 10/30 por usuário (revalidações da UI). Sem nova migration.
+- **Frontend:** `core/domain/ordering.ts`, `ordering-api` (preview + coupon_code), `use-checkout-coupon`, `checkout-coupon-section`, `checkout-view`, `checkout-client`, mensagens `ordering.coupon` nos 11 locales e testes.
+- **Checagens:** `npm run check` OK — lint (4 warnings pré-existentes de `<img>`), typecheck, format, **239 testes**, dependency-cruiser **0 violações**. Backend: Ruff/mypy/import-linter OK; suíte completa **1010 passed, 374 skipped, 3 failed pré-existentes** (em dash, type: ignore, downgrade 0027). E2E de checkout e admin listados, mas **NÃO EXECUTADOS** (exigem backend/DB e `DEMO_USER_PASSWORD`).
+- **Pendências:** validar E2E/visual/RTL em ambiente completo; revalidação por endereço não é possível hoje porque o checkout não possui campo de endereço (o frete é derivado do carrinho).
+
 ## Sistema de cupons — FASE 05: interface admin — 2026-10-30
 
 - **Entregue:** `/admin/cupons` com tabela (código, tipo, percentual, validade, usos, status e ações), busca, filtro de status, paginação e ativar/desativar com confirmação; `/admin/cupons/new` e `/admin/cupons/[id]` com formulário (código/gerar, tipo, percentual + atalhos, condições avançadas, resumo natural), validação cliente, erros 409/422 amigáveis e detalhe com usos, valor descontado e últimos resgates.

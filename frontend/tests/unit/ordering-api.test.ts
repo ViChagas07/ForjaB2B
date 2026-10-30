@@ -18,6 +18,7 @@ const CREATE_INPUT: CreateOrderInput = {
   idempotency_key: "idem-1",
   po_number: null,
   notes: null,
+  coupon_code: "FORJA-ABC123",
 };
 
 afterEach(() => {
@@ -52,7 +53,44 @@ describe("orderingApi.create", () => {
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body.idempotency_key).toBeUndefined();
     expect(body.payment_method).toBe("BOLETO");
+    expect(body.coupon_code).toBe("FORJA-ABC123");
     expect(result.id).toBe("o-1");
+  });
+});
+
+describe("orderingApi.previewCoupon", () => {
+  it("envia código/pagamento e devolve a simulação", async () => {
+    const preview = {
+      valid: true,
+      reason: null,
+      missing_amount: null,
+      subtotal: "100.00",
+      recovery_discount: "0.00",
+      coupon_discount: "10.00",
+      shipping_discount: "0.00",
+      shipping_total: "25.00",
+      pix_discount: "5.75",
+      total: "109.25",
+      applied_discounts: ["COUPON_PRODUCT", "PIX"],
+      currency: "BRL",
+    };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(preview));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await orderingApi.previewCoupon(
+      TOKEN,
+      { code: "CUPOM10", payment_method: "PIX" },
+      "pt-BR",
+    );
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(String(url)).toContain("/api/v1/orders/coupon-preview");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      code: "CUPOM10",
+      payment_method: "PIX",
+    });
+    expect(result.total).toBe("109.25");
   });
 });
 

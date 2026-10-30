@@ -1370,19 +1370,22 @@
         "description": "Previa do cupom no carrinho do comprador autenticado.",
         "properties": {
           "code": {
-            "maxLength": 32,
-            "minLength": 1,
-            "title": "Code",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
           },
           "payment_method": {
             "$ref": "#/components/schemas/app__modules__ordering__domain__payment__PaymentMethod",
             "default": "PIX"
           }
         },
-        "required": [
-          "code"
-        ],
         "title": "CouponPreviewRequest",
         "type": "object"
       },

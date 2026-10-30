@@ -305,7 +305,37 @@
     "backToOrders": "Мои заказы",
     "backToCart": "Вернуться в корзину",
     "statusPaid": "Оплачен",
-    "summaryTitle": "Сводка заказа"
+    "summaryTitle": "Сводка заказа",
+    "coupon": {
+      "insertCode": "Ввести код купона",
+      "label": "Скидочный купон",
+      "placeholder": "Введите код",
+      "apply": "Применить",
+      "applying": "Применение…",
+      "remove": "Удалить",
+      "removeAria": "Удалить купон {code}",
+      "appliedShort": "Купон применён",
+      "applied": "Купон {code} применён.",
+      "revalidating": "Повторная проверка купона…",
+      "freeShipping": "Бесплатно",
+      "recoveryDiscount": "Предложение по возврату",
+      "pixDiscount": "Скидка PIX",
+      "shippingDiscount": "Скидка {amount}",
+      "summaryLine": "Купон ({code})",
+      "errors": {
+        "codeRequired": "Введите код.",
+        "generic": "Не удалось проверить купон. Повторите попытку.",
+        "NOT_FOUND": "Купон не найден.",
+        "INACTIVE": "Этот купон неактивен.",
+        "NOT_STARTED": "Этот купон ещё не действует.",
+        "EXPIRED": "Срок действия купона истёк.",
+        "EXHAUSTED": "У этого купона закончился лимит использований.",
+        "COMPANY_LIMIT_REACHED": "Ваша компания достигла лимита использования этого купона.",
+        "MIN_ORDER_NOT_MET": "Минимальная сумма заказа не достигнута.",
+        "minOrderMissing": "Минимальная сумма заказа не достигнута. Не хватает {amount}.",
+        "NOT_ALLOWED_FOR_COMPANY": "Этот купон недействителен для вашей компании."
+      }
+    }
   },
   "credit": {
     "title": "Кредит",

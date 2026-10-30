@@ -26,12 +26,53 @@ export interface OrderItemInput {
   quantity: number;
 }
 
+export const COUPON_REJECTION_REASONS = [
+  "NOT_FOUND",
+  "INACTIVE",
+  "NOT_STARTED",
+  "EXPIRED",
+  "EXHAUSTED",
+  "COMPANY_LIMIT_REACHED",
+  "MIN_ORDER_NOT_MET",
+  "NOT_ALLOWED_FOR_COMPANY",
+] as const;
+export type CouponRejectionReason = (typeof COUPON_REJECTION_REASONS)[number];
+
+export const COUPON_DISCOUNT_KINDS = [
+  "RECOVERY",
+  "COUPON_PRODUCT",
+  "COUPON_SHIPPING",
+  "PIX",
+] as const;
+export type CouponDiscountKind = (typeof COUPON_DISCOUNT_KINDS)[number];
+
+export interface CouponPreviewInput {
+  code?: string | null;
+  payment_method: PaymentMethod;
+}
+
+export interface CouponPreview {
+  valid: boolean;
+  reason: CouponRejectionReason | null;
+  missing_amount: string | null;
+  subtotal: string | null;
+  recovery_discount: string | null;
+  coupon_discount: string | null;
+  shipping_discount: string | null;
+  shipping_total: string | null;
+  pix_discount: string | null;
+  total: string | null;
+  applied_discounts: CouponDiscountKind[];
+  currency: string;
+}
+
 export interface CreateOrderInput {
   items: OrderItemInput[];
   payment_method: PaymentMethod;
   idempotency_key: string;
   po_number?: string | null;
   notes?: string | null;
+  coupon_code?: string | null;
 }
 
 export interface OrderItem {
@@ -60,4 +101,9 @@ export interface Order {
   created_at: string;
   content_locale: string;
   fallback: boolean;
+  coupon_code?: string | null;
+  coupon_type?: "PRODUCT_TOTAL" | "SHIPPING" | null;
+  coupon_percent?: string | null;
+  coupon_discount_amount?: string;
+  shipping_discount_amount?: string;
 }
