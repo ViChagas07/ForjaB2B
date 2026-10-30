@@ -18,6 +18,11 @@
 # (o image_url defasado no banco persiste ate o seed rodar de verdade).
 set -e
 
+if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" = "true" ] && [ -n "${DATABASE_ADMIN_URL:-}" ]; then
+    echo "[start] aplicando migrations antes do bootstrap de busca..."
+    python scripts/predeploy.py
+fi
+
 VERSION="${ELASTICSEARCH_INDEX_VERSION:-2}"
 
 python -m app.modules.search.interface.cli bootstrap --version "$VERSION"

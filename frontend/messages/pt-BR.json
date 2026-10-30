@@ -317,7 +317,8 @@
     "consentRequired": "É obrigatório aceitar os termos e a política de privacidade.",
     "invalidBirthDate": "Data de nascimento inválida.",
     "invalidPostalCode": "CEP inválido.",
-    "oauthCompanyAccount": "Contas empresariais entram somente com e-mail e senha."
+    "oauthCompanyAccount": "Contas empresariais entram somente com e-mail e senha.",
+    "consumerRegistrationUnavailable": "O cadastro de cliente está temporariamente indisponível. Tente novamente em instantes."
   },
   "admin": {
     "catalog": {

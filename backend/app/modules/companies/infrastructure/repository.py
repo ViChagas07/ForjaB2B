@@ -14,9 +14,12 @@ import uuid
 from sqlalchemy import text
 
 from app.application.ports.tenant import TenantContext
+from app.infrastructure.db.schema import has_account_type as schema_has_account_type
+from app.infrastructure.db.schema import has_consumer_schema as schema_has_consumer_schema
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.companies.application.errors import (
     CompanyAlreadyExistsError,
+    ConsumerRegistrationUnavailableError,
     CpfAlreadyExistsError,
     EmailAlreadyExistsError,
 )
@@ -34,6 +37,10 @@ _EMAIL_UNIQUE = "uq_users_email"
 _INSERT_COMPANY = text(
     "INSERT INTO companies (id, cnpj, legal_name, trade_name, status, account_type) "
     "VALUES (:id, :cnpj, :legal_name, :trade_name, :status, :account_type)"
+)
+_INSERT_COMPANY_LEGACY = text(
+    "INSERT INTO companies (id, cnpj, legal_name, trade_name, status) "
+    "VALUES (:id, :cnpj, :legal_name, :trade_name, :status)"
 )
 _INSERT_USER = text(
     "INSERT INTO users (id, company_id, email, full_name, cpf_hash, password_hash, status) "
@@ -54,6 +61,10 @@ _INSERT_CONSENT = text(
 )
 _SELECT_COMPANY = text(
     "SELECT id, cnpj, legal_name, trade_name, status, account_type "
+    "FROM companies WHERE id = :company_id"
+)
+_SELECT_COMPANY_LEGACY = text(
+    "SELECT id, cnpj, legal_name, trade_name, status "
     "FROM companies WHERE id = :company_id"
 )
 _APPROVE_COMPANY = text(
@@ -93,17 +104,20 @@ class SqlAlchemyCompanyRepository:
         tenant = TenantContext(company_id=company.id, user_id=operator.user_id)
         try:
             async with self._uow_factory.begin(tenant) as uow:
-                await uow.session.execute(
-                    _INSERT_COMPANY,
-                    {
-                        "id": company.id,
-                        "cnpj": company.cnpj,
-                        "legal_name": company.legal_name,
-                        "trade_name": company.trade_name,
-                        "status": company.status,
-                        "account_type": company.account_type,
-                    },
+                supports_account_type = await schema_has_account_type(uow.session)
+                insert_company = (
+                    _INSERT_COMPANY if supports_account_type else _INSERT_COMPANY_LEGACY
                 )
+                company_params = {
+                    "id": company.id,
+                    "cnpj": company.cnpj,
+                    "legal_name": company.legal_name,
+                    "trade_name": company.trade_name,
+                    "status": company.status,
+                }
+                if supports_account_type:
+                    company_params["account_type"] = company.account_type
+                await uow.session.execute(insert_company, company_params)
                 await uow.session.execute(
                     _INSERT_USER,
                     {
@@ -147,6 +161,8 @@ class SqlAlchemyCompanyRepository:
         tenant = TenantContext(company_id=company.id, user_id=operator.user_id)
         try:
             async with self._uow_factory.begin(tenant) as uow:
+                if not await schema_has_consumer_schema(uow.session):
+                    raise ConsumerRegistrationUnavailableError()
                 await uow.session.execute(
                     _INSERT_COMPANY,
                     {
@@ -214,7 +230,13 @@ class SqlAlchemyCompanyRepository:
     async def get_by_id(self, company_id: uuid.UUID) -> CompanyRecord | None:
         tenant = TenantContext(company_id=company_id)
         async with self._uow_factory.begin(tenant) as uow:
-            row = (await uow.session.execute(_SELECT_COMPANY, {"company_id": company_id})).first()
+            supports_account_type = await schema_has_account_type(uow.session)
+            select_company = (
+                _SELECT_COMPANY if supports_account_type else _SELECT_COMPANY_LEGACY
+            )
+            row = (
+                await uow.session.execute(select_company, {"company_id": company_id})
+            ).first()
             await uow.commit()
             if row is None:
                 return None
@@ -224,7 +246,9 @@ class SqlAlchemyCompanyRepository:
                 legal_name=row.legal_name,
                 trade_name=row.trade_name,
                 status=row.status,
-                account_type=row.account_type,
+                account_type=(
+                    row.account_type if supports_account_type else "COMPANY"
+                ),
             )
 
     async def approve(self, company_id: uuid.UUID) -> bool:

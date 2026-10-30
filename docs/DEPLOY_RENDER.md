@@ -18,8 +18,14 @@ falhar, o deploy é abortado. Configure no serviço da API:
    `alembic upgrade head`, confere que a revisão atual é o head e só então retorna 0.
    Credencial errada ou migration pendente/falha encerram com código 2 e bloqueiam o deploy.
 
-O pre-deploy exige instance type pago no Render. Em plano free, use um deploy hook/CI que
-rode o mesmo script antes de liberar tráfego; nunca remova a validação.
+O pre-deploy exige instance type pago no Render. Em plano free, a imagem da API executa
+`scripts/start_api.sh` antes do `uvicorn`: se `DATABASE_ADMIN_URL` estiver presente, aplica
+`alembic upgrade head` (com advisory lock entre instâncias) e só então libera o tráfego;
+`RUN_MIGRATIONS_ON_STARTUP=false` desabilita esse passo. A credencial administrativa é
+removida do ambiente antes de iniciar a API. Se a variável não existir, a API sobe em modo
+de compatibilidade (login/CNPJ funcionam, cadastro CPF responde 503) e
+`GET /health/schema` informa `outdated` — corrija configurando `DATABASE_ADMIN_URL` e
+fazendo um novo deploy.
 
 Em banco gerenciado novo, o bootstrap de `docker/postgres` (roles, schema `app`, funções RLS)
 deve ser aplicado uma vez, de forma idempotente, antes da primeira migration que referencia
@@ -53,8 +59,9 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 
 - `ENVIRONMENT=production`, `LOG_LEVEL`, `LOG_FORMAT=json`
 - `DATABASE_URL` (runtime, role `forja_app`)
-- `DATABASE_ADMIN_URL` **somente** no job de migration/seed (role `forja_admin`), nunca no
-  runtime
+- `DATABASE_ADMIN_URL` (role `forja_admin`): no pre-deploy ou, em plano free, disponível
+  apenas para o passo de migration do `start_api.sh`, que a remove antes de iniciar o
+  `uvicorn`
 - `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
 - `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`, `ELASTICSEARCH_CA_CERTS`,
   `ELASTICSEARCH_VERIFY_CERTS=true`, `ELASTICSEARCH_INDEX_VERSION`

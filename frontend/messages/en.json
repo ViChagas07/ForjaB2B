@@ -160,7 +160,8 @@
     "consentRequired": "You must accept the terms and privacy policy.",
     "invalidBirthDate": "Invalid date of birth.",
     "invalidPostalCode": "Invalid postal code.",
-    "oauthCompanyAccount": "Company accounts can only sign in with email and password."
+    "oauthCompanyAccount": "Company accounts can only sign in with email and password.",
+    "consumerRegistrationUnavailable": "Customer registration is temporarily unavailable. Please try again shortly."
   },
   "catalog": {
     "title": "Catalog",

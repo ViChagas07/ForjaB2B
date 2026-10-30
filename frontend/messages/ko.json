@@ -160,7 +160,8 @@
     "consentRequired": "약관 및 개인정보 처리방침에 동의해야 합니다.",
     "invalidBirthDate": "생년월일이 올바르지 않습니다.",
     "invalidPostalCode": "우편번호가 올바르지 않습니다.",
-    "oauthCompanyAccount": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다."
+    "oauthCompanyAccount": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다.",
+    "consumerRegistrationUnavailable": "고객 등록이 일시적으로 불가능합니다. 잠시 후 다시 시도해 주세요."
   },
   "catalog": {
     "title": "카탈로그",

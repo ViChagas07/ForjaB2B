@@ -160,7 +160,8 @@
     "consentRequired": "يجب قبول الشروط وسياسة الخصوصية.",
     "invalidBirthDate": "تاريخ الميلاد غير صالح.",
     "invalidPostalCode": "الرمز البريدي غير صالح.",
-    "oauthCompanyAccount": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط."
+    "oauthCompanyAccount": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط.",
+    "consumerRegistrationUnavailable": "تسجيل العملاء غير متاح مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل."
   },
   "catalog": {
     "title": "الكتالوج",

@@ -160,7 +160,8 @@
     "consentRequired": "Sie müssen die Bedingungen und die Datenschutzrichtlinie akzeptieren.",
     "invalidBirthDate": "Ungültiges Geburtsdatum.",
     "invalidPostalCode": "Ungültige Postleitzahl.",
-    "oauthCompanyAccount": "Unternehmenskonten melden sich nur mit E-Mail und Passwort an."
+    "oauthCompanyAccount": "Unternehmenskonten melden sich nur mit E-Mail und Passwort an.",
+    "consumerRegistrationUnavailable": "Die Kundenregistrierung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal."
   },
   "catalog": {
     "title": "Katalog",

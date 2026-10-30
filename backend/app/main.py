@@ -52,6 +52,7 @@ from app.infrastructure.cache.redis import close_redis_client, create_redis_clie
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.idempotency import SqlAlchemyIdempotencyRepository
 from app.infrastructure.db.probe import ping_database
+from app.infrastructure.db.schema import schema_is_current
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.infrastructure.rate_limit import RedisBucketStore, RedisFailureStore
@@ -728,6 +729,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         "redis": lambda: ping_redis(redis_client),
     }
     app.state.readiness_probes = readiness_probes
+    app.state.schema_probe = lambda: schema_is_current(engine)
 
     # Ordem de execucao (de fora para dentro): CORS -> SecurityHeaders ->
     # Prometheus -> Correlation -> RateLimit -> app. O 429 atravessa os

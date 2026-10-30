@@ -14,6 +14,7 @@ from typing import Any
 from sqlalchemy import text
 
 from app.application.ports.tenant import TenantContext
+from app.infrastructure.db.schema import has_consumer_profiles as schema_has_consumer_profiles
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.privacy.application.ports import (
     AuditEntryView,
@@ -170,10 +171,13 @@ class SqlAlchemyPrivacyRepository:
             )
             # Dados de perfil do consumidor nao devem sobreviver a exclusao,
             # mesmo que o usuario seja mantido anonimizado para historico.
-            await uow.session.execute(
-                _DELETE_CONSUMER_PROFILE,
-                {"user_id": user_id, "company_id": company_id},
-            )
+            # O guard cobre o intervalo de deploy em que a migration 0030
+            # ainda nao foi aplicada e a tabela nao existe.
+            if await schema_has_consumer_profiles(uow.session):
+                await uow.session.execute(
+                    _DELETE_CONSUMER_PROFILE,
+                    {"user_id": user_id, "company_id": company_id},
+                )
             await uow.session.execute(
                 _INSERT_AUDIT,
                 {

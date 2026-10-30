@@ -48,6 +48,8 @@ export function errorMessageKey(error: unknown): string {
       return "error.invalidPostalCode";
     case "oauth_company_account":
       return "error.oauthCompanyAccount";
+    case "consumer_registration_unavailable":
+      return "error.consumerRegistrationUnavailable";
     case "company_not_found":
       return "error.companyNotFound";
     case "weak_password":

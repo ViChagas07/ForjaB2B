@@ -82,6 +82,23 @@ async def readiness(request: Request, response: Response) -> ReadinessResponse:
     return ReadinessResponse(status="ready" if all_ok else "not_ready", checks=checks)
 
 
+@router.get("/health/schema", include_in_schema=False)
+async def schema_health(request: Request) -> dict[str, str]:
+    """Diagnostico da migration de cadastro de consumidor (sem dados sensiveis).
+
+    Retorna ``ok`` quando ``companies.account_type`` e ``consumer_profiles``
+    existem; ``outdated`` quando a migration 0030 ainda nao foi aplicada.
+    """
+    probe = getattr(request.app.state, "schema_probe", None)
+    if probe is None:
+        return {"status": "unknown"}
+    try:
+        current = bool(await probe())
+    except Exception:  # noqa: BLE001 - probe de diagnostico nao deve derrubar a rota
+        return {"status": "error"}
+    return {"status": "ok" if current else "outdated"}
+
+
 @router.get("/health/search", response_model=SearchHealthResponse)
 async def search_health(request: Request) -> SearchHealthResponse:
     """Estado do motor de busca, separado da saude da aplicacao.

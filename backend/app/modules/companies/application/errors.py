@@ -59,3 +59,15 @@ class InvalidPostalCodeError(AppError):
     status_code = 400
     title = "Bad Request"
     code = "invalid_postal_code"
+
+
+class ConsumerRegistrationUnavailableError(AppError):
+    """Schema do cadastro CPF ausente (migration pendente no deploy).
+
+    A resposta e 503 explicita para o frontend diferenciar de um bug interno e
+    orientar a tentativa novamente apos a migration ser aplicada.
+    """
+
+    status_code = 503
+    title = "Service Unavailable"
+    code = "consumer_registration_unavailable"

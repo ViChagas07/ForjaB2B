@@ -160,7 +160,8 @@
     "consentRequired": "Необходимо принять условия и политику конфиденциальности.",
     "invalidBirthDate": "Некорректная дата рождения.",
     "invalidPostalCode": "Некорректный почтовый индекс.",
-    "oauthCompanyAccount": "Аккаунты компаний входят только по e-mail и паролю."
+    "oauthCompanyAccount": "Аккаунты компаний входят только по e-mail и паролю.",
+    "consumerRegistrationUnavailable": "Регистрация клиентов временно недоступна. Повторите попытку чуть позже."
   },
   "catalog": {
     "title": "Каталог",

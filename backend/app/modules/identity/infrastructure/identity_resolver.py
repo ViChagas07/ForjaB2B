@@ -13,6 +13,7 @@ import uuid
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.infrastructure.db.schema import has_account_type as schema_has_account_type
 from app.modules.identity.application.ports import ResolvedIdentity
 from app.modules.identity.domain.enums import UserStatus
 
@@ -43,13 +44,23 @@ class SqlAlchemyUserIdentityResolver:
             # A funcao SECURITY DEFINER devolve apenas o minimo (inclusive para
             # nao ampliar o bypass de RLS de forja_auth). O tipo da conta e
             # lido depois, com o tenant ja resolvido pelo proprio banco.
-            await session.execute(
-                _SET_TENANT_SQL, {"company_id": company_id, "user_id": user_id}
-            )
-            account_row = (
-                await session.execute(_ACCOUNT_TYPE_SQL, {"company_id": company_id})
-            ).mappings().first()
-            account_type = str(account_row["account_type"]) if account_row else "COMPANY"
+            #
+            # Compatibilidade de deploy: se a migration 0030 ainda nao foi
+            # aplicada, a coluna nao existe. Tratar como COMPANY mantem login e
+            # onboarding B2B funcionando e, por consequencia, mantem o Google
+            # bloqueado para contas empresariais.
+            if await schema_has_account_type(session):
+                await session.execute(
+                    _SET_TENANT_SQL, {"company_id": company_id, "user_id": user_id}
+                )
+                account_row = (
+                    await session.execute(_ACCOUNT_TYPE_SQL, {"company_id": company_id})
+                ).mappings().first()
+                account_type = (
+                    str(account_row["account_type"]) if account_row else "COMPANY"
+                )
+            else:
+                account_type = "COMPANY"
 
             return ResolvedIdentity(
                 user_id=user_id,

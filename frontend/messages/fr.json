@@ -160,7 +160,8 @@
     "consentRequired": "Vous devez accepter les conditions et la politique de confidentialité.",
     "invalidBirthDate": "Date de naissance invalide.",
     "invalidPostalCode": "Code postal invalide.",
-    "oauthCompanyAccount": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe."
+    "oauthCompanyAccount": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe.",
+    "consumerRegistrationUnavailable": "L'inscription des clients est temporairement indisponible. Réessayez dans quelques instants."
   },
   "catalog": {
     "title": "Catalogue",

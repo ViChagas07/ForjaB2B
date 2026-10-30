@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from contextlib import suppress
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,11 @@ from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 from alembic import command  # noqa: E402
 from app.core.config import normalize_async_database_url  # noqa: E402
+
+# Lock consultivo de sessao: impede que duas instancias iniciem o Alembic ao
+# mesmo tempo em um deploy com mais de um worker/instancia. A chave e estavel e
+# vive apenas no cluster do banco.
+_MIGRATION_LOCK_KEY = 0x464F524A41
 
 _PREFLIGHT_QUERY = text(
     """
@@ -115,13 +121,36 @@ def _config() -> Config:
     return config
 
 
+async def _upgrade_with_lock(url: str) -> None:
+    """Aplica o upgrade segurando um advisory lock entre processos."""
+    engine = create_async_engine(url)
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(
+                text("SELECT pg_advisory_lock(:key)"),
+                {"key": _MIGRATION_LOCK_KEY},
+            )
+            await connection.commit()
+            try:
+                await asyncio.to_thread(command.upgrade, _config(), "head")
+            finally:
+                with suppress(Exception):
+                    await connection.execute(
+                        text("SELECT pg_advisory_unlock(:key)"),
+                        {"key": _MIGRATION_LOCK_KEY},
+                    )
+                    await connection.commit()
+    finally:
+        await engine.dispose()
+
+
 def main() -> int:
     url = _admin_url()
     head = ScriptDirectory.from_config(_config()).get_current_head()
     preflight = asyncio.run(_preflight(url))
     print(f"[predeploy] connected as {preflight['role']!r}; head={head}", flush=True)
 
-    command.upgrade(_config(), "head")
+    asyncio.run(_upgrade_with_lock(url))
 
     current = asyncio.run(_current_revision(url))
     if current != head:

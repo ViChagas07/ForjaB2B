@@ -83,9 +83,6 @@ ENTRYPOINT ["tini", "--"]
 
 # Sem --proxy-headers/--forwarded-allow-ips: a aplicacao decide o IP real a
 # partir de TRUSTED_PROXY_COUNT. --no-server-header evita fingerprinting.
-CMD ["python", "-m", "uvicorn", "app.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "4", \
-     "--no-server-header", \
-     "--access-log"]
+# O script aplica migrations antes de liberar trafego quando
+# DATABASE_ADMIN_URL esta presente (fail-fast se a migration falhar).
+CMD ["sh", "/app/scripts/start_api.sh"]

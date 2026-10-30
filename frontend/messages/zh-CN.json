@@ -160,7 +160,8 @@
     "consentRequired": "您必须接受条款和隐私政策。",
     "invalidBirthDate": "出生日期无效。",
     "invalidPostalCode": "邮政编码无效。",
-    "oauthCompanyAccount": "企业账户只能使用邮箱和密码登录。"
+    "oauthCompanyAccount": "企业账户只能使用邮箱和密码登录。",
+    "consumerRegistrationUnavailable": "客户注册暂时不可用。请稍后重试。"
   },
   "catalog": {
     "title": "目录",
