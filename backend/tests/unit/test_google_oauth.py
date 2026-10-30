@@ -17,6 +17,7 @@ from app.core.config import Settings
 from app.modules.identity.application.errors import (
     OAuthCodeError,
     OAuthCompanyAccountError,
+    OAuthConfigurationError,
     OAuthEmailNotVerifiedError,
     OAuthExchangeError,
     OAuthStateError,
@@ -35,6 +36,7 @@ from app.modules.identity.application.ports import (
     ResolvedIdentity,
 )
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
+from app.modules.identity.interface.router import _normalize_frontend_redirect
 
 _CLIENT_ID = "client-id-123"
 _CLIENT_SECRET = "client-secret-456"
@@ -313,3 +315,23 @@ def test_settings_oauth_enabled() -> None:
         google_oauth_frontend_redirect="https://x/f",
     )
     assert enabled.google_oauth_enabled is True
+
+
+def test_normaliza_frontend_redirect_apontando_para_a_api() -> None:
+    assert (
+        _normalize_frontend_redirect(
+            "https://forja-b2b.vercel.app/api/v1/auth/google/callback",
+            "https://forjab2b.onrender.com/api/v1/auth/google/callback",
+        )
+        == "https://forja-b2b.vercel.app/auth/google/callback"
+    )
+
+
+def test_rejeita_frontend_redirect_no_host_do_backend() -> None:
+    with pytest.raises(OAuthConfigurationError):
+        _normalize_frontend_redirect(
+            "https://forjab2b.onrender.com/api/v1/auth/google/callback",
+            "https://forjab2b.onrender.com/api/v1/auth/google/callback",
+        )
+    with pytest.raises(OAuthConfigurationError):
+        _normalize_frontend_redirect(None, "https://forjab2b.onrender.com/cb")

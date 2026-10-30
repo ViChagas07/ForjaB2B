@@ -77,7 +77,11 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
   `ELASTICSEARCH_VERIFY_CERTS=true`, `ELASTICSEARCH_INDEX_VERSION`
 - `SECRET_KEY`, `PEPPER`, `ENCRYPTION_KEY`, `PAYMENT_WEBHOOK_SECRET`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,
-  `GOOGLE_OAUTH_FRONTEND_REDIRECT` (se OAuth for usado)
+  `GOOGLE_OAUTH_FRONTEND_REDIRECT` (se OAuth for usado). O
+  `GOOGLE_OAUTH_FRONTEND_REDIRECT` deve ser a página do frontend
+  (`https://forja-b2b.vercel.app/pt-BR/auth/google/callback`), nunca o caminho
+  `/api/v1/auth/google/callback`; o backend também normaliza esse erro para
+  evitar loop, mas a configuração correta é a da página.
 - `BACKEND_URL` (frontend, somente servidor: destino dos rewrites `/api/v1` e `/static`)
 - `TRUSTED_PROXY_COUNT`: local `0`; Render direto `1`; com Vercel na frente do
   Render, valide a cadeia `X-Forwarded-For` (normalmente `2`). Se ficar `0` ou

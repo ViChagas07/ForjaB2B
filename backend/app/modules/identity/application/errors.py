@@ -58,6 +58,13 @@ class OAuthCodeError(AppError):
     title = "Bad Request"
     code = "oauth_code_invalid"
 
+    def __init__(self, reason: str | None = None) -> None:
+        super().__init__("Codigo OAuth invalido ou expirado.")
+        # ``reason`` e o codigo publico do Google (invalid_client,
+        # invalid_grant...). Nunca expor descricao/secret; o router traduz em
+        # um codigo de redirect seguro para a tela de callback.
+        self.reason = reason
+
 
 class OAuthEmailNotVerifiedError(AppError):
     """O provedor nao confirmou a verificacao do email."""

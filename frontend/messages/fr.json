@@ -162,7 +162,9 @@
     "invalidPostalCode": "Code postal invalide.",
     "oauthCompanyAccount": "Les comptes entreprise se connectent uniquement par e-mail et mot de passe.",
     "consumerRegistrationUnavailable": "L'inscription des clients est temporairement indisponible. Réessayez dans quelques instants.",
-    "rateLimited": "Trop de tentatives. Patientez quelques instants et réessayez."
+    "rateLimited": "Trop de tentatives. Patientez quelques instants et réessayez.",
+    "oauthConfiguration": "La configuration de la connexion Google est invalide. Vérifiez le client ID et le secret sur le serveur.",
+    "oauthCodeInvalid": "Impossible de terminer la connexion Google. Réessayez."
   },
   "catalog": {
     "title": "Catalogue",

@@ -162,7 +162,9 @@
     "invalidPostalCode": "邮政编码无效。",
     "oauthCompanyAccount": "企业账户只能使用邮箱和密码登录。",
     "consumerRegistrationUnavailable": "客户注册暂时不可用。请稍后重试。",
-    "rateLimited": "尝试次数过多。请稍等片刻后重试。"
+    "rateLimited": "尝试次数过多。请稍等片刻后重试。",
+    "oauthConfiguration": "Google 登录配置无效。请检查服务器上的客户端 ID 和密钥。",
+    "oauthCodeInvalid": "无法完成 Google 登录。请重试。"
   },
   "catalog": {
     "title": "目录",

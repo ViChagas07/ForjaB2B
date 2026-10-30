@@ -162,7 +162,9 @@
     "invalidPostalCode": "郵便番号が無効です。",
     "oauthCompanyAccount": "企業アカウントはメールアドレスとパスワードでのみサインインできます。",
     "consumerRegistrationUnavailable": "お客様登録は一時的にご利用いただけません。しばらくしてからもう一度お試しください。",
-    "rateLimited": "試行回数が多すぎます。しばらく待ってからもう一度お試しください。"
+    "rateLimited": "試行回数が多すぎます。しばらく待ってからもう一度お試しください。",
+    "oauthConfiguration": "Google ログインの設定が無効です。サーバーのクライアント ID とシークレットを確認してください。",
+    "oauthCodeInvalid": "Google ログインを完了できませんでした。もう一度お試しください。"
   },
   "catalog": {
     "title": "カタログ",

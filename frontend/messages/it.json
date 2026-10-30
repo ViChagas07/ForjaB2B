@@ -162,7 +162,9 @@
     "invalidPostalCode": "Codice postale non valido.",
     "oauthCompanyAccount": "Gli account aziendali accedono solo con e-mail e password.",
     "consumerRegistrationUnavailable": "La registrazione dei clienti è temporaneamente non disponibile. Riprova tra poco.",
-    "rateLimited": "Troppi tentativi. Attendi qualche istante e riprova."
+    "rateLimited": "Troppi tentativi. Attendi qualche istante e riprova.",
+    "oauthConfiguration": "La configurazione dell'accesso con Google non è valida. Controlla client ID e secret sul server.",
+    "oauthCodeInvalid": "Impossibile completare l'accesso con Google. Riprova."
   },
   "catalog": {
     "title": "Catalogo",

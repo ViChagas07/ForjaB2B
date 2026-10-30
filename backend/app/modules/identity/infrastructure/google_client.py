@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import httpx
 
+from app.modules.identity.application.errors import OAuthCodeError
 from app.modules.identity.application.ports import GoogleIdentityClient, GoogleUserInfo
 
 _TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"  # noqa: S105 - endpoint publico
@@ -30,26 +31,38 @@ class GoogleIdentityClientImpl(GoogleIdentityClient):
         self._redirect_uri = redirect_uri
 
     async def exchange_authorization_code(self, code: str) -> GoogleUserInfo:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            token_response = await client.post(
-                _TOKEN_ENDPOINT,
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "client_id": self._client_id,
-                    "client_secret": self._client_secret,
-                    "redirect_uri": self._redirect_uri,
-                },
-            )
-            token_response.raise_for_status()
-            access_token = token_response.json()["access_token"]
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                token_response = await client.post(
+                    _TOKEN_ENDPOINT,
+                    data={
+                        "grant_type": "authorization_code",
+                        "code": code,
+                        "client_id": self._client_id,
+                        "client_secret": self._client_secret,
+                        "redirect_uri": self._redirect_uri,
+                    },
+                )
+                if token_response.is_error:
+                    raise OAuthCodeError(reason=_google_error_reason(token_response))
 
-            userinfo_response = await client.get(
-                _USERINFO_ENDPOINT,
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
-            userinfo_response.raise_for_status()
-            data = userinfo_response.json()
+                access_token = token_response.json().get("access_token")
+                if not access_token:
+                    raise OAuthCodeError(reason="missing_access_token")
+
+                userinfo_response = await client.get(
+                    _USERINFO_ENDPOINT,
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                if userinfo_response.is_error:
+                    raise OAuthCodeError(reason="userinfo_error")
+                data = userinfo_response.json()
+        except OAuthCodeError:
+            raise
+        except httpx.HTTPError as exc:
+            raise OAuthCodeError(reason="network_error") from exc
+        except (KeyError, TypeError, ValueError) as exc:
+            raise OAuthCodeError(reason="invalid_provider_response") from exc
 
         return GoogleUserInfo(
             subject=data["sub"],
@@ -57,3 +70,15 @@ class GoogleIdentityClientImpl(GoogleIdentityClient):
             email_verified=bool(data.get("email_verified")),
             name=data.get("name", ""),
         )
+
+
+def _google_error_reason(response: httpx.Response) -> str | None:
+    """Le apenas o codigo de erro publico do Google (nunca a descricao)."""
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    if not isinstance(body, dict):
+        return None
+    reason = body.get("error")
+    return reason if isinstance(reason, str) else None

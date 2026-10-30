@@ -162,7 +162,9 @@
     "invalidPostalCode": "우편번호가 올바르지 않습니다.",
     "oauthCompanyAccount": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다.",
     "consumerRegistrationUnavailable": "고객 등록이 일시적으로 불가능합니다. 잠시 후 다시 시도해 주세요.",
-    "rateLimited": "시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."
+    "rateLimited": "시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+    "oauthConfiguration": "Google 로그인 설정이 올바르지 않습니다. 서버의 클라이언트 ID와 시크릿을 확인하세요.",
+    "oauthCodeInvalid": "Google 로그인을 완료하지 못했습니다. 다시 시도해 주세요."
   },
   "catalog": {
     "title": "카탈로그",

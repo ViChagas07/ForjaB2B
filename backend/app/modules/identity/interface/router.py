@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated, cast
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, urlunparse
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import RedirectResponse
@@ -85,8 +85,43 @@ def _oauth_exchange_usecase(request: Request) -> ExchangeOAuthCode | None:
     return cast(ExchangeOAuthCode | None, request.app.state.oauth_google_exchange)
 
 
+def _normalize_frontend_redirect(
+    configured: str | None, backend_redirect_uri: str | None
+) -> str:
+    """Impede loop de redirect quando a env aponta para o callback da API.
+
+    A pagina do frontend e ``/[locale]/auth/google/callback``. Se a variavel
+    foi configurada por engano como ``/api/v1/auth/google/callback``, o
+    backend redirecionaria para si mesmo em loop. Nesse caso usamos o caminho
+    de pagina no mesmo host; o middleware do Next acrescenta o locale e
+    preserva ``?code``/``?error``. Se o host configurado for o proprio backend
+    (sem uma pagina de frontend), falhamos explicitamente em vez de criar loop.
+    """
+    if not configured:
+        raise OAuthConfigurationError("GOOGLE_OAUTH_FRONTEND_REDIRECT ausente.")
+    parsed = urlparse(configured)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise OAuthConfigurationError("GOOGLE_OAUTH_FRONTEND_REDIRECT invalido.")
+
+    backend_host = urlparse(backend_redirect_uri).hostname if backend_redirect_uri else None
+    if backend_host and parsed.hostname == backend_host:
+        raise OAuthConfigurationError(
+            "GOOGLE_OAUTH_FRONTEND_REDIRECT deve apontar para a pagina do "
+            "frontend (/[locale]/auth/google/callback), nao para a API."
+        )
+
+    if parsed.path.startswith("/api/"):
+        return urlunparse(
+            parsed._replace(path="/auth/google/callback", params="", query="", fragment="")
+        )
+    return configured
+
+
 def _frontend_redirect(request: Request) -> str:
-    return cast(str, request.app.state.settings.google_oauth_frontend_redirect)
+    settings = request.app.state.settings
+    return _normalize_frontend_redirect(
+        settings.google_oauth_frontend_redirect, settings.google_redirect_uri
+    )
 
 
 def _code_redirect(base_url: str, result: GoogleOAuthResult) -> RedirectResponse:
@@ -120,6 +155,12 @@ def _callback_error_code(exc: Exception) -> str:
         return "user_inactive"
     if isinstance(exc, OAuthStateError):
         return "oauth_state_invalid"
+    if isinstance(exc, OAuthCodeError) and exc.reason in {
+        "invalid_client",
+        "unauthorized_client",
+        "redirect_uri_mismatch",
+    }:
+        return "oauth_client_invalid"
     return "oauth_code_invalid"
 
 

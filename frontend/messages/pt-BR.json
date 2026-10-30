@@ -319,7 +319,9 @@
     "invalidPostalCode": "CEP inválido.",
     "oauthCompanyAccount": "Contas empresariais entram somente com e-mail e senha.",
     "consumerRegistrationUnavailable": "O cadastro de cliente está temporariamente indisponível. Tente novamente em instantes.",
-    "rateLimited": "Muitas tentativas. Aguarde alguns instantes e tente novamente."
+    "rateLimited": "Muitas tentativas. Aguarde alguns instantes e tente novamente.",
+    "oauthConfiguration": "A configuração do login com Google está inválida. Verifique o client ID e o secret no servidor.",
+    "oauthCodeInvalid": "Não foi possível concluir o login com Google. Tente novamente."
   },
   "admin": {
     "catalog": {

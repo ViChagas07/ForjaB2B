@@ -15,6 +15,10 @@ export function oauthErrorMessageKey(code: string | null | undefined): string {
       return "error.userInactive";
     case "rate_limited":
       return "error.rateLimited";
+    case "oauth_client_invalid":
+      return "error.oauthConfiguration";
+    case "oauth_code_invalid":
+      return "error.oauthCodeInvalid";
     default:
       return "auth.googleCallbackError";
   }
