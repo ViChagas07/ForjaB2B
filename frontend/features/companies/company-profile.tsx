@@ -1,15 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 
-import { companyApi, useCompanyApi, problemCode } from "@/infrastructure/http";
 import { errorMessageKey } from "@/shared/lib/api-error";
-import { refreshSession } from "@/shared/stores/auth-actions";
-import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
+
+import { useCurrentCompany } from "./use-current-company";
 
 function statusLabelKey(status: string): string {
   switch (status) {
@@ -28,37 +26,7 @@ function statusLabelKey(status: string): string {
 
 export function CompanyProfile() {
   const t = useTranslations();
-  const locale = useLocale();
-  const session = useAuthStore((s) => s.session);
-  const status = useAuthStore((s) => s.status);
-  const { getMe } = useCompanyApi();
-
-  const query = useQuery({
-    queryKey: ["company", "me"],
-    enabled: status === "authenticated" && Boolean(session),
-    queryFn: async () => {
-      const token = useAuthStore.getState().session?.access_token;
-      if (!token) {
-        throw new Error("unauthenticated");
-      }
-      try {
-        return await getMe(token);
-      } catch (error) {
-        // Access token expirado/inválido: rotaciona via refresh (atualiza a
-        // store) e repete a consulta com o token novo. Se o refresh falhar,
-        // a sessão é limpa e o guard da página redireciona ao login.
-        const code = problemCode(error);
-        if (code === "token_expired" || code === "invalid_token") {
-          await refreshSession();
-          const newToken = useAuthStore.getState().session?.access_token;
-          if (newToken) {
-            return getMe(newToken);
-          }
-        }
-        throw error;
-      }
-    },
-  });
+  const query = useCurrentCompany();
 
   if (query.isLoading) {
     return (

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { LogoutButton } from "@/features/auth";
-import { CompanyProfile } from "@/features/companies";
+import { CompanyProfile, useCurrentCompany } from "@/features/companies";
 import { CreditAccountCard } from "@/features/credit";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
@@ -18,6 +18,7 @@ export function DashboardClient() {
   const t = useTranslations();
   const session = useAuthStore((s) => s.session);
   const status = useAuthStore((s) => s.status);
+  const companyQuery = useCurrentCompany();
 
   if (status === "idle") {
     return (
@@ -49,7 +50,14 @@ export function DashboardClient() {
     );
   }
 
-  const isConsumer = (session.user.account_type ?? "COMPANY") === "PERSON";
+  // A sessão pode vir de um login anterior sem account_type; o tenant atual
+  // (/companies/me) é a fonte de verdade e também sincroniza a sessão no hook.
+  const isConsumer =
+    session.user.account_type === "PERSON" || companyQuery.data?.account_type === "PERSON";
+  const showCompanyArea =
+    !isConsumer &&
+    (companyQuery.data?.account_type === "COMPANY" ||
+      (companyQuery.isError && session.user.account_type === "COMPANY"));
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -100,7 +108,7 @@ export function DashboardClient() {
         </div>
       </section>
 
-      {!isConsumer ? (
+      {showCompanyArea ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <CompanyProfile />
           <CreditAccountCard />
