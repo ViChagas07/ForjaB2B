@@ -14,9 +14,11 @@ falhar, o deploy é abortado. Configure no serviço da API:
 1. **Settings → Pre-Deploy Command:** `python scripts/predeploy.py`
 2. **Environment:** `DATABASE_ADMIN_URL` com a URL da role de migrations (`forja_admin`),
    nunca a role de runtime (`forja_app`). Marque como secret.
-3. O script valida a credencial (owner do schema e `CREATE` em `public`), aplica
-   `alembic upgrade head`, confere que a revisão atual é o head e só então retorna 0.
-   Credencial errada ou migration pendente/falha encerram com código 2 e bloqueiam o deploy.
+3. O script valida `CREATE` em `public`, aplica `alembic upgrade head`, confere que a
+   revisão atual é o head e só então retorna 0. Ownership de tabelas existentes é
+   verificado pelo próprio Alembic (transacional): se a role não puder alterar, o erro
+   real aparece no log. Credencial errada ou migration pendente/falha encerram com
+   código 2 e bloqueiam o pre-deploy.
 
 O pre-deploy exige instance type pago no Render. Em plano free, a imagem da API executa
 `scripts/start_api.sh` antes do `uvicorn`: se `DATABASE_ADMIN_URL` estiver presente, aplica

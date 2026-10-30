@@ -104,11 +104,17 @@ async def _preflight(url: str) -> dict[str, object]:
     finally:
         await engine.dispose()
 
+    # Ownership de ``products`` e apenas um proxy: em bancos gerenciados as
+    # tabelas podem ter owners diferentes (produtos por forja_admin, contas por
+    # forja). Nao bloqueamos por isso; o Alembic falha de forma transacional e
+    # o startup segue em modo de compatibilidade. O CREATE e obrigatorio para a
+    # migration 0030, que cria ``consumer_profiles``.
     if row["has_products"] and not row["can_act_as_owner"]:
-        raise PreDeployError(
-            f"O usuario {row['role']!r} nao e owner das tabelas de schema. "
-            "Use a role que criou as tabelas (forja_admin) ou a role owner do "
-            "banco gerenciado (no Render, a role principal do PostgreSQL)."
+        print(
+            f"[predeploy] AVISO: {row['role']!r} nao e owner de products; "
+            "a migration tentara mesmo assim (o erro real do Alembic sera exibido).",
+            file=sys.stderr,
+            flush=True,
         )
     if not row["can_create"]:
         raise PreDeployError(
