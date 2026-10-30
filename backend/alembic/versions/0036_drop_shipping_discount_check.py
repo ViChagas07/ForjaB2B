@@ -22,7 +22,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("ck_orders_shipping_discount_within_shipping", "orders", type_="check")
+    op.drop_constraint("shipping_discount_within_shipping", "orders", type_="check")
 
 
 def downgrade() -> None:

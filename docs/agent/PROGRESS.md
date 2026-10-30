@@ -6,12 +6,19 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## Migrations 0033-0037 aplicadas no Render - 2026-10-30
+
+- **Backup:** `backups/forja_prod_pre_0033_20261030T160946Z.dump` (265.578 bytes, header PGDMP), feito com `pg_dump -Fc` antes da migration. Para o dump, o FORCE RLS foi temporariamente desligado nas 26 tabelas e restaurado em seguida (27 tabelas FORCE agora, incluindo `coupon_redemptions`).
+- **Aplicação:** `alembic upgrade head` no Render `forjab2b`: 0032 -> 0033 -> 0034 -> 0035 -> 0036 -> 0037. A primeira tentativa falhou na 0036 por nome de constraint duplicado; a 0036 foi corrigida (`shipping_discount_within_shipping`) e a cadeia reaplicada com sucesso. `alembic check`: sem novas operações.
+- **Verificação:** `alembic_version=0037`; `coupons`/`coupon_redemptions` existem; `app.coupon_usage_counts(uuid,uuid)` existe; policy `coupon_redemptions_admin_read` existe; 5 colunas de snapshot em `orders`; 3 colunas de perfil em `users`. Acesso temporário de SET ROLE foi removido e a membership original restaurada.
+- **Observação:** o banco apontado pelo `.env` é o Render de produção; a aplicação foi autorizada explicitamente nesta sessão. Nenhum teste E2E/visual foi executado.
+
 ## Perfil e configuracoes da conta - 2026-10-30
 
 - **Backend:** `GET/PATCH /api/v1/account` (nome, telefone, nascimento, genero e CEP), migration `0037_user_account_profile` com colunas opcionais em `users` e fallback para `consumer_profiles`; validacao de idade/CEP/telefone e atualizacao do nome na sessao.
 - **Frontend:** dropdown de perfil sem Carrinho, com Conta e Configuracoes; `/account` com formulario e CEP; `/settings` com tema claro/escuro/sistema, cor de destaque, tamanho de fonte, idioma, privacidade e sobre, persistidos em localStorage. Textos `account`/`settings` nos 11 locales (Settings usa fallback em ingles nos locales nao-pt).
-- **Checagens:** frontend `npm run check` OK (245 testes, 4 warnings pre-existentes); backend full **1039 passed, 381 skipped, 3 failed pre-existentes**; Ruff/mypy/import-linter OK; migration head 0037. **NAO VALIDADO:** Docker/Postgres real, migration aplicada, E2E e visual/RTL.
-- **Pendencias:** aplicar 0037 no banco; validar visual/E2E; revisar traducoes de Settings nos 9 locales com fallback.
+- **Checagens:** frontend `npm run check` OK (245 testes, 4 warnings pre-existentes); backend full **1039 passed, 381 skipped, 3 failed pre-existentes**; Ruff/mypy/import-linter OK; migration head 0037. **NAO VALIDADO:** E2E e visual/RTL. Migration 0037 aplicada no Render em 2026-10-30.
+- **Pendencias:** validar visual/E2E; revisar traducoes de Settings nos 9 locales com fallback.
 
 ## Sistema de cupons � FASE 08: auditoria de seguran�a � 2026-10-30
 
