@@ -129,6 +129,40 @@ export function getCurrencyDisplayName(currency: string, locale: string): string
   }
 }
 
+/** Simbolo compacto da moeda (ex.: R$, $, EUR) no locale da UI. */
+export function getCurrencySymbol(currency: string, locale: string): string {
+  const normalized = normalizeCurrency(currency);
+  try {
+    const parts = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: normalized,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(1);
+    return parts.find((part) => part.type === "currency")?.value ?? normalized;
+  } catch {
+    return normalized;
+  }
+}
+
+/**
+ * Exemplo de taxa unitaria: `1 USD ≈ R$ 5,43`.
+ *
+ * A taxa do backend e BRL -> moeda; para mostrar quantos reais valem 1
+ * unidade da moeda, inverte-se apenas para exibicao.
+ */
+export function formatUnitRateInBrl(
+  currency: string,
+  rates: CurrencyRates | null | undefined,
+  locale: string,
+): string | null {
+  const normalized = normalizeCurrency(currency);
+  if (normalized === DEFAULT_CURRENCY) return null;
+  const rawRate = rates?.[normalized];
+  const rate = rawRate === undefined ? null : toFiniteNumber(rawRate);
+  if (rate === null || rate <= 0) return null;
+  return `1 ${normalized} ≈ ${formatBrl(1 / rate, locale)}`;
+}
+
 export function formatNumber(value: number, locale: string): string {
   try {
     return new Intl.NumberFormat(locale).format(value);

@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.consumer import Gender
 
+DisplayCurrency = Literal["BRL", "USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY"]
+
 
 class LoginRequest(BaseModel):
     """Credenciais de login. Nunca aceitar senha via query string (so no body)."""
@@ -100,6 +102,7 @@ class AccountProfileResponse(BaseModel):
     birth_date: date | None
     gender: Gender | None
     postal_code: str | None
+    display_currency: DisplayCurrency
     account_type: str
     role: str
 
@@ -114,3 +117,19 @@ class UpdateAccountRequest(BaseModel):
     birth_date: date | None = None
     gender: Gender | None = None
     postal_code: str | None = Field(default=None, max_length=9)
+
+
+class AccountPreferencesRequest(BaseModel):
+    """Preferencias visuais persistidas no perfil (sem dados financeiros)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_currency: DisplayCurrency
+
+
+class AccountPreferencesResponse(BaseModel):
+    """Confirmacao da preferencia persistida."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_currency: DisplayCurrency

@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.application.ports.tenant import TenantContext
 from app.domain.consumer import Gender
+from app.domain.currency import normalize_currency
 from app.infrastructure.db.models.identity import ConsumerProfile, User
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.identity.application.ports import AccountRecord
@@ -86,6 +87,31 @@ class SqlAlchemyAccountRepository:
             await uow.commit()
         return _record(user, profile, account_type)
 
+    async def update_display_currency(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        display_currency: str,
+    ) -> AccountRecord | None:
+        tenant = TenantContext(company_id=company_id, user_id=user_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            row = (
+                await uow.session.execute(
+                    select(User, ConsumerProfile, _COMPANIES.c.account_type)
+                    .outerjoin(ConsumerProfile, ConsumerProfile.user_id == User.id)
+                    .join(_COMPANIES, _COMPANIES.c.id == User.company_id)
+                    .where(User.id == user_id, User.company_id == company_id)
+                )
+            ).first()
+            if row is None:
+                await uow.commit()
+                return None
+            user, profile, account_type = row
+            user.display_currency = normalize_currency(display_currency)
+            await uow.commit()
+        return _record(user, profile, account_type)
+
 
 def _record(user: User, profile: ConsumerProfile | None, account_type: object) -> AccountRecord:
     return AccountRecord(
@@ -96,5 +122,6 @@ def _record(user: User, profile: ConsumerProfile | None, account_type: object) -
         birth_date=user.birth_date or (profile.birth_date if profile is not None else None),
         gender=user.gender or (profile.gender if profile is not None else None),
         postal_code=user.postal_code or (profile.postal_code if profile is not None else None),
+        display_currency=user.display_currency,
         account_type=str(account_type),
     )

@@ -14,36 +14,22 @@ from datetime import date, datetime
 from decimal import Decimal
 from types import MappingProxyType
 
-BASE_CURRENCY = "BRL"
-DEFAULT_CURRENCY = BASE_CURRENCY
-
-SUPPORTED_CURRENCIES: tuple[str, ...] = (
-    "BRL",
-    "USD",
-    "EUR",
-    "GBP",
-    "CAD",
-    "AUD",
-    "JPY",
-    "CNY",
+from app.domain.currency import (
+    BASE_CURRENCY,
+    DEFAULT_CURRENCY,
+    QUOTE_CURRENCIES,
+    SUPPORTED_CURRENCIES,
+    normalize_currency,
 )
 
-QUOTE_CURRENCIES: tuple[str, ...] = tuple(
-    code for code in SUPPORTED_CURRENCIES if code != BASE_CURRENCY
-)
-
-
-def normalize_currency(value: str | None) -> str:
-    """Devolve a moeda quando ela pertence a lista fechada; senao BRL.
-
-    O fallback tambem cobre ausencia, caixa diferente e espacos acidentais.
-    """
-    if value is None:
-        return DEFAULT_CURRENCY
-    candidate = value.strip().upper()
-    if candidate in SUPPORTED_CURRENCIES:
-        return candidate
-    return DEFAULT_CURRENCY
+__all__ = [
+    "BASE_CURRENCY",
+    "DEFAULT_CURRENCY",
+    "QUOTE_CURRENCIES",
+    "SUPPORTED_CURRENCIES",
+    "FxRates",
+    "normalize_currency",
+]
 
 
 @dataclass(frozen=True, kw_only=True)

@@ -20,7 +20,7 @@ import { HomeCatalogSections, HomeCatalogSkeleton } from "./home-catalog-section
 import { Link } from "@/i18n/navigation";
 import { SiteFooter } from "@/shared/components/site-footer";
 import { SiteHeader } from "@/shared/components/site-header";
-import { DEFAULT_CURRENCY, formatMoney, formatNumber } from "@/shared/lib/money";
+import { formatBrl, formatNumber } from "@/shared/lib/money";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 
@@ -161,7 +161,7 @@ export default async function HomePage() {
                       <CreditCard aria-hidden="true" className="h-4 w-4 text-primary" />
                     </div>
                     <p className="mt-2 text-2xl font-bold tracking-tight text-white">
-                      {formatMoney("50000", DEFAULT_CURRENCY, locale)}
+                      {formatBrl("50000", locale)}
                     </p>
                     <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
                       <div className="h-full w-[36%] rounded-full bg-primary" />

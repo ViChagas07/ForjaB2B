@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import {
   Check,
+  Coins,
   Database,
   Globe2,
   Info,
@@ -13,6 +14,7 @@ import {
   Sun,
 } from "lucide-react";
 
+import { CurrencySettingsSection } from "@/features/currency/currency-settings-section";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { isRtlLocale, localeFlags, localeLabels, locales, type Locale } from "@/i18n/locales";
 import { cn } from "@/shared/lib/utils";
@@ -44,6 +46,7 @@ const FONT_OPTIONS: Array<{ value: FontSize; key: string }> = [
 const NAV = [
   { id: "appearance", icon: Palette, key: "appearance" },
   { id: "language", icon: Globe2, key: "language" },
+  { id: "currency", icon: Coins, key: "currency" },
   { id: "privacy", icon: ShieldCheck, key: "privacy" },
   { id: "about", icon: Info, key: "about" },
 ] as const;
@@ -231,6 +234,8 @@ export function SettingsClient() {
             </CardContent>
           </Card>
         </section>
+
+        <CurrencySettingsSection />
 
         <section id="privacy" className="scroll-mt-24 space-y-4">
           <h2 className="text-xl font-bold">{t("privacy")}</h2>

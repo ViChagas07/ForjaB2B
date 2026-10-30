@@ -20,6 +20,14 @@
 - **Checagens reais:** frontend `npm run check` **274 passed** (26 novos), typecheck/lint/format/depcruise OK; `npm run build` com `BACKEND_URL` OK (rotas do locale passam a ser dinamicas por causa de `cookies()`). Sem mudanca de backend nesta fase.
 - **NAO VALIDADO / pendencias:** sem E2E/hydration em navegador real e sem backend/Redis reais no layout; a UI de selecao em Configuracoes e a migracao das telas de produto/carrinho/checkout ficam para as proximas fases; o perfil no backend nao foi alterado porque nao ha persistencia de preferencias hoje.
 
+## Moeda de exibicao - FASE 03: Configuracoes e precos - 2026-10-30
+
+- **Configuracoes:** item "Moeda" entre Idioma e Privacidade (icone Coins, ancora #currency), secao com grade de 2 colunas das 8 moedas (codigo, nome via Intl.DisplayNames, simbolo, check e borda primary), radiogroup com setas/Home/End e inversao RTL, estados stale/indisponivel, fonte/data de referencia e exemplo "1 USD aprox. R$ ...". Textos nos 11 locales.
+- **Persistencia:** cookie `forja_currency` + `PATCH /api/v1/account/preferences`; coluna `users.display_currency` (migration 0038, default BRL e check da lista fechada) no perfil. `CurrencyProfileSync` persiste best-effort quando autenticado. Cobranca e calculos continuam em BRL; nenhum campo de moeda entra em pedido/pagamento.
+- **Precos:** `PriceDisplay` e `RateDisclosure` centralizados; catalogo/cards com convertido e aprox.; produto/carrinho com convertido principal e "Cobranca em R$" secundario; checkout/pedidos/painel com R$ principal e convertido secundario; tudo via `formatMoney`/`formatBrl`. Telas admin seguem em BRL.
+- **Checagens reais:** frontend `npm run check` **291 passed**, typecheck/lint/format/depcruise OK, `npm run build` OK; backend mypy **383** e ruff OK; integracao de conta/persistencia/migrations **49 passed**. A suite backend completa ainda tem falhas pre-existentes de isolamento/seguranca que a Fase 04 vai separar.
+- **NAO VALIDADO:** visual nos 3 temas e cores de destaque, RTL em navegador real, Stripe real e E2E; o perfil so sincroniza quando autenticado e o bootstrap do SSR continua vindo do cookie.
+
 ## Migrations 0033-0037 aplicadas no Render - 2026-10-30
 
 - **Backup:** `backups/forja_prod_pre_0033_20261030T160946Z.dump` (265.578 bytes, header PGDMP), feito com `pg_dump -Fc` antes da migration. Para o dump, o FORCE RLS foi temporariamente desligado nas 26 tabelas e restaurado em seguida (27 tabelas FORCE agora, incluindo `coupon_redemptions`).

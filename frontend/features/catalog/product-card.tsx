@@ -78,7 +78,6 @@ export function ProductCard({ product, className }: ProductCardProps) {
           <div>
             <CatalogPrice
               amount={product.base_unit_price}
-              currency={product.currency}
               priceOnRequest={product.price_on_request}
               className="text-xl font-bold tracking-tight"
             />

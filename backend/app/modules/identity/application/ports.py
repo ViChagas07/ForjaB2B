@@ -58,6 +58,7 @@ class AccountRecord:
     birth_date: date | None
     gender: Gender | None
     postal_code: str | None
+    display_currency: str
     account_type: str
 
 
@@ -79,6 +80,15 @@ class AccountRepository(Protocol):
         postal_code: str | None,
     ) -> AccountRecord | None:
         """Atualiza nome/telefone/perfil pessoal; None se o usuario sumiu."""
+
+    async def update_display_currency(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        display_currency: str,
+    ) -> AccountRecord | None:
+        """Atualiza somente a moeda de exibicao; None se o usuario sumiu."""
 
 
 class PasswordHasher(Protocol):

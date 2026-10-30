@@ -15,6 +15,8 @@ from app.modules.identity.application.account import (
     GetAccount,
     UpdateAccount,
     UpdateAccountCommand,
+    UpdateAccountCurrency,
+    UpdateAccountCurrencyCommand,
 )
 from app.modules.identity.application.errors import (
     AccountNotFoundError,
@@ -42,6 +44,7 @@ def _record(**overrides: Any) -> AccountRecord:
         birth_date=date(1990, 1, 1),
         gender=Gender.PREFIRO_NAO_INFORMAR,
         postal_code="01310100",
+        display_currency="BRL",
         account_type="COMPANY",
     )
     return replace(base, **overrides)
@@ -65,7 +68,15 @@ class FakeRepository:
             birth_date=kwargs["birth_date"] or self.record.birth_date,
             gender=kwargs["gender"] or self.record.gender,
             postal_code=kwargs["postal_code"] or self.record.postal_code,
+            display_currency=self.record.display_currency,
         )
+
+    async def update_display_currency(self, **kwargs: Any) -> AccountRecord | None:
+        if self.record is None:
+            return None
+        self.last_update = kwargs
+        self.record = replace(self.record, display_currency=kwargs["display_currency"])
+        return self.record
 
 
 async def test_get_account_devolve_perfil() -> None:
@@ -140,4 +151,37 @@ async def test_update_de_usuario_ausente_404() -> None:
     with pytest.raises(AccountNotFoundError):
         await UpdateAccount(repository=FakeRepository(None), today=_TODAY).execute(
             _AUTH, UpdateAccountCommand(full_name="Nome")
+        )
+
+
+async def test_moeda_de_exibicao_e_normalizada_e_persistida() -> None:
+    repository = FakeRepository(_record())
+    result = await UpdateAccountCurrency(repository=repository).execute(
+        _AUTH, UpdateAccountCurrencyCommand(display_currency=" usd ")
+    )
+
+    assert result.display_currency == "USD"
+    assert repository.last_update is not None
+    assert repository.last_update["display_currency"] == "USD"
+
+
+async def test_moeda_fora_da_lista_cai_em_brl() -> None:
+    repository = FakeRepository(_record(display_currency="USD"))
+    result = await UpdateAccountCurrency(repository=repository).execute(
+        _AUTH, UpdateAccountCurrencyCommand(display_currency="CHF")
+    )
+
+    assert result.display_currency == "BRL"
+
+    repository = FakeRepository(_record(display_currency="USD"))
+    result = await UpdateAccountCurrency(repository=repository).execute(
+        _AUTH, UpdateAccountCurrencyCommand(display_currency="")
+    )
+    assert result.display_currency == "BRL"
+
+
+async def test_moeda_de_usuario_ausente_404() -> None:
+    with pytest.raises(AccountNotFoundError):
+        await UpdateAccountCurrency(repository=FakeRepository(None)).execute(
+            _AUTH, UpdateAccountCurrencyCommand(display_currency="USD")
         )

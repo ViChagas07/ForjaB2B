@@ -37,5 +37,9 @@ describe("paymentApi.initiate", () => {
     expect(body.idempotency_key).toBeUndefined();
     expect(body.order_id).toBe("order-1");
     expect(body.method).toBe("PIX");
+    expect(body).not.toHaveProperty("currency");
+    expect(body).not.toHaveProperty("display_currency");
+    expect(body).not.toHaveProperty("rates");
+    expect(Object.keys(body).sort()).toEqual(["method", "order_id"]);
   });
 });

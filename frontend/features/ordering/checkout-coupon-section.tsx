@@ -4,7 +4,7 @@ import * as React from "react";
 import { Loader2, Tag, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
-import { DEFAULT_CURRENCY, formatMoney } from "@/shared/lib/money";
+import { formatBrl } from "@/shared/lib/money";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -142,10 +142,7 @@ export function CheckoutCouponSection({
           {error ? (
             <p id="checkout-coupon-error" role="alert" className="text-xs text-destructive">
               {t(errorMessageKey(error), {
-                amount:
-                  error.missingAmount != null
-                    ? formatMoney(error.missingAmount, DEFAULT_CURRENCY, locale)
-                    : "",
+                amount: error.missingAmount != null ? formatBrl(error.missingAmount, locale) : "",
               })}
             </p>
           ) : null}

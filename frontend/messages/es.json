@@ -1015,6 +1015,16 @@
       "yellow": "Amarillo",
       "green": "Verde bosque",
       "cyan": "Cian"
-    }
+    },
+    "currency": "Moneda",
+    "currencyDescription": "Elige en qué moneda ver los precios. El cobro siempre se realiza en reales (BRL)."
+  },
+  "currency": {
+    "rateDisclosure": "Tasas: {source}, fecha de referencia {date}. Se actualizan cada 12 horas.",
+    "rateStale": "La tasa puede estar desactualizada.",
+    "chargeIn": "Cobro en {value}",
+    "approximate": "Los valores convertidos son aproximados.",
+    "chargesInBrl": "El cobro siempre es en R$ (BRL).",
+    "unavailable": "Conversión no disponible. Los precios se mantienen en R$."
   }
 }

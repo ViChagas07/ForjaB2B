@@ -6,6 +6,7 @@ import { getMessages, getTranslations } from "next-intl/server";
 
 import "@/app/globals.css";
 import { buildCurrencyBootstrap } from "@/core/domain/currency";
+import { CurrencyProfileSync } from "@/features/currency/currency-profile-sync";
 import { getFxRatesForServer } from "@/features/currency/server-rates";
 import { directionForLocale, isLocale, locales } from "@/i18n/locales";
 import { CURRENCY_COOKIE_NAME, readCurrencyCookieValue } from "@/shared/lib/currency-cookie";
@@ -69,7 +70,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           {t("skipToContent")}
         </a>
         <NextIntlClientProvider messages={messages}>
-          <Providers initialCurrency={initialCurrency}>{children}</Providers>
+          <Providers initialCurrency={initialCurrency}>
+            <CurrencyProfileSync />
+            {children}
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -127,7 +127,11 @@ from app.modules.credit.infrastructure.repository import SqlAlchemyCreditReposit
 from app.modules.fx.application.get_rates import GetFxRates
 from app.modules.fx.infrastructure.cache import RedisFxRateCache
 from app.modules.fx.infrastructure.frankfurter import FrankfurterFxRateProvider
-from app.modules.identity.application.account import GetAccount, UpdateAccount
+from app.modules.identity.application.account import (
+    GetAccount,
+    UpdateAccount,
+    UpdateAccountCurrency,
+)
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
@@ -639,6 +643,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     account_repository = SqlAlchemyAccountRepository(app.state.uow_factory)
     app.state.account_get = GetAccount(repository=account_repository)
     app.state.account_update = UpdateAccount(repository=account_repository)
+    app.state.account_update_currency = UpdateAccountCurrency(repository=account_repository)
 
     # Composicao do OAuth Google (redirect tradicional). So e montado quando a
     # configuracao esta completa; ausente, os endpoints retornam 503 e o

@@ -1015,6 +1015,16 @@
       "yellow": "Jaune",
       "green": "Vert",
       "cyan": "Cyan"
-    }
+    },
+    "currency": "Devise",
+    "currencyDescription": "Choisissez la devise d'affichage des prix. Le paiement est toujours effectué en réais brésiliens (BRL)."
+  },
+  "currency": {
+    "rateDisclosure": "Taux : {source}, date de référence {date}. Mis à jour toutes les 12 heures.",
+    "rateStale": "Le taux peut être obsolète.",
+    "chargeIn": "Paiement en {value}",
+    "approximate": "Les valeurs converties sont approximatives.",
+    "chargesInBrl": "Le paiement est toujours en R$ (BRL).",
+    "unavailable": "Conversion indisponible. Les prix restent en R$."
   }
 }

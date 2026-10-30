@@ -52,6 +52,10 @@ class User(TimestampMixin, Base):
             "postal_code IS NULL OR postal_code ~ '^[0-9]{8}$'",
             name="postal_code_format",
         ),
+        CheckConstraint(
+            "display_currency IN ('BRL', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY')",
+            name="display_currency",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -68,6 +72,11 @@ class User(TimestampMixin, Base):
         Enum(Gender, native_enum=False, create_constraint=False, length=24)
     )
     postal_code: Mapped[str | None] = mapped_column(String(8))
+    # Preferencia de EXIBICAO. A cobranca e sempre em BRL; a coluna so
+    # preserva a escolha do usuario entre sessoes/dispositivos.
+    display_currency: Mapped[str] = mapped_column(
+        String(3), nullable=False, default="BRL", server_default=text("'BRL'")
+    )
     # WhatsApp (Fase 3, recuperacao de carrinho): opt-in EXPLICITO do usuario.
     # Nulo/falso = NUNCA enviar. `whatsapp_phone` e o numero E.164 confirmado.
     whatsapp_phone: Mapped[str | None] = mapped_column(String(20))

@@ -54,6 +54,16 @@ describe("orderingApi.create", () => {
     expect(body.idempotency_key).toBeUndefined();
     expect(body.payment_method).toBe("BOLETO");
     expect(body.coupon_code).toBe("FORJA-ABC123");
+    expect(body).not.toHaveProperty("currency");
+    expect(body).not.toHaveProperty("display_currency");
+    expect(body).not.toHaveProperty("rates");
+    expect(Object.keys(body).sort()).toEqual([
+      "coupon_code",
+      "items",
+      "notes",
+      "payment_method",
+      "po_number",
+    ]);
     expect(result.id).toBe("o-1");
   });
 });

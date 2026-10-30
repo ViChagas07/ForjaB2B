@@ -1015,6 +1015,16 @@
       "yellow": "Yellow",
       "green": "Green",
       "cyan": "Cyan"
-    }
+    },
+    "currency": "Currency",
+    "currencyDescription": "Choose which currency to display prices in. Charges are always in Brazilian reais (BRL)."
+  },
+  "currency": {
+    "rateDisclosure": "Rates: {source}, reference date {date}. Updated every 12 hours.",
+    "rateStale": "The rate may be out of date.",
+    "chargeIn": "Charged in {value}",
+    "approximate": "Converted values are approximate.",
+    "chargesInBrl": "Charges are always in R$ (BRL).",
+    "unavailable": "Conversion unavailable. Prices remain in R$."
   }
 }

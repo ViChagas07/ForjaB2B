@@ -6,7 +6,8 @@ import { ArrowLeft } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import type { OrderStatus } from "@/core/domain/ordering";
-import { formatDate, formatMoney, DEFAULT_CURRENCY } from "@/shared/lib/money";
+import { formatBrl, formatDate } from "@/shared/lib/money";
+import { PriceDisplay } from "@/shared/components/price-display";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -121,9 +122,7 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
                   ({item.sku}) × {item.quantity}
                 </span>
               </div>
-              <span className="font-medium">
-                {formatMoney(item.line_total, DEFAULT_CURRENCY, locale)}
-              </span>
+              <span className="font-medium">{formatBrl(item.line_total, locale)}</span>
             </div>
           ))}
         </CardContent>
@@ -133,11 +132,11 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
         <CardContent className="grid gap-2 py-6 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("ordering.subtotal")}</span>
-            <span>{formatMoney(order.subtotal, DEFAULT_CURRENCY, locale)}</span>
+            <span>{formatBrl(order.subtotal, locale)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("ordering.discountTotal")}</span>
-            <span>{formatMoney(order.discount_total, DEFAULT_CURRENCY, locale)}</span>
+            <span>{formatBrl(order.discount_total, locale)}</span>
           </div>
           {order.coupon_code && Number(order.coupon_discount_amount ?? "0") > 0 ? (
             <div className="flex justify-between" data-testid="order-coupon-line">
@@ -145,7 +144,7 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
                 {t("ordering.coupon.orderCoupon", { code: order.coupon_code })}
               </span>
               <span className="text-success">
-                {formatMoney(`-${order.coupon_discount_amount}`, DEFAULT_CURRENCY, locale)}
+                {formatBrl(`-${order.coupon_discount_amount}`, locale)}
               </span>
             </div>
           ) : null}
@@ -157,21 +156,26 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
                 })}
               </span>
               <span className="text-success">
-                {formatMoney(`-${order.shipping_discount_amount}`, DEFAULT_CURRENCY, locale)}
+                {formatBrl(`-${order.shipping_discount_amount}`, locale)}
               </span>
             </div>
           ) : null}
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("ordering.shippingTotal")}</span>
-            <span>{formatMoney(order.shipping_total, DEFAULT_CURRENCY, locale)}</span>
+            <span>{formatBrl(order.shipping_total, locale)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("ordering.taxTotal")}</span>
-            <span>{formatMoney(order.tax_total, DEFAULT_CURRENCY, locale)}</span>
+            <span>{formatBrl(order.tax_total, locale)}</span>
           </div>
           <div className="flex justify-between border-t pt-2 text-base font-semibold">
             <span>{t("ordering.total")}</span>
-            <span>{formatMoney(order.total, DEFAULT_CURRENCY, locale)}</span>
+            <PriceDisplay
+              amount={order.total}
+              primary="brl"
+              showSecondary
+              className="text-end text-base font-semibold"
+            />
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{t("ordering.createdAt")}</span>

@@ -12,8 +12,10 @@ import { PAYMENT_METHODS } from "@/core/domain/ordering";
 import { Link } from "@/i18n/navigation";
 import { problemCode } from "@/infrastructure/http";
 import { ProductImage } from "@/shared/components/product-image";
+import { PriceDisplay } from "@/shared/components/price-display";
+import { RateDisclosure } from "@/shared/components/rate-disclosure";
 import { errorMessageKey } from "@/shared/lib/api-error";
-import { DEFAULT_CURRENCY, formatMoney } from "@/shared/lib/money";
+import { formatBrl } from "@/shared/lib/money";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
@@ -113,7 +115,6 @@ export function CheckoutView({
 
   const preview = coupon.preview;
   const isBoleto = paymentMethod === "BOLETO";
-  const currency = preview?.currency ?? DEFAULT_CURRENCY;
   const subtotal = preview?.subtotal ?? cart.subtotal;
   const shippingTotal = preview?.shipping_total ?? null;
   const shippingDiscount = preview?.shipping_discount ?? "0.00";
@@ -195,11 +196,11 @@ export function CheckoutView({
                       <p className="line-clamp-2 text-sm font-semibold">{item.name}</p>
                       <p className="mt-1 font-mono text-[11px] text-muted-foreground">
                         {t("catalog.sku")}: {item.sku} · {item.quantity} ×{" "}
-                        {formatMoney(item.unit_price, DEFAULT_CURRENCY, locale)}
+                        {formatBrl(item.unit_price, locale)}
                       </p>
                     </div>
                     <span className="shrink-0 text-sm font-bold">
-                      {formatMoney(item.line_total, DEFAULT_CURRENCY, locale)}
+                      {formatBrl(item.line_total, locale)}
                     </span>
                   </div>
                 ))}
@@ -291,7 +292,7 @@ export function CheckoutView({
                   <div className="flex items-center justify-between">
                     <dt className="text-muted-foreground">{t("ordering.subtotal")}</dt>
                     <dd className="font-semibold" data-testid="checkout-subtotal">
-                      {formatMoney(subtotal, currency, locale)}
+                      {formatBrl(subtotal, locale)}
                     </dd>
                   </div>
                   {hasRecovery ? (
@@ -300,7 +301,7 @@ export function CheckoutView({
                         {t("ordering.coupon.recoveryDiscount")}
                       </dt>
                       <dd className="font-semibold text-success">
-                        {formatMoney(`-${recoveryDiscount}`, currency, locale)}
+                        {formatBrl(`-${recoveryDiscount}`, locale)}
                       </dd>
                     </div>
                   ) : null}
@@ -312,7 +313,7 @@ export function CheckoutView({
                         })}
                       </dt>
                       <dd className="font-semibold text-success" data-testid="checkout-coupon-line">
-                        {formatMoney(`-${couponDiscount}`, currency, locale)}
+                        {formatBrl(`-${couponDiscount}`, locale)}
                       </dd>
                     </div>
                   ) : null}
@@ -323,11 +324,11 @@ export function CheckoutView({
                         ? "—"
                         : isFreeShipping
                           ? t("ordering.coupon.freeShipping")
-                          : formatMoney(shippingTotal, currency, locale)}
+                          : formatBrl(shippingTotal, locale)}
                       {hasShippingDiscount && !isFreeShipping ? (
                         <span className="block text-[11px] font-normal text-success">
                           {t("ordering.coupon.shippingDiscount", {
-                            amount: formatMoney(shippingDiscount, currency, locale),
+                            amount: formatBrl(shippingDiscount, locale),
                           })}
                         </span>
                       ) : null}
@@ -337,7 +338,7 @@ export function CheckoutView({
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">{t("ordering.coupon.pixDiscount")}</dt>
                       <dd className="font-semibold text-success" data-testid="checkout-pix">
-                        {formatMoney(`-${pixDiscount}`, currency, locale)}
+                        {formatBrl(`-${pixDiscount}`, locale)}
                       </dd>
                     </div>
                   ) : null}
@@ -345,7 +346,7 @@ export function CheckoutView({
                     <div className="flex items-center justify-between">
                       <dt className="text-muted-foreground">{t("credit.available")}</dt>
                       <dd className="font-semibold" data-testid="credit-available">
-                        {formatMoney(credit.available, currency, locale)}
+                        {formatBrl(credit.available, locale)}
                       </dd>
                     </div>
                   ) : null}
@@ -355,10 +356,12 @@ export function CheckoutView({
                       className="text-end text-xl font-black tracking-tight"
                       data-testid="checkout-total"
                     >
-                      {formatMoney(total, currency, locale)}
+                      <PriceDisplay amount={total} primary="brl" showSecondary />
                     </dd>
                   </div>
                 </dl>
+
+                <RateDisclosure className="mt-4" />
 
                 {orderError && !couponOrderError ? (
                   <Alert variant="destructive">
@@ -399,15 +402,11 @@ export function CheckoutView({
                 <dl className="mt-3 space-y-2 text-xs">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">{t("credit.limit")}</dt>
-                    <dd className="font-semibold">
-                      {formatMoney(credit.credit_limit, DEFAULT_CURRENCY, locale)}
-                    </dd>
+                    <dd className="font-semibold">{formatBrl(credit.credit_limit, locale)}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">{t("credit.used")}</dt>
-                    <dd className="font-semibold">
-                      {formatMoney(credit.used, DEFAULT_CURRENCY, locale)}
-                    </dd>
+                    <dd className="font-semibold">{formatBrl(credit.used, locale)}</dd>
                   </div>
                 </dl>
               </div>

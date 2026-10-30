@@ -2,7 +2,8 @@
 
 import { useLocale, useTranslations } from "next-intl";
 
-import { formatDate, formatMoney, DEFAULT_CURRENCY } from "@/shared/lib/money";
+import { formatBrl, formatDate } from "@/shared/lib/money";
+import { PriceDisplay } from "@/shared/components/price-display";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -55,19 +56,19 @@ export function CreditAccountCard() {
         <div>
           <p className="text-sm text-muted-foreground">{t("credit.available")}</p>
           <p className="text-xl font-semibold">
-            {formatMoney(account.available, DEFAULT_CURRENCY, locale)}
+            <PriceDisplay amount={account.available} primary="brl" showSecondary />
           </p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">{t("credit.limit")}</p>
           <p className="text-xl font-semibold">
-            {formatMoney(account.credit_limit, DEFAULT_CURRENCY, locale)}
+            <PriceDisplay amount={account.credit_limit} primary="brl" showSecondary />
           </p>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">{t("credit.used")}</p>
           <p className="text-xl font-semibold">
-            {formatMoney(account.used, DEFAULT_CURRENCY, locale)}
+            <PriceDisplay amount={account.used} primary="brl" showSecondary />
           </p>
         </div>
       </CardContent>
@@ -118,7 +119,7 @@ export function CreditEntriesList() {
               ) : null}
             </div>
             <div className="text-end">
-              <p className="font-semibold">{formatMoney(entry.amount, DEFAULT_CURRENCY, locale)}</p>
+              <p className="font-semibold">{formatBrl(entry.amount, locale)}</p>
               <p className="text-xs text-muted-foreground">
                 {formatDate(entry.created_at, locale)}
               </p>

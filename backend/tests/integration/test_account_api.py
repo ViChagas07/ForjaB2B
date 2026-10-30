@@ -102,6 +102,7 @@ async def test_get_account(account_client: httpx.AsyncClient) -> None:
     assert body["email"] == _EMAIL
     assert body["postal_code"] == "01310100"
     assert body["birth_date"] == "1990-01-01"
+    assert body["display_currency"] == "BRL"
 
 
 async def test_update_account(account_client: httpx.AsyncClient, pg: PostgresInstance) -> None:
@@ -142,3 +143,39 @@ async def test_update_account_cep_invalido(
     )
     assert response.status_code == 422
     assert response.json()["type"] == "urn:forja:problem:invalid_account_profile"
+
+
+async def test_update_account_preferences(
+    account_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    response = await account_client.patch(
+        "/api/v1/account/preferences",
+        json={"display_currency": "USD"},
+    )
+    assert response.status_code == 200
+    assert response.json()["display_currency"] == "USD"
+
+    profile = await account_client.get("/api/v1/account")
+    assert profile.status_code == 200
+    assert profile.json()["display_currency"] == "USD"
+
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY, _USER))
+        row = conn.execute(
+            "SELECT display_currency FROM users WHERE id = %s", (_USER,)
+        ).fetchone()
+        conn.commit()
+    finally:
+        conn.close()
+    assert row is not None and row[0] == "USD"
+
+
+async def test_update_account_preferences_moeda_invalida(
+    account_client: httpx.AsyncClient,
+) -> None:
+    response = await account_client.patch(
+        "/api/v1/account/preferences",
+        json={"display_currency": "CHF"},
+    )
+    assert response.status_code == 422

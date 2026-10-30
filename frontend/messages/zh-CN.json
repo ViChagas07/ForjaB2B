@@ -1015,6 +1015,16 @@
       "yellow": "黄色",
       "green": "绿色",
       "cyan": "青色"
-    }
+    },
+    "currency": "货币",
+    "currencyDescription": "选择显示价格所用的货币。付款始终以巴西雷亚尔（BRL）结算。"
+  },
+  "currency": {
+    "rateDisclosure": "汇率：{source}，参考日期 {date}。每 12 小时更新。",
+    "rateStale": "汇率可能已过时。",
+    "chargeIn": "以 {value} 结算",
+    "approximate": "换算金额为近似值。",
+    "chargesInBrl": "付款始终以 R$（BRL）结算。",
+    "unavailable": "无法换算。价格仍以 R$ 显示。"
   }
 }

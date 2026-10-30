@@ -22,6 +22,23 @@ export interface paths {
         patch: operations["update_account_api_v1_account_patch"];
         trace?: never;
     };
+    "/api/v1/account/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Atualizar preferencias do perfil */
+        patch: operations["update_preferences_api_v1_account_preferences_patch"];
+        trace?: never;
+    };
     "/api/v1/admin/catalog/categories/{category_slug}/attributes": {
         parameters: {
             query?: never;
@@ -1138,6 +1155,28 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AccountPreferencesRequest
+         * @description Preferencias visuais persistidas no perfil (sem dados financeiros).
+         */
+        AccountPreferencesRequest: {
+            /**
+             * Display Currency
+             * @enum {string}
+             */
+            display_currency: "BRL" | "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY";
+        };
+        /**
+         * AccountPreferencesResponse
+         * @description Confirmacao da preferencia persistida.
+         */
+        AccountPreferencesResponse: {
+            /**
+             * Display Currency
+             * @enum {string}
+             */
+            display_currency: "BRL" | "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY";
+        };
+        /**
          * AccountProfileResponse
          * @description Perfil da conta autenticada (e-mail somente leitura).
          */
@@ -1146,6 +1185,11 @@ export interface components {
             account_type: string;
             /** Birth Date */
             birth_date: string | null;
+            /**
+             * Display Currency
+             * @enum {string}
+             */
+            display_currency: "BRL" | "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY";
             /** Email */
             email: string;
             /** Full Name */
@@ -3481,6 +3525,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountProfileResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_preferences_api_v1_account_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPreferencesResponse"];
                 };
             };
             /** @description Requisicao invalida ou corpo recusado. */

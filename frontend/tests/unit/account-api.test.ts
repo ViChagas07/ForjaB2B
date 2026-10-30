@@ -11,6 +11,7 @@ const PROFILE = {
   birth_date: "1990-01-01",
   gender: "MASCULINO",
   postal_code: "01310100",
+  display_currency: "BRL",
   account_type: "COMPANY",
   role: "BUYER",
 };
@@ -60,5 +61,21 @@ describe("accountApi", () => {
       full_name: "Novo Nome",
       postal_code: "01310100",
     });
+  });
+
+  it("persiste a moeda de exibicao em PATCH /account/preferences", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ display_currency: "USD" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await accountApi.updatePreferences(TOKEN, "USD");
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(String(url)).toContain("/api/v1/account/preferences");
+    expect(init?.method).toBe("PATCH");
+    expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer account-token");
+    expect(JSON.parse(String(init?.body))).toEqual({ display_currency: "USD" });
+    expect(result.display_currency).toBe("USD");
   });
 });

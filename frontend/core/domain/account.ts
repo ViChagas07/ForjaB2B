@@ -3,6 +3,8 @@
  * leitura (nao ha troca de e-mail neste fluxo).
  */
 
+import type { CurrencyCode } from "./currency";
+
 export const GENDERS = [
   "FEMININO",
   "MASCULINO",
@@ -21,8 +23,13 @@ export interface AccountProfile {
   birth_date: string | null;
   gender: Gender | null;
   postal_code: string | null;
+  display_currency: CurrencyCode;
   account_type: "PERSON" | "COMPANY";
   role: string;
+}
+
+export interface AccountPreferences {
+  display_currency: CurrencyCode;
 }
 
 export interface UpdateAccountInput {

@@ -49,7 +49,6 @@ export function ChatProductCardView({ card }: { card: ChatProductCard }) {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <CatalogPrice
             amount={card.price}
-            currency={card.currency}
             priceOnRequest={card.price_on_request}
             className="text-sm font-bold tracking-tight"
           />

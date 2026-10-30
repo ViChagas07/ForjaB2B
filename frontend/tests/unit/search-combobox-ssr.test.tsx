@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { buildCurrencyBootstrap } from "@/core/domain/currency";
+import { CurrencyProvider } from "@/shared/components/currency-provider";
 import { SearchCombobox } from "@/shared/components/search-combobox/search-combobox";
 import { ProductPreviewList } from "@/shared/components/search-combobox/product-preview-list";
 import { SuggestionList } from "@/shared/components/search-combobox/suggestion-list";
@@ -116,15 +118,17 @@ describe("SuggestionList (renderização estática)", () => {
 describe("ProductPreviewList (renderização estática)", () => {
   it("renderiza título, nome, SKU, preço em BRL, selo de CA e pedido mínimo", () => {
     const html = renderToStaticMarkup(
-      <ProductPreviewList
-        products={PRODUCTS}
-        query="cap"
-        listboxId="lb"
-        baseIndex={3}
-        activeIndex={null}
-        onActiveIndexChange={noop}
-        onProductSelect={noop}
-      />,
+      <CurrencyProvider initial={buildCurrencyBootstrap("BRL", null)}>
+        <ProductPreviewList
+          products={PRODUCTS}
+          query="cap"
+          listboxId="lb"
+          baseIndex={3}
+          activeIndex={null}
+          onActiveIndexChange={noop}
+          onProductSelect={noop}
+        />
+      </CurrencyProvider>,
     );
     expect(html).toContain("search.popularResultsFor");
     expect(html).toContain("Capacete de Segurança Classe A Aba Frontal");
@@ -139,15 +143,17 @@ describe("ProductPreviewList (renderização estática)", () => {
 
   it("não renderiza nada quando não há produtos", () => {
     const html = renderToStaticMarkup(
-      <ProductPreviewList
-        products={[]}
-        query="cap"
-        listboxId="lb"
-        baseIndex={3}
-        activeIndex={null}
-        onActiveIndexChange={noop}
-        onProductSelect={noop}
-      />,
+      <CurrencyProvider initial={buildCurrencyBootstrap("BRL", null)}>
+        <ProductPreviewList
+          products={[]}
+          query="cap"
+          listboxId="lb"
+          baseIndex={3}
+          activeIndex={null}
+          onActiveIndexChange={noop}
+          onProductSelect={noop}
+        />
+      </CurrencyProvider>,
     );
     expect(html).toBe("");
   });

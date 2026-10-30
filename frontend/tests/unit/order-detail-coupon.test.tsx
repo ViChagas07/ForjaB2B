@@ -7,7 +7,9 @@ import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Order } from "@/core/domain/ordering";
+import { buildCurrencyBootstrap } from "@/core/domain/currency";
 import { OrderDetailView } from "@/features/ordering/order-detail";
+import { CurrencyProvider } from "@/shared/components/currency-provider";
 
 const messages = JSON.parse(
   readFileSync(join(process.cwd(), "messages", "pt-BR.json"), "utf-8"),
@@ -66,7 +68,9 @@ describe("detalhe do pedido", () => {
   it("mostra o cupom e o desconto de frete com snapshots do pedido", () => {
     render(
       <NextIntlClientProvider locale="pt-BR" messages={messages}>
-        <OrderDetailView orderId="order-1" />
+        <CurrencyProvider initial={buildCurrencyBootstrap("BRL", null)}>
+          <OrderDetailView orderId="order-1" />
+        </CurrencyProvider>
       </NextIntlClientProvider>,
     );
     expect(screen.getByTestId("order-coupon-line").textContent).toContain("Cupom (CUPOM10)");

@@ -13,9 +13,14 @@ from app.modules.identity.application.account import (
     GetAccount,
     UpdateAccount,
     UpdateAccountCommand,
+    UpdateAccountCurrency,
+    UpdateAccountCurrencyCommand,
 )
 from app.modules.identity.interface.schemas import (
+    AccountPreferencesRequest,
+    AccountPreferencesResponse,
     AccountProfileResponse,
+    DisplayCurrency,
     UpdateAccountRequest,
 )
 
@@ -28,6 +33,10 @@ def _get_usecase(request: Request) -> GetAccount:
 
 def _update_usecase(request: Request) -> UpdateAccount:
     return cast(UpdateAccount, request.app.state.account_update)
+
+
+def _update_currency_usecase(request: Request) -> UpdateAccountCurrency:
+    return cast(UpdateAccountCurrency, request.app.state.account_update_currency)
 
 
 @router.get(
@@ -65,6 +74,25 @@ async def update_account(
     return _to_response(profile)
 
 
+@router.patch(
+    "/preferences",
+    response_model=AccountPreferencesResponse,
+    summary="Atualizar preferencias do perfil",
+)
+async def update_preferences(
+    payload: AccountPreferencesRequest,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[UpdateAccountCurrency, Depends(_update_currency_usecase)],
+) -> AccountPreferencesResponse:
+    profile = await use_case.execute(
+        auth,
+        UpdateAccountCurrencyCommand(display_currency=payload.display_currency),
+    )
+    return AccountPreferencesResponse(
+        display_currency=cast(DisplayCurrency, profile.display_currency)
+    )
+
+
 def _to_response(profile: AccountProfile) -> AccountProfileResponse:
     return AccountProfileResponse(
         id=profile.id,
@@ -74,6 +102,7 @@ def _to_response(profile: AccountProfile) -> AccountProfileResponse:
         birth_date=profile.birth_date,
         gender=profile.gender,
         postal_code=profile.postal_code,
+        display_currency=cast(DisplayCurrency, profile.display_currency),
         account_type=profile.account_type,
         role=profile.role,
     )

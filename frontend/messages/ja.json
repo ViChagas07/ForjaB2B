@@ -1015,6 +1015,16 @@
       "yellow": "イエロー",
       "green": "グリーン",
       "cyan": "シアン"
-    }
+    },
+    "currency": "通貨",
+    "currencyDescription": "価格を表示する通貨を選択してください。お支払いは常にブラジルレアル（BRL）です。"
+  },
+  "currency": {
+    "rateDisclosure": "為替レート：{source}、基準日 {date}。12時間ごとに更新されます。",
+    "rateStale": "レートが古い可能性があります。",
+    "chargeIn": "お支払い額 {value}",
+    "approximate": "換算額は目安です。",
+    "chargesInBrl": "お支払いは常に R$（BRL）です。",
+    "unavailable": "換算できません。価格は R$ で表示されます。"
   }
 }

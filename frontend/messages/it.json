@@ -1015,6 +1015,16 @@
       "yellow": "Giallo",
       "green": "Verde bosco",
       "cyan": "Turquesa"
-    }
+    },
+    "currency": "Valuta",
+    "currencyDescription": "Scegli in quale valuta visualizzare i prezzi. L'addebito avviene sempre in real brasiliani (BRL)."
+  },
+  "currency": {
+    "rateDisclosure": "Tassi: {source}, data di riferimento {date}. Aggiornati ogni 12 ore.",
+    "rateStale": "Il tasso potrebbe essere obsoleto.",
+    "chargeIn": "Addebito in {value}",
+    "approximate": "I valori convertiti sono approssimativi.",
+    "chargesInBrl": "L'addebito è sempre in R$ (BRL).",
+    "unavailable": "Conversione non disponibile. I prezzi restano in R$."
   }
 }

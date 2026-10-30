@@ -21,6 +21,7 @@ import { errorMessageKey } from "@/shared/lib/api-error";
 import { displayCategoryName } from "@/shared/lib/category-display";
 import { formatNumber } from "@/shared/lib/money";
 import { ProductImage } from "@/shared/components/product-image";
+import { RateDisclosure } from "@/shared/components/rate-disclosure";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -214,8 +215,8 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <CatalogPrice
               amount={product.base_unit_price}
-              currency={product.currency}
               priceOnRequest={product.price_on_request}
+              showBrl
               className="text-3xl font-black tracking-tight"
             />
             <p className="mt-2 text-xs text-muted-foreground">
@@ -235,6 +236,8 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
                 ? t("catalog.stockAvailable", { count: stockQuantity })
                 : t("catalog.outOfStock")}
             </p>
+
+            <RateDisclosure className="mt-4" />
 
             <div className="mt-5 space-y-2">
               <Label

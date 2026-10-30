@@ -20,13 +20,16 @@ import type { CartItem } from "@/core/domain/cart";
 import { useCreditAccount } from "@/features/credit";
 import { Link, useRouter } from "@/i18n/navigation";
 import { errorMessageKey } from "@/shared/lib/api-error";
-import { DEFAULT_CURRENCY, formatMoney } from "@/shared/lib/money";
+import { formatBrl, formatMoney } from "@/shared/lib/money";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { useCurrency } from "@/shared/components/currency-provider";
+import { PriceDisplay } from "@/shared/components/price-display";
 import { ProductImage } from "@/shared/components/product-image";
+import { RateDisclosure } from "@/shared/components/rate-disclosure";
 import { cn } from "@/shared/lib/utils";
 
 import { useCart, useClearCart, useRemoveCartItem, useUpdateCartItem } from "./hooks";
@@ -36,6 +39,7 @@ const STEPS = ["cart.title", "ordering.shippingTotal", "ordering.paymentMethod"]
 export function CartView() {
   const t = useTranslations();
   const locale = useLocale();
+  const { currency, rates } = useCurrency();
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
 
@@ -284,8 +288,13 @@ export function CartView() {
                     <span className="text-xs text-muted-foreground">
                       {t("ordering.unitPrice")}:{" "}
                       <span className="font-semibold text-foreground">
-                        {formatMoney(item.unit_price, DEFAULT_CURRENCY, locale)}
+                        {formatMoney(item.unit_price, { currency, locale, rates })}
                       </span>
+                      {currency !== "BRL" ? (
+                        <span className="ms-1 text-[11px]">
+                          ({formatBrl(item.unit_price, locale)})
+                        </span>
+                      ) : null}
                     </span>
                     {item.tier_min_quantity != null ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
@@ -327,9 +336,12 @@ export function CartView() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground lg:hidden">
                       {t("cart.itemTotal")}
                     </p>
-                    <p className="text-sm font-bold">
-                      {formatMoney(item.line_total, DEFAULT_CURRENCY, locale)}
-                    </p>
+                    <PriceDisplay
+                      amount={item.line_total}
+                      primary="converted"
+                      showSecondary
+                      className="text-sm font-bold"
+                    />
                   </div>
                   <Button
                     variant="ghost"
@@ -355,7 +367,7 @@ export function CartView() {
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">{t("cart.subtotal")}</dt>
                 <dd className="font-semibold">
-                  {formatMoney(cart.subtotal, DEFAULT_CURRENCY, locale)}
+                  <PriceDisplay amount={cart.subtotal} primary="converted" showSecondary />
                 </dd>
               </div>
               <div className="flex items-center justify-between">
@@ -367,10 +379,12 @@ export function CartView() {
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <dt className="text-base font-bold">{t("ordering.total")}</dt>
                 <dd className="text-xl font-black tracking-tight">
-                  {formatMoney(cart.subtotal, DEFAULT_CURRENCY, locale)}
+                  <PriceDisplay amount={cart.subtotal} primary="converted" showSecondary />
                 </dd>
               </div>
             </dl>
+
+            <RateDisclosure className="mt-4" />
 
             {availableCredit ? (
               <div className="mt-5 flex items-center justify-between rounded-xl bg-accent/70 px-3.5 py-3">
@@ -378,7 +392,7 @@ export function CartView() {
                   {t("credit.available")}
                 </span>
                 <span className="text-sm font-bold text-accent-foreground">
-                  {formatMoney(availableCredit, DEFAULT_CURRENCY, locale)}
+                  {formatBrl(availableCredit, locale)}
                 </span>
               </div>
             ) : null}

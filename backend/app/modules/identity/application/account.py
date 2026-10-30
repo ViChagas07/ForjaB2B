@@ -9,6 +9,7 @@ from datetime import date
 
 from app.application.security import AuthContext
 from app.domain.consumer import Gender
+from app.domain.currency import normalize_currency
 from app.modules.identity.application.errors import (
     AccountNotFoundError,
     InvalidAccountProfileError,
@@ -29,6 +30,7 @@ class AccountProfile:
     birth_date: date | None
     gender: Gender | None
     postal_code: str | None
+    display_currency: str
     account_type: str
     role: str
 
@@ -40,6 +42,11 @@ class UpdateAccountCommand:
     birth_date: date | None = None
     gender: Gender | None = None
     postal_code: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class UpdateAccountCurrencyCommand:
+    display_currency: str
 
 
 class GetAccount:
@@ -93,6 +100,26 @@ class UpdateAccount:
         return _to_profile(record, role=auth.role)
 
 
+class UpdateAccountCurrency:
+    """Atualiza apenas a moeda de exibicao, sem tocar nos demais dados."""
+
+    def __init__(self, *, repository: AccountRepository) -> None:
+        self._repository = repository
+
+    async def execute(
+        self, auth: AuthContext, command: UpdateAccountCurrencyCommand
+    ) -> AccountProfile:
+        display_currency = normalize_currency(command.display_currency)
+        record = await self._repository.update_display_currency(
+            company_id=auth.company_id,
+            user_id=auth.user_id,
+            display_currency=display_currency,
+        )
+        if record is None:
+            raise AccountNotFoundError()
+        return _to_profile(record, role=auth.role)
+
+
 def _normalize_postal_code(raw: str | None) -> str:
     return _NON_DIGITS.sub("", raw or "")
 
@@ -114,6 +141,7 @@ def _to_profile(record: AccountRecord, *, role: str) -> AccountProfile:
         birth_date=record.birth_date,
         gender=record.gender,
         postal_code=record.postal_code,
+        display_currency=record.display_currency,
         account_type=record.account_type,
         role=role,
     )

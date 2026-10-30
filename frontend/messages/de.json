@@ -1015,6 +1015,16 @@
       "yellow": "Gelb",
       "green": "Grün",
       "cyan": "Cyan"
-    }
+    },
+    "currency": "Währung",
+    "currencyDescription": "Wählen Sie die Währung für die Preisanzeige. Die Zahlung erfolgt immer in brasilianischen Real (BRL)."
+  },
+  "currency": {
+    "rateDisclosure": "Kurse: {source}, Referenzdatum {date}. Alle 12 Stunden aktualisiert.",
+    "rateStale": "Der Kurs kann veraltet sein.",
+    "chargeIn": "Zahlung in {value}",
+    "approximate": "Umgerechnete Werte sind Näherungswerte.",
+    "chargesInBrl": "Die Zahlung erfolgt immer in R$ (BRL).",
+    "unavailable": "Umrechnung nicht verfügbar. Die Preise bleiben in R$."
   }
 }

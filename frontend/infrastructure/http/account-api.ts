@@ -1,4 +1,5 @@
-import type { AccountProfile, UpdateAccountInput } from "@/core/domain/account";
+import type { AccountPreferences, AccountProfile, UpdateAccountInput } from "@/core/domain/account";
+import type { CurrencyCode } from "@/core/domain/currency";
 
 import { apiClient } from "./client";
 
@@ -18,6 +19,19 @@ export const accountApi = {
       path: "/account",
       headers: { Authorization: `Bearer ${accessToken}` },
       body: input,
+    });
+    return response.body;
+  },
+
+  async updatePreferences(
+    accessToken: string,
+    displayCurrency: CurrencyCode,
+  ): Promise<AccountPreferences> {
+    const response = await apiClient.request<AccountPreferences>({
+      method: "PATCH",
+      path: "/account/preferences",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: { display_currency: displayCurrency },
     });
     return response.body;
   },

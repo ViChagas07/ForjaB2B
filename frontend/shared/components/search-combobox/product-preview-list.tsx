@@ -85,7 +85,6 @@ export function ProductPreviewList({
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <CatalogPrice
                     amount={product.base_unit_price}
-                    currency={product.currency}
                     priceOnRequest={product.price_on_request}
                     className="text-sm font-bold tracking-tight"
                   />
