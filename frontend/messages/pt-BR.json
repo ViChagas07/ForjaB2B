@@ -299,7 +299,9 @@
         "MIN_ORDER_NOT_MET": "Pedido mínimo não atingido.",
         "minOrderMissing": "Pedido mínimo não atingido. Faltam {amount}.",
         "NOT_ALLOWED_FOR_COMPANY": "Este cupom não é válido para sua empresa."
-      }
+      },
+      "orderCoupon": "Cupom ({code})",
+      "orderShippingDiscount": "Desconto no frete ({code})"
     }
   },
   "credit": {

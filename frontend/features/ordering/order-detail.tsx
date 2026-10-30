@@ -139,6 +139,28 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
             <span className="text-muted-foreground">{t("ordering.discountTotal")}</span>
             <span>{formatMoney(order.discount_total, DEFAULT_CURRENCY, locale)}</span>
           </div>
+          {order.coupon_code && Number(order.coupon_discount_amount ?? "0") > 0 ? (
+            <div className="flex justify-between" data-testid="order-coupon-line">
+              <span className="text-muted-foreground">
+                {t("ordering.coupon.orderCoupon", { code: order.coupon_code })}
+              </span>
+              <span className="text-success">
+                {formatMoney(`-${order.coupon_discount_amount}`, DEFAULT_CURRENCY, locale)}
+              </span>
+            </div>
+          ) : null}
+          {Number(order.shipping_discount_amount ?? "0") > 0 ? (
+            <div className="flex justify-between" data-testid="order-shipping-discount-line">
+              <span className="text-muted-foreground">
+                {t("ordering.coupon.orderShippingDiscount", {
+                  code: order.coupon_code ?? "—",
+                })}
+              </span>
+              <span className="text-success">
+                {formatMoney(`-${order.shipping_discount_amount}`, DEFAULT_CURRENCY, locale)}
+              </span>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("ordering.shippingTotal")}</span>
             <span>{formatMoney(order.shipping_total, DEFAULT_CURRENCY, locale)}</span>

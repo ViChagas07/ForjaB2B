@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "最低注文金額に達していません。",
         "minOrderMissing": "最低注文金額に達していません。あと {amount} です。",
         "NOT_ALLOWED_FOR_COMPANY": "このクーポンは貴社では利用できません。"
-      }
+      },
+      "orderCoupon": "クーポン ({code})",
+      "orderShippingDiscount": "配送割引 ({code})"
     }
   },
   "credit": {

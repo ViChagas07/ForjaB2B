@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "Минимальная сумма заказа не достигнута.",
         "minOrderMissing": "Минимальная сумма заказа не достигнута. Не хватает {amount}.",
         "NOT_ALLOWED_FOR_COMPANY": "Этот купон недействителен для вашей компании."
-      }
+      },
+      "orderCoupon": "Купон ({code})",
+      "orderShippingDiscount": "Скидка на доставку ({code})"
     }
   },
   "credit": {

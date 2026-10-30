@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "未达到最低订单金额。",
         "minOrderMissing": "未达到最低订单金额，还差 {amount}。",
         "NOT_ALLOWED_FOR_COMPANY": "此优惠券不适用于贵公司。"
-      }
+      },
+      "orderCoupon": "优惠券（{code}）",
+      "orderShippingDiscount": "运费折扣（{code}）"
     }
   },
   "credit": {

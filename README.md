@@ -319,6 +319,7 @@ A API é FastAPI e o contrato é versionado em `/api/v1`.
 - Webhooks: [`docs/WEBHOOKS.md`](docs/WEBHOOKS.md)
 - Tipos TypeScript gerados: `frontend/core/domain/api-schema.d.ts`
 - Mapa de endpoints por contexto: [`docs/API.md`](docs/API.md)
+- Cupons (regras, cálculo, endpoints e admin): [`docs/COUPONS.md`](docs/COUPONS.md)
 
 Localmente:
 

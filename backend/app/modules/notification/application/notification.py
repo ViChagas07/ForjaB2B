@@ -28,6 +28,8 @@ from app.modules.notification.domain.notification import (
     PersonalNoteSanitizer,
     cart_url,
     render_email,
+    render_html,
+    render_order_summary,
     render_personal_note,
     render_text,
 )
@@ -85,10 +87,15 @@ class DispatchOutbox:
         return sent
 
     async def _dispatch_email(self, row: OutboxView, recipient: RecipientView) -> bool:
+        locale = self._locale_for(row, recipient)
         slots = self._slots_for(row, recipient)
         subject, text, html_body = render_email(
-            event_type=row.event_type, locale=self._locale_for(row, recipient), slots=slots
+            event_type=row.event_type, locale=locale, slots=slots
         )
+        summary = render_order_summary(row.payload or {}, locale)
+        if summary:
+            text = f"{text}\n\n{summary}"
+            html_body = render_html(text, locale=locale or "pt-BR")
         try:
             await self._email_sender.send(
                 to=recipient.email, subject=subject, body=text, html=html_body
@@ -112,11 +119,15 @@ class DispatchOutbox:
         ):
             await self._skip(row)
             return False
+        locale = self._locale_for(row, recipient)
         _subject, message = render_text(
             event_type=row.event_type,
-            locale=self._locale_for(row, recipient),
+            locale=locale,
             slots=self._slots_for(row, recipient),
         )
+        summary = render_order_summary(row.payload or {}, locale)
+        if summary:
+            message = f"{message}\n\n{summary}"
         try:
             await self._whatsapp_sender.send(phone=str(recipient.whatsapp_phone), message=message)
         except EmailPermanentError as exc:

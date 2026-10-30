@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "No se alcanzó el pedido mínimo.",
         "minOrderMissing": "No se alcanzó el pedido mínimo. Faltan {amount}.",
         "NOT_ALLOWED_FOR_COMPANY": "Este cupón no es válido para tu empresa."
-      }
+      },
+      "orderCoupon": "Cupón ({code})",
+      "orderShippingDiscount": "Descuento en el envío ({code})"
     }
   },
   "credit": {

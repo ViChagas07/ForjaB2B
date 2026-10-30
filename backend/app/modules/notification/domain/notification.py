@@ -26,6 +26,7 @@ import json
 import re
 import unicodedata
 from collections.abc import Callable
+from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from typing import cast
 
@@ -117,12 +118,13 @@ def render_email(
 
 def render_html(text: str, *, locale: str) -> str:
     """HTML minimo e seguro: texto escapado, paragrafos, dir=rtl quando ar."""
-    direction = ' dir="rtl"' if locale in _RTL_LOCALES else ""
+    resolved = _normalize_locale(locale)
+    direction = ' dir="rtl"' if resolved in _RTL_LOCALES else ""
     paragraphs = "".join(
         f"<p>{html.escape(line)}</p>" for line in text.splitlines() if line.strip()
     )
     return (
-        f'<!DOCTYPE html><html lang="{html.escape(locale)}"><head>'
+        f'<!DOCTYPE html><html lang="{html.escape(resolved)}"><head>'
         f'<meta charset="utf-8"></head><body{direction}>{paragraphs}</body></html>'
     )
 
@@ -131,6 +133,165 @@ def render_text(*, event_type: str, locale: str | None, slots: dict[str, str]) -
     """Devolve (subject, texto puro) — canal WhatsApp (sem HTML)."""
     subject_template, text_template = _template_for(event_type, locale)
     return _render(subject_template, slots), _render(text_template, slots)
+
+
+_SUMMARY_LABELS: dict[str, dict[str, str]] = {
+    "pt-BR": {
+        "subtotal": "Subtotal",
+        "recovery": "Oferta de recuperação",
+        "coupon": "Cupom",
+        "shipping": "Frete",
+        "shipping_discount": "Desconto no frete",
+        "total": "Total",
+        "free": "Grátis",
+    },
+    "en": {
+        "subtotal": "Subtotal",
+        "recovery": "Recovery offer",
+        "coupon": "Coupon",
+        "shipping": "Shipping",
+        "shipping_discount": "Shipping discount",
+        "total": "Total",
+        "free": "Free",
+    },
+    "es": {
+        "subtotal": "Subtotal",
+        "recovery": "Oferta de recuperación",
+        "coupon": "Cupón",
+        "shipping": "Envío",
+        "shipping_discount": "Descuento en el envío",
+        "total": "Total",
+        "free": "Gratis",
+    },
+    "fr": {
+        "subtotal": "Sous-total",
+        "recovery": "Offre de récupération",
+        "coupon": "Code promo",
+        "shipping": "Livraison",
+        "shipping_discount": "Remise sur la livraison",
+        "total": "Total",
+        "free": "Gratuit",
+    },
+    "de": {
+        "subtotal": "Zwischensumme",
+        "recovery": "Rückgewinnungsangebot",
+        "coupon": "Gutschein",
+        "shipping": "Versand",
+        "shipping_discount": "Versandrabatt",
+        "total": "Gesamt",
+        "free": "Kostenlos",
+    },
+    "it": {
+        "subtotal": "Subtotale",
+        "recovery": "Offerta di recupero",
+        "coupon": "Coupon",
+        "shipping": "Spedizione",
+        "shipping_discount": "Sconto sulla spedizione",
+        "total": "Totale",
+        "free": "Gratis",
+    },
+    "ar": {
+        "subtotal": "المجموع الفرعي",
+        "recovery": "عرض استعادة",
+        "coupon": "القسيمة",
+        "shipping": "الشحن",
+        "shipping_discount": "خصم الشحن",
+        "total": "الإجمالي",
+        "free": "مجاني",
+    },
+    "ja": {
+        "subtotal": "小計",
+        "recovery": "復帰オファー",
+        "coupon": "クーポン",
+        "shipping": "配送",
+        "shipping_discount": "配送割引",
+        "total": "合計",
+        "free": "無料",
+    },
+    "ko": {
+        "subtotal": "소계",
+        "recovery": "복구 혜택",
+        "coupon": "쿠폰",
+        "shipping": "배송",
+        "shipping_discount": "배송 할인",
+        "total": "합계",
+        "free": "무료",
+    },
+    "ru": {
+        "subtotal": "Промежуточный итог",
+        "recovery": "Предложение по возврату",
+        "coupon": "Купон",
+        "shipping": "Доставка",
+        "shipping_discount": "Скидка на доставку",
+        "total": "Итого",
+        "free": "Бесплатно",
+    },
+    "zh-CN": {
+        "subtotal": "小计",
+        "recovery": "挽回优惠",
+        "coupon": "优惠券",
+        "shipping": "运费",
+        "shipping_discount": "运费折扣",
+        "total": "合计",
+        "free": "免费",
+    },
+}
+
+
+def _payload_decimal(payload: dict[str, object], key: str) -> Decimal | None:
+    raw = payload.get(key)
+    if raw is None or raw == "":
+        return None
+    try:
+        return Decimal(str(raw))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _format_money(value: Decimal, currency: str) -> str:
+    return f"{currency} {value:.2f}"
+
+
+def render_order_summary(payload: dict[str, object], locale: str | None) -> str:
+    """Resumo de valores do pedido para a notificacao de confirmacao.
+
+    Os valores vem do payload gravado na outbox pelo backend; nenhum valor e
+    recalculado aqui (o frete bruto e derivado apenas para exibicao do
+    desconto, pois o pedido guarda o frete liquido). Retorna "" para payloads
+    antigos sem subtotal/total.
+    """
+    subtotal = _payload_decimal(payload, "subtotal")
+    total = _payload_decimal(payload, "total")
+    if subtotal is None or total is None:
+        return ""
+    labels = _SUMMARY_LABELS[_normalize_locale(locale)]
+    currency = str(payload.get("currency") or "BRL")
+    recovery = _payload_decimal(payload, "discount_total") or Decimal("0.00")
+    coupon_code = str(payload.get("coupon_code") or "")
+    coupon_discount = _payload_decimal(payload, "coupon_discount_amount") or Decimal("0.00")
+    shipping_total = _payload_decimal(payload, "shipping_total") or Decimal("0.00")
+    shipping_discount = _payload_decimal(payload, "shipping_discount_amount") or Decimal("0.00")
+
+    lines = [f"{labels['subtotal']}: {_format_money(subtotal, currency)}"]
+    if recovery > 0:
+        lines.append(f"{labels['recovery']}: -{_format_money(recovery, currency)}")
+    if coupon_code and coupon_discount > 0:
+        lines.append(
+            f"{labels['coupon']} ({coupon_code}): -{_format_money(coupon_discount, currency)}"
+        )
+    if shipping_discount > 0:
+        gross_shipping = shipping_total + shipping_discount
+        lines.append(f"{labels['shipping']}: {_format_money(gross_shipping, currency)}")
+        discount_label = labels["shipping_discount"]
+        if coupon_code:
+            discount_label = f"{discount_label} ({coupon_code})"
+        lines.append(f"{discount_label}: -{_format_money(shipping_discount, currency)}")
+    elif shipping_total == 0:
+        lines.append(f"{labels['shipping']}: {labels['free']}")
+    else:
+        lines.append(f"{labels['shipping']}: {_format_money(shipping_total, currency)}")
+    lines.append(f"{labels['total']}: {_format_money(total, currency)}")
+    return "\n".join(lines)
 
 
 def render_personal_note(

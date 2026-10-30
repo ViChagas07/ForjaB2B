@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "Der Mindestbestellwert wurde nicht erreicht.",
         "minOrderMissing": "Der Mindestbestellwert wurde nicht erreicht. Es fehlen {amount}.",
         "NOT_ALLOWED_FOR_COMPANY": "Dieser Gutschein gilt nicht für Ihr Unternehmen."
-      }
+      },
+      "orderCoupon": "Gutschein ({code})",
+      "orderShippingDiscount": "Versandrabatt ({code})"
     }
   },
   "credit": {

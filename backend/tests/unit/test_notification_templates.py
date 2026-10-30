@@ -5,6 +5,7 @@ from app.modules.notification.domain.notification import (
     cart_url,
     render_email,
     render_html,
+    render_order_summary,
     render_personal_note,
     render_text,
     template_version,
@@ -96,6 +97,63 @@ def test_templates_antigos_continuam_funcionando_com_mesmo_texto() -> None:
         "Payment confirmed",
         "Payment for order O-3 has been confirmed.",
     )
+
+
+def test_resumo_do_pedido_com_cupom_de_produtos() -> None:
+    summary = render_order_summary(
+        {
+            "currency": "BRL",
+            "subtotal": "100.00",
+            "discount_total": "3.00",
+            "shipping_total": "25.00",
+            "shipping_discount_amount": "0.00",
+            "coupon_code": "CUPOM10",
+            "coupon_discount_amount": "10.00",
+            "total": "112.00",
+        },
+        "pt-BR",
+    )
+    assert "Subtotal: BRL 100.00" in summary
+    assert "Oferta de recuperação: -BRL 3.00" in summary
+    assert "Cupom (CUPOM10): -BRL 10.00" in summary
+    assert "Frete: BRL 25.00" in summary
+    assert "Total: BRL 112.00" in summary
+
+
+def test_resumo_do_pedido_com_cupom_de_frete() -> None:
+    summary = render_order_summary(
+        {
+            "currency": "BRL",
+            "subtotal": "100.00",
+            "discount_total": "0.00",
+            "shipping_total": "0.00",
+            "shipping_discount_amount": "25.00",
+            "coupon_code": "FRETE",
+            "coupon_discount_amount": "0.00",
+            "total": "100.00",
+        },
+        "pt-BR",
+    )
+    assert "Frete: BRL 25.00" in summary
+    assert "Desconto no frete (FRETE): -BRL 25.00" in summary
+    assert "Total: BRL 100.00" in summary
+
+
+def test_resumo_do_pedido_em_ingles_e_sem_payload_antigo() -> None:
+    summary = render_order_summary(
+        {
+            "currency": "BRL",
+            "subtotal": "10.00",
+            "discount_total": "0.00",
+            "shipping_total": "0.00",
+            "shipping_discount_amount": "0.00",
+            "total": "10.00",
+        },
+        "en",
+    )
+    assert "Shipping: Free" in summary
+    assert "Total: BRL 10.00" in summary
+    assert render_order_summary({"order_id": "legacy"}, "pt-BR") == ""
 
 
 def test_evento_desconhecido_nao_explode() -> None:

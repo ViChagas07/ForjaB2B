@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "Minimum order not met.",
         "minOrderMissing": "Minimum order not met. {amount} short.",
         "NOT_ALLOWED_FOR_COMPANY": "This coupon is not valid for your company."
-      }
+      },
+      "orderCoupon": "Coupon ({code})",
+      "orderShippingDiscount": "Shipping discount ({code})"
     }
   },
   "credit": {

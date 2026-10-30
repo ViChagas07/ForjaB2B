@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "لم يتم بلوغ الحد الأدنى للطلب.",
         "minOrderMissing": "لم يتم بلوغ الحد الأدنى للطلب. المتبقي {amount}.",
         "NOT_ALLOWED_FOR_COMPANY": "هذه القسيمة غير صالحة لشركتك."
-      }
+      },
+      "orderCoupon": "القسيمة ({code})",
+      "orderShippingDiscount": "خصم الشحن ({code})"
     }
   },
   "credit": {

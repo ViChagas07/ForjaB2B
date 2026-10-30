@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "Le montant minimum de commande n'est pas atteint.",
         "minOrderMissing": "Le montant minimum n'est pas atteint. Il manque {amount}.",
         "NOT_ALLOWED_FOR_COMPANY": "Ce code promo n'est pas valable pour votre entreprise."
-      }
+      },
+      "orderCoupon": "Code promo ({code})",
+      "orderShippingDiscount": "Remise sur la livraison ({code})"
     }
   },
   "credit": {

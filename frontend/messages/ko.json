@@ -334,7 +334,9 @@
         "MIN_ORDER_NOT_MET": "최소 주문 금액에 도달하지 않았습니다.",
         "minOrderMissing": "최소 주문 금액에 도달하지 않았습니다. {amount} 부족합니다.",
         "NOT_ALLOWED_FOR_COMPANY": "이 쿠폰은 귀사에서 사용할 수 없습니다."
-      }
+      },
+      "orderCoupon": "쿠폰 ({code})",
+      "orderShippingDiscount": "배송 할인 ({code})"
     }
   },
   "credit": {

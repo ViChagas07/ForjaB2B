@@ -6,6 +6,14 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 07: consolidação — 2026-10-30
+
+- **i18n/superfícies:** teste novo confirma chaves de `admin.coupons` e `ordering.coupon` nos 11 locales; hardcoded-text e RTL seguem verdes. Cupom/descontos aparecem no detalhe do pedido do comprador e no resumo das notificações `order.created` (e-mail/WhatsApp); o detalhe admin de cupom já mostra os resgates. Não existem telas de histórico de pedidos nem detalhe de pedido no admin no código atual; isso ficou documentado.
+- **Notificações:** `order.created` passa a carregar o snapshot de valores do pedido na outbox; o worker anexa um resumo localizado (subtotal, recovery, cupom, frete/desconto/grátis, total) no texto/HTML e no WhatsApp. Testes cobrem cupom de produto, frete 100% e payload antigo.
+- **Docs/E2E:** criado `docs/COUPONS.md` (regras, ordem de cálculo, endpoints, snapshots, admin, limitações) e link no README; adicionados specs Playwright de fluxo completo (produtos 10% e frete 100%, snapshots, cancelamento/liberação) além dos fluxos de checkout/admin já existentes.
+- **Checagens:** frontend `npm run check` OK — **241 testes**, typecheck, lint (4 warnings pré-existentes), format e dependency-cruiser. Backend: Ruff check/mypy/import-linter OK; full **1013 passed, 374 skipped, 3 failed pré-existentes** (em dash, type: ignore, downgrade 0027). `ruff format --check` ainda aponta 10 arquivos pré-existentes fora do padrão, não alterados. **NÃO VALIDADO**: Docker desabilitado (integração skipped) e os 4 specs E2E foram listados, mas não executados.
+- **Pendências:** rodar E2E/visual/RTL e integração Docker com seed; validar envio real de e-mail/WhatsApp; criar histórico/detalhe admin de pedido se forem desejados (contratos já expõem cupom).
+
 ## Sistema de cupons — FASE 06: cupom no checkout — 2026-10-30
 
 - **Entregue:** bloco "Cupom de desconto" recolhido no resumo (não no carrinho), input em maiúsculas com Enter, loading, chip com remover, mensagens por motivo com valor faltante, `aria-live`, foco ao expandir e layout mobile/RTL. Resumo com subtotal, recovery, cupom, frete/grátis, PIX e total vindos do backend; revalidação automática ao mudar carrinho ou pagamento; `coupon_code` enviado na criação e erro tipado devolvido ao bloco sem perder o formulário.

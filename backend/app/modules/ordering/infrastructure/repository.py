@@ -419,6 +419,18 @@ class SqlAlchemyOrderingRepository:
                 company_id=company_id,
                 event_type="order.created",
                 aggregate_id=order_id,
+                payload={
+                    "currency": "BRL",
+                    "subtotal": str(subtotal),
+                    "discount_total": str(effective_discount),
+                    "shipping_total": str(net_shipping),
+                    "shipping_discount_amount": str(shipping_discount),
+                    "coupon_code": coupon.code if coupon is not None else None,
+                    "coupon_type": coupon.type.value if coupon is not None else None,
+                    "coupon_percent": str(coupon.percent) if coupon is not None else None,
+                    "coupon_discount_amount": str(coupon_discount),
+                    "total": str(effective_total),
+                },
             )
 
             await uow.commit()

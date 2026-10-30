@@ -409,6 +409,15 @@ async def test_criar_pedido_com_cupom_produto_e_resgate(
         "SELECT amount_discounted FROM coupon_redemptions WHERE order_id = %s",
         (uuid.UUID(body["id"]),),
     ) == Decimal("10.00")
+    notification_payload = _state(
+        pg,
+        "SELECT payload FROM notifications WHERE aggregate_id = %s "
+        "AND event_type = 'order.created'",
+        (uuid.UUID(body["id"]),),
+    )
+    assert isinstance(notification_payload, dict)
+    assert notification_payload["coupon_code"] == "CUPOM10"
+    assert notification_payload["coupon_discount_amount"] == "10.00"
 
 
 async def test_snapshot_do_pedido_nao_muda_apos_edicao(
