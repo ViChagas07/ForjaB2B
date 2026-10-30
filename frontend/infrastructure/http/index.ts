@@ -10,6 +10,7 @@ export { catalogApi, useCatalogApi } from "./catalog-api";
 export { searchApi } from "./search-api";
 export type { SearchSuggestResponse } from "./search-api";
 export { adminCatalogApi, isVersionConflict, getFieldErrors } from "./admin-catalog-api";
+export { adminCouponsApi } from "./admin-coupons-api";
 export { cartApi, useCartApi } from "./cart-api";
 export { orderingApi, useOrderingApi } from "./ordering-api";
 export { paymentApi, usePaymentApi } from "./payment-api";

@@ -6,6 +6,13 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 05: interface admin — 2026-10-30
+
+- **Entregue:** `/admin/cupons` com tabela (código, tipo, percentual, validade, usos, status e ações), busca, filtro de status, paginação e ativar/desativar com confirmação; `/admin/cupons/new` e `/admin/cupons/[id]` com formulário (código/gerar, tipo, percentual + atalhos, condições avançadas, resumo natural), validação cliente, erros 409/422 amigáveis e detalhe com usos, valor descontado e últimos resgates.
+- **Frontend:** `adminCouponsApi` com Bearer/`withAuth`, hooks React Query, schemas Zod (aceita vírgula decimal), helpers de status/validade/resumo e testes. Chaves `admin.coupons` adicionadas nos 11 locales com textos em português, seguindo a decisão documentada do painel admin permanecer em pt-BR no teste de paridade.
+- **Checagens:** `npm run check` OK — lint (4 warnings pré-existentes de `<img>` no admin de catálogo), typecheck, format check, **229 testes** e dependency-cruiser **0 violações**. E2E `admin-coupons.spec.ts` criado e listado, mas **NÃO EXECUTADO**: exige backend/DB e `DEMO_USER_PASSWORD`.
+- **Pendências:** validar visual/RTL e o fluxo E2E em ambiente com seed; o campo de cupom no checkout do comprador ainda depende da fase de UI correspondente.
+
 ## Sistema de cupons — FASE 04: checkout e pedido — 2026-10-30
 
 - **Entregue:** `POST /api/v1/orders/coupon-preview` (carrinho do comprador, motivos tipados, simulação com recovery/frete/PIX), `coupon_code` opcional no `CreateOrderRequest`, snapshots no pedido, resgate atômico no `CreateOrder` (advisory lock por cupom + contagem global + `coupon_redemptions`) e liberação em cancelamento e falha/expiração definitiva de PIX/cartão.
