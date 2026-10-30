@@ -106,6 +106,19 @@ class OrderTotals:
     applied_discounts: frozenset[DiscountKind]
 
 
+def public_coupon_rejection_reason(
+    reason: CouponRejectionReason,
+) -> CouponRejectionReason:
+    """Nao revela a existencia de cupom restrito a outra empresa.
+
+    A elegibilidade interna continua distinguindo o motivo para logs/testes,
+    mas a resposta publica usa NOT_FOUND, dificultando enumeracao.
+    """
+    if reason is CouponRejectionReason.NOT_ALLOWED_FOR_COMPANY:
+        return CouponRejectionReason.NOT_FOUND
+    return reason
+
+
 def normalize_coupon_code(code: str) -> str:
     """Remove espacos das pontas e converte o codigo para maiusculas."""
     return code.strip().upper()

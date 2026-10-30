@@ -290,6 +290,39 @@ async def test_preview_sem_cupom_para_resumo(
     assert body["total"] == "118.75"
 
 
+async def _post_webhook(
+    client: httpx.AsyncClient,
+    *,
+    event_id: str,
+    event_type: str,
+    provider_reference: str,
+) -> httpx.Response:
+    payload = {
+        "provider": "FAKE_PIX",
+        "event_id": event_id,
+        "event_type": event_type,
+        "provider_reference": provider_reference,
+        "company_id": str(_COMPANY),
+    }
+    body = json.dumps(payload).encode()
+    timestamp = int(time.time())
+    signature = (
+        "sha256="
+        + hmac.new(
+            _WEBHOOK_SECRET.encode(), f"{timestamp}.".encode() + body, hashlib.sha256
+        ).hexdigest()
+    )
+    return await client.post(
+        "/api/v1/payments/webhook",
+        content=body,
+        headers={
+            "content-type": "application/json",
+            "X-Forja-Signature": signature,
+            "X-Forja-Timestamp": str(timestamp),
+        },
+    )
+
+
 async def test_preview_produto_valido_com_pix(
     checkout_client: httpx.AsyncClient, pg: PostgresInstance
 ) -> None:
@@ -363,7 +396,8 @@ async def test_preview_motivos_tipados(
         "EXPIRADO": "EXPIRED",
         "ESGOTADO": "EXHAUSTED",
         "LIMITE-EMPRESA": "COMPANY_LIMIT_REACHED",
-        "OUTRA-EMPRESA": "NOT_ALLOWED_FOR_COMPANY",
+        # Restricao a outra empresa nao revela existencia (anti-enumeracao).
+        "OUTRA-EMPRESA": "NOT_FOUND",
         "NAO-EXISTE": "NOT_FOUND",
     }
     for code, reason in expectations.items():
@@ -375,6 +409,24 @@ async def test_preview_motivos_tipados(
     minimum = await checkout_client.post("/api/v1/orders/coupon-preview", json={"code": "MINIMO"})
     assert minimum.json()["reason"] == "MIN_ORDER_NOT_MET"
     assert minimum.json()["missing_amount"] == "50.00"
+
+
+async def test_pedido_rejeita_cupom_restrito_a_outra_empresa(
+    checkout_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    _insert_coupon(
+        pg,
+        code="RESTRITO",
+        restricted_company_id=_OTHER_COMPANY,
+    )
+    response = await checkout_client.post(
+        "/api/v1/orders",
+        json=_order_payload("RESTRITO", key="restricted-order"),
+        headers={"Idempotency-Key": "restricted-order"},
+    )
+    assert response.status_code == 422
+    assert response.json()["type"] == "urn:forja:problem:coupon_not_found"
+    assert _state(pg, "SELECT count(*) FROM orders WHERE company_id = %s", (_COMPANY,)) == 0
 
 
 async def test_criar_pedido_com_cupom_produto_e_resgate(
@@ -519,26 +571,68 @@ async def test_pix_usa_base_apos_cupom_e_bate_com_preview(
     assert Decimal(payment.json()["amount"]) == Decimal("109.25")
 
 
+async def test_webhook_pago_nao_altera_snapshots_nem_descontos(
+    checkout_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    _insert_coupon(pg, code="PAGO")
+    order = await checkout_client.post(
+        "/api/v1/orders",
+        json=_order_payload("PAGO", key="paid-order"),
+        headers={"Idempotency-Key": "paid-order"},
+    )
+    assert order.status_code == 201
+    order_id = order.json()["id"]
+    payment = await checkout_client.post(
+        "/api/v1/payments",
+        json={"order_id": order_id, "method": "PIX"},
+        headers={"Idempotency-Key": "paid-order-payment"},
+    )
+    assert payment.status_code == 201
+    webhook = await _post_webhook(
+        checkout_client,
+        event_id="evt-paid-coupon",
+        event_type="payment.paid",
+        provider_reference=payment.json()["provider_reference"],
+    )
+    assert webhook.status_code == 200
+
+    detail = await checkout_client.get(f"/api/v1/orders/{order_id}")
+    body = detail.json()
+    assert body["coupon_code"] == "PAGO"
+    assert body["coupon_percent"] == "10.00"
+    assert body["coupon_discount_amount"] == "10.00"
+    assert body["shipping_discount_amount"] == "0.00"
+    assert body["total"] == "115.00"
+    assert (
+        _state(
+            pg,
+            "SELECT status FROM coupon_redemptions WHERE order_id = %s",
+            (uuid.UUID(order_id),),
+        )
+        == "APPLIED"
+    )
+    assert payment.json()["amount"] == "109.25"
+
+
 async def test_concorrencia_do_ultimo_uso(
     checkout_client: httpx.AsyncClient, pg: PostgresInstance
 ) -> None:
     _insert_coupon(pg, code="ULTIMO-USO", usage_limit_total=1)
-    first, second = await asyncio.gather(
-        checkout_client.post(
-            "/api/v1/orders",
-            json=_order_payload("ULTIMO-USO", key="race-a"),
-            headers={"Idempotency-Key": "race-a"},
-        ),
-        checkout_client.post(
-            "/api/v1/orders",
-            json=_order_payload("ULTIMO-USO", key="race-b"),
-            headers={"Idempotency-Key": "race-b"},
-        ),
+    responses = await asyncio.gather(
+        *[
+            checkout_client.post(
+                "/api/v1/orders",
+                json=_order_payload("ULTIMO-USO", key=f"race-{index}"),
+                headers={"Idempotency-Key": f"race-{index}"},
+            )
+            for index in range(5)
+        ]
     )
-    statuses = sorted([first.status_code, second.status_code])
-    assert statuses == [201, 422]
-    failed = first if first.status_code == 422 else second
-    assert failed.json()["type"] == "urn:forja:problem:coupon_exhausted"
+    statuses = sorted(response.status_code for response in responses)
+    assert statuses == [201, 422, 422, 422, 422]
+    for response in responses:
+        if response.status_code == 422:
+            assert response.json()["type"] == "urn:forja:problem:coupon_exhausted"
     assert (
         _state(
             pg,
@@ -564,6 +658,35 @@ async def test_limite_por_empresa(checkout_client: httpx.AsyncClient, pg: Postgr
     assert first.status_code == 201
     assert second.status_code == 422
     assert second.json()["type"] == "urn:forja:problem:coupon_company_limit_reached"
+
+
+async def test_limite_por_empresa_concorrente(
+    checkout_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    _insert_coupon(pg, code="LIMITE-RACE", usage_limit_per_company=1)
+    responses = await asyncio.gather(
+        *[
+            checkout_client.post(
+                "/api/v1/orders",
+                json=_order_payload("LIMITE-RACE", key=f"company-race-{index}"),
+                headers={"Idempotency-Key": f"company-race-{index}"},
+            )
+            for index in range(3)
+        ]
+    )
+    statuses = sorted(response.status_code for response in responses)
+    assert statuses == [201, 422, 422]
+    for response in responses:
+        if response.status_code == 422:
+            assert response.json()["type"] == ("urn:forja:problem:coupon_company_limit_reached")
+    assert (
+        _state(
+            pg,
+            "SELECT count(*) FROM coupon_redemptions WHERE company_id = %s",
+            (_COMPANY,),
+        )
+        == 1
+    )
 
 
 async def test_expira_entre_preview_e_compra(
@@ -615,6 +738,16 @@ async def test_cancelamento_libera_resgate(
     assert order.status_code == 201
     cancel = await checkout_client.post(f"/api/v1/orders/{order.json()['id']}/cancel")
     assert cancel.status_code == 200
+    assert (
+        _state(
+            pg,
+            "SELECT status FROM coupon_redemptions WHERE order_id = %s",
+            (uuid.UUID(order.json()["id"]),),
+        )
+        == "RELEASED"
+    )
+    second_cancel = await checkout_client.post(f"/api/v1/orders/{order.json()['id']}/cancel")
+    assert second_cancel.status_code == 409
     assert (
         _state(
             pg,

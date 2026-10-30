@@ -29,6 +29,7 @@ from app.modules.ordering.domain.coupon import (
     evaluate_coupon_eligibility,
     is_valid_coupon_code,
     normalize_coupon_code,
+    public_coupon_rejection_reason,
 )
 from app.modules.ordering.domain.payment import PaymentMethod
 
@@ -145,7 +146,10 @@ class PreviewCoupon:
             now=datetime.now(UTC),
         )
         if not eligibility.ok:
-            return None, _invalid(eligibility.reason, eligibility.missing_amount)
+            reason = public_coupon_rejection_reason(
+                eligibility.reason or CouponRejectionReason.NOT_FOUND
+            )
+            return None, _invalid(reason, eligibility.missing_amount)
         return coupon_view.coupon, None
 
 

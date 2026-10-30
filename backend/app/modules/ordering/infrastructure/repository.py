@@ -51,6 +51,7 @@ from app.modules.ordering.domain.coupon import (
     evaluate_coupon_eligibility,
     is_valid_coupon_code,
     normalize_coupon_code,
+    public_coupon_rejection_reason,
 )
 from app.modules.ordering.domain.enums import OrderStatus
 from app.modules.ordering.domain.order import can_cancel
@@ -528,7 +529,9 @@ class SqlAlchemyOrderingRepository:
         )
         if not eligibility.ok:
             raise CouponNotApplicableError(
-                eligibility.reason or CouponRejectionReason.NOT_FOUND,
+                public_coupon_rejection_reason(
+                    eligibility.reason or CouponRejectionReason.NOT_FOUND
+                ),
                 eligibility.missing_amount,
             )
 

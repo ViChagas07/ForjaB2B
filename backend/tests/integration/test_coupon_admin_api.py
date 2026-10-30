@@ -159,6 +159,38 @@ async def test_buyer_recebe_403(coupon_client: httpx.AsyncClient) -> None:
     assert response.status_code == 403
 
 
+async def test_buyer_nao_altera_cupom_nem_usa_metodo_alternativo(
+    coupon_client: httpx.AsyncClient,
+) -> None:
+    created = await coupon_client.post("/api/v1/admin/coupons", json=_payload(code="AUTH-TEST"))
+    assert created.status_code == 201
+    coupon_id = created.json()["id"]
+    headers = await _login_buyer(coupon_client)
+
+    assert (
+        await coupon_client.get(f"/api/v1/admin/coupons/{coupon_id}", headers=headers)
+    ).status_code == 403
+    assert (
+        await coupon_client.patch(
+            f"/api/v1/admin/coupons/{coupon_id}",
+            headers=headers,
+            json={"percent": "99.00"},
+        )
+    ).status_code == 403
+    assert (
+        await coupon_client.delete(f"/api/v1/admin/coupons/{coupon_id}", headers=headers)
+    ).status_code == 403
+    assert (
+        await coupon_client.post("/api/v1/admin/coupons/generate-code", headers=headers)
+    ).status_code == 403
+    assert (
+        await coupon_client.put(
+            f"/api/v1/admin/coupons/{coupon_id}",
+            json={"percent": "99.00"},
+        )
+    ).status_code == 405
+
+
 async def test_criar_normaliza_codigo_e_audita(
     coupon_client: httpx.AsyncClient, pg: PostgresInstance
 ) -> None:

@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, NoReturn
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -26,6 +26,7 @@ from app.modules.ordering.domain.coupon_admin import (
     CouponCodeConflictError,
     CouponCompanyNotFoundError,
     CouponHasRedemptionsError,
+    CouponImmutableFieldError,
     CouponListFilters,
     CouponNotFoundError,
     CouponPage,
@@ -35,6 +36,8 @@ from app.modules.ordering.domain.coupon_admin import (
 
 _ZERO = Decimal("0.00")
 _APPLIED = CouponRedemption.status == CouponRedemptionStatus.APPLIED
+_LOCK_COUPON = text("SELECT pg_advisory_xact_lock(hashtextextended(:code, 0))")
+_COUNT_REDEMPTIONS = text("SELECT count(*) FROM coupon_redemptions WHERE coupon_id = :coupon_id")
 
 
 def _constraint_name(exc: BaseException) -> str:
@@ -191,6 +194,17 @@ class SqlAlchemyCouponAdminRepository:
             orm = await uow.session.get(Coupon, coupon_id)
             if orm is None:
                 raise CouponNotFoundError("Cupom não encontrado.")
+            # Mesmo advisory lock dos resgates: impede que uma alteracao de
+            # code/type passe enquanto um pedido insere o primeiro resgate.
+            await uow.session.execute(_LOCK_COUPON, {"code": orm.code})
+            await uow.session.refresh(orm)
+            redemptions = (
+                await uow.session.execute(_COUNT_REDEMPTIONS, {"coupon_id": coupon_id})
+            ).scalar_one()
+            if int(redemptions) > 0 and (data.code != orm.code or data.type != orm.type):
+                raise CouponImmutableFieldError(
+                    "O código e o tipo não podem ser alterados depois do primeiro resgate."
+                )
             orm.code = data.code
             orm.type = data.type
             orm.percent = data.percent

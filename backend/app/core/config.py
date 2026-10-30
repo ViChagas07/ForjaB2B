@@ -257,6 +257,9 @@ class Settings(BaseSettings):
     # Previa de cupom: balde proprio e curto para dificultar forca bruta de codigos.
     rate_limit_coupon_preview_capacity: int = Field(default=10, ge=1)
     rate_limit_coupon_preview_refill_per_minute: float = Field(default=30.0, gt=0)
+    # Segundo balde por IP: impede criar varias contas e continuar tentando.
+    rate_limit_coupon_preview_ip_capacity: int = Field(default=30, ge=1)
+    rate_limit_coupon_preview_ip_refill_per_minute: float = Field(default=60.0, gt=0)
     # Quantidade de proxies confiaveis entre a internet e a aplicacao. Render
     # usa 1. Com 0 (default local), X-Forwarded-For e ignorado.
     trusted_proxy_count: int = Field(default=0, ge=0, le=10)

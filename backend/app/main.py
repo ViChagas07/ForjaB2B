@@ -373,6 +373,10 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_coupon_preview_capacity,
             refill_per_minute=settings.rate_limit_coupon_preview_refill_per_minute,
         ),
+        RateLimitClass.COUPON_PREVIEW_IP: RateLimitPolicy(
+            capacity=settings.rate_limit_coupon_preview_ip_capacity,
+            refill_per_minute=settings.rate_limit_coupon_preview_ip_refill_per_minute,
+        ),
     }
 
 

@@ -6,9 +6,11 @@ import pytest
 
 from app.modules.ordering.domain.coupon import (
     CouponRedemptionStatus,
+    CouponRejectionReason,
     CouponType,
     is_valid_coupon_code,
     normalize_coupon_code,
+    public_coupon_rejection_reason,
 )
 
 
@@ -38,6 +40,17 @@ def test_codigo_valido(code: str) -> None:
 )
 def test_codigo_invalido(code: str) -> None:
     assert is_valid_coupon_code(code) is False
+
+
+def test_restricao_a_outra_empresa_vira_not_found_publico() -> None:
+    assert (
+        public_coupon_rejection_reason(CouponRejectionReason.NOT_ALLOWED_FOR_COMPANY)
+        is CouponRejectionReason.NOT_FOUND
+    )
+    assert (
+        public_coupon_rejection_reason(CouponRejectionReason.EXPIRED)
+        is CouponRejectionReason.EXPIRED
+    )
 
 
 def test_enums_estaveis() -> None:

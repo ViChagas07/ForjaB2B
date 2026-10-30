@@ -72,10 +72,13 @@ Erros de duplicidade/immutabilidade usam 409; validação usa 422.
 
 Motivos tipados da prévia: `NOT_FOUND`, `INACTIVE`, `NOT_STARTED`, `EXPIRED`,
 `EXHAUSTED`, `COMPANY_LIMIT_REACHED`, `MIN_ORDER_NOT_MET` (com
-`missing_amount`) e `NOT_ALLOWED_FOR_COMPANY`.
+`missing_amount`). `NOT_ALLOWED_FOR_COMPANY` existe na elegibilidade interna,
+mas a resposta pública usa `NOT_FOUND` para não revelar a existência de cupom
+restrito a outra empresa.
 
-O preview tem rate limit próprio (10 de burst e 30/min por usuário por padrão,
-configurável por `RATE_LIMIT_COUPON_PREVIEW_*`).
+O preview tem dois token buckets: 10 de burst e 30/min por usuário
+(`RATE_LIMIT_COUPON_PREVIEW_*`) e 30 de burst e 60/min por IP
+(`RATE_LIMIT_COUPON_PREVIEW_IP_*`).
 
 ## Como criar um cupom no admin
 
@@ -110,11 +113,33 @@ configurável por `RATE_LIMIT_COUPON_PREVIEW_*`).
 - E2E Playwright: admin cria/listar/desativar, checkout aplica/remove e fluxo
   completo com dois cupons (produtos e frete 100%) e cancelamento.
 
+## Segurança
+
+- Schemas usam `extra="forbid"`; descontos, percentual e total enviados pelo
+  cliente são rejeitados. O servidor recalcula tudo em `Decimal`.
+- Código é normalizado e limitado a `A-Z`, `0-9`, hífen e underscore (4–32);
+  entrada hostil/unicode é rejeitada e a exibição React/HTML escapa o valor.
+- Resgates são serializados por advisory lock e contagem global; o resgate é
+  único por pedido e a liberação só altera `APPLIED -> RELEASED`.
+- `NOT_ALLOWED_FOR_COMPANY` é interno; publicamente vira `NOT_FOUND` para não
+  revelar cupons de outras empresas.
+- Preview tem limite por usuário **e** por IP. Admin exige papel `ADMIN` em
+  todos os métodos; escrita usa `forja_admin` e o runtime lê cupons apenas.
+- Alterações de `code`/`type` no admin adquirem o mesmo advisory lock dos
+  resgates antes de recontar, fechando a corrida com o primeiro uso.
+- Auditoria registra criação/edição/exclusão apenas com código, tipo e campos
+  alterados; resgates ficam em `coupon_redemptions`, sem PII.
+
 ## Limitações conhecidas
 
 - A validação de frete por endereço não existe no checkout atual; o frete é
   derivado do carrinho. A revalidação cobre itens/carrinho e pagamento.
 - Boleto com falha definitiva não libera o cupom automaticamente.
+- O rate limiter é fail-open se o Redis falhar e o IP real depende da
+  configuração correta de proxies confiáveis (`TRUSTED_PROXY_COUNT`).
+- Uma vez conhecido um código válido, os estados `INACTIVE`/`EXPIRED`/etc.
+  ainda são distinguíveis de `NOT_FOUND`; o limite por usuário/IP reduz
+  enumeração, mas não a elimina.
 - E2E e integração com Docker dependem de ambiente com seed e
   `DEMO_USER_PASSWORD`; consulte o relatório de cada fase no
   [PROGRESS](agent/PROGRESS.md).

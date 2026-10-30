@@ -30,6 +30,7 @@ _USER = uuid.UUID("88880000-0000-4000-8000-000000008002")
 _PRODUCT = uuid.UUID("88880000-0000-4000-8000-000000008003")
 _CATEGORY = uuid.UUID("88880000-0000-4000-8000-000000008004")
 _OFFER = uuid.UUID("88880000-0000-4000-8000-000000008005")
+_OTHER_COMPANY = uuid.UUID("88880000-0000-4000-8000-000000008006")
 
 
 def _product() -> ProductForOrder:
@@ -189,6 +190,28 @@ async def test_cupom_invalido_nao_cria_pedido() -> None:
             payment_method=PaymentMethod.PIX,
             idempotency_key="coupon-invalid",
             coupon_code="NAO-EXISTE",
+        )
+    assert exc.value.reason is CouponRejectionReason.NOT_FOUND
+    assert exc.value.code == "coupon_not_found"
+    assert repository.created is None
+
+
+async def test_cupom_de_outra_empresa_responde_not_found() -> None:
+    restricted = Coupon(
+        code="CUPOM10",
+        type=CouponType.PRODUCT_TOTAL,
+        percent=Decimal("10.00"),
+        restricted_company_id=_OTHER_COMPANY,
+    )
+    repository = FakeRepository(coupon=restricted)
+    with pytest.raises(CouponNotApplicableError) as exc:
+        await _create(repository).create(
+            company_id=_COMPANY,
+            buyer_user_id=_USER,
+            items=[OrderItemInput(product_id=_PRODUCT, quantity=1)],
+            payment_method=PaymentMethod.PIX,
+            idempotency_key="coupon-other-company",
+            coupon_code="CUPOM10",
         )
     assert exc.value.reason is CouponRejectionReason.NOT_FOUND
     assert exc.value.code == "coupon_not_found"

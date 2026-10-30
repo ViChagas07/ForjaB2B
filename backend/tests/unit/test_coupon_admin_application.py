@@ -175,6 +175,9 @@ async def test_create_gera_codigo_quando_omitido() -> None:
     view = await use_case.execute(_ADMIN, _create_data(None))
     assert re.fullmatch(r"FORJA-[A-Z0-9]{6}", view.code)
     assert audit.entries[0]["action"] == "coupon.created"
+    details = audit.entries[0]["details"]
+    assert details == {"code": view.code, "type": "PRODUCT_TOTAL"}
+    assert "email" not in details and "password" not in details
 
 
 async def test_create_codigo_duplicado_409() -> None:

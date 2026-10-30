@@ -29,6 +29,7 @@ _NOW = datetime.now(UTC)
 _COMPANY = uuid.UUID("99990000-0000-4000-8000-000000009001")
 _USER = uuid.UUID("99990000-0000-4000-8000-000000009002")
 _PRODUCT = uuid.UUID("99990000-0000-4000-8000-000000009003")
+_OTHER_COMPANY = uuid.UUID("99990000-0000-4000-8000-000000009004")
 
 
 def _coupon(**changes: object) -> Coupon:
@@ -214,6 +215,14 @@ async def test_preview_inexistente() -> None:
     assert result.valid is False
     assert result.reason is CouponRejectionReason.NOT_FOUND
     assert result.total is None
+
+
+async def test_preview_nao_revela_cupom_de_outra_empresa() -> None:
+    result = await _preview(coupon=_coupon(restricted_company_id=_OTHER_COMPANY)).execute(
+        company_id=_COMPANY, user_id=_USER, code="CUPOM10"
+    )
+    assert result.valid is False
+    assert result.reason is CouponRejectionReason.NOT_FOUND
 
 
 async def test_preview_expirado() -> None:

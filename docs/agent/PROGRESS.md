@@ -6,6 +6,13 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 08: auditoria de segurança — 2026-10-30
+
+- **Vulnerabilidades corrigidas:** (MÉDIA) cupom restrito a outra empresa revelava existência via `NOT_ALLOWED_FOR_COMPANY`; agora a resposta pública é `NOT_FOUND` (motivo interno preservado). (MÉDIA) preview autenticado cobria só usuário, não IP; agora consome baldes por usuário e por IP (30/60 por IP). (MÉDIA) edição admin de `code`/`type` podia correr com o primeiro resgate; update agora pega o mesmo advisory lock e recontagem. (BAIXA/INFO) mass assignment, XSS, unicode/homoglifos e valores enormes já eram bloqueados; testes adversariais adicionados.
+- **Testes novos:** `test_coupon_security.py` (12), rate limit dual bucket, autorização por método/IDOR, cupom restrito no pedido, concorrência 5x último uso, concorrência do limite por empresa, double release, webhook pago imutável, snapshots, auditoria sem PII e XSS no chip do checkout.
+- **Checagens:** backend **1029 passed, 378 skipped, 3 failed pré-existentes** (em dash, type: ignore, downgrade 0027); Ruff check/mypy/import-linter OK (10 arquivos pré-existentes fora do formato). Frontend **242 passed**, `npm run check` OK. **NÃO VALIDADO**: Docker/Postgres real (concorrência/RLS), E2E Playwright e rate limit com Redis real; proxy confiável/fail-open do Redis são riscos residuais. Enumeração de estados de um código já conhecido permanece mitigada, não eliminada.
+- **Docs:** `docs/COUPONS.md` ganhou seção de segurança e riscos residuais.
+
 ## Sistema de cupons — FASE 07: consolidação — 2026-10-30
 
 - **i18n/superfícies:** teste novo confirma chaves de `admin.coupons` e `ordering.coupon` nos 11 locales; hardcoded-text e RTL seguem verdes. Cupom/descontos aparecem no detalhe do pedido do comprador e no resumo das notificações `order.created` (e-mail/WhatsApp); o detalhe admin de cupom já mostra os resgates. Não existem telas de histórico de pedidos nem detalhe de pedido no admin no código atual; isso ficou documentado.

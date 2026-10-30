@@ -13,7 +13,7 @@ from collections.abc import Callable, MutableMapping
 from typing import Any
 from urllib.parse import urlencode
 
-from app.application.rate_limit import RateLimitClass, RateLimiter
+from app.application.rate_limit import RateLimitClass, RateLimitDecision, RateLimiter
 from app.application.security import TokenService
 from app.core.config import Settings
 from app.core.correlation import get_request_id
@@ -171,6 +171,38 @@ class RateLimitMiddleware:
         self._settings = settings
         self._token_service = token_service
 
+    async def _coupon_preview_decision(
+        self, scope: MutableMapping[str, Any], ip: str
+    ) -> RateLimitDecision:
+        """Aplica balde por IP e, se livre, o balde por usuario."""
+        ip_decision = await self._limiter.check(
+            rate_class=RateLimitClass.COUPON_PREVIEW_IP, identity=f"ip:{ip}"
+        )
+        if not ip_decision.allowed:
+            return ip_decision
+        return await self._limiter.check(
+            rate_class=RateLimitClass.COUPON_PREVIEW,
+            identity=request_identity(scope, self._token_service, ip),
+        )
+
+    async def _decision_for(
+        self,
+        scope: MutableMapping[str, Any],
+        rate_class: RateLimitClass,
+        ip: str,
+    ) -> RateLimitDecision:
+        if rate_class == RateLimitClass.COUPON_PREVIEW:
+            return await self._coupon_preview_decision(scope, ip)
+        if rate_class in {
+            RateLimitClass.AUTH,
+            RateLimitClass.OAUTH,
+            RateLimitClass.REGISTRATION,
+        }:
+            identity = f"ip:{ip}"
+        else:
+            identity = request_identity(scope, self._token_service, ip)
+        return await self._limiter.check(rate_class=rate_class, identity=identity)
+
     def _oauth_rate_limit_redirect(self, path: str) -> str | None:
         if path not in _OAUTH_REDIRECT_PATHS:
             return None
@@ -198,16 +230,7 @@ class RateLimitMiddleware:
             return
 
         ip = client_ip(scope, self._settings.trusted_proxy_count)
-        if rate_class in {
-            RateLimitClass.AUTH,
-            RateLimitClass.OAUTH,
-            RateLimitClass.REGISTRATION,
-        }:
-            identity = f"ip:{ip}"
-        else:
-            identity = request_identity(scope, self._token_service, ip)
-
-        decision = await self._limiter.check(rate_class=rate_class, identity=identity)
+        decision = await self._decision_for(scope, rate_class, ip)
         headers = [
             (b"ratelimit-limit", str(decision.limit).encode()),
             (b"ratelimit-remaining", str(decision.remaining).encode()),

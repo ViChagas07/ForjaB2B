@@ -89,4 +89,11 @@ describe("CheckoutCouponSection", () => {
     renderSection({ expanded: true, input: "X", isLoading: true });
     expect(screen.getByRole("button", { name: /Aplicando/ })).toBeTruthy();
   });
+
+  it("renderiza o código como texto e não como HTML", () => {
+    const payload = "<img src=x onerror=alert(1)>";
+    renderSection({ appliedCode: payload });
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText(payload)).toBeTruthy();
+  });
 });
