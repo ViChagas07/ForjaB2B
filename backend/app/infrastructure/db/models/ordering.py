@@ -17,6 +17,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     Uuid,
@@ -32,6 +33,7 @@ from app.infrastructure.db.models.common import (
     enum_check,
     unit_money,
 )
+from app.modules.ordering.domain.coupon import CouponType
 from app.modules.ordering.domain.enums import OrderStatus
 
 if TYPE_CHECKING:  # pragma: no cover - apenas para o type checker
@@ -52,6 +54,30 @@ class Order(TimestampMixin, Base):
         CheckConstraint("shipping_total >= 0", name="shipping_total"),
         CheckConstraint("tax_total >= 0", name="tax_total"),
         CheckConstraint("total >= 0", name="total"),
+        CheckConstraint(
+            "coupon_percent IS NULL OR (coupon_percent > 0 AND coupon_percent <= 100)",
+            name="coupon_percent_range",
+        ),
+        CheckConstraint("coupon_discount_amount >= 0", name="coupon_discount_non_negative"),
+        CheckConstraint("shipping_discount_amount >= 0", name="shipping_discount_non_negative"),
+        CheckConstraint(
+            "coupon_discount_amount <= subtotal", name="coupon_discount_within_subtotal"
+        ),
+        CheckConstraint(
+            "shipping_discount_amount <= shipping_total",
+            name="shipping_discount_within_shipping",
+        ),
+        CheckConstraint(
+            "coupon_code IS NULL OR coupon_code ~ '^[A-Z0-9_-]{4,32}$'",
+            name="coupon_code_format",
+        ),
+        CheckConstraint(
+            "(coupon_code IS NULL AND coupon_type IS NULL AND coupon_percent IS NULL) "
+            "OR (coupon_code IS NOT NULL AND coupon_type IS NOT NULL "
+            "AND coupon_percent IS NOT NULL)",
+            name="coupon_snapshot_complete",
+        ),
+        enum_check("coupon_type", CouponType),
         Index("ix_orders_status", "status"),
         Index("ix_orders_created_at", "created_at"),
         Index(
@@ -83,6 +109,17 @@ class Order(TimestampMixin, Base):
         aggregate_money(), nullable=False, server_default=text("0")
     )
     shipping_total: Mapped[Decimal] = mapped_column(
+        aggregate_money(), nullable=False, server_default=text("0")
+    )
+    coupon_code: Mapped[str | None] = mapped_column(String(32))
+    coupon_type: Mapped[CouponType | None] = mapped_column(
+        Enum(CouponType, native_enum=False, create_constraint=False, length=24)
+    )
+    coupon_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    coupon_discount_amount: Mapped[Decimal] = mapped_column(
+        aggregate_money(), nullable=False, server_default=text("0")
+    )
+    shipping_discount_amount: Mapped[Decimal] = mapped_column(
         aggregate_money(), nullable=False, server_default=text("0")
     )
     tax_total: Mapped[Decimal] = mapped_column(

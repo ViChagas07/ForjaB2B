@@ -43,6 +43,8 @@ def test_upgrade_downgrade_upgrade_roundtrip(
     try:
         assert _table_exists(admin, "orders") is True
         assert _table_exists(admin, "companies") is True
+        assert _table_exists(admin, "coupons") is True
+        assert _table_exists(admin, "coupon_redemptions") is True
     finally:
         admin.close()
 
@@ -51,6 +53,8 @@ def test_upgrade_downgrade_upgrade_roundtrip(
     try:
         assert _table_exists(admin, "orders") is False
         assert _table_exists(admin, "companies") is False
+        assert _table_exists(admin, "coupons") is False
+        assert _table_exists(admin, "coupon_redemptions") is False
     finally:
         admin.close()
 

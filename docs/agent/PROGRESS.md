@@ -6,6 +6,13 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 01: modelagem de dados — 2026-10-30
+
+- **Reconhecimento:** pedido em `backend/app/modules/ordering/application/order.py`; frete em `backend/app/domain/shipping.py`; `orders.discount_total` gravado em `backend/app/modules/ordering/infrastructure/repository.py`; PIX em `backend/app/modules/payment/application/payment.py`; migrations Alembic (`backend/alembic/versions`, última `0032`).
+- **Entregue:** migration `0033_coupons.py` (`coupons` global read-only para o runtime, `coupon_redemptions` com FORCE RLS por empresa, snapshot de cupom em `orders`), modelos `Coupon`/`CouponRedemption`, enums e normalização de código em `modules/ordering/domain/coupon.py`; sem endpoint nem cálculo.
+- **Checagens:** Ruff check OK e 9 arquivos formatados; mypy app **0 erros (357)**; import-linter **5 kept**; unit **817 passed**; suíte completa **888 passed, 338 skipped, 3 failed pré-existentes** (em dash, type: ignore e downgrade 0027 via helper). Integração de schema/migrations **NÃO VALIDADA**: Docker indisponível, 55 testes direcionados skipped.
+- **Pendências:** aplicar `0033` em banco descartável/CI, rodar upgrade/downgrade e constraints em PostgreSQL real; UI e cálculo ficam para as próximas fases.
+
 ## Correção de acentuação — "Máquinas e Ferramentas" — 2026-10-29
 
 - **Frontend:** `shared/lib/category-display.ts` corrige o nome legado `Maquinas e Ferramentas` para `Máquinas e Ferramentas` em home, filtros do catálogo, cards, detalhe do produto e sugestões de busca. Isso corrige a interface já no próximo deploy da Vercel, mesmo antes da migration.

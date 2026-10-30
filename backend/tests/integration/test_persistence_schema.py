@@ -34,6 +34,8 @@ ALL_TABLES = {
     "consent_records",
     "audit_log",
     "company_price_rules",
+    "coupons",
+    "coupon_redemptions",
 }
 
 TENANT_TABLES = {
@@ -50,9 +52,16 @@ TENANT_TABLES = {
     "consent_records",
     "audit_log",
     "company_price_rules",
+    "coupon_redemptions",
 }
 
-GLOBAL_TABLES = {"categories", "brands", "products", "product_price_tiers"}
+GLOBAL_TABLES = {
+    "categories",
+    "brands",
+    "products",
+    "product_price_tiers",
+    "coupons",
+}
 
 
 def _alembic_config() -> Config:
@@ -82,8 +91,13 @@ def test_todas_as_tabelas_de_dominio_existem(
         ("product_price_tiers", "unit_price", 12),
         ("orders", "subtotal", 14),
         ("orders", "total", 14),
+        ("orders", "coupon_discount_amount", 14),
+        ("orders", "shipping_discount_amount", 14),
         ("order_items", "unit_price", 12),
         ("order_items", "line_total", 14),
+        ("coupons", "max_discount_amount", 14),
+        ("coupons", "min_order_amount", 14),
+        ("coupon_redemptions", "amount_discounted", 14),
         ("invoices", "amount", 14),
         ("credit_accounts", "credit_limit", 14),
         ("credit_entries", "amount", 14),
@@ -124,6 +138,8 @@ def test_money_usam_numeric_nao_float(
         ("uq_invoices_number", "invoices"),
         ("uq_company_members_company_user", "company_members"),
         ("uq_product_price_tiers_product_min_qty", "product_price_tiers"),
+        ("uq_coupons_code", "coupons"),
+        ("uq_coupon_redemptions_order_id", "coupon_redemptions"),
     ],
 )
 def test_constraints_de_unicidade(
@@ -158,6 +174,9 @@ def test_constraints_de_unicidade(
         ("credit_entries", "entry_type"),
         ("consent_records", "purpose"),
         ("consent_records", "action"),
+        ("coupons", "type"),
+        ("coupon_redemptions", "status"),
+        ("orders", "coupon_type"),
     ],
 )
 def test_enums_tem_check_constraint(

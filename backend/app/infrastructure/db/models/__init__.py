@@ -21,6 +21,7 @@ from app.infrastructure.db.models.catalog import (
 )
 from app.infrastructure.db.models.chat import ChatConversation, ChatMessage
 from app.infrastructure.db.models.companies import Company, CompanyAddress
+from app.infrastructure.db.models.coupons import Coupon, CouponRedemption
 from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
 from app.infrastructure.db.models.idempotency import IdempotencyKey
@@ -51,6 +52,8 @@ __all__ = [
     "CompanyPriceRule",
     "ConsentRecord",
     "ConsumerProfile",
+    "Coupon",
+    "CouponRedemption",
     "CreditAccount",
     "CreditEntry",
     "IdempotencyKey",
