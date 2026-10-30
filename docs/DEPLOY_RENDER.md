@@ -67,6 +67,11 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
   runtime também alimenta o engine administrativo do catálogo. Em banco gerenciado com uma
   única role principal (ex.: `forja` no Render), é aceitável usar essa role, desde que o
   preflight confirme ownership e `CREATE`. Em VPS/Compose, prefira `forja_admin`.
+- `DATABASE_ADMIN_ROLE` (opcional): quando `DATABASE_ADMIN_URL` usa a role principal do
+  Render e ela é membro de `forja_admin` com `SET`, defina `forja_admin` para o Alembic
+  iniciar a conexão já como owner. Exemplo pontual:
+  `GRANT forja_admin TO forja WITH SET TRUE`, rode a migration e depois
+  `REVOKE forja_admin FROM forja GRANTED BY forja` para restaurar a membership original.
 - `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
 - `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`, `ELASTICSEARCH_CA_CERTS`,
   `ELASTICSEARCH_VERIFY_CERTS=true`, `ELASTICSEARCH_INDEX_VERSION`

@@ -57,6 +57,19 @@ def _migration_url() -> str:
     )
 
 
+def _migration_connect_args() -> dict[str, object]:
+    """Permite trocar para a role owner via membership (Render gerenciado).
+
+    Em alguns bancos gerenciados a unica credencial disponivel e a role
+    principal. Se ela for membro de ``forja_admin`` com SET, a conexao pode
+    iniciar ja como owner usando ``DATABASE_ADMIN_ROLE=forja_admin``.
+    """
+    role = os.environ.get("DATABASE_ADMIN_ROLE", "").strip()
+    if not role:
+        return {}
+    return {"server_settings": {"role": role}}
+
+
 # Objetos derivados da busca (Fases 4/5) criados por migration com SQL puro
 # (nao modelados no ORM de proposito): tabela de embeddings + indices trigram/FTS
 # + indice HNSW. Ficam fora do autogenerate/`alembic check` para nao gerar drift
@@ -110,7 +123,9 @@ def _run_migrations_online(connection: Connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    engine = create_async_engine(_migration_url())
+    engine = create_async_engine(
+        _migration_url(), connect_args=_migration_connect_args()
+    )
     async with engine.connect() as connection:
         await connection.run_sync(_run_migrations_online)
     await engine.dispose()
