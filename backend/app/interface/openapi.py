@@ -36,6 +36,7 @@ _TAG_DESCRIPTIONS: dict[str, str] = {
     "catalog": "Catalogo publico de categorias, marcas e produtos.",
     "catalog-admin": "Administracao de catalogo (somente papel ADMIN).",
     "catalog-admin-translations": "Traducoes de conteudo do catalogo (ADMIN).",
+    "coupons-admin": "Administracao de cupons (somente papel ADMIN).",
     "search": "Busca lexical/semantica com fallback PostgreSQL.",
     "cart": "Carrinho de compras do tenant.",
     "orders": "Criacao, consulta e cancelamento de pedidos.",

@@ -6,6 +6,14 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 03: API admin — 2026-10-30
+
+- **Padrão reaproveitado:** rotas `/api/v1/admin/...`, `get_current_auth` + `require_role("ADMIN")`, UoW `forja_admin` sem tenant para escrita global e `audit_log` tenant-scoped existente.
+- **Endpoints:** `POST/GET /admin/coupons`, `POST /admin/coupons/generate-code`, `GET/PATCH/DELETE /admin/coupons/{id}`. Criação normaliza/gera código, valida faixa e janela, retorna 409 de duplicado; listagem com busca, status `ACTIVE|EXPIRED|EXHAUSTED`, paginação, usos e valor descontado; detalhe com últimos 10 resgates; PATCH bloqueia code/type após o primeiro resgate e permite desativar/editar limites; DELETE com resgates retorna 409 sugerindo desativar.
+- **Dados:** migration `0034_coupon_admin_read` adiciona policy permissiva de SELECT para `forja_admin` em `coupon_redemptions` (FORCE RLS continua valendo para `forja_app`), permitindo agregados globais. OpenAPI e snapshot regenerados; tag `coupons-admin` documentada.
+- **Checagens:** Ruff check OK; mypy app **0 erros (363)**; import-linter **5 kept**; unit **916 passed** (42 novos de CRUD/domínio); suíte completa **987 passed, 358 skipped, 3 failed pré-existentes** (em dash, type: ignore e downgrade 0027 via helper). Integração da API/schema **NÃO VALIDADA**: Docker indisponível, 19 testes de API e 1 de policy skipped. OpenAPI e snapshot conferidos. Sem UI/checkout nesta fase.
+- **Pendências:** rodar a suíte de integração em CI/Docker, aplicar `0034` e validar a policy em PostgreSQL real; integrar cotação/aplicação do cupom no checkout nas próximas fases.
+
 ## Sistema de cupons — FASE 02: domínio de validação e cálculo — 2026-10-30
 
 - **Entregue:** `modules/ordering/domain/coupon.py` ganhou `Coupon`, `CouponEligibility` com motivos tipados (`NOT_FOUND`, `INACTIVE`, `NOT_STARTED`, `EXPIRED`, `EXHAUSTED`, `COMPANY_LIMIT_REACHED`, `MIN_ORDER_NOT_MET` com faltante, `NOT_ALLOWED_FOR_COMPANY`) e `calculate_order_totals` imutável (subtotal, recovery, cupom, frete, PIX e total), com `Decimal`/`ROUND_HALF_UP`.

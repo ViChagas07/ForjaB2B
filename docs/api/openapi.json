@@ -860,6 +860,798 @@
         "title": "ConsentResponse",
         "type": "object"
       },
+      "CouponAdminDetail": {
+        "additionalProperties": false,
+        "description": "Detalhe com os ultimos resgates (mais recentes primeiro).",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "last_redemptions": {
+            "items": {
+              "$ref": "#/components/schemas/CouponRedemptionOut-Output"
+            },
+            "title": "Last Redemptions",
+            "type": "array"
+          },
+          "max_discount_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Discount Amount"
+          },
+          "min_order_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Order Amount"
+          },
+          "percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Percent",
+            "type": "string"
+          },
+          "restricted_company_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restricted Company Id"
+          },
+          "total_discounted": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Discounted",
+            "type": "string"
+          },
+          "total_uses": {
+            "title": "Total Uses",
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/CouponType"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "usage_limit_per_company": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Per Company"
+          },
+          "usage_limit_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Total"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "type",
+          "percent",
+          "max_discount_amount",
+          "min_order_amount",
+          "valid_from",
+          "valid_until",
+          "usage_limit_total",
+          "usage_limit_per_company",
+          "restricted_company_id",
+          "is_active",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "total_uses",
+          "total_discounted",
+          "last_redemptions"
+        ],
+        "title": "CouponAdminDetail",
+        "type": "object"
+      },
+      "CouponAdminListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CouponAdminOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "pages": {
+            "title": "Pages",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "pages"
+        ],
+        "title": "CouponAdminListResponse",
+        "type": "object"
+      },
+      "CouponAdminOut": {
+        "additionalProperties": false,
+        "description": "Cupom com agregados de uso.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "max_discount_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Discount Amount"
+          },
+          "min_order_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Order Amount"
+          },
+          "percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Percent",
+            "type": "string"
+          },
+          "restricted_company_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restricted Company Id"
+          },
+          "total_discounted": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Discounted",
+            "type": "string"
+          },
+          "total_uses": {
+            "title": "Total Uses",
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/CouponType"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "usage_limit_per_company": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Per Company"
+          },
+          "usage_limit_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Total"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "type",
+          "percent",
+          "max_discount_amount",
+          "min_order_amount",
+          "valid_from",
+          "valid_until",
+          "usage_limit_total",
+          "usage_limit_per_company",
+          "restricted_company_id",
+          "is_active",
+          "created_by",
+          "created_at",
+          "updated_at",
+          "total_uses",
+          "total_discounted"
+        ],
+        "title": "CouponAdminOut",
+        "type": "object"
+      },
+      "CouponCodeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "CouponCodeOut",
+        "type": "object"
+      },
+      "CouponCreate": {
+        "additionalProperties": false,
+        "description": "Payload de criacao; codigo nulo gera ``FORJA-XXXXXX``.",
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "is_active": {
+            "default": true,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "max_discount_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Discount Amount"
+          },
+          "min_order_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Order Amount"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.01,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Percent"
+          },
+          "restricted_company_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restricted Company Id"
+          },
+          "type": {
+            "$ref": "#/components/schemas/CouponType"
+          },
+          "usage_limit_per_company": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Per Company"
+          },
+          "usage_limit_total": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Total"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "required": [
+          "type",
+          "percent"
+        ],
+        "title": "CouponCreate",
+        "type": "object"
+      },
+      "CouponRedemptionOut-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_discounted": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount Discounted"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CouponRedemptionStatus"
+          }
+        },
+        "required": [
+          "id",
+          "order_id",
+          "company_id",
+          "amount_discounted",
+          "status",
+          "created_at",
+          "released_at"
+        ],
+        "title": "CouponRedemptionOut",
+        "type": "object"
+      },
+      "CouponRedemptionOut-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_discounted": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount Discounted",
+            "type": "string"
+          },
+          "company_id": {
+            "format": "uuid",
+            "title": "Company Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CouponRedemptionStatus"
+          }
+        },
+        "required": [
+          "id",
+          "order_id",
+          "company_id",
+          "amount_discounted",
+          "status",
+          "created_at",
+          "released_at"
+        ],
+        "title": "CouponRedemptionOut",
+        "type": "object"
+      },
+      "CouponRedemptionStatus": {
+        "description": "Ciclo de vida do resgate de um cupom em um pedido.",
+        "enum": [
+          "APPLIED",
+          "RELEASED"
+        ],
+        "title": "CouponRedemptionStatus",
+        "type": "string"
+      },
+      "CouponType": {
+        "description": "Escopo do desconto: total dos produtos ou valor do frete.",
+        "enum": [
+          "PRODUCT_TOTAL",
+          "SHIPPING"
+        ],
+        "title": "CouponType",
+        "type": "string"
+      },
+      "CouponUpdate": {
+        "additionalProperties": false,
+        "description": "PATCH: campos omitidos permanecem; ``null`` limpa os opcionais.",
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "max_discount_amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Discount Amount"
+          },
+          "min_order_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,12}|(?=[\\d.]{1,15}0*$)\\d{0,12}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Order Amount"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.01,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "restricted_company_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restricted Company Id"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CouponType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "usage_limit_per_company": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Per Company"
+          },
+          "usage_limit_total": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Limit Total"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "title": "CouponUpdate",
+        "type": "object"
+      },
       "CreateInvoiceRequest": {
         "additionalProperties": false,
         "description": "Entrada de criacao de fatura (o pedido ja deve estar reservado).",
@@ -6889,6 +7681,1141 @@
         "summary": "Update Translation",
         "tags": [
           "catalog-admin-translations"
+        ]
+      }
+    },
+    "/api/v1/admin/coupons": {
+      "get": {
+        "operationId": "list_coupons_api_v1_admin_coupons_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ACTIVE",
+                    "EXPIRED",
+                    "EXHAUSTED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponAdminListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Autenticado, mas sem permissao para o recurso.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 403,
+                  "title": "Forbidden",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_403"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Autenticado, mas sem permissao para o recurso."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Listar cupons (admin)",
+        "tags": [
+          "coupons-admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_coupon_api_v1_admin_coupons_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponAdminOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Autenticado, mas sem permissao para o recurso.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 403,
+                  "title": "Forbidden",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_403"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Autenticado, mas sem permissao para o recurso."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Criar cupom",
+        "tags": [
+          "coupons-admin"
+        ]
+      }
+    },
+    "/api/v1/admin/coupons/generate-code": {
+      "post": {
+        "operationId": "generate_code_api_v1_admin_coupons_generate_code_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponCodeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Autenticado, mas sem permissao para o recurso.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 403,
+                  "title": "Forbidden",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_403"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Autenticado, mas sem permissao para o recurso."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Gerar codigo de cupom",
+        "tags": [
+          "coupons-admin"
+        ]
+      }
+    },
+    "/api/v1/admin/coupons/{coupon_id}": {
+      "delete": {
+        "operationId": "delete_coupon_api_v1_admin_coupons__coupon_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "coupon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Coupon Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Autenticado, mas sem permissao para o recurso.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 403,
+                  "title": "Forbidden",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_403"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Autenticado, mas sem permissao para o recurso."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Recurso inexistente no tenant autenticado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 404,
+                  "title": "Not Found",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_404"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Recurso inexistente no tenant autenticado."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Excluir cupom sem resgates",
+        "tags": [
+          "coupons-admin"
+        ]
+      },
+      "get": {
+        "operationId": "get_coupon_api_v1_admin_coupons__coupon_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "coupon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Coupon Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponAdminDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Autenticado, mas sem permissao para o recurso.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 403,
+                  "title": "Forbidden",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_403"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Autenticado, mas sem permissao para o recurso."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Recurso inexistente no tenant autenticado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 404,
+                  "title": "Not Found",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_404"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Recurso inexistente no tenant autenticado."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Detalhar cupom (admin)",
+        "tags": [
+          "coupons-admin"
+        ]
+      },
+      "patch": {
+        "operationId": "update_coupon_api_v1_admin_coupons__coupon_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "coupon_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Coupon Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponAdminOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Autenticado, mas sem permissao para o recurso.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 403,
+                  "title": "Forbidden",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_403"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Autenticado, mas sem permissao para o recurso."
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Recurso inexistente no tenant autenticado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 404,
+                  "title": "Not Found",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_404"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Recurso inexistente no tenant autenticado."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Editar cupom (PATCH)",
+        "tags": [
+          "coupons-admin"
         ]
       }
     },
@@ -14605,6 +16532,10 @@
     {
       "description": "Operacoes da API.",
       "name": "consumers"
+    },
+    {
+      "description": "Administracao de cupons (somente papel ADMIN).",
+      "name": "coupons-admin"
     },
     {
       "description": "Conta de credito e lancamentos do tenant.",

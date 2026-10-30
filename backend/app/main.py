@@ -148,8 +148,21 @@ from app.modules.notification.application.notification import (
     UpdateWhatsAppOptIn,
 )
 from app.modules.notification.infrastructure.repository import SqlAlchemyNotificationRepository
+from app.modules.ordering.application.coupon_admin import (
+    CreateCoupon,
+    DeleteCoupon,
+    GetCoupon,
+    ListCoupons,
+    UpdateCoupon,
+)
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
+from app.modules.ordering.infrastructure.coupon_admin_repository import (
+    SqlAlchemyCouponAdminRepository,
+)
 from app.modules.ordering.infrastructure.repository import SqlAlchemyOrderingRepository
+from app.modules.ordering.interface.coupon_admin_router import (
+    router as coupon_admin_router,
+)
 from app.modules.payment.application.payment import (
     ConfirmPayment,
     GetPayment,
@@ -523,6 +536,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         in_progress_ttl_seconds=settings.idempotency_in_progress_ttl_seconds,
     )
     # Admin factories (forja_admin role, bypasses RLS on catalog tables)
+    app.state.admin_engine = admin_engine
     app.state.admin_session_factory = admin_session_factory
     app.state.admin_uow_factory = admin_uow_factory
     # Motor de busca (Elasticsearch). Construido aqui (nao apenas no lifespan)
@@ -661,6 +675,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.catalog_admin_list_static_images = ListStaticImages()
 
+    # Composicao da administracao de cupons (global; auditoria tenant-scoped).
+    coupon_admin_repository = SqlAlchemyCouponAdminRepository(app.state.admin_uow_factory)
+    app.state.coupon_admin_create = CreateCoupon(
+        repository=coupon_admin_repository, audit=audit_log
+    )
+    app.state.coupon_admin_list = ListCoupons(repository=coupon_admin_repository)
+    app.state.coupon_admin_get = GetCoupon(repository=coupon_admin_repository)
+    app.state.coupon_admin_update = UpdateCoupon(
+        repository=coupon_admin_repository, audit=audit_log
+    )
+    app.state.coupon_admin_delete = DeleteCoupon(
+        repository=coupon_admin_repository, audit=audit_log
+    )
+
     # Composicao do contexto de catalogo - ADMIN (traduções).
     translation_repository = SqlAlchemyTranslationAdminRepository(app.state.admin_uow_factory)
     translation_provider = NullTranslationProvider()
@@ -791,6 +819,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(api_v1_router)
     app.include_router(catalog_admin_router, prefix="/api/v1")
     app.include_router(translation_admin_router, prefix="/api/v1")
+    app.include_router(coupon_admin_router, prefix="/api/v1")
 
     register_deprecation(app)
     configure_openapi(app)

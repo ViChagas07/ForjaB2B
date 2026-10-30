@@ -150,6 +150,18 @@ def test_um_cupom_por_pedido(pg: PostgresInstance, coupon_actor: None) -> None:
         conn.close()
 
 
+def test_policy_de_leitura_admin_em_resgates(
+    admin_conn: psycopg.Connection, migrated_domain_schema: None
+) -> None:
+    policies = {
+        row[0]
+        for row in admin_conn.execute(
+            "SELECT polname FROM pg_policy WHERE polrelid = 'public.coupon_redemptions'::regclass"
+        ).fetchall()
+    }
+    assert "coupon_redemptions_admin_read" in policies
+
+
 def test_coupons_sem_rls_e_resgates_com_rls_tenant(
     admin_conn: psycopg.Connection, migrated_domain_schema: None
 ) -> None:
