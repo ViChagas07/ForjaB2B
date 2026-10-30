@@ -16,23 +16,46 @@ function baselineFile(path: string): string {
   return join(PUBLIC_DIR, path.replace(/^\//, ""));
 }
 
+function normalized(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function fileNameMentionsGenre(sourceFile: string, genre: string): boolean {
+  const file = normalized(sourceFile);
+  const expected = normalized(genre);
+  return (
+    file.includes(expected) || (expected.endsWith("s") && file.includes(expected.slice(0, -1)))
+  );
+}
+
 describe("banners promocionais do hero", () => {
-  it("extrai o gênero do nome de cada arquivo e o mantém associado à imagem", () => {
+  it("associa o gênero indicado no arquivo ao banner e mantém o vínculo com a imagem", () => {
     for (const banner of HERO_PROMO_BANNERS) {
+      expect(Object.keys(banner.images).sort()).toEqual(["en", "es", "pt-BR"]);
+
       for (const variant of Object.values(banner.images)) {
-        const match = variant.sourceFile.match(/\(([^)]+)\)(?: - [Ee]nglish)?\.png$/);
-        expect(match?.[1], variant.sourceFile).toBe(banner.genre);
+        const parenthetical = variant.sourceFile.match(/\(([^)]+)\)/)?.[1];
+        if (parenthetical) {
+          expect(normalized(parenthetical), variant.sourceFile).toBe(normalized(banner.genre));
+        } else {
+          expect(fileNameMentionsGenre(variant.sourceFile, banner.genre), variant.sourceFile).toBe(
+            true,
+          );
+        }
         expect(existsSync(baselineFile(variant.sourceFile))).toBe(true);
       }
     }
   });
 
-  it("usa a arte em português apenas no pt-BR e a arte em inglês nos demais idiomas", () => {
+  it("usa português no pt-BR, espanhol no es e inglês nos demais idiomas", () => {
     for (const banner of HERO_PROMO_BANNERS) {
       expect(heroPromoImageForLocale(banner, "pt-BR")).toBe(banner.images["pt-BR"]);
       expect(heroPromoImageForLocale(banner, "en")).toBe(banner.images.en);
+      expect(heroPromoImageForLocale(banner, "es")).toBe(banner.images.es);
       expect(heroPromoImageForLocale(banner, "ar")).toBe(banner.images.en);
-      expect(heroPromoImageForLocale(banner, "es")).toBe(banner.images.en);
       expect(heroPromoImageForLocale(banner, "ja")).toBe(banner.images.en);
     }
   });

@@ -134,6 +134,52 @@ test.describe("banners promocionais em inglês", () => {
   });
 });
 
+test.describe("banners promocionais em espanhol", () => {
+  test.use({ locale: "es", reducedMotion: "reduce" });
+
+  test("usa as artes em espanhol e mantém os destinos das categorias", async ({ page }) => {
+    await page.goto("/es");
+
+    const region = page.getByRole("region", { name: "Promociones destacadas" });
+    await expect(region).toBeVisible();
+    await selectFirstBanner(region);
+
+    const episLink = region.getByRole("link", {
+      name: "Ver EPP y equipos de seguridad",
+    });
+    await expect(episLink.locator("img")).toHaveAttribute(
+      "src",
+      "/catalog/promos/epis-es-1760.webp",
+    );
+    await expect(episLink).toHaveAttribute(
+      "href",
+      "/es/catalog?category_id=00000000-0000-0000-0000-000000000401",
+    );
+
+    await region.getByRole("button", { name: "Anuncio siguiente" }).click();
+    const ferramentasLink = region.getByRole("link", { name: "Ver herramientas eléctricas" });
+    await expect(ferramentasLink.locator("img")).toHaveAttribute(
+      "src",
+      "/catalog/promos/ferramentas-eletricas-es-1760.webp",
+    );
+    await expect(ferramentasLink).toHaveAttribute(
+      "href",
+      "/es/catalog?category_id=dbde55e0-48b7-54db-aa25-a4e0162912b4",
+    );
+
+    await region.getByRole("button", { name: "Anuncio siguiente" }).click();
+    const botasLink = region.getByRole("link", { name: "Ver botas y calzado de protección" });
+    await expect(botasLink.locator("img")).toHaveAttribute(
+      "src",
+      "/catalog/promos/botas-de-protecao-es-1760.webp",
+    );
+    await expect(botasLink).toHaveAttribute(
+      "href",
+      "/es/catalog?category_id=209f1617-a444-583c-9eea-5cb136a25ffb",
+    );
+  });
+});
+
 test.describe("carrossel promocional em RTL", () => {
   test.use({ locale: "ar", reducedMotion: "reduce" });
 

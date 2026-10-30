@@ -1,7 +1,7 @@
 export type HeroPromoLabelKey =
   "home.promos.episLink" | "home.promos.ferramentasLink" | "home.promos.botasLink";
 
-export type HeroPromoLocale = "pt-BR" | "en";
+export type HeroPromoLocale = "pt-BR" | "en" | "es";
 
 export interface HeroPromoCategory {
   id: string;
@@ -49,7 +49,13 @@ export function heroPromoImageForLocale(
   banner: HeroPromoBanner,
   locale: string,
 ): HeroPromoImageVariant {
-  return locale === "pt-BR" ? banner.images["pt-BR"] : banner.images.en;
+  if (locale === "pt-BR") {
+    return banner.images["pt-BR"];
+  }
+  if (locale === "es") {
+    return banner.images.es;
+  }
+  return banner.images.en;
 }
 
 export function randomPromoIndex(total: number, random: () => number = Math.random): number {
@@ -95,6 +101,10 @@ export const HERO_PROMO_BANNERS: readonly HeroPromoBanner[] = [
         sourceFile: "catalog/photos/EPIs de Qualidade, Proteção Garantida (EPIs) - English.png",
         image: promoImage("epis-en", 636),
       },
+      es: {
+        sourceFile: "catalog/photos/EPI de calidad, seguridad garantizada - Español.png",
+        image: promoImage("epis-es", 637),
+      },
     },
   },
   {
@@ -118,6 +128,11 @@ export const HERO_PROMO_BANNERS: readonly HeroPromoBanner[] = [
           "catalog/photos/Potência e faíscas no trabalho (ferramentas elétricas) - english.png",
         image: promoImage("ferramentas-eletricas-en"),
       },
+      es: {
+        sourceFile:
+          "catalog/photos/Potência e faíscas no trabalho (ferramentas elétricas) - Español.png",
+        image: promoImage("ferramentas-eletricas-es"),
+      },
     },
   },
   {
@@ -140,6 +155,11 @@ export const HERO_PROMO_BANNERS: readonly HeroPromoBanner[] = [
         sourceFile:
           "catalog/photos/Botas de Proteção no Trabalho (botas de proteção) - English.png",
         image: promoImage("botas-de-protecao-en"),
+      },
+      es: {
+        sourceFile:
+          "catalog/photos/Botas de Proteção no Trabalho (botas de proteção) - Español.png",
+        image: promoImage("botas-de-protecao-es"),
       },
     },
   },
