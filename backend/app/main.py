@@ -155,7 +155,12 @@ from app.modules.ordering.application.coupon_admin import (
     ListCoupons,
     UpdateCoupon,
 )
+from app.modules.ordering.application.coupon_checkout import PreviewCoupon
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
+from app.modules.ordering.application.ports import (
+    CheckoutCartItem,
+    CheckoutCartSnapshot,
+)
 from app.modules.ordering.infrastructure.coupon_admin_repository import (
     SqlAlchemyCouponAdminRepository,
 )
@@ -364,6 +369,10 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_ai_capacity,
             refill_per_minute=settings.rate_limit_ai_refill_per_minute,
         ),
+        RateLimitClass.COUPON_PREVIEW: RateLimitPolicy(
+            capacity=settings.rate_limit_coupon_preview_capacity,
+            refill_per_minute=settings.rate_limit_coupon_preview_refill_per_minute,
+        ),
     }
 
 
@@ -420,6 +429,34 @@ class _CartSummaryAdapter:
         total_qty = sum(item.quantity for item in view.items)
         names = ", ".join(item.name for item in view.items[:5])
         return f"{len(view.items)} itens, {total_qty} unidades: {names}"
+
+
+class _CheckoutCartAdapter:
+    """Carrinho do comprador para a previa de cupom (composicao)."""
+
+    def __init__(self, cart_service: CartService) -> None:
+        self._cart_service = cart_service
+
+    async def get_checkout_cart(
+        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> CheckoutCartSnapshot | None:
+        view = await self._cart_service.get_cart(company_id, user_id, locale)
+        if view is None:
+            return None
+        return CheckoutCartSnapshot(
+            subtotal=view.subtotal,
+            items=[
+                CheckoutCartItem(
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    unit_price=item.unit_price,
+                    line_total=item.line_total,
+                    weight_kg=item.weight_kg,
+                    is_negotiated=item.is_negotiated,
+                )
+                for item in view.items
+            ],
+        )
 
 
 def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
@@ -721,6 +758,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.ordering_create = CreateOrder(repository=ordering_repository)
     app.state.ordering_get = GetOrder(repository=ordering_repository)
     app.state.ordering_cancel = CancelOrder(repository=ordering_repository)
+    app.state.ordering_coupon_preview = PreviewCoupon(
+        cart_reader=_CheckoutCartAdapter(app.state.cart_service),
+        repository=ordering_repository,
+        pix_discount_rate=settings.pix_discount_rate,
+    )
 
     # Composicao do contexto de faturamento (boleto + captura de credito).
     invoicing_repository = SqlAlchemyInvoicingRepository(app.state.uow_factory)

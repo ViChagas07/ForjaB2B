@@ -1365,6 +1365,160 @@
         "title": "CouponCreate",
         "type": "object"
       },
+      "CouponPreviewRequest": {
+        "additionalProperties": false,
+        "description": "Previa do cupom no carrinho do comprador autenticado.",
+        "properties": {
+          "code": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "payment_method": {
+            "$ref": "#/components/schemas/app__modules__ordering__domain__payment__PaymentMethod",
+            "default": "PIX"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "CouponPreviewRequest",
+        "type": "object"
+      },
+      "CouponPreviewResponse": {
+        "additionalProperties": false,
+        "description": "Validacao tipada + simulacao; ``valid=False`` traz apenas o motivo.",
+        "properties": {
+          "applied_discounts": {
+            "items": {
+              "$ref": "#/components/schemas/DiscountKind"
+            },
+            "title": "Applied Discounts",
+            "type": "array"
+          },
+          "coupon_discount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coupon Discount"
+          },
+          "currency": {
+            "default": "BRL",
+            "title": "Currency",
+            "type": "string"
+          },
+          "missing_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Amount"
+          },
+          "pix_discount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pix Discount"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CouponRejectionReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recovery_discount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Discount"
+          },
+          "shipping_discount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Discount"
+          },
+          "shipping_total": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shipping Total"
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtotal"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "title": "CouponPreviewResponse",
+        "type": "object"
+      },
       "CouponRedemptionOut-Input": {
         "additionalProperties": false,
         "properties": {
@@ -1491,6 +1645,21 @@
           "RELEASED"
         ],
         "title": "CouponRedemptionStatus",
+        "type": "string"
+      },
+      "CouponRejectionReason": {
+        "description": "Motivos tipados de rejeicao, traduziveis na interface.",
+        "enum": [
+          "NOT_FOUND",
+          "INACTIVE",
+          "NOT_STARTED",
+          "EXPIRED",
+          "EXHAUSTED",
+          "COMPANY_LIMIT_REACHED",
+          "MIN_ORDER_NOT_MET",
+          "NOT_ALLOWED_FOR_COMPANY"
+        ],
+        "title": "CouponRejectionReason",
         "type": "string"
       },
       "CouponType": {
@@ -1675,6 +1844,18 @@
       "CreateOrderRequest": {
         "additionalProperties": false,
         "properties": {
+          "coupon_code": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coupon Code"
+          },
           "idempotency_key": {
             "anyOf": [
               {
@@ -1924,6 +2105,17 @@
         ],
         "title": "CreditEntryResponse",
         "type": "object"
+      },
+      "DiscountKind": {
+        "description": "Descontos que podem compor o total de um pedido.",
+        "enum": [
+          "RECOVERY",
+          "COUPON_PRODUCT",
+          "COUPON_SHIPPING",
+          "PIX"
+        ],
+        "title": "DiscountKind",
+        "type": "string"
       },
       "FieldError": {
         "description": "Erro de validacao de um campo (sem ecoar o valor recebido).",
@@ -2558,6 +2750,45 @@
             "title": "Content Locale",
             "type": "string"
           },
+          "coupon_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coupon Code"
+          },
+          "coupon_discount_amount": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Coupon Discount Amount",
+            "type": "string"
+          },
+          "coupon_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coupon Percent"
+          },
+          "coupon_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CouponType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -2583,6 +2814,12 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "shipping_discount_amount": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Shipping Discount Amount",
+            "type": "string"
           },
           "shipping_total": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -13293,6 +13530,189 @@
           }
         ],
         "summary": "Create Order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/v1/orders/coupon-preview": {
+      "post": {
+        "operationId": "preview_coupon_api_v1_orders_coupon_preview_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lang"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouponPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CouponPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Validar cupom e simular o checkout",
         "tags": [
           "orders"
         ]

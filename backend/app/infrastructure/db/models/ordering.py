@@ -64,10 +64,6 @@ class Order(TimestampMixin, Base):
             "coupon_discount_amount <= subtotal", name="coupon_discount_within_subtotal"
         ),
         CheckConstraint(
-            "shipping_discount_amount <= shipping_total",
-            name="shipping_discount_within_shipping",
-        ),
-        CheckConstraint(
             "coupon_code IS NULL OR coupon_code ~ '^[A-Z0-9_-]{4,32}$'",
             name="coupon_code_format",
         ),

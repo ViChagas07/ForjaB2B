@@ -6,6 +6,14 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 04: checkout e pedido — 2026-10-30
+
+- **Entregue:** `POST /api/v1/orders/coupon-preview` (carrinho do comprador, motivos tipados, simulação com recovery/frete/PIX), `coupon_code` opcional no `CreateOrderRequest`, snapshots no pedido, resgate atômico no `CreateOrder` (advisory lock por cupom + contagem global + `coupon_redemptions`) e liberação em cancelamento e falha/expiração definitiva de PIX/cartão.
+- **Dados/migração:** `0035_coupon_usage_counts` cria função `SECURITY DEFINER` que conta usos APPLIED de todas as empresas sem expor linhas; `forja_app` recebe só EXECUTE. `0036` remove o check antigo que impedia cupom SHIPPING de 100% (frete líquido 0). `discount_total` continua significando recovery; cupom fica em `coupon_discount_amount`/`shipping_discount_amount` e `shipping_total` passa a ser líquido do cupom de frete.
+- **Pagamento:** PIX continua 5% sobre `orders.total` já abatido; o total do preview (com PIX) é comparado ao `payments.amount`. Boleto usa o total pós-cupom na reserva de crédito. Falha/expiração de boleto segue o ciclo da fatura e não libera o cupom neste momento.
+- **Checagens:** Ruff check OK; mypy app **0 erros (366)**; import-linter **5 kept**; unit **938 passed**; suíte completa **1009 passed, 373 skipped, 3 failed pré-existentes** (em dash, type: ignore e downgrade 0027 via helper). **NÃO VALIDADO**: Docker indisponível; 14 testes de API de checkout, migrations 0035/0036, concorrência e liberação skipped. Sem UI/i18n nesta fase.
+- **Pendências:** rodar a integração em CI/Docker, aplicar `0035`/`0036` e validar a função/policy em PostgreSQL real; implementar o campo visual e textos nos 11 locales; decidir liberação de cupom em falha definitiva de boleto.
+
 ## Sistema de cupons — FASE 03: API admin — 2026-10-30
 
 - **Padrão reaproveitado:** rotas `/api/v1/admin/...`, `get_current_auth` + `require_role("ADMIN")`, UoW `forja_admin` sem tenant para escrita global e `audit_log` tenant-scoped existente.

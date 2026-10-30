@@ -8,6 +8,11 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.ordering.domain.coupon import (
+    CouponRejectionReason,
+    CouponType,
+    DiscountKind,
+)
 from app.modules.ordering.domain.payment import PaymentMethod
 
 
@@ -29,6 +34,7 @@ class CreateOrderRequest(BaseModel):
     po_number: str | None = Field(default=None, max_length=100)
     notes: str | None = None
     lang: str | None = Field(default=None, max_length=10)
+    coupon_code: str | None = Field(default=None, max_length=32)
 
 
 class OrderItemResponse(BaseModel):
@@ -59,3 +65,36 @@ class OrderResponse(BaseModel):
     items: list[OrderItemResponse]
     created_at: datetime
     content_locale: str
+    coupon_code: str | None = None
+    coupon_type: CouponType | None = None
+    coupon_percent: Decimal | None = None
+    coupon_discount_amount: Decimal = Decimal("0.00")
+    shipping_discount_amount: Decimal = Decimal("0.00")
+
+
+class CouponPreviewRequest(BaseModel):
+    """Previa do cupom no carrinho do comprador autenticado."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=1, max_length=32)
+    payment_method: PaymentMethod = PaymentMethod.PIX
+
+
+class CouponPreviewResponse(BaseModel):
+    """Validacao tipada + simulacao; ``valid=False`` traz apenas o motivo."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    valid: bool
+    reason: CouponRejectionReason | None = None
+    missing_amount: Decimal | None = None
+    subtotal: Decimal | None = None
+    recovery_discount: Decimal | None = None
+    coupon_discount: Decimal | None = None
+    shipping_discount: Decimal | None = None
+    shipping_total: Decimal | None = None
+    pix_discount: Decimal | None = None
+    total: Decimal | None = None
+    applied_discounts: list[DiscountKind] = Field(default_factory=list)
+    currency: str = "BRL"

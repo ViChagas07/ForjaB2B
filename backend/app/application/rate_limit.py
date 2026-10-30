@@ -39,6 +39,7 @@ class RateLimitClass(StrEnum):
     LOGIN_ACCOUNT = "login_account"
     WEBHOOK = "webhook"
     AI = "ai"
+    COUPON_PREVIEW = "coupon_preview"
 
 
 @dataclass(frozen=True, kw_only=True)

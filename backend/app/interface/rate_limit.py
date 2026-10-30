@@ -80,6 +80,12 @@ def _classify_webhook(path: str, method: str) -> RateLimitClass | None:
     return None
 
 
+def _classify_coupon_preview(path: str, method: str) -> RateLimitClass | None:
+    if method == "POST" and path == "/api/v1/orders/coupon-preview":
+        return RateLimitClass.COUPON_PREVIEW
+    return None
+
+
 def _classify_data(path: str, method: str) -> RateLimitClass | None:
     # O suggest tem balde PROPRIO (mais folgado): esgotar o balde digitando no
     # dropdown nao pode bloquear a busca da pagina de resultados.
@@ -107,6 +113,8 @@ def classify_request(path: str, method: str) -> RateLimitClass | None:
         rate_class = _classify_webhook(path, method)
     if rate_class is None:
         rate_class = _classify_admin_write(path, method)
+    if rate_class is None:
+        rate_class = _classify_coupon_preview(path, method)
     if rate_class is None:
         rate_class = _classify_data(path, method)
     return rate_class

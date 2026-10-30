@@ -150,6 +150,20 @@ def test_um_cupom_por_pedido(pg: PostgresInstance, coupon_actor: None) -> None:
         conn.close()
 
 
+def test_funcao_de_contagem_global_de_usos(
+    admin_conn: psycopg.Connection, migrated_domain_schema: None
+) -> None:
+    row = admin_conn.execute(
+        "SELECT to_regprocedure('app.coupon_usage_counts(uuid,uuid)')"
+    ).fetchone()
+    assert row is not None and row[0] is not None
+    allowed = admin_conn.execute(
+        "SELECT has_function_privilege("
+        "'forja_app', 'app.coupon_usage_counts(uuid,uuid)', 'EXECUTE')"
+    ).fetchone()
+    assert allowed is not None and allowed[0] is True
+
+
 def test_policy_de_leitura_admin_em_resgates(
     admin_conn: psycopg.Connection, migrated_domain_schema: None
 ) -> None:

@@ -15,9 +15,15 @@ from app.application.idempotency import IdempotencyKeyRequiredError
 from app.application.security import AuthContext
 from app.interface.deps import get_current_auth, get_locale
 from app.interface.idempotency import IdempotencyGuard, get_idempotency_service
+from app.modules.ordering.application.coupon_checkout import (
+    CouponPreviewResult,
+    PreviewCoupon,
+)
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.application.ports import OrderItemInput, OrderView
 from app.modules.ordering.interface.schemas import (
+    CouponPreviewRequest,
+    CouponPreviewResponse,
     CreateOrderRequest,
     OrderItemResponse,
     OrderResponse,
@@ -38,6 +44,10 @@ def _cancel_order(request: Request) -> CancelOrder:
     return cast(CancelOrder, request.app.state.ordering_cancel)
 
 
+def _preview_coupon(request: Request) -> PreviewCoupon:
+    return cast(PreviewCoupon, request.app.state.ordering_coupon_preview)
+
+
 def _to_response(view: OrderView) -> OrderResponse:
     return OrderResponse(
         id=view.id,
@@ -51,6 +61,11 @@ def _to_response(view: OrderView) -> OrderResponse:
         total=view.total,
         created_at=view.created_at,
         content_locale=view.content_locale,
+        coupon_code=view.coupon_code,
+        coupon_type=view.coupon_type,
+        coupon_percent=view.coupon_percent,
+        coupon_discount_amount=view.coupon_discount_amount,
+        shipping_discount_amount=view.shipping_discount_amount,
         items=[
             OrderItemResponse(
                 sku=i.sku,
@@ -64,6 +79,23 @@ def _to_response(view: OrderView) -> OrderResponse:
             )
             for i in view.items
         ],
+    )
+
+
+def _to_preview_response(result: CouponPreviewResult) -> CouponPreviewResponse:
+    return CouponPreviewResponse(
+        valid=result.valid,
+        reason=result.reason,
+        missing_amount=result.missing_amount,
+        subtotal=result.subtotal,
+        recovery_discount=result.recovery_discount,
+        coupon_discount=result.coupon_discount,
+        shipping_discount=result.shipping_discount,
+        shipping_total=result.shipping_total,
+        pix_discount=result.pix_discount,
+        total=result.total,
+        applied_discounts=sorted(result.applied_discounts, key=lambda item: item.value),
+        currency=result.currency,
     )
 
 
@@ -107,6 +139,7 @@ async def create_order(
             po_number=payload.po_number,
             notes=payload.notes,
             locale=locale,
+            coupon_code=payload.coupon_code,
         )
     except Exception:
         await guard.release()
@@ -114,6 +147,28 @@ async def create_order(
     response = _to_response(view)
     await guard.complete(status.HTTP_201_CREATED, response.model_dump(mode="json"))
     return response
+
+
+@router.post(
+    "/coupon-preview",
+    response_model=CouponPreviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Validar cupom e simular o checkout",
+)
+async def preview_coupon(
+    payload: CouponPreviewRequest,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    locale: Annotated[str, Depends(get_locale)],
+    use_case: Annotated[PreviewCoupon, Depends(_preview_coupon)],
+) -> CouponPreviewResponse:
+    result = await use_case.execute(
+        company_id=auth.company_id,
+        user_id=auth.user_id,
+        code=payload.code,
+        payment_method=payload.payment_method,
+        locale=locale,
+    )
+    return _to_preview_response(result)
 
 
 @router.get("/{order_id}", response_model=OrderResponse, status_code=status.HTTP_200_OK)

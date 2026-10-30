@@ -21,6 +21,7 @@ from typing import Any
 from sqlalchemy import text
 
 from app.application.ports.tenant import TenantContext
+from app.infrastructure.db.coupon_redemptions import release_coupon_redemption
 from app.infrastructure.db.outbox import enqueue_notification
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.payment.application.errors import (
@@ -85,6 +86,11 @@ _UPDATE_INVOICE_PAID = text(
 )
 _UPDATE_ORDER_PAID = text(
     "UPDATE orders SET status = 'PAID', updated_at = now() "
+    "WHERE id = :order_id AND company_id = :company_id "
+    "AND status IN ('RECEIVED', 'CREDIT_REVIEW')"
+)
+_CANCEL_ORDER_IF_OPEN = text(
+    "UPDATE orders SET status = 'CANCELLED', updated_at = now() "
     "WHERE id = :order_id AND company_id = :company_id "
     "AND status IN ('RECEIVED', 'CREDIT_REVIEW')"
 )
@@ -326,33 +332,6 @@ class SqlAlchemyPaymentRepository:
                 },
             )
 
-            # Pedido pago por cartao/PIX passa para PAID (boleto faturado continua INVOICED).
-            if target_status == PaymentStatus.PAID and payment.method != PaymentMethod.BOLETO.value:
-                await uow.session.execute(
-                    _UPDATE_ORDER_PAID,
-                    {"order_id": payment.order_id, "company_id": company_id},
-                )
-
-            # Boleto pago quita a fatura e reduz a exposicao no ledger (PAYMENT).
-            if payment.method == PaymentMethod.BOLETO.value and target_status == PaymentStatus.PAID:
-                await uow.session.execute(
-                    _UPDATE_INVOICE_PAID,
-                    {
-                        "invoice_id": payment.invoice_id,
-                        "paid_at": paid_at,
-                        "company_id": company_id,
-                    },
-                )
-                await uow.session.execute(
-                    _INSERT_CREDIT,
-                    {
-                        "company_id": company_id,
-                        "amount": payment.amount,
-                        "payment_id": payment.id,
-                        "key": f"payment:{payment.id}",
-                    },
-                )
-
             await uow.session.execute(
                 _INSERT_EVENT,
                 {
@@ -364,22 +343,71 @@ class SqlAlchemyPaymentRepository:
                     "outcome": PaymentEventOutcome.APPLIED.value,
                 },
             )
-
-            # Outbox: pagamento confirmado publica notificacao na mesma transacao.
-            if target_status == PaymentStatus.PAID:
-                await enqueue_notification(
-                    uow.session,
-                    company_id=company_id,
-                    event_type="payment.confirmed",
-                    aggregate_id=payment.order_id,
-                )
-
+            await self._apply_payment_side_effects(
+                uow,
+                company_id=company_id,
+                payment=payment,
+                target_status=target_status,
+                paid_at=paid_at,
+            )
             await uow.commit()
 
         result = await self.get_payment(company_id, payment.id)
         if result is None:  # pragma: no cover - pagamento acabou de ser atualizado
             raise PaymentNotFoundError()
         return PaymentResult(payment=result, outcome=PaymentEventOutcome.APPLIED.value)
+
+    async def _apply_payment_side_effects(
+        self,
+        uow: Any,
+        *,
+        company_id: uuid.UUID,
+        payment: PaymentView,
+        target_status: PaymentStatus,
+        paid_at: datetime | None,
+    ) -> None:
+        """Aplica pedido/fatura/ledger/cupom e outbox na MESMA transacao."""
+        is_boleto = payment.method == PaymentMethod.BOLETO.value
+        if target_status == PaymentStatus.PAID and not is_boleto:
+            await uow.session.execute(
+                _UPDATE_ORDER_PAID,
+                {"order_id": payment.order_id, "company_id": company_id},
+            )
+        if target_status == PaymentStatus.PAID and is_boleto:
+            await uow.session.execute(
+                _UPDATE_INVOICE_PAID,
+                {
+                    "invoice_id": payment.invoice_id,
+                    "paid_at": paid_at,
+                    "company_id": company_id,
+                },
+            )
+            await uow.session.execute(
+                _INSERT_CREDIT,
+                {
+                    "company_id": company_id,
+                    "amount": payment.amount,
+                    "payment_id": payment.id,
+                    "key": f"payment:{payment.id}",
+                },
+            )
+        if target_status in {PaymentStatus.FAILED, PaymentStatus.CANCELLED} and not is_boleto:
+            await uow.session.execute(
+                _CANCEL_ORDER_IF_OPEN,
+                {"order_id": payment.order_id, "company_id": company_id},
+            )
+            await release_coupon_redemption(
+                uow.session,
+                company_id=company_id,
+                order_id=payment.order_id,
+            )
+        if target_status == PaymentStatus.PAID:
+            await enqueue_notification(
+                uow.session,
+                company_id=company_id,
+                event_type="payment.confirmed",
+                aggregate_id=payment.order_id,
+            )
 
     async def list_pending_stripe(
         self, company_id: uuid.UUID, limit: int

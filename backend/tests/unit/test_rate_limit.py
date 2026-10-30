@@ -236,20 +236,38 @@ def test_classificacao_de_rotas() -> None:
     assert classify_request("/metrics", "GET") is None
     assert classify_request("/api/v1/auth/login", "POST") is RateLimitClass.AUTH
     assert classify_request("/api/v1/auth/google", "GET") is RateLimitClass.OAUTH
-    assert (
-        classify_request("/api/v1/auth/google/callback", "GET") is RateLimitClass.OAUTH
-    )
-    assert (
-        classify_request("/api/v1/auth/oauth/exchange", "POST") is RateLimitClass.OAUTH
-    )
+    assert classify_request("/api/v1/auth/google/callback", "GET") is RateLimitClass.OAUTH
+    assert classify_request("/api/v1/auth/oauth/exchange", "POST") is RateLimitClass.OAUTH
     assert classify_request("/api/v1/companies", "POST") is RateLimitClass.REGISTRATION
     assert classify_request("/api/v1/consumers", "POST") is RateLimitClass.REGISTRATION
     assert classify_request("/api/v1/search/products", "GET") is RateLimitClass.SEARCH
     assert classify_request("/api/v1/search/suggest", "GET") is RateLimitClass.SUGGEST
     assert classify_request("/api/v1/admin/catalog/products", "POST") is RateLimitClass.ADMIN_WRITE
     assert classify_request("/api/v1/orders", "POST") is RateLimitClass.AUTHENTICATED
+    assert (
+        classify_request("/api/v1/orders/coupon-preview", "POST") is RateLimitClass.COUPON_PREVIEW
+    )
     assert classify_request("/api/v1/catalog/products", "GET") is RateLimitClass.PUBLIC_READ
     assert classify_request("/docs", "GET") is None
+
+
+async def test_coupon_preview_tem_balde_proprio() -> None:
+    limiter = RateLimiter(
+        store=InMemoryBucketStore(),
+        policies={
+            RateLimitClass.COUPON_PREVIEW: RateLimitPolicy(capacity=2, refill_per_minute=60),
+            RateLimitClass.AUTHENTICATED: RateLimitPolicy(capacity=2, refill_per_minute=60),
+        },
+        clock=_Clock(),
+    )
+    for _ in range(2):
+        assert (
+            await limiter.check(rate_class=RateLimitClass.COUPON_PREVIEW, identity="user:1")
+        ).allowed
+    assert not (
+        await limiter.check(rate_class=RateLimitClass.COUPON_PREVIEW, identity="user:1")
+    ).allowed
+    assert (await limiter.check(rate_class=RateLimitClass.AUTHENTICATED, identity="user:1")).allowed
 
 
 async def test_suggest_tem_balde_proprio_e_nao_esgota_o_da_busca() -> None:

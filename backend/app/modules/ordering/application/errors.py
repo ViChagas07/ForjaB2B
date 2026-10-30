@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from app.core.errors import AppError
+from app.modules.ordering.domain.coupon import CouponRejectionReason
 
 
 class ProductNotFoundError(AppError):
@@ -57,3 +60,21 @@ class InvalidOrderStateError(AppError):
     status_code = 409
     title = "Conflict"
     code = "invalid_order_state"
+
+
+class CouponNotApplicableError(AppError):
+    """Cupom recusado no checkout; ``type`` carrega o motivo tipado."""
+
+    status_code = 422
+    title = "Unprocessable Entity"
+    code = "coupon_not_applicable"
+
+    def __init__(
+        self,
+        reason: CouponRejectionReason,
+        missing_amount: Decimal | None = None,
+    ) -> None:
+        super().__init__("Cupom não aplicável a este pedido.")
+        self.code = f"coupon_{reason.value.lower()}"
+        self.reason = reason
+        self.missing_amount = missing_amount

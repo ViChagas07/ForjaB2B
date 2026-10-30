@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Protocol
 
 from app.domain.pricing import CompanyPriceRule, PriceTier
+from app.modules.ordering.domain.coupon import Coupon, CouponType
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -63,6 +64,35 @@ class RecoveryOfferView:
 
 
 @dataclass(frozen=True, kw_only=True)
+class CheckoutCartItem:
+    """Linha do carrinho do proprio comprador usada na simulacao do checkout."""
+
+    product_id: uuid.UUID
+    quantity: int
+    unit_price: Decimal
+    line_total: Decimal
+    weight_kg: Decimal | None
+    is_negotiated: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class CheckoutCartSnapshot:
+    """Carrinho do comprador com totais ja resolvidos pelo carrinho."""
+
+    items: list[CheckoutCartItem]
+    subtotal: Decimal
+
+
+@dataclass(frozen=True, kw_only=True)
+class CouponForCheckout:
+    """Cupom + contagens de uso para validar no checkout."""
+
+    coupon: Coupon
+    total_uses: int
+    company_uses: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class OrderItemView:
     sku: str
     product_name: str
@@ -88,6 +118,11 @@ class OrderView:
     items: list[OrderItemView]
     created_at: datetime
     content_locale: str
+    coupon_code: str | None = None
+    coupon_type: CouponType | None = None
+    coupon_percent: Decimal | None = None
+    coupon_discount_amount: Decimal = Decimal("0.00")
+    shipping_discount_amount: Decimal = Decimal("0.00")
 
 
 class OrderingRepository(Protocol):
@@ -102,6 +137,11 @@ class OrderingRepository(Protocol):
         self, company_id: uuid.UUID, buyer_user_id: uuid.UUID
     ) -> RecoveryOfferView | None:
         """Oferta nao expirada/nao resgatada do carrinho do comprador."""
+
+    async def get_coupon_for_checkout(
+        self, code: str, company_id: uuid.UUID
+    ) -> CouponForCheckout | None:
+        """Cupom normalizado + usos APPLIED totais/da empresa (somente leitura)."""
 
     async def create_order(
         self,
@@ -119,12 +159,27 @@ class OrderingRepository(Protocol):
         content_locale: str,
         discount_total: Decimal = Decimal("0.00"),
         recovery_offer_id: uuid.UUID | None = None,
+        coupon_code: str | None = None,
     ) -> OrderView:
         """Cria pedido (snapshot) + reserva credito (boleto) + resgata oferta
-        de recuperacao na MESMA transacao (uso unico)."""
+        de recuperacao na MESMA transacao (uso unico).
+
+        Com ``coupon_code``, o cupom e bloqueado/revalidado e o resgate e
+        inserido na mesma transacao; o total gravado usa o recalculo do
+        servidor, nao o valor recebido.
+        """
 
     async def get_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView | None:
         """Consulta um pedido do tenant (com itens)."""
 
     async def cancel_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView:
         """Cancela o pedido e libera a reserva de credito (se houver)."""
+
+
+class CheckoutCartReader(Protocol):
+    """Leitura do carrinho do comprador para a previa do checkout."""
+
+    async def get_checkout_cart(
+        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+    ) -> CheckoutCartSnapshot | None:
+        """Carrinho ativo com itens precificados; None quando nao existir."""

@@ -11,6 +11,7 @@ prefixado com ``order:``.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -22,10 +23,12 @@ from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.ledger import LedgerEntry, exposure
 from app.domain.pricing import PriceTier
 from app.infrastructure.db.company_pricing import load_company_price_rules
+from app.infrastructure.db.coupon_redemptions import release_coupon_redemption
 from app.infrastructure.db.outbox import enqueue_notification
 from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.ordering.application.errors import (
+    CouponNotApplicableError,
     CreditAccountNotFoundError,
     IdempotencyConflictError,
     InsufficientCreditError,
@@ -33,11 +36,21 @@ from app.modules.ordering.application.errors import (
     OrderNotFoundError,
 )
 from app.modules.ordering.application.ports import (
+    CouponForCheckout,
     OrderItemView,
     OrderView,
     ProductForOrder,
     RecoveryOfferView,
     ResolvedItem,
+)
+from app.modules.ordering.domain.coupon import (
+    Coupon,
+    CouponRejectionReason,
+    CouponType,
+    calculate_order_totals,
+    evaluate_coupon_eligibility,
+    is_valid_coupon_code,
+    normalize_coupon_code,
 )
 from app.modules.ordering.domain.enums import OrderStatus
 from app.modules.ordering.domain.order import can_cancel
@@ -65,9 +78,12 @@ _SELECT_ENTRIES = text(
 )
 _INSERT_ORDER = text(
     "INSERT INTO orders (company_id, buyer_user_id, subtotal, discount_total, shipping_total, "
-    "total, idempotency_key, po_number, notes, content_locale) VALUES "
-    "(:company_id, :buyer_user_id, :subtotal, :discount_total, :shipping_total, "
-    ":total, :idempotency_key, :po_number, :notes, :content_locale) RETURNING id"
+    "coupon_code, coupon_type, coupon_percent, coupon_discount_amount, "
+    "shipping_discount_amount, total, idempotency_key, po_number, notes, content_locale) "
+    "VALUES (:company_id, :buyer_user_id, :subtotal, :discount_total, :shipping_total, "
+    ":coupon_code, :coupon_type, :coupon_percent, :coupon_discount_amount, "
+    ":shipping_discount_amount, :total, :idempotency_key, :po_number, :notes, "
+    ":content_locale) RETURNING id"
 )
 _SELECT_ACTIVE_OFFER = text(
     "SELECT o.id, o.type, o.percent FROM cart_recovery_offers o "
@@ -79,6 +95,19 @@ _SELECT_ACTIVE_OFFER = text(
 _REDEEM_OFFER = text(
     "UPDATE cart_recovery_offers SET redeemed_at = now() "
     "WHERE id = :offer_id AND company_id = :company_id AND redeemed_at IS NULL"
+)
+_SELECT_COUPON_BY_CODE = text(
+    "SELECT id, code, type, percent, max_discount_amount, min_order_amount, valid_from, "
+    "valid_until, usage_limit_total, usage_limit_per_company, restricted_company_id, "
+    "is_active FROM coupons WHERE code = :code"
+)
+_SELECT_COUPON_USES = text(
+    "SELECT total_uses, company_uses FROM app.coupon_usage_counts(:coupon_id, :company_id)"
+)
+_LOCK_COUPON = text("SELECT pg_advisory_xact_lock(hashtextextended(:code, 0))")
+_INSERT_COUPON_REDEMPTION = text(
+    "INSERT INTO coupon_redemptions (coupon_id, order_id, company_id, amount_discounted) "
+    "VALUES (:coupon_id, :order_id, :company_id, :amount_discounted)"
 )
 _INSERT_ITEM = text(
     "INSERT INTO order_items (order_id, company_id, product_id, price_tier_id, sku, "
@@ -94,7 +123,8 @@ _INSERT_CREDIT = text(
 )
 _SELECT_ORDER = text(
     "SELECT id, company_id, status, currency, subtotal, discount_total, "
-    "shipping_total, tax_total, total, created_at, content_locale "
+    "shipping_total, tax_total, total, created_at, content_locale, coupon_code, "
+    "coupon_type, coupon_percent, coupon_discount_amount, shipping_discount_amount "
     "FROM orders WHERE id = :order_id AND company_id = :company_id"
 )
 _SELECT_ORDER_ITEMS = text(
@@ -139,7 +169,7 @@ class SqlAlchemyOrderingRepository:
             if product is None:
                 return None
 
-            # Resolve tradução se não for pt-BR
+            # Resolve traduÃ§Ã£o se nÃ£o for pt-BR
             name = product.name
             if locale != DEFAULT_LOCALE:
                 translations = await load_product_translations(
@@ -199,6 +229,31 @@ class SqlAlchemyOrderingRepository:
             return None
         return RecoveryOfferView(id=row.id, type=row.type, percent=row.percent)
 
+    async def get_coupon_for_checkout(
+        self, code: str, company_id: uuid.UUID
+    ) -> CouponForCheckout | None:
+        normalized = normalize_coupon_code(code)
+        if not is_valid_coupon_code(normalized):
+            return None
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            row = (await uow.session.execute(_SELECT_COUPON_BY_CODE, {"code": normalized})).first()
+            if row is None:
+                await uow.commit()
+                return None
+            uses = (
+                await uow.session.execute(
+                    _SELECT_COUPON_USES,
+                    {"coupon_id": row.id, "company_id": company_id},
+                )
+            ).one()
+            await uow.commit()
+        return CouponForCheckout(
+            coupon=_coupon_from_row(row),
+            total_uses=int(uses.total_uses),
+            company_uses=int(uses.company_uses),
+        )
+
     async def create_order(
         self,
         *,
@@ -215,6 +270,7 @@ class SqlAlchemyOrderingRepository:
         content_locale: str,
         discount_total: Decimal = Decimal("0.00"),
         recovery_offer_id: uuid.UUID | None = None,
+        coupon_code: str | None = None,
     ) -> OrderView:
         existing_id = await self._find_by_key(company_id, idempotency_key)
         if existing_id is not None:
@@ -234,6 +290,7 @@ class SqlAlchemyOrderingRepository:
                 content_locale=content_locale,
                 discount_total=discount_total,
                 recovery_offer_id=recovery_offer_id,
+                coupon_code=coupon_code,
             )
         except Exception as exc:
             if _constraint_name(exc) == _ORDERS_KEY_UNIQUE:
@@ -258,20 +315,47 @@ class SqlAlchemyOrderingRepository:
         content_locale: str,
         discount_total: Decimal = Decimal("0.00"),
         recovery_offer_id: uuid.UUID | None = None,
+        coupon_code: str | None = None,
     ) -> OrderView:
         tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
         async with self._uow_factory.begin(tenant) as uow:
+            # Ordem de locks igual ao cancelamento: credito antes do cupom.
             if payment_method == "BOLETO":
-                await self._check_credit_available(uow, company_id=company_id, amount=total)
+                await uow.session.execute(_LOCK_CREDIT, {"company_id": company_id})
+            (
+                coupon_id,
+                coupon,
+                coupon_discount,
+                shipping_discount,
+                original_shipping,
+                effective_discount,
+                effective_total,
+                effective_offer_id,
+            ) = await self._apply_coupon_in_transaction(
+                uow,
+                company_id=company_id,
+                subtotal=subtotal,
+                shipping_total=shipping_total,
+                discount_total=discount_total,
+                total=total,
+                recovery_offer_id=recovery_offer_id,
+                coupon_code=coupon_code,
+            )
+            net_shipping = original_shipping - shipping_discount
 
-            if recovery_offer_id is not None:
+            if payment_method == "BOLETO":
+                await self._check_credit_available(
+                    uow, company_id=company_id, amount=effective_total
+                )
+
+            if effective_offer_id is not None:
                 # Uso unico: resgate DENTRO da transacao do pedido; corrida
                 # (outro checkout resgatou antes) falha fechado.
                 redeemed = await uow.session.execute(
                     _REDEEM_OFFER,
-                    {"offer_id": recovery_offer_id, "company_id": company_id},
+                    {"offer_id": effective_offer_id, "company_id": company_id},
                 )
-                if redeemed.rowcount == 0:  # type: ignore[attr-defined]
+                if getattr(redeemed, "rowcount", 0) == 0:
                     raise InvalidOrderStateError()
 
             order_id = (
@@ -281,9 +365,14 @@ class SqlAlchemyOrderingRepository:
                         "company_id": company_id,
                         "buyer_user_id": buyer_user_id,
                         "subtotal": subtotal,
-                        "discount_total": discount_total,
-                        "shipping_total": shipping_total,
-                        "total": total,
+                        "discount_total": effective_discount,
+                        "shipping_total": net_shipping,
+                        "coupon_code": coupon.code if coupon is not None else None,
+                        "coupon_type": coupon.type.value if coupon is not None else None,
+                        "coupon_percent": coupon.percent if coupon is not None else None,
+                        "coupon_discount_amount": coupon_discount,
+                        "shipping_discount_amount": shipping_discount,
+                        "total": effective_total,
                         "idempotency_key": idempotency_key,
                         "po_number": po_number,
                         "notes": notes,
@@ -292,24 +381,24 @@ class SqlAlchemyOrderingRepository:
                 )
             ).scalar_one()
 
-            for item in items:
+            if coupon is not None and coupon_id is not None:
                 await uow.session.execute(
-                    _INSERT_ITEM,
+                    _INSERT_COUPON_REDEMPTION,
                     {
+                        "coupon_id": coupon_id,
                         "order_id": order_id,
                         "company_id": company_id,
-                        "product_id": item.product_id,
-                        "price_tier_id": item.price_tier_id,
-                        "sku": item.sku,
-                        "product_name": item.name,
-                        "quantity": item.quantity,
-                        "unit_price": item.unit_price,
-                        "base_unit_price": item.base_unit_price,
-                        "tier_min_quantity": item.tier_min_quantity,
-                        "line_total": item.line_total,
-                        "content_locale": content_locale,
+                        "amount_discounted": coupon_discount + shipping_discount,
                     },
                 )
+
+            await self._insert_order_items(
+                uow,
+                order_id=order_id,
+                company_id=company_id,
+                items=items,
+                content_locale=content_locale,
+            )
 
             # Reserva de credito com reference_id = order_id (se boleto).
             if payment_method == "BOLETO":
@@ -318,7 +407,7 @@ class SqlAlchemyOrderingRepository:
                     {
                         "company_id": company_id,
                         "entry_type": "RESERVE",
-                        "amount": total,
+                        "amount": effective_total,
                         "order_id": order_id,
                         "key": f"order:{idempotency_key}",
                     },
@@ -338,6 +427,119 @@ class SqlAlchemyOrderingRepository:
         if result is None:  # pragma: no cover - ordem acabou de ser criada
             raise CreditAccountNotFoundError()
         return result
+
+    async def _insert_order_items(
+        self,
+        uow: Any,
+        *,
+        order_id: uuid.UUID,
+        company_id: uuid.UUID,
+        items: list[ResolvedItem],
+        content_locale: str,
+    ) -> None:
+        for item in items:
+            await uow.session.execute(
+                _INSERT_ITEM,
+                {
+                    "order_id": order_id,
+                    "company_id": company_id,
+                    "product_id": item.product_id,
+                    "price_tier_id": item.price_tier_id,
+                    "sku": item.sku,
+                    "product_name": item.name,
+                    "quantity": item.quantity,
+                    "unit_price": item.unit_price,
+                    "base_unit_price": item.base_unit_price,
+                    "tier_min_quantity": item.tier_min_quantity,
+                    "line_total": item.line_total,
+                    "content_locale": content_locale,
+                },
+            )
+
+    async def _apply_coupon_in_transaction(
+        self,
+        uow: Any,
+        *,
+        company_id: uuid.UUID,
+        subtotal: Decimal,
+        shipping_total: Decimal,
+        discount_total: Decimal,
+        total: Decimal,
+        recovery_offer_id: uuid.UUID | None,
+        coupon_code: str | None,
+    ) -> tuple[
+        uuid.UUID | None,
+        Coupon | None,
+        Decimal,
+        Decimal,
+        Decimal,
+        Decimal,
+        Decimal,
+        uuid.UUID | None,
+    ]:
+        """Bloqueia/revalida o cupom e recalcula os totais DENTRO da transacao."""
+        if coupon_code is None:
+            return (
+                None,
+                None,
+                Decimal("0.00"),
+                Decimal("0.00"),
+                shipping_total,
+                discount_total,
+                total,
+                recovery_offer_id,
+            )
+        normalized = normalize_coupon_code(coupon_code)
+        if not is_valid_coupon_code(normalized):
+            raise CouponNotApplicableError(CouponRejectionReason.NOT_FOUND)
+
+        # Advisory lock por codigo: serializa resgates/liberacoes do mesmo cupom
+        # sem exigir UPDATE na tabela global (runtime e somente leitura nela).
+        await uow.session.execute(_LOCK_COUPON, {"code": normalized})
+        row = (await uow.session.execute(_SELECT_COUPON_BY_CODE, {"code": normalized})).first()
+        if row is None:
+            raise CouponNotApplicableError(CouponRejectionReason.NOT_FOUND)
+        uses = (
+            await uow.session.execute(
+                _SELECT_COUPON_USES,
+                {"coupon_id": row.id, "company_id": company_id},
+            )
+        ).one()
+        coupon = _coupon_from_row(row)
+        eligibility = evaluate_coupon_eligibility(
+            coupon=coupon,
+            company_id=company_id,
+            subtotal=subtotal,
+            total_uses=int(uses.total_uses),
+            company_uses=int(uses.company_uses),
+            now=datetime.now(UTC),
+        )
+        if not eligibility.ok:
+            raise CouponNotApplicableError(
+                eligibility.reason or CouponRejectionReason.NOT_FOUND,
+                eligibility.missing_amount,
+            )
+
+        effective_recovery = (
+            Decimal("0.00") if coupon.type == CouponType.PRODUCT_TOTAL else discount_total
+        )
+        effective_offer_id = None if coupon.type == CouponType.PRODUCT_TOTAL else recovery_offer_id
+        totals = calculate_order_totals(
+            subtotal=subtotal,
+            shipping=shipping_total,
+            coupon=coupon,
+            recovery_discount=effective_recovery,
+        )
+        return (
+            row.id,
+            coupon,
+            totals.coupon_discount,
+            totals.shipping_discount,
+            shipping_total,
+            totals.recovery_discount,
+            totals.total,
+            effective_offer_id,
+        )
 
     async def _check_credit_available(
         self, uow: Any, *, company_id: uuid.UUID, amount: Decimal
@@ -403,6 +605,11 @@ class SqlAlchemyOrderingRepository:
             total=row.total,
             created_at=row.created_at,
             content_locale=row.content_locale or DEFAULT_LOCALE,
+            coupon_code=row.coupon_code,
+            coupon_type=CouponType(row.coupon_type) if row.coupon_type else None,
+            coupon_percent=row.coupon_percent,
+            coupon_discount_amount=row.coupon_discount_amount,
+            shipping_discount_amount=row.shipping_discount_amount,
             items=[
                 OrderItemView(
                     sku=r.sku,
@@ -444,6 +651,7 @@ class SqlAlchemyOrderingRepository:
                 _UPDATE_ORDER_STATUS,
                 {"order_id": order_id, "company_id": company_id, "status": "CANCELLED"},
             )
+            await release_coupon_redemption(uow.session, company_id=company_id, order_id=order_id)
             reserved = (
                 await uow.session.execute(_SELECT_RESERVE, {"order_id": order_id})
             ).scalar_one()
@@ -464,3 +672,19 @@ class SqlAlchemyOrderingRepository:
         if result is None:
             raise CreditAccountNotFoundError()  # pragma: no cover
         return result
+
+
+def _coupon_from_row(row: Any) -> Coupon:
+    return Coupon(
+        code=row.code,
+        type=CouponType(row.type),
+        percent=row.percent,
+        max_discount_amount=row.max_discount_amount,
+        min_order_amount=row.min_order_amount,
+        valid_from=row.valid_from,
+        valid_until=row.valid_until,
+        usage_limit_total=row.usage_limit_total,
+        usage_limit_per_company=row.usage_limit_per_company,
+        restricted_company_id=row.restricted_company_id,
+        is_active=row.is_active,
+    )

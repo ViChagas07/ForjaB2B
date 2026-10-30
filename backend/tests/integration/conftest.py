@@ -214,6 +214,8 @@ def test_settings(app_database_url: str, redis_url: str) -> Settings:
         rate_limit_auth_refill_per_minute=1000.0,
         rate_limit_registration_capacity=1000,
         rate_limit_registration_refill_per_minute=1000.0,
+        rate_limit_coupon_preview_capacity=1000,
+        rate_limit_coupon_preview_refill_per_minute=1000.0,
     )
 
 
