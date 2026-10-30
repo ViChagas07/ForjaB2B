@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 
 import "@/app/globals.css";
+import { buildCurrencyBootstrap } from "@/core/domain/currency";
+import { getFxRatesForServer } from "@/features/currency/server-rates";
 import { directionForLocale, isLocale, locales } from "@/i18n/locales";
+import { CURRENCY_COOKIE_NAME, readCurrencyCookieValue } from "@/shared/lib/currency-cookie";
 import { Providers } from "@/shared/providers";
 
 interface LocaleLayoutProps {
@@ -54,6 +58,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   const t = await getTranslations({ locale });
   const messages = await getMessages({ locale });
   const dir = directionForLocale(locale);
+  const requestedCurrency = readCurrencyCookieValue(cookies().get(CURRENCY_COOKIE_NAME)?.value);
+  const fxRates = await getFxRatesForServer();
+  const initialCurrency = buildCurrencyBootstrap(requestedCurrency, fxRates);
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
@@ -62,7 +69,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           {t("skipToContent")}
         </a>
         <NextIntlClientProvider messages={messages}>
-          <Providers>{children}</Providers>
+          <Providers initialCurrency={initialCurrency}>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>
