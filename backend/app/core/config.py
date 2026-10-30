@@ -90,6 +90,16 @@ class Settings(BaseSettings):
     # Redis (cache, rate limit, readiness).
     redis_url: RedisDsn = Field(default=RedisDsn("redis://localhost:6379/0"))
 
+    # Cambio para EXIBICAO (Fase 01). A base e sempre BRL e as taxas nunca
+    # alteram cobranca, pedidos ou totais; servem so para o storefront mostrar
+    # uma aproximacao. O TTL fresco e de 12h e a ultima conhecida dura 7 dias.
+    fx_provider_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
+    fx_provider_max_retries: int = Field(default=1, ge=0, le=3)
+    fx_rates_ttl_seconds: int = Field(default=12 * 60 * 60, ge=60)
+    fx_rates_last_known_ttl_seconds: int = Field(default=7 * 24 * 60 * 60, ge=60)
+    fx_refresh_lock_ttl_seconds: int = Field(default=15, ge=1, le=60)
+    fx_refresh_wait_seconds: float = Field(default=2.0, ge=0, le=10)
+
     # OpenTelemetry (fundacao apenas).
     otel_enabled: bool = True
     otel_service_name: str = "forja-backend"

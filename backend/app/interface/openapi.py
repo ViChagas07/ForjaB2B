@@ -39,6 +39,7 @@ _TAG_DESCRIPTIONS: dict[str, str] = {
     "catalog-admin-translations": "Traducoes de conteudo do catalogo (ADMIN).",
     "coupons-admin": "Administracao de cupons (somente papel ADMIN).",
     "search": "Busca lexical/semantica com fallback PostgreSQL.",
+    "fx": "Taxas de cambio BRL usadas apenas para exibicao aproximada.",
     "cart": "Carrinho de compras do tenant.",
     "orders": "Criacao, consulta e cancelamento de pedidos.",
     "invoicing": "Faturas e boletos.",
@@ -185,6 +186,26 @@ _OPERATION_EXAMPLES: dict[tuple[str, str], dict[str, Any]] = {
         },
         "response_status": "200",
     },
+    ("get", "/api/v1/fx/rates"): {
+        "response": {
+            "base": "BRL",
+            "rates": {
+                "BRL": "1",
+                "USD": "0.18408",
+                "EUR": "0.16477",
+                "GBP": "0.13738",
+                "CAD": "0.25713",
+                "AUD": "0.26204",
+                "JPY": "28.946",
+                "CNY": "1.2246",
+            },
+            "rate_date": "2026-10-30",
+            "fetched_at": "2026-10-30T22:55:47+00:00",
+            "source": "Frankfurter / European Central Bank",
+            "stale": False,
+        },
+        "response_status": "200",
+    },
 }
 
 
@@ -287,7 +308,7 @@ def _error_statuses(
         statuses.add(409)
     if path in {"/api/v1/payments/webhook", "/api/v1/payments/stripe/webhook"}:
         statuses.update({400, 401, 413})
-    if path.startswith(("/health", "/api/v1/search", "/api/v1/payments")):
+    if path.startswith(("/health", "/api/v1/search", "/api/v1/payments", "/api/v1/fx")):
         statuses.add(503)
     return statuses
 

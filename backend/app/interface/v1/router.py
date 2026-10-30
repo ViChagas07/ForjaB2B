@@ -14,6 +14,7 @@ from app.modules.catalog.interface.router import router as catalog_router
 from app.modules.companies.interface.consumer_router import router as consumers_router
 from app.modules.companies.interface.router import router as companies_router
 from app.modules.credit.interface.router import router as credit_router
+from app.modules.fx.interface.router import router as fx_router
 from app.modules.identity.interface.account_router import router as account_router
 from app.modules.identity.interface.router import router as identity_router
 from app.modules.invoicing.interface.router import router as invoicing_router
@@ -31,6 +32,7 @@ api_v1_router.include_router(companies_router)
 api_v1_router.include_router(consumers_router)
 api_v1_router.include_router(catalog_router)
 api_v1_router.include_router(credit_router)
+api_v1_router.include_router(fx_router)
 api_v1_router.include_router(cart_router)
 api_v1_router.include_router(ordering_router)
 api_v1_router.include_router(invoicing_router)

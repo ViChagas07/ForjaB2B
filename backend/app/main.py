@@ -124,6 +124,9 @@ from app.modules.credit.application.credit import (
     ReserveCredit,
 )
 from app.modules.credit.infrastructure.repository import SqlAlchemyCreditRepository
+from app.modules.fx.application.get_rates import GetFxRates
+from app.modules.fx.infrastructure.cache import RedisFxRateCache
+from app.modules.fx.infrastructure.frankfurter import FrankfurterFxRateProvider
 from app.modules.identity.application.account import GetAccount, UpdateAccount
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
 from app.modules.identity.application.google_oauth import (
@@ -548,6 +551,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         _logger.info("application_stopping")
         await _stop_background_task(reconcile_task)
         await _stop_background_task(metrics_task)
+        await app.state.fx_rate_provider.aclose()
         if search_engine is not None:
             await search_engine.close()
         await engine.dispose()
@@ -572,6 +576,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.search_suggest_cache = SuggestCache(
         redis_client=redis_client,
         index_version=settings.elasticsearch_index_version,
+    )
+    app.state.fx_rate_provider = FrankfurterFxRateProvider(
+        timeout_seconds=settings.fx_provider_timeout_seconds,
+        max_retries=settings.fx_provider_max_retries,
+    )
+    app.state.fx_get_rates = GetFxRates(
+        provider=app.state.fx_rate_provider,
+        cache=RedisFxRateCache(
+            redis_client=redis_client,
+            fresh_ttl_seconds=settings.fx_rates_ttl_seconds,
+            last_known_ttl_seconds=settings.fx_rates_last_known_ttl_seconds,
+            lock_ttl_seconds=settings.fx_refresh_lock_ttl_seconds,
+        ),
+        refresh_wait_seconds=settings.fx_refresh_wait_seconds,
     )
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)

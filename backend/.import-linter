@@ -42,6 +42,7 @@ modules =
     app.modules.identity
     app.modules.companies
     app.modules.credit
+    app.modules.fx
     app.modules.catalog
     app.modules.pricing
     app.modules.cart

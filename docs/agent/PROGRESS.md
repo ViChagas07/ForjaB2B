@@ -6,6 +6,13 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## Moeda de exibicao - FASE 01: backend de cambio - 2026-10-30
+
+- **API validada em runtime (curl):** `GET https://api.frankfurter.dev/v2/providers/ecb/rates?base=BRL&quotes=USD,EUR,GBP,CAD,AUD,JPY,CNY` -> 200 com lista `{date,base,quote,rate}` e `date=2026-10-30`. O v1 responde igual mas esta deprecado (headers `deprecation`/`link` successor); o v2 blendado mistura provedores. Escolhido o v2 por provedor ECB, portanto a fonte exibida e "Frankfurter / European Central Bank".
+- **Entregue:** novo bounded context `app/modules/fx` (dominio com lista fechada e BRL=1; porta de provedor; `GetFxRates` com cache hit, double-check, lock, fallback stale e erro 503 `fx_rates_unavailable`; adaptador Frankfurter com timeout 5s + 1 retry; cache Redis fresco 12h, ultima conhecida 7d e lock 15s) e `GET /api/v1/fx/rates` publico com `Cache-Control` 300s/60s, rate limit `PUBLIC_READ`, tag OpenAPI e exemplos. Nenhum campo de moeda foi adicionado a pedidos/pagamentos.
+- **Checagens reais:** unit completo **995 passed** (27 novos); suite completa **1066 passed, 381 skipped, 3 failed pre-existentes** (em dash, type: ignore e downgrade 0027); Ruff check OK (5 arquivos pre-existentes fora do format); mypy app **0 erros (382)**; import-linter **5 kept**; OpenAPI `--check` OK; frontend `npm run typecheck` OK; compose config OK; chamada real a Frankfurter parseada OK.
+- **NAO VALIDADO / pendencias:** cache, TTL e lock foram exercitados com fake Redis (sem Redis/Postgres/Docker reais); concorrencia multi-processo nao testada; sem UI/i18n nesta fase. As taxas saem como strings decimais no JSON (consistente com os valores monetarios do projeto); o frontend deve converter com `Number` apenas na exibicao. A regeneracao dos tipos do frontend tambem corrigiu drift pre-existente de `account`/coupons no `api-schema.d.ts`.
+
 ## Migrations 0033-0037 aplicadas no Render - 2026-10-30
 
 - **Backup:** `backups/forja_prod_pre_0033_20261030T160946Z.dump` (265.578 bytes, header PGDMP), feito com `pg_dump -Fc` antes da migration. Para o dump, o FORCE RLS foi temporariamente desligado nas 26 tabelas e restaurado em seguida (27 tabelas FORCE agora, incluindo `coupon_redemptions`).

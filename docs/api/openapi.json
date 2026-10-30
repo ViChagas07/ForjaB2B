@@ -2231,6 +2231,65 @@
         "title": "FieldError",
         "type": "object"
       },
+      "FxRatesResponse": {
+        "additionalProperties": false,
+        "description": "Taxas com base BRL; a lista e sempre exatamente a fechada do dominio.",
+        "properties": {
+          "base": {
+            "const": "BRL",
+            "title": "Base",
+            "type": "string"
+          },
+          "fetched_at": {
+            "format": "date-time",
+            "title": "Fetched At",
+            "type": "string"
+          },
+          "rate_date": {
+            "format": "date",
+            "title": "Rate Date",
+            "type": "string"
+          },
+          "rates": {
+            "additionalProperties": {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            "propertyNames": {
+              "enum": [
+                "BRL",
+                "USD",
+                "EUR",
+                "GBP",
+                "CAD",
+                "AUD",
+                "JPY",
+                "CNY"
+              ]
+            },
+            "title": "Rates",
+            "type": "object"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "base",
+          "rates",
+          "rate_date",
+          "fetched_at",
+          "source",
+          "stale"
+        ],
+        "title": "FxRatesResponse",
+        "type": "object"
+      },
       "Gender": {
         "description": "Genero informado pelo consumidor (opcional, com opcao de nao informar).",
         "enum": [
@@ -12783,6 +12842,129 @@
         ]
       }
     },
+    "/api/v1/fx/rates": {
+      "get": {
+        "description": "Retorna a taxa de 1 BRL para as moedas suportadas, a fonte e a data de referencia do provedor. Valores convertidos no storefront sao aproximados; a cobranca permanece em BRL.",
+        "operationId": "get_fx_rates_api_v1_fx_rates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "base": "BRL",
+                  "fetched_at": "2026-10-30T22:55:47+00:00",
+                  "rate_date": "2026-10-30",
+                  "rates": {
+                    "AUD": "0.26204",
+                    "BRL": "1",
+                    "CAD": "0.25713",
+                    "CNY": "1.2246",
+                    "EUR": "0.16477",
+                    "GBP": "0.13738",
+                    "JPY": "28.946",
+                    "USD": "0.18408"
+                  },
+                  "source": "Frankfurter / European Central Bank",
+                  "stale": false
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/FxRatesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Payload invalido ou chave de idempotencia reutilizada com outro payload.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 422,
+                  "title": "Unprocessable Entity",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_422"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Payload invalido ou chave de idempotencia reutilizada com outro payload."
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Dependencia externa indisponivel.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_503"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Dependencia externa indisponivel."
+          }
+        },
+        "summary": "Taxas de cambio BRL para exibicao",
+        "tags": [
+          "fx"
+        ]
+      }
+    },
     "/api/v1/invoices": {
       "post": {
         "operationId": "create_invoice_api_v1_invoices_post",
@@ -17398,6 +17580,10 @@
     {
       "description": "Conta de credito e lancamentos do tenant.",
       "name": "credit"
+    },
+    {
+      "description": "Taxas de cambio BRL usadas apenas para exibicao aproximada.",
+      "name": "fx"
     },
     {
       "description": "Liveness, readiness e saude da busca.",
