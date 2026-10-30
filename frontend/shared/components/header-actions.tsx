@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, LayoutDashboard, LogOut, Menu, ShoppingCart, UserRound } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogIn, LogOut, Menu, ShoppingCart } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Link, useRouter } from "@/i18n/navigation";
@@ -20,6 +20,7 @@ import {
 
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
+import { UserAvatar } from "./user-avatar";
 
 const iconButtonClass =
   "text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-primary focus-visible:ring-offset-ink";
@@ -66,15 +67,17 @@ export function HeaderActions() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="hidden h-9 gap-2 rounded-lg px-2 text-white/80 hover:bg-white/10 hover:text-white sm:inline-flex"
+              aria-label={t("nav.account")}
+              className="inline-flex h-9 gap-2 rounded-lg px-0 text-white/80 hover:bg-white/10 hover:text-white sm:px-2"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <UserRound aria-hidden="true" className="h-3.5 w-3.5" />
-              </span>
+              {session ? <UserAvatar user={session.user} /> : null}
               <span className="hidden max-w-[9rem] truncate text-xs font-medium xl:block">
                 {session?.user.full_name}
               </span>
-              <ChevronDown aria-hidden="true" className="h-3.5 w-3.5 text-white/65" />
+              <ChevronDown
+                aria-hidden="true"
+                className="hidden h-3.5 w-3.5 text-white/65 sm:block"
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
@@ -122,11 +125,6 @@ export function HeaderActions() {
           <Button asChild className="hidden h-9 rounded-lg px-4 sm:inline-flex">
             <Link href="/onboarding">{t("nav.register")}</Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" className={`sm:hidden ${iconButtonClass}`}>
-            <Link href="/login" aria-label={t("nav.login")}>
-              <UserRound aria-hidden="true" className="h-4 w-4" />
-            </Link>
-          </Button>
         </>
       )}
 
@@ -172,14 +170,26 @@ export function HeaderActions() {
               </DropdownMenuItem>
             </>
           ) : (
-            <>
-              <DropdownMenuItem asChild>
-                <Link href="/login">{t("nav.login")}</Link>
+            <div className="space-y-2">
+              <DropdownMenuItem asChild className="p-0 focus:bg-transparent">
+                <Link
+                  href="/login"
+                  className="flex w-full items-center justify-between gap-3 rounded-lg bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  {t("nav.login")}
+                  <LogIn aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/onboarding">{t("nav.register")}</Link>
+              <DropdownMenuItem asChild className="p-0 focus:bg-transparent">
+                <Link
+                  href="/onboarding"
+                  className="flex w-full items-center justify-between gap-3 rounded-lg bg-white/10 px-3 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+                >
+                  {t("nav.register")}
+                  <LogIn aria-hidden="true" className="h-4 w-4 rtl:-scale-x-100" />
+                </Link>
               </DropdownMenuItem>
-            </>
+            </div>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

@@ -2790,6 +2790,8 @@ export interface components {
              * @default COMPANY
              */
             account_type: string;
+            /** Avatar Url */
+            avatar_url?: string | null;
             /** Email */
             email: string;
             /** Full Name */

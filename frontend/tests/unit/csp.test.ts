@@ -28,7 +28,9 @@ describe("CSP do frontend", () => {
     });
 
     expect(csp).toContain("connect-src 'self' https://api.forja.example");
-    expect(csp).toContain("img-src 'self' data: blob: https://api.forja.example");
+    expect(csp).toContain(
+      "img-src 'self' data: blob: https://api.forja.example https://lh3.googleusercontent.com",
+    );
     expect(csp).not.toContain("*");
   });
 
@@ -36,7 +38,7 @@ describe("CSP do frontend", () => {
     const csp = buildContentSecurityPolicy({ nonce, isProduction: true });
 
     expect(csp).toContain("connect-src 'self'");
-    expect(csp).toContain("img-src 'self' data: blob:");
+    expect(csp).toContain("img-src 'self' data: blob: https://lh3.googleusercontent.com");
     expect(csp).not.toContain("localhost");
   });
 

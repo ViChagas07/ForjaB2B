@@ -23,6 +23,7 @@ export interface UserProfile {
   full_name: string;
   role: Role;
   account_type: AccountType;
+  avatar_url?: string | null;
 }
 
 export interface AuthSession {

@@ -36,6 +36,7 @@ from app.modules.identity.application.ports import (
     ResolvedIdentity,
 )
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
+from app.modules.identity.infrastructure.oauth_exchange import RedisOAuthExchangeCodeStore
 from app.modules.identity.interface.router import _normalize_frontend_redirect
 
 _CLIENT_ID = "client-id-123"
@@ -335,3 +336,32 @@ def test_rejeita_frontend_redirect_no_host_do_backend() -> None:
         )
     with pytest.raises(OAuthConfigurationError):
         _normalize_frontend_redirect(None, "https://forjab2b.onrender.com/cb")
+
+
+class FakeRedis:
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+
+    async def set(self, key: str, value: str, *, ex: int) -> None:
+        self.values[key] = value
+
+    async def getdel(self, key: str) -> str | None:
+        return self.values.pop(key, None)
+
+
+async def test_exchange_store_preserva_account_type_e_avatar() -> None:
+    store = RedisOAuthExchangeCodeStore(FakeRedis())  # type: ignore[arg-type]
+    await store.put(
+        "code",
+        OAuthExchange(
+            status="authenticated",
+            account_type="PERSON",
+            avatar_url="https://lh3.googleusercontent.com/a/foto",
+        ),
+        ttl_seconds=60,
+    )
+
+    payload = await store.consume("code")
+    assert payload is not None
+    assert payload.account_type == "PERSON"
+    assert payload.avatar_url == "https://lh3.googleusercontent.com/a/foto"

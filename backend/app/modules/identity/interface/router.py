@@ -179,6 +179,7 @@ def _to_exchange_response(exchange: OAuthExchange) -> OAuthExchangeResponse:
                 full_name=exchange.full_name or "",
                 role=exchange.role or "",
                 account_type=exchange.account_type or "COMPANY",
+                avatar_url=exchange.avatar_url,
             ),
         )
     return OAuthExchangeResponse(

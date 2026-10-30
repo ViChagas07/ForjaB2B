@@ -139,6 +139,7 @@ class CompleteGoogleOAuth:
                 status="registration_required",
                 email=email,
                 full_name=userinfo.name,
+                avatar_url=userinfo.picture,
             )
             return await self._issue(payload)
 
@@ -195,6 +196,7 @@ class CompleteGoogleOAuth:
             full_name=membership.full_name,
             role=role,
             account_type=identity.account_type,
+            avatar_url=userinfo.picture,
         )
         return await self._issue(payload)
 

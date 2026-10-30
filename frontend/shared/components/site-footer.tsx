@@ -1,12 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
-import { Link } from "@/i18n/navigation";
-
 import { BrandLogo } from "./brand-logo";
-
-const columnTitleClass = "text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60";
-
-const footerLinkClass = "text-sm text-white/65 transition-colors hover:text-primary";
+import { SiteFooterLinks } from "./site-footer-links";
 
 export async function SiteFooter() {
   const t = await getTranslations();
@@ -24,73 +19,7 @@ export async function SiteFooter() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h2 className={columnTitleClass}>{t("footer.navTitle")}</h2>
-          <ul className="space-y-2.5">
-            <li>
-              <Link href="/catalog" className={footerLinkClass}>
-                {t("catalog.title")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/#solucoes" className={footerLinkClass}>
-                {t("footer.categories")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/#a-forja" className={footerLinkClass}>
-                {t("nav.about")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/privacy" className={footerLinkClass}>
-                {t("footer.privacy")}
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div className="space-y-4">
-          <h2 className={columnTitleClass}>{t("footer.businessTitle")}</h2>
-          <ul className="space-y-2.5">
-            <li>
-              <Link href="/onboarding" className={footerLinkClass}>
-                {t("nav.register")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/login" className={footerLinkClass}>
-                {t("nav.login")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard" className={footerLinkClass}>
-                {t("nav.dashboard")}
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div className="space-y-4">
-          <h2 className={columnTitleClass}>{t("footer.accountTitle")}</h2>
-          <ul className="space-y-2.5">
-            <li>
-              <Link href="/cart" className={footerLinkClass}>
-                {t("nav.cart")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard" className={footerLinkClass}>
-                {t("footer.orders")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard" className={footerLinkClass}>
-                {t("footer.credit")}
-              </Link>
-            </li>
-          </ul>
-        </div>
+        <SiteFooterLinks />
       </div>
 
       <div className="border-t border-white/10">

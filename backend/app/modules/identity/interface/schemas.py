@@ -36,6 +36,7 @@ class UserProfile(BaseModel):
     full_name: str
     role: str
     account_type: str = "COMPANY"
+    avatar_url: str | None = None
 
 
 class LoginResponse(BaseModel):

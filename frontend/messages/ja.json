@@ -475,7 +475,8 @@
     "dashboard": "ダッシュボード",
     "login": "ログイン",
     "register": "アカウント作成",
-    "menu": "メニューを開く"
+    "menu": "メニューを開く",
+    "account": "アカウント"
   },
   "home": {
     "eyebrow": "統合産業流通",

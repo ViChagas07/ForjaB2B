@@ -475,7 +475,8 @@
     "dashboard": "Panel",
     "login": "Iniciar sesión",
     "register": "Crear cuenta",
-    "menu": "Abrir menú"
+    "menu": "Abrir menú",
+    "account": "Cuenta"
   },
   "home": {
     "eyebrow": "DISTRIBUCIÓN INDUSTRIAL INTEGRADA",

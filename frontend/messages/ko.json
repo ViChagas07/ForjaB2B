@@ -475,7 +475,8 @@
     "dashboard": "대시보드",
     "login": "로그인",
     "register": "계정 만들기",
-    "menu": "메뉴 열기"
+    "menu": "메뉴 열기",
+    "account": "계정"
   },
   "home": {
     "eyebrow": "통합 산업 유통",

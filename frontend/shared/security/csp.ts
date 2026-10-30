@@ -35,7 +35,15 @@ export function buildContentSecurityPolicy({
 }: CspOptions): string {
   const api = apiOrigin(apiUrl);
   const connectSources = ["'self'", api].filter(Boolean);
-  const imageSources = ["'self'", "data:", "blob:", api].filter(Boolean);
+  // Avatares do Google OIDC vem de lh3.googleusercontent.com. Nenhum outro
+  // host externo e permitido; se a imagem falhar, o UserAvatar usa iniciais.
+  const imageSources = [
+    "'self'",
+    "data:",
+    "blob:",
+    api,
+    "https://lh3.googleusercontent.com",
+  ].filter(Boolean);
   const scriptSources = [`'nonce-${nonce}'`, "'strict-dynamic'"];
   if (!isProduction) {
     // Next dev compila com eval e usa WebSocket para HMR. Nao vale em producao.

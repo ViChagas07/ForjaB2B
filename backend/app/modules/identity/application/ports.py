@@ -92,6 +92,7 @@ class GoogleUserInfo:
     email: str
     email_verified: bool
     name: str
+    picture: str | None = None
 
 
 class GoogleIdentityClient(Protocol):
@@ -150,6 +151,7 @@ class OAuthExchange:
     full_name: str | None = None
     role: str | None = None
     account_type: str | None = None
+    avatar_url: str | None = None
 
 
 class OAuthExchangeCodeStore(Protocol):

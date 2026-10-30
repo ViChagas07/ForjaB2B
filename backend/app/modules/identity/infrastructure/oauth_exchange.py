@@ -33,6 +33,8 @@ class RedisOAuthExchangeCodeStore:
             "email": payload.email,
             "full_name": payload.full_name,
             "role": payload.role,
+            "account_type": payload.account_type,
+            "avatar_url": payload.avatar_url,
         }
         await self._client.set(f"{_KEY_PREFIX}{code}", json.dumps(data), ex=ttl_seconds)
 
@@ -51,4 +53,6 @@ class RedisOAuthExchangeCodeStore:
             email=data.get("email"),
             full_name=data.get("full_name"),
             role=data.get("role"),
+            account_type=data.get("account_type"),
+            avatar_url=data.get("avatar_url"),
         )

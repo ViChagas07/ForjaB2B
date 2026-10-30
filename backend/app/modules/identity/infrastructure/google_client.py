@@ -64,11 +64,13 @@ class GoogleIdentityClientImpl(GoogleIdentityClient):
         except (KeyError, TypeError, ValueError) as exc:
             raise OAuthCodeError(reason="invalid_provider_response") from exc
 
+        picture = data.get("picture")
         return GoogleUserInfo(
             subject=data["sub"],
             email=data["email"],
             email_verified=bool(data.get("email_verified")),
             name=data.get("name", ""),
+            picture=picture if isinstance(picture, str) else None,
         )
 
 

@@ -475,7 +475,8 @@
     "dashboard": "控制台",
     "login": "登录",
     "register": "创建账户",
-    "menu": "打开菜单"
+    "menu": "打开菜单",
+    "account": "账户"
   },
   "home": {
     "eyebrow": "一体化工业分销",
