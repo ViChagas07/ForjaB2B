@@ -18,7 +18,7 @@
 - **Backend:** `GET/PATCH /api/v1/account` (nome, telefone, nascimento, genero e CEP), migration `0037_user_account_profile` com colunas opcionais em `users` e fallback para `consumer_profiles`; validacao de idade/CEP/telefone e atualizacao do nome na sessao.
 - **Frontend:** dropdown de perfil sem Carrinho, com Conta e Configuracoes; `/account` com formulario e CEP; `/settings` com tema claro/escuro/sistema, cor de destaque, tamanho de fonte, idioma, privacidade e sobre, persistidos em localStorage. Textos `account`/`settings` nos 11 locales (Settings usa fallback em ingles nos locales nao-pt).
 - **Checagens:** frontend `npm run check` OK (245 testes, 4 warnings pre-existentes); backend full **1039 passed, 381 skipped, 3 failed pre-existentes**; Ruff/mypy/import-linter OK; migration head 0037. **NAO VALIDADO:** E2E e visual/RTL. Migration 0037 aplicada no Render em 2026-10-30.
-- **Pendencias:** validar visual/E2E; revisar traducoes de Settings nos 9 locales com fallback.
+- **Pendencias:** validar visual/E2E.
 
 ## Sistema de cupons — FASE 08: auditoria de segurança — 2026-10-30
 
