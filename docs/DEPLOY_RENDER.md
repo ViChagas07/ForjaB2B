@@ -79,6 +79,10 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,
   `GOOGLE_OAUTH_FRONTEND_REDIRECT` (se OAuth for usado)
 - `BACKEND_URL` (frontend, somente servidor: destino dos rewrites `/api/v1` e `/static`)
+- `TRUSTED_PROXY_COUNT`: local `0`; Render direto `1`; com Vercel na frente do
+  Render, valide a cadeia `X-Forwarded-For` (normalmente `2`). Se ficar `0` ou
+  `1` com dois proxies, o rate limit por IP pode compartilhar o mesmo balde
+  entre usuários.
 - `DEMO_USER_PASSWORD` **não** deve existir em produção; o seed é recusado por padrão e
   exige `SEED_ALLOW_PRODUCTION=true` para rodar conscientemente
 

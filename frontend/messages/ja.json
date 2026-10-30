@@ -161,7 +161,8 @@
     "invalidBirthDate": "生年月日が無効です。",
     "invalidPostalCode": "郵便番号が無効です。",
     "oauthCompanyAccount": "企業アカウントはメールアドレスとパスワードでのみサインインできます。",
-    "consumerRegistrationUnavailable": "お客様登録は一時的にご利用いただけません。しばらくしてからもう一度お試しください。"
+    "consumerRegistrationUnavailable": "お客様登録は一時的にご利用いただけません。しばらくしてからもう一度お試しください。",
+    "rateLimited": "試行回数が多すぎます。しばらく待ってからもう一度お試しください。"
   },
   "catalog": {
     "title": "カタログ",

@@ -318,7 +318,8 @@
     "invalidBirthDate": "Data de nascimento inválida.",
     "invalidPostalCode": "CEP inválido.",
     "oauthCompanyAccount": "Contas empresariais entram somente com e-mail e senha.",
-    "consumerRegistrationUnavailable": "O cadastro de cliente está temporariamente indisponível. Tente novamente em instantes."
+    "consumerRegistrationUnavailable": "O cadastro de cliente está temporariamente indisponível. Tente novamente em instantes.",
+    "rateLimited": "Muitas tentativas. Aguarde alguns instantes e tente novamente."
   },
   "admin": {
     "catalog": {

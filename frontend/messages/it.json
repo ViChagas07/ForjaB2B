@@ -161,7 +161,8 @@
     "invalidBirthDate": "Data di nascita non valida.",
     "invalidPostalCode": "Codice postale non valido.",
     "oauthCompanyAccount": "Gli account aziendali accedono solo con e-mail e password.",
-    "consumerRegistrationUnavailable": "La registrazione dei clienti è temporaneamente non disponibile. Riprova tra poco."
+    "consumerRegistrationUnavailable": "La registrazione dei clienti è temporaneamente non disponibile. Riprova tra poco.",
+    "rateLimited": "Troppi tentativi. Attendi qualche istante e riprova."
   },
   "catalog": {
     "title": "Catalogo",

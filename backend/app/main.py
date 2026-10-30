@@ -311,6 +311,10 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_auth_capacity,
             refill_per_minute=settings.rate_limit_auth_refill_per_minute,
         ),
+        RateLimitClass.OAUTH: RateLimitPolicy(
+            capacity=settings.rate_limit_oauth_capacity,
+            refill_per_minute=settings.rate_limit_oauth_refill_per_minute,
+        ),
         RateLimitClass.REGISTRATION: RateLimitPolicy(
             capacity=settings.rate_limit_registration_capacity,
             refill_per_minute=settings.rate_limit_registration_refill_per_minute,
@@ -450,10 +454,22 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
     )
 
 
+def _warn_trusted_proxy(settings: Settings) -> None:
+    if settings.environment == "production" and settings.trusted_proxy_count == 0:
+        _logger.warning(
+            "trusted_proxy_count_zero_in_production",
+            detail=(
+                "rate limit e IP real usam o peer do proxy; configure o numero "
+                "de proxies confiaveis (Vercel + Render) em TRUSTED_PROXY_COUNT"
+            ),
+        )
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings)
     configure_telemetry(settings)
+    _warn_trusted_proxy(settings)
 
     engine = create_engine(settings)
     admin_engine, admin_session_factory, admin_uow_factory = _build_admin_factories(settings)

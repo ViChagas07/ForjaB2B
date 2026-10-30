@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, MutableMapping
 from typing import Any
+from urllib.parse import urlencode
 
 from app.application.rate_limit import RateLimitClass, RateLimiter
 from app.application.security import TokenService
@@ -31,8 +32,24 @@ _EXCLUDED_PREFIXES = (
 
 _WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
+_OAUTH_PATHS = frozenset(
+    {
+        "/api/v1/auth/google",
+        "/api/v1/auth/google/callback",
+        "/api/v1/auth/oauth/exchange",
+    }
+)
+_OAUTH_REDIRECT_PATHS = frozenset(
+    {
+        "/api/v1/auth/google",
+        "/api/v1/auth/google/callback",
+    }
+)
+
 
 def _classify_auth(path: str) -> RateLimitClass | None:
+    if path in _OAUTH_PATHS:
+        return RateLimitClass.OAUTH
     if path in {"/api/v1/auth", "/api/v1/auth/login"}:
         return RateLimitClass.AUTH
     if path.startswith("/api/v1/auth/"):
@@ -146,6 +163,15 @@ class RateLimitMiddleware:
         self._settings = settings
         self._token_service = token_service
 
+    def _oauth_rate_limit_redirect(self, path: str) -> str | None:
+        if path not in _OAUTH_REDIRECT_PATHS:
+            return None
+        base = self._settings.google_oauth_frontend_redirect
+        if not base:
+            return None
+        separator = "&" if "?" in base else "?"
+        return f"{base}{separator}{urlencode({'error': 'rate_limited'})}"
+
     async def __call__(
         self,
         scope: MutableMapping[str, Any],
@@ -164,7 +190,11 @@ class RateLimitMiddleware:
             return
 
         ip = client_ip(scope, self._settings.trusted_proxy_count)
-        if rate_class in {RateLimitClass.AUTH, RateLimitClass.REGISTRATION}:
+        if rate_class in {
+            RateLimitClass.AUTH,
+            RateLimitClass.OAUTH,
+            RateLimitClass.REGISTRATION,
+        }:
             identity = f"ip:{ip}"
         else:
             identity = request_identity(scope, self._token_service, ip)
@@ -178,6 +208,22 @@ class RateLimitMiddleware:
         if not decision.allowed:
             retry = str(decision.retry_after_seconds)
             headers.append((b"retry-after", retry.encode()))
+            redirect_url = self._oauth_rate_limit_redirect(path)
+            if redirect_url is not None:
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 302,
+                        "headers": [
+                            (b"location", redirect_url.encode()),
+                            (b"content-length", b"0"),
+                            (b"cache-control", b"no-store"),
+                            *headers,
+                        ],
+                    }
+                )
+                await send({"type": "http.response.body", "body": b""})
+                return
             body = _problem_body(
                 status=429,
                 detail="Muitas requisicoes. Tente novamente mais tarde.",

@@ -29,6 +29,7 @@ class RateLimitClass(StrEnum):
     """Classes de rota com limites independentes."""
 
     AUTH = "auth"
+    OAUTH = "oauth"
     REGISTRATION = "registration"
     SEARCH = "search"
     SUGGEST = "suggest"

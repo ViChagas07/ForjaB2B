@@ -13,6 +13,8 @@ export function oauthErrorMessageKey(code: string | null | undefined): string {
       return "error.oauthCompanyAccount";
     case "user_inactive":
       return "error.userInactive";
+    case "rate_limited":
+      return "error.rateLimited";
     default:
       return "auth.googleCallbackError";
   }
@@ -82,6 +84,9 @@ export function errorMessageKey(error: unknown): string {
       return "error.paymentProvider";
     case "payment_amount_too_low":
       return "error.paymentAmountTooLow";
+    case "rate_limit_exceeded":
+    case "http_429":
+      return "error.rateLimited";
     default:
       return "error.generic";
   }

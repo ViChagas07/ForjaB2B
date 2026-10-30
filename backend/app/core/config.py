@@ -227,6 +227,11 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_auth_capacity: int = Field(default=5, ge=1)
     rate_limit_auth_refill_per_minute: float = Field(default=10.0, gt=0)
+    # OAuth consome start + callback + exchange; um balde AUTH de 5 estoura em
+    # duas tentativas legitinas. O fluxo tem state/code de uso unico e merece
+    # um balde proprio e mais folgado.
+    rate_limit_oauth_capacity: int = Field(default=30, ge=1)
+    rate_limit_oauth_refill_per_minute: float = Field(default=120.0, gt=0)
     rate_limit_registration_capacity: int = Field(default=3, ge=1)
     rate_limit_registration_refill_per_minute: float = Field(default=5.0, gt=0)
     rate_limit_search_capacity: int = Field(default=30, ge=1)

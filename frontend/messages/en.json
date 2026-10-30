@@ -161,7 +161,8 @@
     "invalidBirthDate": "Invalid date of birth.",
     "invalidPostalCode": "Invalid postal code.",
     "oauthCompanyAccount": "Company accounts can only sign in with email and password.",
-    "consumerRegistrationUnavailable": "Customer registration is temporarily unavailable. Please try again shortly."
+    "consumerRegistrationUnavailable": "Customer registration is temporarily unavailable. Please try again shortly.",
+    "rateLimited": "Too many attempts. Please wait a moment and try again."
   },
   "catalog": {
     "title": "Catalog",

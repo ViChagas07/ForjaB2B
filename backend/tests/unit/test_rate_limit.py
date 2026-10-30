@@ -190,10 +190,58 @@ def test_erro_429_inclui_rate_limit_e_retry_after() -> None:
     }
 
 
+async def test_middleware_redireciona_429_do_callback_oauth_para_frontend() -> None:
+    app = FastAPI()
+
+    @app.get("/api/v1/auth/google")
+    @app.get("/api/v1/auth/google/callback")
+    async def oauth_callback() -> dict[str, bool]:
+        return {"ok": True}
+
+    settings = Settings(
+        environment="test",
+        otel_enabled=False,
+        rate_limit_enabled=True,
+        google_oauth_frontend_redirect="https://frontend.test/pt-BR/auth/google/callback",
+    )
+    token_service = TokenService(
+        secret_key=settings.secret_key,
+        algorithm=settings.jwt_algorithm,
+        expire_minutes=settings.access_token_expire_minutes,
+    )
+    app.add_middleware(
+        RateLimitMiddleware,
+        limiter=_DenyingLimiter(),
+        settings=settings,
+        token_service=token_service,
+    )
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        for path in (
+            "/api/v1/auth/google",
+            "/api/v1/auth/google/callback?code=abc&state=xyz",
+        ):
+            response = await client.get(path)
+            assert response.status_code == 302
+            assert response.headers["location"] == (
+                "https://frontend.test/pt-BR/auth/google/callback?error=rate_limited"
+            )
+            assert response.headers["retry-after"] == "7"
+
+
 def test_classificacao_de_rotas() -> None:
     assert classify_request("/health/ready", "GET") is None
     assert classify_request("/metrics", "GET") is None
     assert classify_request("/api/v1/auth/login", "POST") is RateLimitClass.AUTH
+    assert classify_request("/api/v1/auth/google", "GET") is RateLimitClass.OAUTH
+    assert (
+        classify_request("/api/v1/auth/google/callback", "GET") is RateLimitClass.OAUTH
+    )
+    assert (
+        classify_request("/api/v1/auth/oauth/exchange", "POST") is RateLimitClass.OAUTH
+    )
     assert classify_request("/api/v1/companies", "POST") is RateLimitClass.REGISTRATION
     assert classify_request("/api/v1/consumers", "POST") is RateLimitClass.REGISTRATION
     assert classify_request("/api/v1/search/products", "GET") is RateLimitClass.SEARCH
