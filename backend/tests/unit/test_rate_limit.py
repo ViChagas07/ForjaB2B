@@ -207,6 +207,61 @@ async def test_coupon_preview_consome_baldes_de_ip_e_usuario() -> None:
     assert limiter.calls[1][1] == f"user:{auth.user_id}"
 
 
+class _DenyingIpLimiter(_RecordingLimiter):
+    async def check(self, *, rate_class: RateLimitClass, identity: str) -> Any:
+        from app.application.rate_limit import RateLimitDecision
+
+        self.calls.append((rate_class, identity))
+        denied = rate_class == RateLimitClass.COUPON_PREVIEW_IP
+        return RateLimitDecision(
+            allowed=not denied,
+            limit=30 if denied else 10,
+            remaining=0 if denied else 9,
+            retry_after_seconds=5 if denied else 0,
+            reset_after_seconds=6,
+        )
+
+
+async def test_coupon_preview_ip_esgotado_bloqueia_antes_do_usuario() -> None:
+    app = FastAPI()
+
+    @app.post("/api/v1/orders/coupon-preview")
+    async def preview() -> dict[str, bool]:
+        return {"ok": True}
+
+    settings = Settings(environment="test", otel_enabled=False, rate_limit_enabled=True)
+    token_service = TokenService(
+        secret_key=settings.secret_key,
+        algorithm=settings.jwt_algorithm,
+        expire_minutes=settings.access_token_expire_minutes,
+    )
+    auth = AuthContext(
+        user_id=uuid.UUID("11111111-1111-4111-8111-111111111111"),
+        company_id=uuid.UUID("22222222-2222-4222-8222-222222222222"),
+        role="BUYER",
+        token_id="token-2",
+    )
+    token = token_service.issue_access_token(auth)
+    limiter = _DenyingIpLimiter()
+    app.add_middleware(
+        RateLimitMiddleware,
+        limiter=limiter,
+        settings=settings,
+        token_service=token_service,
+    )
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        response = await client.post(
+            "/api/v1/orders/coupon-preview",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 429
+    assert [item[0] for item in limiter.calls] == [RateLimitClass.COUPON_PREVIEW_IP]
+
+
 async def test_middleware_retorna_429_com_retry_after() -> None:
     app = FastAPI()
 
