@@ -31,7 +31,7 @@ if str(BACKEND_ROOT) not in sys.path:
 from alembic.config import Config  # noqa: E402
 from alembic.runtime.migration import MigrationContext  # noqa: E402
 from alembic.script import ScriptDirectory  # noqa: E402
-from sqlalchemy import text  # noqa: E402
+from sqlalchemy import make_url, text  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 from alembic import command  # noqa: E402
@@ -68,16 +68,32 @@ def _admin_url() -> str:
     url = os.environ.get("DATABASE_ADMIN_URL", "").strip()
     if not url:
         raise PreDeployError(
-            "DATABASE_ADMIN_URL ausente. Configure no servico do Render a URL da "
-            "role de migracao (forja_admin), nunca a role de runtime (forja_app)."
+            "DATABASE_ADMIN_URL ausente. Configure no servico do Render a URL de "
+            "uma role com DDL/ownership do schema."
         )
+    normalized = normalize_async_database_url(url)
+    parsed = make_url(normalized)
     runtime_url = os.environ.get("DATABASE_URL", "").strip()
-    if runtime_url and url == runtime_url:
+
+    # A role de runtime do Compose/VPS e forja_app (sem DDL). Em bancos
+    # gerenciados como o Render pode existir apenas a role principal do
+    # PostgreSQL (ex.: "forja"), que tambem e usada pelo runtime mas possui
+    # ownership. A checagem correta e de privilegios (preflight abaixo), nao
+    # de igualdade textual da URL.
+    if parsed.username == "forja_app":
         raise PreDeployError(
-            "DATABASE_ADMIN_URL aponta para a mesma URL de runtime (forja_app). "
-            "Migrations exigem a role administrativa com DDL (forja_admin)."
+            "DATABASE_ADMIN_URL usa a role de runtime 'forja_app', que nao executa "
+            "DDL. Use a role owner do banco (no Render, a role principal do "
+            "PostgreSQL) ou forja_admin."
         )
-    return normalize_async_database_url(url)
+    if runtime_url and normalized == normalize_async_database_url(runtime_url):
+        print(
+            "[predeploy] AVISO: DATABASE_ADMIN_URL e igual a DATABASE_URL. "
+            "O preflight vai confirmar se essa role tem ownership/DDL.",
+            file=sys.stderr,
+            flush=True,
+        )
+    return normalized
 
 
 async def _preflight(url: str) -> dict[str, object]:
@@ -91,13 +107,13 @@ async def _preflight(url: str) -> dict[str, object]:
     if row["has_products"] and not row["can_act_as_owner"]:
         raise PreDeployError(
             f"O usuario {row['role']!r} nao e owner das tabelas de schema. "
-            "Use a role administrativa que criou o schema (forja_admin em "
-            "producao); a role de bootstrap/app nao executa DDL."
+            "Use a role que criou as tabelas (forja_admin) ou a role owner do "
+            "banco gerenciado (no Render, a role principal do PostgreSQL)."
         )
     if not row["can_create"]:
         raise PreDeployError(
             f"O usuario {row['role']!r} nao tem CREATE no schema public. "
-            "Use a role administrativa de migrations."
+            "Use uma role com DDL/ownership."
         )
     return {"role": row["role"], "has_products": row["has_products"]}
 

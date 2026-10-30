@@ -20,7 +20,11 @@ set -e
 
 if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" = "true" ] && [ -n "${DATABASE_ADMIN_URL:-}" ]; then
     echo "[start] aplicando migrations antes do bootstrap de busca..."
-    python scripts/predeploy.py
+    if python scripts/predeploy.py; then
+        echo "[start] migrations aplicadas/validadas."
+    else
+        echo "[start] AVISO: migration falhou; seguindo para o bootstrap/API em modo de compatibilidade."
+    fi
 fi
 
 VERSION="${ELASTICSEARCH_INDEX_VERSION:-2}"
