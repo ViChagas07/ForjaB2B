@@ -99,6 +99,35 @@ describe("refreshSession", () => {
     expect(useAuthStore.getState().session?.access_token).toBe("access-2");
   });
 
+  it("não limpa uma sessão renovada por outra requisição", async () => {
+    useAuthStore.getState().setSession(SESSION);
+    let resolveFetch!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      ),
+    );
+
+    const pending = refreshSession();
+    await vi.waitFor(() => expect(resolveFetch).toBeDefined());
+    useAuthStore.getState().setSession({
+      ...SESSION,
+      access_token: "access-2",
+      refresh_token: "refresh-2",
+    });
+    resolveFetch(problemResponse("invalid_refresh_token", 401));
+
+    await expect(pending).rejects.toMatchObject({
+      code: "urn:forja:problem:invalid_refresh_token",
+    });
+    expect(useAuthStore.getState().session?.refresh_token).toBe("refresh-2");
+    expect(useAuthStore.getState().status).toBe("authenticated");
+  });
+
   it("limpa a sessão quando o refresh é rejeitado", async () => {
     useAuthStore.getState().setSession(SESSION);
     vi.stubGlobal(

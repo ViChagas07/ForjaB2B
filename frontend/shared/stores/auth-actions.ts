@@ -45,15 +45,20 @@ export async function refreshSession(): Promise<AuthSession> {
   if (!session) {
     throw new Error("No active session");
   }
+  const usedRefreshToken = session.refresh_token;
   try {
-    const tokens = await authApi.refresh(session.refresh_token);
+    const tokens = await authApi.refresh(usedRefreshToken);
     const next: AuthSession = { ...session, ...tokens };
     useAuthStore.getState().setSession(next);
     return next;
   } catch (error) {
-    // Refresh rejeitado (revogado/rotacionado): a sessão não é mais válida,
-    // então limpa o estado local para forçar re-login.
-    if (problemCode(error) === "invalid_refresh_token") {
+    // Se outra requisicao rotacionou o token enquanto esta falhava, a sessao
+    // atual ja e mais nova; nao limpe o login por causa do token antigo.
+    const current = useAuthStore.getState().session;
+    if (
+      problemCode(error) === "invalid_refresh_token" &&
+      current?.refresh_token === usedRefreshToken
+    ) {
       useAuthStore.getState().clearSession();
     }
     throw error;

@@ -3,12 +3,29 @@ import { refreshSession } from "@/shared/stores/auth-actions";
 import { useAuthStore } from "@/shared/stores/auth-store";
 
 /**
- * Executa uma chamada autenticada com rotação transparente do access token.
+ * Refresh single-flight: varias queries autenticadas podem receber 401 ao
+ * mesmo tempo (ex.: carrinho + credito). Apenas uma rotaciona o refresh token;
+ * as demais aguardam a mesma Promise. Sem isso, a segunda rotacao usa um token
+ * ja consumido e derruba a sessao.
+ */
+let refreshInFlight: Promise<unknown> | null = null;
+
+function refreshOnce(): Promise<unknown> {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshSession().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+/**
+ * Executa uma chamada autenticada com rotacao transparente do access token.
  *
- * Consolida o padrão usado nasfeatures: lê o token atual, executa `request` e,
- * caso o backend acuse token expirado/inválido, rotaciona a sessão e repete a
- * chamada uma única vez com o novo token. Se o refresh falhar, a sessão já foi
- * limpa e o erro original propaga para a UI (guard redireciona ao login).
+ * Consolida o padrao usado nas features: le o token atual, executa `request`
+ * e, caso o backend acuse token expirado/invalido, rotaciona a sessao e repete
+ * a chamada uma unica vez com o novo token. Se outra requisicao ja rotacionou,
+ * reutiliza a sessao mais nova em vez de limpar o login.
  */
 export async function withAuth<T>(request: (accessToken: string) => Promise<T>): Promise<T> {
   const initialToken = useAuthStore.getState().session?.access_token;
@@ -21,7 +38,15 @@ export async function withAuth<T>(request: (accessToken: string) => Promise<T>):
   } catch (error) {
     const code = problemCode(error);
     if (code === "token_expired" || code === "invalid_token") {
-      await refreshSession();
+      try {
+        await refreshOnce();
+      } catch {
+        const latest = useAuthStore.getState().session;
+        if (latest && latest.access_token !== initialToken) {
+          return request(latest.access_token);
+        }
+        throw error;
+      }
       const newToken = useAuthStore.getState().session?.access_token;
       if (newToken) {
         return request(newToken);

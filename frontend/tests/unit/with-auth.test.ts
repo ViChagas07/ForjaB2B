@@ -72,6 +72,39 @@ describe("withAuth", () => {
     expect(useAuthStore.getState().session?.access_token).toBe("access-2");
   });
 
+  it("faz single-flight quando duas chamadas expiram juntas", async () => {
+    useAuthStore.getState().setSession(SESSION);
+
+    const tokens = {
+      access_token: "access-2",
+      refresh_token: "refresh-2",
+      token_type: "bearer",
+      expires_in: 900,
+    };
+    const request = vi.fn((token: string) =>
+      token === "access-1"
+        ? Promise.reject(
+            new ApiError({
+              type: "urn:forja:problem:token_expired",
+              title: "Unauthorized",
+              status: 401,
+            }),
+          )
+        : Promise.resolve(token),
+    );
+    const fetchMock = vi.fn<typeof fetch>(
+      () => new Promise((resolve) => setTimeout(() => resolve(jsonResponse(tokens)), 10)),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [first, second] = await Promise.all([withAuth(request), withAuth(request)]);
+
+    expect(first).toBe("access-2");
+    expect(second).toBe("access-2");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState().status).toBe("authenticated");
+  });
+
   it("propaga o erro original quando não é expiração", async () => {
     useAuthStore.getState().setSession(SESSION);
     const error = new ApiError({
