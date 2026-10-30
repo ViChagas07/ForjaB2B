@@ -6,6 +6,13 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Sistema de cupons — FASE 02: domínio de validação e cálculo — 2026-10-30
+
+- **Entregue:** `modules/ordering/domain/coupon.py` ganhou `Coupon`, `CouponEligibility` com motivos tipados (`NOT_FOUND`, `INACTIVE`, `NOT_STARTED`, `EXPIRED`, `EXHAUSTED`, `COMPANY_LIMIT_REACHED`, `MIN_ORDER_NOT_MET` com faltante, `NOT_ALLOWED_FOR_COMPANY`) e `calculate_order_totals` imutável (subtotal, recovery, cupom, frete, PIX e total), com `Decimal`/`ROUND_HALF_UP`.
+- **Ordem:** recovery só sem cupom `PRODUCT_TOTAL`; cupom de produto com teto e limite pelo subtotal; cupom de frete com teto e limite pelo frete; PIX opcional sobre o líquido após descontos; total nunca negativo. O recovery entra como valor já apurado pela política existente (3% só em linhas não negociadas / frete grátis), evitando duplicar essa regra no cálculo do cupom.
+- **Checagens:** Ruff check OK; mypy app **0 erros (357)**; import-linter **5 kept**; unit **874 passed** (57 novos: 26 elegibilidade + 31 cálculo); suíte completa **945 passed, 338 skipped, 3 failed pré-existentes** (em dash, type: ignore e downgrade 0027 via helper). Sem banco, endpoint, migration ou UI nesta fase.
+- **Pendências:** integrar no checkout (fase seguinte), incluindo tradução dos motivos nos 11 locales e a interação real com recovery/frete grátis e PIX configurado.
+
 ## Sistema de cupons — FASE 01: modelagem de dados — 2026-10-30
 
 - **Reconhecimento:** pedido em `backend/app/modules/ordering/application/order.py`; frete em `backend/app/domain/shipping.py`; `orders.discount_total` gravado em `backend/app/modules/ordering/infrastructure/repository.py`; PIX em `backend/app/modules/payment/application/payment.py`; migrations Alembic (`backend/alembic/versions`, última `0032`).
