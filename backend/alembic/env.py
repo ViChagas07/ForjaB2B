@@ -37,7 +37,8 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from alembic import context
-from alembic.config import fileConfig
+# fileConfig vem do logging.config da stdlib (wrapper do alembic pode nao existir)
+from logging.config import fileConfig
 from app.core.config import normalize_async_database_url
 from app.infrastructure.db.base import Base
 
