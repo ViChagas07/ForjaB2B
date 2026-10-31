@@ -76,6 +76,15 @@ async def readiness(request: Request, response: Response) -> ReadinessResponse:
     for name, probe in probes.items():
         checks[name] = CheckStatus.OK if await probe() else CheckStatus.ERROR
 
+    # Alembic revision check (schema currency)
+    schema_probe = getattr(request.app.state, "schema_probe", None)
+    if schema_probe is not None:
+        try:
+            is_current = await schema_probe()
+            checks["schema"] = CheckStatus.OK if is_current else CheckStatus.ERROR
+        except Exception:  # noqa: BLE001 - probe nao deve derrubar readiness
+            checks["schema"] = CheckStatus.ERROR
+
     all_ok = bool(checks) and all(check is CheckStatus.OK for check in checks.values())
     if not all_ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

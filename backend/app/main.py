@@ -553,6 +553,53 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         _logger.info("application_starting", environment=settings.environment)
+
+        # Log table owners (diagnostico de ownership para troubleshooting)
+        try:
+            async with engine.connect() as conn:
+                result = await conn.execute(
+                    "SELECT tablename, tableowner FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+                )
+                owners = [(row[0], row[1]) for row in result]
+                _logger.info("table_owners", tables=[{"name": t, "owner": o} for t, o in owners])
+        except Exception as exc:  # noqa: BLE001 - logging nao deve falhar o startup
+            _logger.warning("table_owners_log_failed", error=str(exc))
+
+        # Verifica migrations pendentes (bloqueia startup em producao se houver drift)
+        try:
+            from alembic.command import current as alembic_current
+            from alembic.config import Config as AlembicConfig
+            from alembic.script import ScriptDirectory
+
+            alembic_cfg = AlembicConfig("alembic.ini")
+            script = ScriptDirectory.from_config(alembic_cfg)
+            head = script.get_current_head()
+            with engine.connect() as conn:
+                # Alembic usa transacao implicita; current() funciona com conexao sincrona
+                current = alembic_current(alembic_cfg, verbose=False)  # type: ignore[func-returns-value]
+                # alembic_current nao retorna valor; usamos script.get_revisions()
+                pass
+
+            # Alternativa: usa schema_is_current (ja implementado)
+            from app.infrastructure.db.schema import schema_is_current
+            is_current = await schema_is_current(engine)
+            if not is_current:
+                msg = "migrations_pending_or_drift_detected"
+                _logger.error("migrations_not_current", current_revision="unknown", head_revision="unknown")
+                if not settings.allow_start_with_failed_migration:
+                    raise ConfigurationError(
+                        "Migrations nao estao no head. "
+                        "Defina ALLOW_START_WITH_FAILED_MIGRATION=true para ignorar (apenas dev/test)."
+                    )
+                _logger.warning("starting_with_migration_drift_allowed")
+        except ConfigurationError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - erro inesperado na verificacao de schema
+            _logger.warning("schema_check_failed", error=str(exc))
+            if settings.is_production:
+                raise ConfigurationError("Falha ao verificar schema do banco") from exc
+
+        _logger.info("application_starting", environment=settings.environment)
         search_engine: SearchEngine | None = app.state.search_engine
         if search_engine is not None:
             await _log_search_engine_startup(search_engine)

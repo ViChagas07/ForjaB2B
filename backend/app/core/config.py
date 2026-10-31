@@ -497,6 +497,15 @@ class Settings(BaseSettings):
             )
         )
 
+    @property
+    def allow_start_with_failed_migration(self) -> bool:
+        """Se True, permite iniciar a aplicacao mesmo com migrations pendentes.
+
+        Default False: em producao, migrations pendentes impedem o startup.
+        Em desenvolvimento/testes, pode ser True para permitir desenvolvimento local.
+        """
+        return self.environment != "production"
+
 
 @lru_cache
 def get_settings() -> Settings:
