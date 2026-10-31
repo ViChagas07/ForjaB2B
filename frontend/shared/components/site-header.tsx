@@ -13,8 +13,8 @@ export async function SiteHeader() {
   const t = await getTranslations();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/95 text-white backdrop-blur supports-[backdrop-filter]:bg-ink/90">
-      <div className="container flex h-[72px] items-center gap-4 lg:gap-7">
+    <header className="sticky top-0 z-50 w-screen max-w-none border-b border-white/10 bg-ink/95 text-white backdrop-blur supports-[backdrop-filter]:bg-ink/90">
+      <div className="flex h-[72px] w-full items-center gap-4 px-0 lg:gap-7">
         <BrandLogo />
 
         <nav aria-label={t("nav.primary")} className="hidden items-center gap-0.5 lg:flex">
@@ -37,7 +37,7 @@ export async function SiteHeader() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 px-4 py-2.5 md:hidden">
+      <div className="border-t border-white/10 px-0 py-2.5 md:hidden">
         <HeaderSearch />
       </div>
     </header>
