@@ -22,17 +22,23 @@ logger = logging.getLogger("alembic.migration")
 
 
 def is_owner(conn: Connection, table_name: str, schema: str = "public") -> bool:
-    """Verifica se o usuario atual e o dono da tabela."""
+    """Verifica se o usuario atual e o dono da tabela (ou membro do role dono).
+
+    Usa pg_has_role para comparar corretamente oid (relowner) com nome de role (current_user).
+    Retorna False se a tabela nao existe, permitindo que a migration prossiga.
+    """
     result = conn.execute(
         text(
-            "SELECT pg_class.relowner = current_user AS is_owner "
+            "SELECT pg_has_role(current_user, pg_class.relowner, 'USAGE') AS is_owner "
             "FROM pg_class "
             "JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace "
-            "WHERE pg_class.relname = :table AND pg_namespace.nspname = :schema"
+            "WHERE pg_class.relname = :table "
+            "  AND pg_namespace.nspname = :schema "
+            "  AND pg_class.relkind IN ('r', 'p')"
         ),
         {"table": table_name, "schema": schema},
     ).scalar()
-    return bool(result)
+    return bool(result) if result is not None else False
 
 
 def _column_exists(conn: Connection, table: str, column: str, schema: str = "public") -> bool:
