@@ -682,7 +682,8 @@
     "featureSupportDescription": "Specialists to help you make better decisions.",
     "finalCtaTitle": "Your operation cannot stop.",
     "finalCtaDescription": "Create your business account and unlock exclusive purchasing terms.",
-    "finalCtaButton": "Request account"
+    "finalCtaButton": "Request account",
+    "demoData": "Sample data"
   },
   "footer": {
     "tagline": "Industrial distribution for businesses that make things happen.",

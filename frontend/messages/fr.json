@@ -682,7 +682,8 @@
     "featureSupportDescription": "Des spécialistes pour vous aider à mieux décider.",
     "finalCtaTitle": "Votre opération ne peut pas s'arrêter.",
     "finalCtaDescription": "Créez votre compte entreprise et accédez à des conditions d'achat exclusives.",
-    "finalCtaButton": "Demander un compte"
+    "finalCtaButton": "Demander un compte",
+    "demoData": "Données fictives"
   },
   "footer": {
     "tagline": "Distribution industrielle pour les entreprises qui font avancer les choses.",

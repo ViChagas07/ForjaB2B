@@ -682,7 +682,8 @@
     "featureSupportDescription": "专家帮助您做出更好的决策。",
     "finalCtaTitle": "您的运营不能停。",
     "finalCtaDescription": "创建企业账户，解锁专属采购条件。",
-    "finalCtaButton": "申请账户"
+    "finalCtaButton": "申请账户",
+    "demoData": "示例数据"
   },
   "footer": {
     "tagline": "为让事情发生的企业提供工业分销。",

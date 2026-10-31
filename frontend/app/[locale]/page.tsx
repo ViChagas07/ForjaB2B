@@ -146,6 +146,9 @@ export default async function HomePage() {
                       <p className="mt-1 text-sm font-semibold text-white">
                         {t("credit.accountTitle")}
                       </p>
+                      <p className="mt-1.5 inline-flex w-fit items-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-white/50">
+                        {t("home.demoData")}
+                      </p>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
                       <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-emerald-400" />

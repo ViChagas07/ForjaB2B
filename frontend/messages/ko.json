@@ -682,7 +682,8 @@
     "featureSupportDescription": "더 나은 결정을 돕는 전문가.",
     "finalCtaTitle": "운영은 멈출 수 없습니다.",
     "finalCtaDescription": "기업 계정을 만들고 독점 구매 조건을 이용하세요.",
-    "finalCtaButton": "계정 신청"
+    "finalCtaButton": "계정 신청",
+    "demoData": "예시 데이터"
   },
   "footer": {
     "tagline": "일을 만들어내는 기업을 위한 산업 유통.",

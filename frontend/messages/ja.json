@@ -682,7 +682,8 @@
     "featureSupportDescription": "より良い判断を支援する専門スタッフ。",
     "finalCtaTitle": "運用を止めるわけにはいきません。",
     "finalCtaDescription": "法人アカウントを作成し、限定の購買条件を利用しましょう。",
-    "finalCtaButton": "アカウントを申請"
+    "finalCtaButton": "アカウントを申請",
+    "demoData": "サンプルデータ"
   },
   "footer": {
     "tagline": "物事を動かす企業のための産業流通。",

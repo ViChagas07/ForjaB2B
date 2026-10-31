@@ -682,7 +682,8 @@
     "featureSupportDescription": "Spezialisten helfen Ihnen, bessere Entscheidungen zu treffen.",
     "finalCtaTitle": "Ihr Betrieb darf nicht stillstehen.",
     "finalCtaDescription": "Erstellen Sie Ihr Firmenkonto und erhalten Sie exklusive Einkaufskonditionen.",
-    "finalCtaButton": "Konto anfordern"
+    "finalCtaButton": "Konto anfordern",
+    "demoData": "Beispieldaten"
   },
   "footer": {
     "tagline": "Industrieverteilung für Unternehmen, die etwas bewegen.",
