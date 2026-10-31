@@ -22,7 +22,6 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from logging.config import fileConfig
 from pathlib import Path
 
 from sqlalchemy.engine import Connection
@@ -36,13 +35,12 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+import app.infrastructure.db.models  # noqa: F401
 from alembic import context
+
 # fileConfig vem do logging.config da stdlib (wrapper do alembic pode nao existir)
-from logging.config import fileConfig
 from app.core.config import normalize_async_database_url
 from app.infrastructure.db.base import Base
-
-import app.infrastructure.db.models  # noqa: F401
 
 target_metadata = Base.metadata
 

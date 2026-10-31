@@ -154,4 +154,3 @@ def downgrade() -> None:
     op.drop_table("user_preferences")
 
 
-from sqlalchemy import text

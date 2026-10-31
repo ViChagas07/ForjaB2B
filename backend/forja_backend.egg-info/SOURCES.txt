@@ -1,0 +1,7 @@
+pyproject.toml
+app/__init__.py
+app/main.py
+forja_backend.egg-info/PKG-INFO
+forja_backend.egg-info/SOURCES.txt
+forja_backend.egg-info/dependency_links.txt
+forja_backend.egg-info/top_level.txt

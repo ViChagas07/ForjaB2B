@@ -61,7 +61,7 @@ async def test_health_ready_com_dependencias_saudaveis(api_client: httpx.AsyncCl
     assert response.status_code == 200
     assert response.json() == {
         "status": "ready",
-        "checks": {"database": "ok", "redis": "ok"},
+        "checks": {"database": "ok", "redis": "ok", "schema": "ok"},
     }
 
 

@@ -26,7 +26,6 @@ from app.infrastructure.db.models.credit import CreditAccount, CreditEntry
 from app.infrastructure.db.models.external_identity import UserExternalIdentity
 from app.infrastructure.db.models.idempotency import IdempotencyKey
 from app.infrastructure.db.models.identity import CompanyMember, ConsumerProfile, User
-from app.infrastructure.db.models.user_preferences import UserPreferences
 from app.infrastructure.db.models.invoicing import Invoice
 from app.infrastructure.db.models.notification import Notification, NotificationPreference
 from app.infrastructure.db.models.ordering import Order, OrderItem
@@ -35,6 +34,7 @@ from app.infrastructure.db.models.pgvector_type import Vector
 from app.infrastructure.db.models.pricing import CompanyPriceRule
 from app.infrastructure.db.models.privacy import ConsentRecord
 from app.infrastructure.db.models.search import SearchOutbox
+from app.infrastructure.db.models.user_preferences import UserPreferences
 
 __all__ = [
     "AgentAuditLog",

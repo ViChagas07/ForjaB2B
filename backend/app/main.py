@@ -24,8 +24,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.application.idempotency import IdempotencyService
 from app.application.ports.translation import NullTranslationProvider
@@ -53,7 +53,7 @@ from app.infrastructure.cache.redis import close_redis_client, create_redis_clie
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.idempotency import SqlAlchemyIdempotencyRepository
 from app.infrastructure.db.probe import ping_database
-from app.infrastructure.db.schema import schema_is_current
+from app.infrastructure.db.schema_check import SchemaCheckResult, check_schema_current
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.infrastructure.rate_limit import RedisBucketStore, RedisFailureStore
@@ -568,37 +568,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception as exc:  # noqa: BLE001 - logging nao deve falhar o startup
             _logger.warning("table_owners_log_failed", error=str(exc))
 
-        # Verifica migrations pendentes (bloqueia startup em producao se houver drift)
+        # Verifica migrations pendentes (bloqueia startup em producao se houver drift real)
         try:
-            from alembic.command import current as alembic_current
-            from alembic.config import Config as AlembicConfig
-            from alembic.script import ScriptDirectory
-
-            alembic_cfg = AlembicConfig("alembic.ini")
-            script = ScriptDirectory.from_config(alembic_cfg)
-            head = script.get_current_head()
-            with engine.connect() as conn:
-                # Alembic usa transacao implicita; current() funciona com conexao sincrona
-                current = alembic_current(alembic_cfg, verbose=False)  # type: ignore[func-returns-value]
-                # alembic_current nao retorna valor; usamos script.get_revisions()
-                pass
-
-            # Alternativa: usa schema_is_current (ja implementado)
-            from app.infrastructure.db.schema import schema_is_current
-            is_current = await schema_is_current(engine)
-            if not is_current:
-                msg = "migrations_pending_or_drift_detected"
-                _logger.error("migrations_not_current", current_revision="unknown", head_revision="unknown")
+            schema_result: SchemaCheckResult = await check_schema_current(engine)
+            if schema_result.has_technical_failure:
+                # Falha tecnica no proprio check: loga erro mas NAO aborta o startup
+                # O /health/ready vai retornar 503 com o motivo
+                _logger.error(
+                    "schema_check_failed_at_startup",
+                    error=schema_result.error,
+                    head_revision=schema_result.head_revision,
+                )
+            elif schema_result.has_drift:
+                # Drift real: migrations nao estao no head
                 if not settings.allow_start_with_failed_migration:
                     raise ConfigurationError(
                         "Migrations nao estao no head. "
+                        f"Banco: {schema_result.current_revision!r}, Head: {schema_result.head_revision!r}. "
                         "Defina ALLOW_START_WITH_FAILED_MIGRATION=true para ignorar (apenas dev/test)."
                     )
                 _logger.warning("starting_with_migration_drift_allowed")
         except ConfigurationError:
             raise
-        except Exception as exc:  # noqa: BLE001 - erro inesperado na verificacao de schema
-            _logger.warning("schema_check_failed", error=str(exc))
+        except Exception as exc:
+            _logger.error("schema_check_unexpected_error", error=str(exc), exc_info=True)
             if settings.is_production:
                 raise ConfigurationError("Falha ao verificar schema do banco") from exc
 
@@ -914,7 +907,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         "redis": lambda: ping_redis(redis_client),
     }
     app.state.readiness_probes = readiness_probes
-    app.state.schema_probe = lambda: schema_is_current(engine)
+    app.state.schema_probe = lambda: check_schema_current(engine)
 
     # Ordem de execucao (de fora para dentro): CORS -> SecurityHeaders ->
     # Prometheus -> Correlation -> RateLimit -> app. O 429 atravessa os

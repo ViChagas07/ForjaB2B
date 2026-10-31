@@ -9,9 +9,9 @@ producao onde as migrations 0037-0040 nao foram aplicadas.
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy import String, Uuid, column, select, table, update
+from sqlalchemy import String, Uuid, column, select, table
 from sqlalchemy.orm import selectinload
 
 from app.application.ports.tenant import TenantContext

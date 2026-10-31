@@ -29,13 +29,13 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from alembic.config import Config  # noqa: E402
-from alembic.runtime.migration import MigrationContext  # noqa: E402
 from alembic.script import ScriptDirectory  # noqa: E402
 from sqlalchemy import make_url, text  # noqa: E402
 from sqlalchemy.ext.asyncio import create_async_engine  # noqa: E402
 
 from alembic import command  # noqa: E402
 from app.core.config import normalize_async_database_url  # noqa: E402
+from app.infrastructure.db.schema_check import check_schema_current_from_url  # noqa: E402
 
 # Lock consultivo de sessao: impede que duas instancias iniciem o Alembic ao
 # mesmo tempo em um deploy com mais de um worker/instancia. A chave e estavel e
@@ -124,19 +124,6 @@ async def _preflight(url: str) -> dict[str, object]:
     return {"role": row["role"], "has_products": row["has_products"]}
 
 
-async def _current_revision(url: str) -> str | None:
-    engine = create_async_engine(url)
-    try:
-        async with engine.connect() as connection:
-            return await connection.run_sync(
-                lambda sync_connection: MigrationContext.configure(
-                    sync_connection
-                ).get_current_revision()
-            )
-    finally:
-        await engine.dispose()
-
-
 def _config() -> Config:
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(BACKEND_ROOT / "alembic"))
@@ -174,12 +161,16 @@ def main() -> int:
 
     asyncio.run(_upgrade_with_lock(url))
 
-    current = asyncio.run(_current_revision(url))
-    if current != head:
+    result = asyncio.run(check_schema_current_from_url(url))
+    if result.has_technical_failure:
         raise PreDeployError(
-            f"Migration nao atingiu o head: banco em {current!r}, esperado {head!r}."
+            f"Falha tecnica ao verificar revisao apos upgrade: {result.error}"
         )
-    print(f"[predeploy] migrations at head: {current}", flush=True)
+    if result.has_drift:
+        raise PreDeployError(
+            f"Migration nao atingiu o head: banco em {result.current_revision!r}, esperado {result.head_revision!r}."
+        )
+    print(f"[predeploy] migrations at head: {result.current_revision}", flush=True)
     return 0
 
 

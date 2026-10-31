@@ -11,11 +11,8 @@ Create Date: 2026-10-31
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
-
 from alembic import op
 from app.core.migration_helpers import add_column_if_owner, create_check_constraint_if_owner
-
 
 revision: str = "0039"
 down_revision: str | None = "0038"

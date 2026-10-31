@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from alembic.operations import Operations
 from sqlalchemy import Connection, inspect, text
 
 logger = logging.getLogger("alembic.migration")

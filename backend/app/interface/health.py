@@ -80,8 +80,17 @@ async def readiness(request: Request, response: Response) -> ReadinessResponse:
     schema_probe = getattr(request.app.state, "schema_probe", None)
     if schema_probe is not None:
         try:
-            is_current = await schema_probe()
-            checks["schema"] = CheckStatus.OK if is_current else CheckStatus.ERROR
+            schema_result = await schema_probe()
+            # schema_result pode ser bool (compatibilidade) ou SchemaCheckResult
+            if hasattr(schema_result, "is_current"):
+                is_current = schema_result.is_current
+                if schema_result.has_technical_failure:
+                    checks["schema"] = CheckStatus.ERROR
+                else:
+                    checks["schema"] = CheckStatus.OK if is_current else CheckStatus.ERROR
+            else:
+                # Fallback para bool antigo
+                checks["schema"] = CheckStatus.OK if schema_result else CheckStatus.ERROR
         except Exception:  # noqa: BLE001 - probe nao deve derrubar readiness
             checks["schema"] = CheckStatus.ERROR
 
@@ -102,10 +111,15 @@ async def schema_health(request: Request) -> dict[str, str]:
     if probe is None:
         return {"status": "unknown"}
     try:
-        current = bool(await probe())
+        schema_result = await probe()
+        if hasattr(schema_result, "is_current"):
+            if schema_result.has_technical_failure:
+                return {"status": "error", "detail": schema_result.error or "unknown"}
+            return {"status": "ok" if schema_result.is_current else "outdated"}
+        # Fallback para bool antigo
+        return {"status": "ok" if schema_result else "outdated"}
     except Exception:  # noqa: BLE001 - probe de diagnostico nao deve derrubar a rota
         return {"status": "error"}
-    return {"status": "ok" if current else "outdated"}
 
 
 @router.get("/health/search", response_model=SearchHealthResponse)

@@ -28,10 +28,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.domain.consumer import Gender
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.models.common import TimestampMixin, enum_check
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
-from app.domain.consumer import Gender
 
 if TYPE_CHECKING:  # pragma: no cover - apenas para o type checker
     from app.infrastructure.db.models.audit import AuditLog

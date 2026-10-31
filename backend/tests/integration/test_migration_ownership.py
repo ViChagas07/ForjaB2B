@@ -9,19 +9,11 @@ Executar: pytest tests/integration/test_migration_ownership.py -v
 
 from __future__ import annotations
 
-import asyncio
 import os
-import tempfile
-from pathlib import Path
 
 import pytest
 from alembic.config import Config as AlembicConfig
-from alembic.migration import MigrationContext
-from alembic.operations import Operations
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import create_async_engine
 
 # Tabelas que sao consideradas "pre-existentes" (ja existiam antes das features recentes)
 PRE_EXISTING_TABLES = {
@@ -85,9 +77,8 @@ DDL_OPERATIONS = {
 }
 
 
-def _get_alembic_config() -> "AlembicConfig":
+def _get_alembic_config() -> AlembicConfig:
     from alembic.config import Config as AlembicConfig
-    import os
     # Config file is in backend directory
     config_path = os.path.join(os.path.dirname(__file__), "..", "..", "alembic.ini")
     return AlembicConfig(config_path)
@@ -95,7 +86,6 @@ def _get_alembic_config() -> "AlembicConfig":
 
 def _get_head_revision() -> str:
     """Obtem a revisao head do alembic."""
-    from alembic.script import ScriptDirectory
     from alembic.config import Config as AlembicConfig
 
     alembic_cfg = AlembicConfig("alembic.ini")
@@ -109,9 +99,6 @@ def _simulate_migrations_with_restricted_role() -> list[dict]:
     Retorna lista de operacoes problemáticas encontradas.
     """
     from alembic.config import Config as AlembicConfig
-    from alembic.script import ScriptDirectory
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
 
     alembic_cfg = AlembicConfig("alembic.ini")
     script = ScriptDirectory.from_config(alembic_cfg)
@@ -150,7 +137,7 @@ def test_no_ddl_on_pre_existing_tables():
     # Filtrar apenas migrations recentes (após a 0030 que introduziu consumer_profiles)
     recent_problematic = [
         op for op in problematic
-        if op["revision"] not in {"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0008", "0009", "0010",
+        if op["revision"] not in {"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
                                   "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020",
                                   "0021", "0022", "0023", "0024", "0025", "0026", "0027", "0028", "0029", "0030"}
     ]

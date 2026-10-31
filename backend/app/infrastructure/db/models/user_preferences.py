@@ -81,4 +81,4 @@ class UserPreferences(TimestampMixin, Base):
     )
     whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    user: Mapped["User"] = relationship(back_populates="preferences")
+    user: Mapped[User] = relationship(back_populates="preferences")

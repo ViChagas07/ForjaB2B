@@ -12,6 +12,8 @@ import uuid
 from typing import Annotated, cast
 from urllib.parse import urlencode, urlparse, urlunparse
 
+import redis.exceptions
+import sqlalchemy.exc
 from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import RedirectResponse
 
@@ -35,8 +37,6 @@ from app.modules.identity.application.errors import (
     OAuthStateError,
     UserInactiveError,
 )
-import redis.exceptions
-import sqlalchemy.exc
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,

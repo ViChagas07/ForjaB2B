@@ -195,7 +195,7 @@ def redis_url() -> Iterator[str]:
 
 
 @pytest.fixture(scope="session")
-def test_settings(app_database_url: str, redis_url: str) -> Settings:
+def test_settings(app_database_url: str, redis_url: str, migrated_domain_schema: None) -> Settings:
     """Settings apontando para os containers descartaveis, sem OTel."""
     return Settings(
         environment="test",

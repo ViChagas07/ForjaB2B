@@ -145,7 +145,7 @@ class ElasticsearchSearchEngine(SearchEngine):
         try:
             await self._client.info()
             return SearchEngineHealth(state=SearchEngineState.OK, detail="ok")
-        except _ELASTICSEARCH_ERRORS as info_exc:
+        except _ELASTICSEARCH_ERRORS:
             pass
 
         # Fallback: cluster.health sem wait_for_status (evita bloqueio e 410 no Serverless).
