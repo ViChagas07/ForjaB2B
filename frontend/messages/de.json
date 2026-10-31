@@ -206,7 +206,8 @@
     "consumerRegistrationUnavailable": "Die Kundenregistrierung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
     "rateLimited": "Zu viele Versuche. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
     "oauthConfiguration": "Die Google-Anmeldung ist falsch konfiguriert. Prüfen Sie Client-ID und Secret auf dem Server.",
-    "oauthCodeInvalid": "Google-Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen."
+    "oauthCodeInvalid": "Google-Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.",
+    "oauthAccountLinkConflict": "Dieses Google-Konto ist bereits mit einem anderen Nutzer verknüpft."
   },
   "catalog": {
     "title": "Katalog",

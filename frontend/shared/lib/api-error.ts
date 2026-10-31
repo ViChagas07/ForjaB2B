@@ -19,6 +19,12 @@ export function oauthErrorMessageKey(code: string | null | undefined): string {
       return "error.oauthConfiguration";
     case "oauth_code_invalid":
       return "error.oauthCodeInvalid";
+    case "oauth_account_link_conflict":
+      return "error.oauthAccountLinkConflict";
+    case "oauth_unavailable":
+      return "error.oauthUnavailable";
+    case "oauth_internal_error":
+      return "error.oauthInternalError";
     default:
       return "auth.googleCallbackError";
   }

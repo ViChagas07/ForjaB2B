@@ -22,10 +22,12 @@ from app.application.rate_limit import (
     pseudonymous_key,
 )
 from app.core.errors import RateLimitExceededError
+from app.core.logging import get_logger
 from app.core.request_context import client_ip
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
 from app.modules.identity.application.errors import (
     InvalidCredentialsError,
+    OAuthAccountLinkConflictError,
     OAuthCodeError,
     OAuthCompanyAccountError,
     OAuthConfigurationError,
@@ -53,6 +55,8 @@ from app.modules.identity.interface.schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_logger = get_logger(__name__)
 
 
 def _authenticate_usecase(request: Request) -> AuthenticateUser:
@@ -157,6 +161,8 @@ def _callback_error_code(exc: Exception) -> str:
         return "user_inactive"
     if isinstance(exc, OAuthStateError):
         return "oauth_state_invalid"
+    if isinstance(exc, OAuthAccountLinkConflictError):
+        return "oauth_account_link_conflict"
     if isinstance(exc, OAuthCodeError) and exc.reason in {
         "invalid_client",
         "unauthorized_client",
@@ -315,12 +321,28 @@ async def google_callback(
         OAuthStateError,
         OAuthCodeError,
         UserInactiveError,
+        OAuthAccountLinkConflictError,
     ) as exc:
+        _logger.warning(
+            "google_oauth_callback_expected_error",
+            error_code=_callback_error_code(exc),
+            exc_type=type(exc).__name__,
+        )
         return _error_redirect(base_url, _callback_error_code(exc))
-    except (redis.exceptions.RedisError, sqlalchemy.exc.SQLAlchemyError):
+    except (redis.exceptions.RedisError, sqlalchemy.exc.SQLAlchemyError) as exc:
         # Falhas de infraestrutura (Redis/DB) tornam o servico temporariamente indisponivel
+        _logger.exception(
+            "google_oauth_callback_infrastructure_error",
+            stage="persist_exchange_code_or_link_identity",
+            exc_type=type(exc).__name__,
+        )
         return _error_redirect(base_url, "oauth_unavailable")
-    except Exception:  # pragma: no cover - defensive: evita 500 em falhas inesperadas
+    except Exception as exc:  # pragma: no cover - defensive: evita 500 em falhas inesperadas
+        _logger.exception(
+            "google_oauth_callback_unexpected_error",
+            stage="complete_google_oauth",
+            exc_type=type(exc).__name__,
+        )
         return _error_redirect(base_url, "oauth_internal_error")
     return _code_redirect(base_url, result)
 

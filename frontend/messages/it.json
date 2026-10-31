@@ -206,7 +206,8 @@
     "consumerRegistrationUnavailable": "La registrazione dei clienti è temporaneamente non disponibile. Riprova tra poco.",
     "rateLimited": "Troppi tentativi. Attendi qualche istante e riprova.",
     "oauthConfiguration": "La configurazione dell'accesso con Google non è valida. Controlla client ID e secret sul server.",
-    "oauthCodeInvalid": "Impossibile completare l'accesso con Google. Riprova."
+    "oauthCodeInvalid": "Impossibile completare l'accesso con Google. Riprova.",
+    "oauthAccountLinkConflict": "Questo account Google è già collegato a un altro utente."
   },
   "catalog": {
     "title": "Catalogo",

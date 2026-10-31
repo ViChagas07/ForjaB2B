@@ -15,6 +15,7 @@ import pytest
 from app.application.security import TokenService
 from app.core.config import Settings
 from app.modules.identity.application.errors import (
+    OAuthAccountLinkConflictError,
     OAuthCodeError,
     OAuthCompanyAccountError,
     OAuthConfigurationError,
@@ -305,6 +306,16 @@ async def test_callback_nao_expoe_client_secret() -> None:
     assert payload is not None
     assert _CLIENT_SECRET not in (payload.access_token or "")
     assert _CLIENT_SECRET not in (payload.refresh_token or "")
+
+
+async def test_callback_vinculo_conflito_conta_google_ja_vinculada() -> None:
+    """Quando o subject Google ja esta vinculado a outro usuario, deve lancar erro."""
+    repo = FakeExternalIdentityRepository()
+    repo.error = OAuthAccountLinkConflictError()
+    use_case = _complete_usecase(external_identity_repository=repo)
+
+    with pytest.raises(OAuthAccountLinkConflictError):
+        await use_case.complete(code="code", state="state")
 
 
 def test_settings_oauth_enabled() -> None:

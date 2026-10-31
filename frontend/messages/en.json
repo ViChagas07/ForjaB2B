@@ -206,7 +206,8 @@
     "consumerRegistrationUnavailable": "Customer registration is temporarily unavailable. Please try again shortly.",
     "rateLimited": "Too many attempts. Please wait a moment and try again.",
     "oauthConfiguration": "Google sign-in is misconfigured. Check the client ID and secret on the server.",
-    "oauthCodeInvalid": "Could not complete Google sign-in. Please try again."
+    "oauthCodeInvalid": "Could not complete Google sign-in. Please try again.",
+    "oauthAccountLinkConflict": "This Google account is already linked to another user."
   },
   "catalog": {
     "title": "Catalog",
