@@ -107,3 +107,5 @@ class ProductListQuery(BaseModel):
     order: _ORDER = "asc"
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
+    # Aceita lang para compatibilidade com get_locale_info; ignorado pelo use case
+    lang: str | None = None
