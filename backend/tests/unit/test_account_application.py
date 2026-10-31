@@ -45,6 +45,7 @@ def _record(**overrides: Any) -> AccountRecord:
         gender=Gender.PREFIRO_NAO_INFORMAR,
         postal_code="01310100",
         display_currency="BRL",
+        avatar_url=None,
         account_type="COMPANY",
     )
     return replace(base, **overrides)
@@ -77,6 +78,21 @@ class FakeRepository:
         self.last_update = kwargs
         self.record = replace(self.record, display_currency=kwargs["display_currency"])
         return self.record
+
+    async def set_avatar(self, **kwargs: Any) -> bool:
+        if self.record is None:
+            return False
+        self.last_update = kwargs
+        return True
+
+    async def clear_avatar(self, **kwargs: Any) -> bool:
+        if self.record is None:
+            return False
+        self.last_update = kwargs
+        return True
+
+    async def get_avatar(self, **kwargs: Any) -> None:
+        return None
 
 
 async def test_get_account_devolve_perfil() -> None:

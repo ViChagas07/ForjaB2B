@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Protocol
 
 from app.domain.consumer import Gender
@@ -35,6 +35,7 @@ class Membership:
     status: MemberStatus
     full_name: str
     email: str
+    avatar_url: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -59,6 +60,7 @@ class AccountRecord:
     gender: Gender | None
     postal_code: str | None
     display_currency: str
+    avatar_url: str | None
     account_type: str
 
 
@@ -89,6 +91,39 @@ class AccountRepository(Protocol):
         display_currency: str,
     ) -> AccountRecord | None:
         """Atualiza somente a moeda de exibicao; None se o usuario sumiu."""
+
+    async def set_avatar(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        avatar_key: uuid.UUID,
+        content_type: str,
+        data: bytes,
+        updated_at: datetime,
+    ) -> bool:
+        """Grava o avatar; False se o usuario nao existe no tenant."""
+
+    async def clear_avatar(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+        """Remove o avatar; False se o usuario nao existe no tenant."""
+
+    async def get_avatar(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        avatar_key: uuid.UUID,
+    ) -> AvatarBlob | None:
+        """Le o avatar publico pela chave aleatoria, dentro do tenant."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class AvatarBlob:
+    """Bytes e metadados de um avatar armazenado."""
+
+    content_type: str
+    data: bytes
+    updated_at: datetime
 
 
 class PasswordHasher(Protocol):

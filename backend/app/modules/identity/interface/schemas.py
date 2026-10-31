@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -103,6 +103,7 @@ class AccountProfileResponse(BaseModel):
     gender: Gender | None
     postal_code: str | None
     display_currency: DisplayCurrency
+    avatar_url: str | None = None
     account_type: str
     role: str
 
@@ -137,3 +138,12 @@ class AccountPreferencesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     display_currency: DisplayCurrency
+
+
+class AccountAvatarResponse(BaseModel):
+    """URL publica do avatar e instante da ultima alteracao."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    avatar_url: str | None
+    updated_at: datetime | None

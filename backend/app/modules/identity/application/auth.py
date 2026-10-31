@@ -42,6 +42,7 @@ class AuthenticationResult:
     email: str
     full_name: str
     account_type: str = "COMPANY"
+    avatar_url: str | None = None
 
 
 class AuthenticateUser:
@@ -126,6 +127,7 @@ class AuthenticateUser:
             email=membership.email,
             full_name=membership.full_name,
             account_type=identity.account_type,
+            avatar_url=membership.avatar_url,
         )
 
 

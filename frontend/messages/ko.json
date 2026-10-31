@@ -944,7 +944,7 @@
   "account": {
     "title": "프로필 정보",
     "subtitle": "개인 정보와 연락처를 업데이트하세요.",
-    "avatarHint": "사진은 로그인 제공업체에서 가져옵니다.",
+    "avatarHint": "JPG, PNG 또는 WebP, 최대 2MB.",
     "name": "이름",
     "email": "이메일",
     "emailHint": "이메일은 여기서 변경할 수 없습니다.",
@@ -974,7 +974,16 @@
       "NAO_BINARIO": "논바이너리",
       "OUTRO": "기타",
       "PREFIRO_NAO_INFORMAR": "응답하지 않음"
-    }
+    },
+    "avatarChange": "사진 변경",
+    "avatarRemove": "삭제",
+    "avatarUploading": "업로드 중...",
+    "avatarRemoving": "삭제 중...",
+    "avatarSaved": "사진이 업데이트되었습니다.",
+    "avatarRemoved": "사진이 삭제되었습니다.",
+    "avatarTypeError": "JPG, PNG 또는 WebP 이미지를 보내세요.",
+    "avatarSizeError": "이미지는 최대 2MB까지 가능합니다.",
+    "avatarError": "사진을 업데이트할 수 없습니다."
   },
   "settings": {
     "title": "설정",

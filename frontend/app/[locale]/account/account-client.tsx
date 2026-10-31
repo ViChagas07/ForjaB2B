@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import { Loader2, Save } from "lucide-react";
 
 import { GENDERS, type Gender } from "@/core/domain/account";
+import { AccountAvatarCard } from "@/features/account/avatar-card";
 import { useAccount, useUpdateAccount } from "@/features/account/hooks";
 import { Link } from "@/i18n/navigation";
 import { ApiError } from "@/infrastructure/http";
-import { UserAvatar } from "@/shared/components/user-avatar";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
@@ -160,16 +160,7 @@ export function AccountClient() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
-      <Card className="rounded-2xl">
-        <CardContent className="flex items-center gap-4 p-5">
-          {session ? <UserAvatar user={session.user} className="h-16 w-16" /> : null}
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold">{profile.full_name}</p>
-            <p className="truncate text-sm text-muted-foreground">{profile.email}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{t("avatarHint")}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <AccountAvatarCard profile={profile} fallbackAvatarUrl={session?.user.avatar_url ?? null} />
 
       <Card className="rounded-2xl">
         <CardHeader>

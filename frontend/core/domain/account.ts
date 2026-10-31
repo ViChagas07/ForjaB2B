@@ -24,12 +24,18 @@ export interface AccountProfile {
   gender: Gender | null;
   postal_code: string | null;
   display_currency: CurrencyCode;
+  avatar_url: string | null;
   account_type: "PERSON" | "COMPANY";
   role: string;
 }
 
 export interface AccountPreferences {
   display_currency: CurrencyCode;
+}
+
+export interface AccountAvatar {
+  avatar_url: string | null;
+  updated_at: string | null;
 }
 
 export interface UpdateAccountInput {

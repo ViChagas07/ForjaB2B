@@ -99,7 +99,11 @@ export class FetchHttpClient implements HttpClient {
       "X-Request-ID": newRequestId(),
       ...request.headers,
     };
-    if (request.body !== undefined) {
+    if (request.rawBody !== undefined) {
+      headers["Content-Type"] =
+        request.contentType ??
+        (request.rawBody instanceof Blob ? request.rawBody.type : "application/octet-stream");
+    } else if (request.body !== undefined) {
       headers["Content-Type"] = "application/json";
     }
     // Adiciona Accept-Language se locale for fornecido
@@ -127,7 +131,9 @@ export class FetchHttpClient implements HttpClient {
       response = await fetch(url, {
         method: request.method,
         headers,
-        body: request.body === undefined ? undefined : JSON.stringify(request.body),
+        body:
+          request.rawBody ??
+          (request.body === undefined ? undefined : JSON.stringify(request.body)),
         signal: controller.signal,
         cache: "no-store",
       });

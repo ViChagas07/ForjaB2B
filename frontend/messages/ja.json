@@ -944,7 +944,7 @@
   "account": {
     "title": "プロフィール情報",
     "subtitle": "個人情報と連絡先を更新します。",
-    "avatarHint": "写真はログインプロバイダーから取得されます。",
+    "avatarHint": "JPG、PNG、WebP、最大2MB。",
     "name": "名前",
     "email": "メールアドレス",
     "emailHint": "メールアドレスはここでは変更できません。",
@@ -974,7 +974,16 @@
       "NAO_BINARIO": "ノンバイナリー",
       "OUTRO": "その他",
       "PREFIRO_NAO_INFORMAR": "回答しない"
-    }
+    },
+    "avatarChange": "写真を変更",
+    "avatarRemove": "削除",
+    "avatarUploading": "アップロード中...",
+    "avatarRemoving": "削除中...",
+    "avatarSaved": "写真を更新しました。",
+    "avatarRemoved": "写真を削除しました。",
+    "avatarTypeError": "JPG、PNG、WebP画像を送信してください。",
+    "avatarSizeError": "画像は最大2MBまでです。",
+    "avatarError": "写真を更新できませんでした。"
   },
   "settings": {
     "title": "設定",

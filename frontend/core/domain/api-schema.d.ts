@@ -22,6 +22,41 @@ export interface paths {
         patch: operations["update_account_api_v1_account_patch"];
         trace?: never;
     };
+    "/api/v1/account/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Enviar foto de perfil */
+        put: operations["upload_avatar_api_v1_account_avatar_put"];
+        post?: never;
+        /** Remover foto de perfil */
+        delete: operations["remove_avatar_api_v1_account_avatar_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/avatar/{company_id}/{user_id}/{avatar_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Avatar publico por chave aleatoria */
+        get: operations["get_account_avatar_api_v1_account_avatar__company_id___user_id___avatar_key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/preferences": {
         parameters: {
             query?: never;
@@ -1155,6 +1190,16 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * AccountAvatarResponse
+         * @description URL publica do avatar e instante da ultima alteracao.
+         */
+        AccountAvatarResponse: {
+            /** Avatar Url */
+            avatar_url: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /**
          * AccountPreferencesRequest
          * @description Preferencias visuais persistidas no perfil (sem dados financeiros).
          *
@@ -1183,6 +1228,8 @@ export interface components {
         AccountProfileResponse: {
             /** Account Type */
             account_type: string;
+            /** Avatar Url */
+            avatar_url?: string | null;
             /** Birth Date */
             birth_date: string | null;
             /**
@@ -3582,6 +3629,371 @@ export interface operations {
                      *       "title": "Conflict",
                      *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
                      *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    upload_avatar_api_v1_account_avatar_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountAvatarResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    remove_avatar_api_v1_account_avatar_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountAvatarResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_account_avatar_api_v1_account_avatar__company_id___user_id___avatar_key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+                user_id: string;
+                avatar_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Recurso inexistente no tenant autenticado. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Recurso inexistente no tenant autenticado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 404,
+                     *       "title": "Not Found",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_404"
                      *     }
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];

@@ -28,6 +28,13 @@
 - **Checagens reais:** frontend `npm run check` **291 passed**, typecheck/lint/format/depcruise OK, `npm run build` OK; backend mypy **383** e ruff OK; integracao de conta/persistencia/migrations **49 passed**. A suite backend completa ainda tem falhas pre-existentes de isolamento/seguranca que a Fase 04 vai separar.
 - **NAO VALIDADO:** visual nos 3 temas e cores de destaque, RTL em navegador real, Stripe real e E2E; o perfil so sincroniza quando autenticado e o bootstrap do SSR continua vindo do cookie.
 
+## Foto de perfil na conta - 2026-10-31
+
+- **Backend:** migration 0039 adiciona `users.avatar_key`, `avatar_content_type`, `avatar_data` (deferred) e `avatar_updated_at`, com checks de tipo, consistencia e limite de 2 MB. Endpoints `PUT/DELETE /api/v1/account/avatar` e leitura publica cacheavel `GET /api/v1/account/avatar/{company}/{user}/{key}`; a chave e aleatoria por upload e a consulta roda no tenant. Validacao por magic bytes aceita somente JPG/PNG/WebP; invalido -> 422, grande -> 413. Login e perfil passam a devolver `avatar_url`; OAuth usa a foto enviada quando existir, senao a do Google.
+- **Frontend:** card do perfil com avatar, botao "Alterar foto", remover, preview imediato, limites de 2 MB e mensagens localizadas nos 11 locales. `accountApi.uploadAvatar` envia corpo binario pelo cliente HTTP existente; hooks atualizam a query e a sessao do header sem reload.
+- **Testes reais:** backend **1497 passed, 1 skipped, 2 failed pre-existentes** (em dash e type ignore antigos); frontend `npm run check` **303 passed**, typecheck/lint/format/depcruise OK; `npm run build` OK; migration/schema **44 passed**; integracao de conta **10 passed** (upload, URL publica, login, remocao, 422 e 413).
+- **NAO VALIDADO:** upload real em navegador (file picker/preview), aparencia nos temas, e uso de storage externo. A imagem fica no PostgreSQL (limite de 2 MB); se o volume crescer, migrar para object storage.
+
 ## Moeda de exibicao - FASE 04: auditoria - 2026-10-31
 
 - **Alta - rollback de migration quebrado:** a 0038 dropava a constraint com prefixo duplo; corrigida para o nome curto. O mesmo defeito antigo existia em 0030/0033/0037 e foi corrigido; 0027 ganhou `op.execute` direto no downgrade. O roundtrip de migrations passou e o teste agora limpa dados antes do downgrade.

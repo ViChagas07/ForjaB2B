@@ -944,7 +944,7 @@
   "account": {
     "title": "Informazioni del profilo",
     "subtitle": "Aggiorna i tuoi dati personali e di contatto.",
-    "avatarHint": "La foto proviene dal provider di accesso.",
+    "avatarHint": "JPG, PNG o WebP, fino a 2 MB.",
     "name": "Nome completo",
     "email": "Email",
     "emailHint": "L'email non può essere modificata qui.",
@@ -974,7 +974,16 @@
       "NAO_BINARIO": "Non binario",
       "OUTRO": "Altro",
       "PREFIRO_NAO_INFORMAR": "Preferisco non indicare"
-    }
+    },
+    "avatarChange": "Cambia foto",
+    "avatarRemove": "Rimuovi",
+    "avatarUploading": "Caricamento...",
+    "avatarRemoving": "Rimozione...",
+    "avatarSaved": "Foto aggiornata.",
+    "avatarRemoved": "Foto rimossa.",
+    "avatarTypeError": "Invia un'immagine JPG, PNG o WebP.",
+    "avatarSizeError": "L'immagine deve essere di massimo 2 MB.",
+    "avatarError": "Impossibile aggiornare la foto."
   },
   "settings": {
     "title": "Impostazioni",

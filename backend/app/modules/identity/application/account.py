@@ -31,6 +31,7 @@ class AccountProfile:
     gender: Gender | None
     postal_code: str | None
     display_currency: str
+    avatar_url: str | None
     account_type: str
     role: str
 
@@ -142,6 +143,7 @@ def _to_profile(record: AccountRecord, *, role: str) -> AccountProfile:
         gender=record.gender,
         postal_code=record.postal_code,
         display_currency=normalize_currency(record.display_currency),
+        avatar_url=record.avatar_url,
         account_type=record.account_type,
         role=role,
     )

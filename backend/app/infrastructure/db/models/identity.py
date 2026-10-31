@@ -56,6 +56,22 @@ class User(TimestampMixin, Base):
             "display_currency IN ('BRL', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY')",
             name="display_currency",
         ),
+        CheckConstraint(
+            "avatar_content_type IS NULL OR "
+            "avatar_content_type IN ('image/jpeg', 'image/png', 'image/webp')",
+            name="avatar_content_type",
+        ),
+        CheckConstraint(
+            "(avatar_key IS NULL AND avatar_content_type IS NULL AND avatar_data IS NULL "
+            "AND avatar_updated_at IS NULL) OR (avatar_key IS NOT NULL AND "
+            "avatar_content_type IS NOT NULL AND avatar_data IS NOT NULL AND "
+            "avatar_updated_at IS NOT NULL)",
+            name="avatar_consistency",
+        ),
+        CheckConstraint(
+            "avatar_data IS NULL OR octet_length(avatar_data) <= 2097152",
+            name="avatar_size",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -77,6 +93,13 @@ class User(TimestampMixin, Base):
     display_currency: Mapped[str] = mapped_column(
         String(3), nullable=False, default="BRL", server_default=text("'BRL'")
     )
+    # Foto de perfil. Os bytes ficam no banco (2 MB max) e o frontend usa a
+    # URL publica com a chave aleatoria; `deferred` evita carregar a imagem em
+    # toda leitura de perfil.
+    avatar_key: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    avatar_content_type: Mapped[str | None] = mapped_column(String(32))
+    avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+    avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # WhatsApp (Fase 3, recuperacao de carrinho): opt-in EXPLICITO do usuario.
     # Nulo/falso = NUNCA enviar. `whatsapp_phone` e o numero E.164 confirmado.
     whatsapp_phone: Mapped[str | None] = mapped_column(String(20))

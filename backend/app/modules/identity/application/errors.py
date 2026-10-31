@@ -43,6 +43,30 @@ class AccountNotFoundError(AppError):
     code = "account_not_found"
 
 
+class InvalidAvatarError(AppError):
+    """Upload nao e uma imagem JPG, PNG ou WebP valida."""
+
+    status_code = 422
+    title = "Unprocessable Entity"
+    code = "invalid_avatar"
+
+
+class AvatarTooLargeError(AppError):
+    """Imagem maior que o limite de 2 MB."""
+
+    status_code = 413
+    title = "Payload Too Large"
+    code = "avatar_too_large"
+
+
+class AvatarNotFoundError(AppError):
+    """Avatar inexistente para a chave informada."""
+
+    status_code = 404
+    title = "Not Found"
+    code = "avatar_not_found"
+
+
 class RefreshTokenRejectedError(AppError):
     """Refresh token invalido, revogado ou ja rotacionado."""
 

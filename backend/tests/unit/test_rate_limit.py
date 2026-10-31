@@ -369,6 +369,10 @@ def test_classificacao_de_rotas() -> None:
     assert classify_request("/api/v1/catalog/products", "GET") is RateLimitClass.PUBLIC_READ
     assert classify_request("/api/v1/fx/rates", "GET") is RateLimitClass.PUBLIC_READ
     assert classify_request("/api/v1/fx/rates", "HEAD") is RateLimitClass.PUBLIC_READ
+    assert (
+        classify_request("/api/v1/account/avatar/company/user/key", "GET")
+        is RateLimitClass.PUBLIC_READ
+    )
     assert classify_request("/docs", "GET") is None
 
 

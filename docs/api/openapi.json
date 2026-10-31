@@ -1,6 +1,41 @@
 {
   "components": {
     "schemas": {
+      "AccountAvatarResponse": {
+        "additionalProperties": false,
+        "description": "URL publica do avatar e instante da ultima alteracao.",
+        "properties": {
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "avatar_url",
+          "updated_at"
+        ],
+        "title": "AccountAvatarResponse",
+        "type": "object"
+      },
       "AccountPreferencesRequest": {
         "additionalProperties": false,
         "description": "Preferencias visuais persistidas no perfil (sem dados financeiros).\n\nO valor e normalizado pela lista fechada no caso de uso; qualquer string\ndesconhecida vira BRL, sem persistir um codigo invalido.",
@@ -48,6 +83,17 @@
           "account_type": {
             "title": "Account Type",
             "type": "string"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
           },
           "birth_date": {
             "anyOf": [
@@ -6492,6 +6538,462 @@
           }
         ],
         "summary": "Atualizar perfil da conta",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/account/avatar": {
+      "delete": {
+        "operationId": "remove_avatar_api_v1_account_avatar_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountAvatarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remover foto de perfil",
+        "tags": [
+          "account"
+        ]
+      },
+      "put": {
+        "operationId": "upload_avatar_api_v1_account_avatar_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountAvatarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Requisicao invalida ou corpo recusado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_400"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Requisicao invalida ou corpo recusado."
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 401,
+                  "title": "Unauthorized",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_401"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Credencial ausente/invalida ou assinatura de webhook invalida."
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 409,
+                  "title": "Conflict",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_409"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Conflito de estado, concorrencia ou idempotencia."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Enviar foto de perfil",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/account/avatar/{company_id}/{user_id}/{avatar_key}": {
+      "get": {
+        "operationId": "get_account_avatar_api_v1_account_avatar__company_id___user_id___avatar_key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Company Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "avatar_key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Avatar Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Recurso inexistente no tenant autenticado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 404,
+                  "title": "Not Found",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_404"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Recurso inexistente no tenant autenticado."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Limite de requisicoes excedido (Retry-After).",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 429,
+                  "title": "Too Many Requests",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_429"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Limite de requisicoes excedido (Retry-After).",
+            "headers": {
+              "Retry-After": {
+                "description": "Segundos ate a proxima tentativa permitida.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Erro interno inesperado.",
+                  "instance": "/api/v1/recurso",
+                  "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                  "type": "urn:forja:problem:http_500"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Erro interno inesperado."
+          }
+        },
+        "summary": "Avatar publico por chave aleatoria",
         "tags": [
           "account"
         ]

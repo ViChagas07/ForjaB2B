@@ -1,4 +1,9 @@
-import type { AccountPreferences, AccountProfile, UpdateAccountInput } from "@/core/domain/account";
+import type {
+  AccountAvatar,
+  AccountPreferences,
+  AccountProfile,
+  UpdateAccountInput,
+} from "@/core/domain/account";
 import type { CurrencyCode } from "@/core/domain/currency";
 
 import { apiClient } from "./client";
@@ -32,6 +37,27 @@ export const accountApi = {
       path: "/account/preferences",
       headers: { Authorization: `Bearer ${accessToken}` },
       body: { display_currency: displayCurrency },
+    });
+    return response.body;
+  },
+
+  async uploadAvatar(accessToken: string, file: Blob): Promise<AccountAvatar> {
+    const response = await apiClient.request<AccountAvatar>({
+      method: "PUT",
+      path: "/account/avatar",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      rawBody: file,
+      contentType: file.type || "application/octet-stream",
+      timeoutMs: 30_000,
+    });
+    return response.body;
+  },
+
+  async removeAvatar(accessToken: string): Promise<AccountAvatar> {
+    const response = await apiClient.request<AccountAvatar>({
+      method: "DELETE",
+      path: "/account/avatar",
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
     return response.body;
   },

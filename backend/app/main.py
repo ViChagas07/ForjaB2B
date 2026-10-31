@@ -133,6 +133,11 @@ from app.modules.identity.application.account import (
     UpdateAccountCurrency,
 )
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
+from app.modules.identity.application.avatar import (
+    GetAccountAvatar,
+    RemoveAccountAvatar,
+    UpdateAccountAvatar,
+)
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,
@@ -644,6 +649,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.account_get = GetAccount(repository=account_repository)
     app.state.account_update = UpdateAccount(repository=account_repository)
     app.state.account_update_currency = UpdateAccountCurrency(repository=account_repository)
+    app.state.account_upload_avatar = UpdateAccountAvatar(repository=account_repository)
+    app.state.account_remove_avatar = RemoveAccountAvatar(repository=account_repository)
+    app.state.account_get_avatar = GetAccountAvatar(repository=account_repository)
 
     # Composicao do OAuth Google (redirect tradicional). So e montado quando a
     # configuracao esta completa; ausente, os endpoints retornam 503 e o

@@ -109,6 +109,25 @@ describe("FetchHttpClient", () => {
     expect(headers["Content-Type"]).toBe("application/json");
   });
 
+  it("envia corpo binario sem serializar como JSON", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File([new Uint8Array([1, 2, 3])], "avatar.png", { type: "image/png" });
+
+    const client = new FetchHttpClient(baseUrl);
+    await client.request({
+      method: "PUT",
+      path: "/api/v1/account/avatar",
+      rawBody: file,
+      contentType: "image/png",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    expect(headers["Content-Type"]).toBe("image/png");
+    expect(init?.body).toBe(file);
+  });
+
   it("monta URL relativa no navegador (base same-origin)", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);

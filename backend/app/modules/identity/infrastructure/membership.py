@@ -14,6 +14,7 @@ from sqlalchemy import select
 from app.application.ports.tenant import TenantContext
 from app.infrastructure.db.models.identity import CompanyMember, User
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
+from app.modules.identity.application.avatar import account_avatar_url
 from app.modules.identity.application.ports import Membership
 
 
@@ -44,4 +45,9 @@ class SqlAlchemyMembershipReader:
                 status=member.status,
                 full_name=user.full_name,
                 email=user.email,
+                avatar_url=(
+                    account_avatar_url(user.company_id, user.id, user.avatar_key)
+                    if user.avatar_key is not None
+                    else None
+                ),
             )

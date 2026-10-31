@@ -14,6 +14,13 @@ export interface HttpRequest {
   path: string;
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
+  /**
+   * Corpo binario (ex.: upload de avatar). Quando presente, tem prioridade
+   * sobre `body` e nao e serializado como JSON.
+   */
+  rawBody?: BodyInit;
+  /** Content-Type do `rawBody` (ex.: "image/png"). */
+  contentType?: string;
   headers?: Record<string, string>;
   /** Timeout em milissegundos. */
   timeoutMs?: number;

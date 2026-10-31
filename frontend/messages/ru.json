@@ -944,7 +944,7 @@
   "account": {
     "title": "Информация профиля",
     "subtitle": "Обновите личные и контактные данные.",
-    "avatarHint": "Фото берется у вашего провайдера входа.",
+    "avatarHint": "JPG, PNG или WebP, до 2 МБ.",
     "name": "Имя",
     "email": "Эл. почта",
     "emailHint": "Эл. почту здесь изменить нельзя.",
@@ -974,7 +974,16 @@
       "NAO_BINARIO": "Небинарный",
       "OUTRO": "Другой",
       "PREFIRO_NAO_INFORMAR": "Предпочитаю не указывать"
-    }
+    },
+    "avatarChange": "Изменить фото",
+    "avatarRemove": "Удалить",
+    "avatarUploading": "Отправка...",
+    "avatarRemoving": "Удаление...",
+    "avatarSaved": "Фото обновлено.",
+    "avatarRemoved": "Фото удалено.",
+    "avatarTypeError": "Отправьте изображение JPG, PNG или WebP.",
+    "avatarSizeError": "Изображение должно быть не больше 2 МБ.",
+    "avatarError": "Не удалось обновить фото."
   },
   "settings": {
     "title": "Настройки",

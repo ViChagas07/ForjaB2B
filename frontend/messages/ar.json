@@ -944,7 +944,7 @@
   "account": {
     "title": "معلومات الملف الشخصي",
     "subtitle": "حدّث بياناتك الشخصية ومعلومات الاتصال.",
-    "avatarHint": "صورتك تأتي من مزود تسجيل الدخول.",
+    "avatarHint": "JPG أو PNG أو WebP، بحد أقصى 2 ميغابايت.",
     "name": "الاسم",
     "email": "البريد الإلكتروني",
     "emailHint": "لا يمكن تغيير البريد الإلكتروني هنا.",
@@ -974,7 +974,16 @@
       "NAO_BINARIO": "غير ثنائي",
       "OUTRO": "آخر",
       "PREFIRO_NAO_INFORMAR": "أفضل عدم الإفصاح"
-    }
+    },
+    "avatarChange": "تغيير الصورة",
+    "avatarRemove": "إزالة",
+    "avatarUploading": "جارٍ الرفع...",
+    "avatarRemoving": "جارٍ الإزالة...",
+    "avatarSaved": "تم تحديث الصورة.",
+    "avatarRemoved": "تمت إزالة الصورة.",
+    "avatarTypeError": "أرسل صورة JPG أو PNG أو WebP.",
+    "avatarSizeError": "يجب ألا يتجاوز حجم الصورة 2 ميغابايت.",
+    "avatarError": "تعذر تحديث الصورة."
   },
   "settings": {
     "title": "الإعدادات",

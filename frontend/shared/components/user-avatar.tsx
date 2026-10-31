@@ -19,7 +19,7 @@ function initials(fullName: string): string {
 }
 
 interface UserAvatarProps {
-  user: UserProfile;
+  user: Pick<UserProfile, "full_name" | "avatar_url">;
   className?: string;
 }
 

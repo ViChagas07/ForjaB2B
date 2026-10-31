@@ -12,6 +12,7 @@ const PROFILE = {
   gender: "MASCULINO",
   postal_code: "01310100",
   display_currency: "BRL",
+  avatar_url: null,
   account_type: "COMPANY",
   role: "BUYER",
 };
@@ -77,5 +78,40 @@ describe("accountApi", () => {
     expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer account-token");
     expect(JSON.parse(String(init?.body))).toEqual({ display_currency: "USD" });
     expect(result.display_currency).toBe("USD");
+  });
+
+  it("envia o avatar como corpo binario em PUT /account/avatar", async () => {
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "avatar.png", {
+      type: "image/png",
+    });
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      jsonResponse({
+        avatar_url: "/api/v1/account/avatar/company/user/key",
+        updated_at: "2026-10-31T12:00:00Z",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await accountApi.uploadAvatar(TOKEN, file);
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(String(url)).toContain("/api/v1/account/avatar");
+    expect(init?.method).toBe("PUT");
+    expect((init?.headers as Record<string, string>)["Content-Type"]).toBe("image/png");
+    expect(init?.body).toBe(file);
+    expect(result.avatar_url).toContain("/api/v1/account/avatar/");
+  });
+
+  it("remove o avatar em DELETE /account/avatar", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ avatar_url: null, updated_at: null }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await accountApi.removeAvatar(TOKEN);
+
+    const [, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(init?.method).toBe("DELETE");
+    expect(result.avatar_url).toBeNull();
   });
 });

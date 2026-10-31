@@ -251,6 +251,7 @@ async def login(
             full_name=result.full_name,
             role=result.role,
             account_type=result.account_type,
+            avatar_url=result.avatar_url,
         ),
     )
 

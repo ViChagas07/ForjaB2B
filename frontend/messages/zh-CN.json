@@ -944,7 +944,7 @@
   "account": {
     "title": "个人信息",
     "subtitle": "更新您的个人和联系信息。",
-    "avatarHint": "头像来自您的登录提供商。",
+    "avatarHint": "支持 JPG、PNG 或 WebP，最大 2 MB。",
     "name": "姓名",
     "email": "电子邮箱",
     "emailHint": "此处无法更改电子邮箱。",
@@ -974,7 +974,16 @@
       "NAO_BINARIO": "非二元",
       "OUTRO": "其他",
       "PREFIRO_NAO_INFORMAR": "不愿透露"
-    }
+    },
+    "avatarChange": "更换照片",
+    "avatarRemove": "移除",
+    "avatarUploading": "上传中...",
+    "avatarRemoving": "移除中...",
+    "avatarSaved": "照片已更新。",
+    "avatarRemoved": "照片已移除。",
+    "avatarTypeError": "请上传 JPG、PNG 或 WebP 图片。",
+    "avatarSizeError": "图片不得超过 2 MB。",
+    "avatarError": "无法更新照片。"
   },
   "settings": {
     "title": "设置",

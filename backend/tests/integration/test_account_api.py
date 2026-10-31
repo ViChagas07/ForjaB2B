@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import uuid
 from collections.abc import AsyncIterator
@@ -21,6 +22,9 @@ _USER = uuid.UUID("cccc0000-0000-4000-8000-00000000c002")
 _MEMBER = uuid.UUID("cccc0000-0000-4000-8000-00000000c003")
 _EMAIL = "account-api@test.local"
 _PASSWORD = "Senha@Forte123"
+_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII="
+)
 
 
 def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
@@ -205,3 +209,71 @@ async def test_update_account_preferences_valor_enorme_cai_em_brl(
     )
     assert response.status_code == 200
     assert response.json()["display_currency"] == "BRL"
+
+
+async def test_avatar_upload_leitura_publica_login_e_remocao(
+    account_client: httpx.AsyncClient,
+) -> None:
+    upload = await account_client.put(
+        "/api/v1/account/avatar",
+        content=_PNG,
+        headers={"Content-Type": "image/png"},
+    )
+    assert upload.status_code == 200
+    body = upload.json()
+    assert body["updated_at"] is not None
+    avatar_url = body["avatar_url"]
+    assert avatar_url.startswith(f"/api/v1/account/avatar/{_COMPANY}/{_USER}/")
+
+    profile = await account_client.get("/api/v1/account")
+    assert profile.json()["avatar_url"] == avatar_url
+
+    login = await account_client.post(
+        "/api/v1/auth/login", json={"email": _EMAIL, "password": _PASSWORD}
+    )
+    assert login.status_code == 200
+    assert login.json()["user"]["avatar_url"] == avatar_url
+
+    auth_header = account_client.headers.pop("Authorization")
+    try:
+        public = await account_client.get(avatar_url)
+    finally:
+        account_client.headers["Authorization"] = auth_header
+    assert public.status_code == 200
+    assert public.content == _PNG
+    assert public.headers["content-type"] == "image/png"
+    assert "immutable" in public.headers["cache-control"]
+
+    removed = await account_client.delete("/api/v1/account/avatar")
+    assert removed.status_code == 200
+    assert removed.json()["avatar_url"] is None
+
+    profile_after = await account_client.get("/api/v1/account")
+    assert profile_after.json()["avatar_url"] is None
+
+    auth_header = account_client.headers.pop("Authorization")
+    try:
+        gone = await account_client.get(avatar_url)
+    finally:
+        account_client.headers["Authorization"] = auth_header
+    assert gone.status_code == 404
+
+
+async def test_avatar_rejeita_formato_nao_imagem(account_client: httpx.AsyncClient) -> None:
+    response = await account_client.put(
+        "/api/v1/account/avatar",
+        content=b"<svg xmlns='http://www.w3.org/2000/svg'></svg>",
+        headers={"Content-Type": "image/svg+xml"},
+    )
+    assert response.status_code == 422
+    assert response.json()["type"] == "urn:forja:problem:invalid_avatar"
+
+
+async def test_avatar_rejeita_arquivo_acima_de_2mb(account_client: httpx.AsyncClient) -> None:
+    response = await account_client.put(
+        "/api/v1/account/avatar",
+        content=_PNG + b"x" * (2 * 1024 * 1024),
+        headers={"Content-Type": "image/png"},
+    )
+    assert response.status_code == 413
+    assert response.json()["type"] == "urn:forja:problem:avatar_too_large"

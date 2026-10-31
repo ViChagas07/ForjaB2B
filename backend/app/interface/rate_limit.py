@@ -89,6 +89,8 @@ def _classify_coupon_preview(path: str, method: str) -> RateLimitClass | None:
 def _classify_data(path: str, method: str) -> RateLimitClass | None:
     if path == "/api/v1/fx/rates" and method in {"GET", "HEAD"}:
         return RateLimitClass.PUBLIC_READ
+    if path.startswith("/api/v1/account/avatar/") and method in {"GET", "HEAD"}:
+        return RateLimitClass.PUBLIC_READ
     # O suggest tem balde PROPRIO (mais folgado): esgotar o balde digitando no
     # dropdown nao pode bloquear a busca da pagina de resultados.
     if path == "/api/v1/search/suggest":
