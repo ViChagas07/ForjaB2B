@@ -207,7 +207,16 @@
     "rateLimited": "Слишком много попыток. Подождите немного и повторите попытку.",
     "oauthConfiguration": "Неверная конфигурация входа через Google. Проверьте client ID и secret на сервере.",
     "oauthCodeInvalid": "Не удалось завершить вход через Google. Повторите попытку.",
-    "oauthAccountLinkConflict": "Этот аккаунт Google уже привязан к другому пользователю."
+    "oauthAccountLinkConflict": "Этот аккаунт Google уже привязан к другому пользователю.",
+    "oauth_account_link_conflict": "Этот аккаунт Google уже привязан к другому пользователю.",
+    "oauth_unavailable": "Вход через Google временно недоступен.",
+    "oauth_internal_error": "Внутренняя ошибка при обработке входа через Google.",
+    "oauth_client_invalid": "Неверная конфигурация Google OAuth.",
+    "oauth_email_not_verified": "Email Google не подтвержден.",
+    "oauth_state_invalid": "Сессия аутентификации недействительна. Попробуйте снова.",
+    "oauth_code_invalid": "Код авторизации недействителен или истек.",
+    "oauth_provider_error": "Ошибка провайдера аутентификации.",
+    "schema_mismatch": "Несоответствие схемы базы данных."
   },
   "catalog": {
     "title": "Каталог",

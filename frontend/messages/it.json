@@ -207,7 +207,16 @@
     "rateLimited": "Troppi tentativi. Attendi qualche istante e riprova.",
     "oauthConfiguration": "La configurazione dell'accesso con Google non è valida. Controlla client ID e secret sul server.",
     "oauthCodeInvalid": "Impossibile completare l'accesso con Google. Riprova.",
-    "oauthAccountLinkConflict": "Questo account Google è già collegato a un altro utente."
+    "oauthAccountLinkConflict": "Questo account Google è già collegato a un altro utente.",
+    "oauth_account_link_conflict": "Questo account Google e gia collegato a un altro utente.",
+    "oauth_unavailable": "Accesso con Google non disponibile al momento.",
+    "oauth_internal_error": "Errore interno durante l'accesso con Google.",
+    "oauth_client_invalid": "Configurazione Google OAuth non valida.",
+    "oauth_email_not_verified": "Email Google non verificata.",
+    "oauth_state_invalid": "Sessione di autenticazione non valida. Riprova.",
+    "oauth_code_invalid": "Codice di autorizzazione non valido o scaduto.",
+    "oauth_provider_error": "Errore del provider di autenticazione.",
+    "schema_mismatch": "Incompatibilita dello schema del database."
   },
   "catalog": {
     "title": "Catalogo",

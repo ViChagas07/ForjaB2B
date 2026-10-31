@@ -207,7 +207,16 @@
     "rateLimited": "시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.",
     "oauthConfiguration": "Google 로그인 설정이 올바르지 않습니다. 서버의 클라이언트 ID와 시크릿을 확인하세요.",
     "oauthCodeInvalid": "Google 로그인을 완료하지 못했습니다. 다시 시도해 주세요.",
-    "oauthAccountLinkConflict": "이 Google 계정은 이미 다른 사용자와 연결되어 있습니다."
+    "oauthAccountLinkConflict": "이 Google 계정은 이미 다른 사용자와 연결되어 있습니다.",
+    "oauth_account_link_conflict": "이 Google 계정은 이미 다른 사용자와 연결되어 있습니다.",
+    "oauth_unavailable": "현재 Google 로그인을 사용할 수 없습니다.",
+    "oauth_internal_error": "Google 로그인 처리 중 내부 오류가 발생했습니다.",
+    "oauth_client_invalid": "Google OAuth 설정이 유효하지 않습니다.",
+    "oauth_email_not_verified": "Google 이메일이 인증되지 않았습니다.",
+    "oauth_state_invalid": "인증 세션이 유효하지 않습니다. 다시 시도해 주세요.",
+    "oauth_code_invalid": "인증 코드가 유효하지 않거나 만료되었습니다.",
+    "oauth_provider_error": "인증 제공업체에서 오류가 발생했습니다.",
+    "schema_mismatch": "데이터베이스 스키마 불일치."
   },
   "catalog": {
     "title": "카탈로그",

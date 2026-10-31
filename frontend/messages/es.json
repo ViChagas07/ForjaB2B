@@ -207,7 +207,16 @@
     "rateLimited": "Demasiados intentos. Espera unos instantes e inténtalo de nuevo.",
     "oauthConfiguration": "La configuración del inicio de sesión con Google no es válida. Revisa el client ID y el secret en el servidor.",
     "oauthCodeInvalid": "No se pudo completar el inicio de sesión con Google. Inténtalo de nuevo.",
-    "oauthAccountLinkConflict": "Esta cuenta de Google ya está vinculada a otro usuario."
+    "oauthAccountLinkConflict": "Esta cuenta de Google ya está vinculada a otro usuario.",
+    "oauth_account_link_conflict": "Esta cuenta de Google ya esta vinculada a otro usuario.",
+    "oauth_unavailable": "Inicio de sesion con Google no disponible en este momento.",
+    "oauth_internal_error": "Error interno al procesar el inicio de sesion con Google.",
+    "oauth_client_invalid": "Configuracion de Google OAuth invalida.",
+    "oauth_email_not_verified": "El correo de Google no esta verificado.",
+    "oauth_state_invalid": "Sesion de autenticacion invalida. Intentelo de nuevo.",
+    "oauth_code_invalid": "Codigo de autorizacion invalido o expirado.",
+    "oauth_provider_error": "Error del proveedor de autenticacion.",
+    "schema_mismatch": "Incompatibilidad de esquema de base de datos."
   },
   "catalog": {
     "title": "Catálogo",

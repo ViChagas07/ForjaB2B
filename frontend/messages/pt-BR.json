@@ -396,7 +396,16 @@
     "rateLimited": "Muitas tentativas. Aguarde alguns instantes e tente novamente.",
     "oauthConfiguration": "A configuração do login com Google está inválida. Verifique o client ID e o secret no servidor.",
     "oauthCodeInvalid": "Não foi possível concluir o login com Google. Tente novamente.",
-    "oauthAccountLinkConflict": "Esta conta Google já está vinculada a outro usuário."
+    "oauthAccountLinkConflict": "Esta conta Google já está vinculada a outro usuário.",
+    "oauth_account_link_conflict": "Esta conta Google ja esta vinculada a outro usuario.",
+    "oauth_unavailable": "Login com Google indisponivel no momento.",
+    "oauth_internal_error": "Erro interno ao processar login com Google.",
+    "oauth_client_invalid": "Configuracao do Google OAuth invalida.",
+    "oauth_email_not_verified": "O e-mail do Google nao esta verificado.",
+    "oauth_state_invalid": "Sessao de autenticacao invalida. Tente novamente.",
+    "oauth_code_invalid": "Codigo de autorizacao invalido ou expirado.",
+    "oauth_provider_error": "Erro no provedor de autenticacao.",
+    "schema_mismatch": "Incompatibilidade de schema do banco de dados."
   },
   "admin": {
     "catalog": {

@@ -207,7 +207,16 @@
     "rateLimited": "محاولات كثيرة جدًا. يُرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
     "oauthConfiguration": "إعداد تسجيل الدخول عبر Google غير صالح. تحقق من client ID و secret على الخادم.",
     "oauthCodeInvalid": "تعذّر إكمال تسجيل الدخول عبر Google. حاول مرة أخرى.",
-    "oauthAccountLinkConflict": "تم ربط حساب Google هذا بمستخدم آخر بالفعل."
+    "oauthAccountLinkConflict": "تم ربط حساب Google هذا بمستخدم آخر بالفعل.",
+    "oauth_account_link_conflict": "تم ربط حساب Google هذا بمستخدم آخر بالفعل.",
+    "oauth_unavailable": "تسجيل الدخول عبر Google غير متاح حالياً.",
+    "oauth_internal_error": "حدث خطأ داخلي أثناء معالجة تسجيل الدخول عبر Google.",
+    "oauth_client_invalid": "تكوين Google OAuth غير صالح.",
+    "oauth_email_not_verified": "بريد Google الإلكتروني غير مُحقق.",
+    "oauth_state_invalid": "جلسة المصادقة غير صالحة. يرجى المحاولة مرة أخرى.",
+    "oauth_code_invalid": "رمز التفويض غير صالح أو منتهي الصلاحية.",
+    "oauth_provider_error": "خطأ في موفر المصادقة.",
+    "schema_mismatch": "عدم تطابق مخطط قاعدة البيانات."
   },
   "catalog": {
     "title": "الكتالوج",

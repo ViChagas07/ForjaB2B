@@ -207,7 +207,16 @@
     "rateLimited": "試行回数が多すぎます。しばらく待ってからもう一度お試しください。",
     "oauthConfiguration": "Google ログインの設定が無効です。サーバーのクライアント ID とシークレットを確認してください。",
     "oauthCodeInvalid": "Google ログインを完了できませんでした。もう一度お試しください。",
-    "oauthAccountLinkConflict": "この Google アカウントは別のユーザーにリンク済みです。"
+    "oauthAccountLinkConflict": "この Google アカウントは別のユーザーにリンク済みです。",
+    "oauth_account_link_conflict": "この Google アカウントは別のユーザーにリンク済みです。",
+    "oauth_unavailable": "現在 Google ログインをご利用いただけません。",
+    "oauth_internal_error": "Google ログイン処理中に内部エラーが発生しました。",
+    "oauth_client_invalid": "Google OAuth 設定が無効です。",
+    "oauth_email_not_verified": "Google のメールアドレスが確認されていません。",
+    "oauth_state_invalid": "認証セッションが無効です。もう一度お試しください。",
+    "oauth_code_invalid": "認証コードが無効または期限切れです。",
+    "oauth_provider_error": "認証プロバイダでエラーが発生しました。",
+    "schema_mismatch": "データベーススキーマの不一致。"
   },
   "catalog": {
     "title": "カタログ",

@@ -207,7 +207,16 @@
     "rateLimited": "Zu viele Versuche. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
     "oauthConfiguration": "Die Google-Anmeldung ist falsch konfiguriert. Prüfen Sie Client-ID und Secret auf dem Server.",
     "oauthCodeInvalid": "Google-Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen.",
-    "oauthAccountLinkConflict": "Dieses Google-Konto ist bereits mit einem anderen Nutzer verknüpft."
+    "oauthAccountLinkConflict": "Dieses Google-Konto ist bereits mit einem anderen Nutzer verknüpft.",
+    "oauth_account_link_conflict": "Dieses Google-Konto ist bereits mit einem anderen Nutzer verknuepft.",
+    "oauth_unavailable": "Google-Anmeldung momentan nicht verfuegbar.",
+    "oauth_internal_error": "Interner Fehler bei der Google-Anmeldung.",
+    "oauth_client_invalid": "Google OAuth-Konfiguration ungueltig.",
+    "oauth_email_not_verified": "Google-E-Mail nicht verifiziert.",
+    "oauth_state_invalid": "Authentifizierungssitzung ungueltig. Bitte versuchen Sie es erneut.",
+    "oauth_code_invalid": "Autorisierungscode ungueltig oder abgelaufen.",
+    "oauth_provider_error": "Authentifizierungsanbieter-Fehler.",
+    "schema_mismatch": "Datenbankschema-Inkompatibilitaet."
   },
   "catalog": {
     "title": "Katalog",

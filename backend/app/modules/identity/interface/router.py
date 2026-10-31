@@ -337,6 +337,16 @@ async def google_callback(
             exc_type=type(exc).__name__,
         )
         return _error_redirect(base_url, "oauth_unavailable")
+    except sqlalchemy.exc.ProgrammingError as exc:
+        # Erros de schema (coluna inexistente, tabela inexistente, etc.)
+        # sao classificados como schema_mismatch para diagnosticabilidade
+        _logger.exception(
+            "google_oauth_callback_schema_mismatch",
+            stage="complete_google_oauth",
+            exc_type=type(exc).__name__,
+            error_class="schema_mismatch",
+        )
+        return _error_redirect(base_url, "oauth_unavailable")
     except Exception as exc:  # pragma: no cover - defensive: evita 500 em falhas inesperadas
         _logger.exception(
             "google_oauth_callback_unexpected_error",

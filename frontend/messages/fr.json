@@ -207,7 +207,16 @@
     "rateLimited": "Trop de tentatives. Patientez quelques instants et réessayez.",
     "oauthConfiguration": "La configuration de la connexion Google est invalide. Vérifiez le client ID et le secret sur le serveur.",
     "oauthCodeInvalid": "Impossible de terminer la connexion Google. Réessayez.",
-    "oauthAccountLinkConflict": "Ce compte Google est déjà associé à un autre utilisateur."
+    "oauthAccountLinkConflict": "Ce compte Google est déjà associé à un autre utilisateur.",
+    "oauth_account_link_conflict": "Ce compte Google est deja associe a un autre utilisateur.",
+    "oauth_unavailable": "Connexion Google indisponible pour le moment.",
+    "oauth_internal_error": "Erreur interne lors de la connexion Google.",
+    "oauth_client_invalid": "Configuration Google OAuth invalide.",
+    "oauth_email_not_verified": "L'email Google n'est pas verifie.",
+    "oauth_state_invalid": "Session d'authentification invalide. Veuillez reessayer.",
+    "oauth_code_invalid": "Code d'autorisation invalide ou expire.",
+    "oauth_provider_error": "Erreur du fournisseur d'authentification.",
+    "schema_mismatch": "Incompatibilite de schema de base de donnees."
   },
   "catalog": {
     "title": "Catalogue",

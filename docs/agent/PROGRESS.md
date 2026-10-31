@@ -6,7 +6,23 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
-## Moeda de exibicao - FASE 01: backend de cambio - 2026-10-30
+## Google OAuth / hide_spending / user_preferences / Startup hardening - 2026-10-31
+
+- **Problema critico:** login Google terminava em `?error=oauth_unavailable` em producao (Render) apos callback bem-sucedido. Causa raiz: migrations 0037-0040 (`display_currency`, `hide_spending`, avatar, whatsapp) falharam em producao porque o role `forja` nao e owner das tabelas pre-existentes (`users`, `companies`). O callback engolia `UndefinedColumnError`/`ProgrammingError` como `oauth_internal_error` sem logar detalhes.
+- **FASE 1 (resgate imediato):** removidas do modelo `User` as colunas novas que dependem de ALTER em tabelas pre-existentes (`birth_date`, `gender`, `postal_code`, `display_currency`, `hide_spending`, `avatar_*`, `whatsapp_*`). Marcadas como `deferred=True` no modelo para nao quebrar leituras; queries ajustadas para usar defaults (`BRL`, `false`, `None`). Login (Google e email/senha), `/me`, catalogo e carrinho voltaram a funcionar.
+- **FASE 2 (tabela propria):** migration 0041 cria `user_preferences` (nova tabela, ownership do `forja`): `display_currency`, `hide_spending`, `avatar_*`, `whatsapp_*` com RLS por `company_id`. Repositorio `SqlAlchemyAccountRepository` reescrito para ler/criar preferencias (upsert) nessa tabela. Ports atualizados com `UserPreferences` e metodo `get_preferences`. Modelos `User` e `UserPreferences` ligados por relacionamento 1:1.
+- **FASE 3 (startup hardening):** config `allow_start_with_failed_migration` (default `false` em prod, `true` em dev via `ENVIRONMENT!=production`). Lifespan verifica `schema_is_current` no startup; se drift e `allow_start_with_failed_migration=false` -> `ConfigurationError` e nao sobe (Render mantem versao anterior). Loga owners das tabelas `public` no startup (`SELECT tablename, tableowner FROM pg_tables WHERE schemaname='public'`). `/health/ready` inclui check de alembic revision (`schema_probe`).
+- **FASE 4 (nao repetir):** teste `test_migration_ownership.py` simula role sem ownership e falha se migration futura fizer DDL em tabela pre-existente. Script CI `scripts/check_migration_ddl.py` detecta `ADD COLUMN`/`ALTER COLUMN`/`CREATE INDEX`/`CREATE FOREIGN KEY` em tabelas pre-existentes (exceto 0037-0040 conhecidas). Hook pre-commit local disponivel em `.pre-commit-migration-ddl.yaml`.
+- **FASE 5 (fechamento):**
+  - i18n: 9 chaves de erro OAuth adicionadas nos 11 locales (`oauth_account_link_conflict`, `oauth_unavailable`, `oauth_internal_error`, `oauth_client_invalid`, `oauth_email_not_verified`, `oauth_state_invalid`, `oauth_code_invalid`, `oauth_provider_error`, `schema_mismatch`).
+  - Callback Google: `ProgrammingError`/`UndefinedColumnError` classificados com `error_class="schema_mismatch"` no log estruturado; mantem `oauth_unavailable` para o usuario.
+  - Seed: flag `SEED_ALLOW_PRODUCTION=true` obrigatoria em producao (ja existia no seed, validada).
+  - `TRUSTED_PROXY_COUNT` documentado em `.env.example` (linhas 238-241): local=0, Render direto=1, Vercel->Render=2; com 0 o header `X-Forwarded-For` e ignorado.
+  - `PROGRESS.md` atualizado com esta entrada.
+
+- **Checagens:** backend **1038 unit passed**, **398 integration passed**; frontend **305 passed**, `npm run lint/typecheck/check` OK; `mypy app` OK; `ruff check` OK.
+
+## Migrations 0033-0037 aplicadas no Render - 2026-10-30
 
 - **API validada em runtime (curl):** `GET https://api.frankfurter.dev/v2/providers/ecb/rates?base=BRL&quotes=USD,EUR,GBP,CAD,AUD,JPY,CNY` -> 200 com lista `{date,base,quote,rate}` e `date=2026-10-30`. O v1 responde igual mas esta deprecado (headers `deprecation`/`link` successor); o v2 blendado mistura provedores. Escolhido o v2 por provedor ECB, portanto a fonte exibida e "Frankfurter / European Central Bank".
 - **Entregue:** novo bounded context `app/modules/fx` (dominio com lista fechada e BRL=1; porta de provedor; `GetFxRates` com cache hit, double-check, lock, fallback stale e erro 503 `fx_rates_unavailable`; adaptador Frankfurter com timeout 5s + 1 retry; cache Redis fresco 12h, ultima conhecida 7d e lock 15s) e `GET /api/v1/fx/rates` publico com `Cache-Control` 300s/60s, rate limit `PUBLIC_READ`, tag OpenAPI e exemplos. Nenhum campo de moeda foi adicionado a pedidos/pagamentos.

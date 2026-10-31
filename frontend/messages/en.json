@@ -207,7 +207,16 @@
     "rateLimited": "Too many attempts. Please wait a moment and try again.",
     "oauthConfiguration": "Google sign-in is misconfigured. Check the client ID and secret on the server.",
     "oauthCodeInvalid": "Could not complete Google sign-in. Please try again.",
-    "oauthAccountLinkConflict": "This Google account is already linked to another user."
+    "oauthAccountLinkConflict": "This Google account is already linked to another user.",
+    "oauth_account_link_conflict": "This Google account is already linked to another user.",
+    "oauth_unavailable": "Google sign-in unavailable at the moment.",
+    "oauth_internal_error": "Internal error processing Google sign-in.",
+    "oauth_client_invalid": "Google OAuth configuration invalid.",
+    "oauth_email_not_verified": "Google email not verified.",
+    "oauth_state_invalid": "Authentication session invalid. Please try again.",
+    "oauth_code_invalid": "Authorization code invalid or expired.",
+    "oauth_provider_error": "Authentication provider error.",
+    "schema_mismatch": "Database schema mismatch."
   },
   "catalog": {
     "title": "Catalog",

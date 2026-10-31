@@ -207,7 +207,16 @@
     "rateLimited": "尝试次数过多。请稍等片刻后重试。",
     "oauthConfiguration": "Google 登录配置无效。请检查服务器上的客户端 ID 和密钥。",
     "oauthCodeInvalid": "无法完成 Google 登录。请重试。",
-    "oauthAccountLinkConflict": "此 Google 账号已关联至其他用户。"
+    "oauthAccountLinkConflict": "此 Google 账号已关联至其他用户。",
+    "oauth_account_link_conflict": "此 Google 账号已关联至其他用户。",
+    "oauth_unavailable": "Google 登录暂时不可用。",
+    "oauth_internal_error": "处理 Google 登录时发生内部错误。",
+    "oauth_client_invalid": "Google OAuth 配置无效。",
+    "oauth_email_not_verified": "Google 邮箱未验证。",
+    "oauth_state_invalid": "认证会话无效。请重试。",
+    "oauth_code_invalid": "授权码无效或已过期。",
+    "oauth_provider_error": "认证提供商错误。",
+    "schema_mismatch": "数据库架构不匹配。"
   },
   "catalog": {
     "title": "目录",
