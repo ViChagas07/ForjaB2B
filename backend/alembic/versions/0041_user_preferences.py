@@ -12,6 +12,7 @@ Create Date: 2026-10-31
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import text
 
 from alembic import op
 
@@ -113,52 +114,40 @@ def upgrade() -> None:
     has_hide_spending = _column_exists(conn, "users", "hide_spending")
     has_avatar = _column_exists(conn, "users", "avatar_key")
     has_whatsapp = _column_exists(conn, "users", "whatsapp_phone")
+    has_created_at = _column_exists(conn, "users", "created_at")
+    has_updated_at = _column_exists(conn, "users", "updated_at")
 
     if any([has_display_currency, has_hide_spending, has_avatar, has_whatsapp]):
-        select_cols = ["u.id AS user_id", "u.company_id"]
-        if has_display_currency:
-            select_cols.append("u.display_currency")
-        else:
-            select_cols.append("'BRL'::varchar(3) AS display_currency")
-        if has_hide_spending:
-            select_cols.append("u.hide_spending")
-        else:
-            select_cols.append("false AS hide_spending")
-        if has_avatar:
-            select_cols.extend([
-                "u.avatar_key",
-                "u.avatar_content_type",
-                "u.avatar_data",
-                "u.avatar_updated_at",
-            ])
-        else:
-            select_cols.extend([
-                "NULL::uuid AS avatar_key",
-                "NULL::varchar(32) AS avatar_content_type",
-                "NULL::bytea AS avatar_data",
-                "NULL::timestamptz AS avatar_updated_at",
-            ])
-        if has_whatsapp:
-            select_cols.extend(["u.whatsapp_phone", "u.whatsapp_opt_in", "u.whatsapp_opt_in_at"])
-        else:
-            select_cols.extend([
-                "NULL::varchar(20) AS whatsapp_phone",
-                "false AS whatsapp_opt_in",
-                "NULL::timestamptz AS whatsapp_opt_in_at",
-            ])
+        # Mapeamento estruturado: (coluna_destino, expressao_origem_ou_default)
+        # Isso garante que destino e origem sempre tenham o mesmo numero de itens
+        column_mapping = [
+            ("user_id", "u.id"),
+            ("company_id", "u.company_id"),
+            ("display_currency", "u.display_currency" if has_display_currency else "'BRL'::varchar(3)"),
+            ("hide_spending", "u.hide_spending" if has_hide_spending else "false"),
+            ("avatar_key", "u.avatar_key" if has_avatar else "NULL::uuid"),
+            ("avatar_content_type", "u.avatar_content_type" if has_avatar else "NULL::varchar(32)"),
+            ("avatar_data", "u.avatar_data" if has_avatar else "NULL::bytea"),
+            ("avatar_updated_at", "u.avatar_updated_at" if has_avatar else "NULL::timestamptz"),
+            ("whatsapp_phone", "u.whatsapp_phone" if has_whatsapp else "NULL::varchar(20)"),
+            ("whatsapp_opt_in", "u.whatsapp_opt_in" if has_whatsapp else "false"),
+            ("whatsapp_opt_in_at", "u.whatsapp_opt_in_at" if has_whatsapp else "NULL::timestamptz"),
+            ("created_at", "COALESCE(u.created_at, now())" if has_created_at else "now()"),
+            ("updated_at", "COALESCE(u.updated_at, now())" if has_updated_at else "now()"),
+        ]
 
-        select_sql = f"SELECT {', '.join(select_cols)} FROM users u"
-        insert_sql = f"""
-            INSERT INTO user_preferences (
-                user_id, company_id, display_currency, hide_spending,
-                avatar_key, avatar_content_type, avatar_data, avatar_updated_at,
-                whatsapp_phone, whatsapp_opt_in, whatsapp_opt_in_at,
-                created_at, updated_at
-            )
-            {select_sql}
-            ON CONFLICT (user_id) DO NOTHING
-        """
-        conn.execute(text(insert_sql))
+        if any([has_display_currency, has_hide_spending, has_avatar, has_whatsapp]):
+            select_cols = [f"{expr} AS {col}" for col, expr in column_mapping]
+            select_sql = f"SELECT {', '.join(select_cols)} FROM users u"
+            target_cols = [col for col, _ in column_mapping]
+            insert_sql = f"""
+                INSERT INTO user_preferences (
+                    {', '.join(target_cols)}
+                )
+                {select_sql}
+                ON CONFLICT (user_id) DO NOTHING
+            """
+            conn.execute(text(insert_sql))
 
 
 def downgrade() -> None:
