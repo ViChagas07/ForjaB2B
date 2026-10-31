@@ -136,26 +136,27 @@ class ElasticsearchSearchEngine(SearchEngine):
     async def check_health(self) -> SearchEngineHealth:
         """Consulta o estado do cluster; nunca levanta excecao.
 
-        Elastic Serverless nao expoe ``_cluster/health`` (HTTP 410). Nesse
-        caso a conectividade e validada pelo endpoint de informacoes do
-        proprio cluster, que e suficiente para o health da aplicacao.
+        Elastic Serverless nao expoe ``_cluster/health`` (HTTP 410).
+        Usa ``info()`` (leve e disponivel em Serverless) para validar
+        conectividade. Se ``info()`` falhar, tenta ``cluster.health`` sem
+        ``wait_for_status`` como fallback para clusters tradicionais.
         """
+        # Tenta info() primeiro: leve, funciona em Serverless e clusters tradicionais.
         try:
-            response = await self._client.cluster.health(wait_for_status="yellow")
+            await self._client.info()
+            return SearchEngineHealth(state=SearchEngineState.OK, detail="ok")
+        except _ELASTICSEARCH_ERRORS as info_exc:
+            pass
+
+        # Fallback: cluster.health sem wait_for_status (evita bloqueio e 410 no Serverless).
+        try:
+            response = await self._client.cluster.health()
+            status = str(response.get("status", ""))
+            return SearchEngineHealth(state=classify_cluster_status(status), detail=status or None)
         except _ELASTICSEARCH_ERRORS as exc:
-            if isinstance(exc, ApiError) and getattr(exc, "status_code", None) == 410:
-                try:
-                    await self._client.info()
-                except _ELASTICSEARCH_ERRORS as info_exc:
-                    return SearchEngineHealth(
-                        state=SearchEngineState.UNAVAILABLE, detail=type(info_exc).__name__
-                    )
-                return SearchEngineHealth(state=SearchEngineState.OK, detail="serverless")
             return SearchEngineHealth(
                 state=SearchEngineState.UNAVAILABLE, detail=type(exc).__name__
             )
-        status = str(response.get("status", ""))
-        return SearchEngineHealth(state=classify_cluster_status(status), detail=status or None)
 
     async def close(self) -> None:
         """Fecha o cliente e libera as conexoes."""
