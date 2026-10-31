@@ -28,6 +28,17 @@
 - **Checagens reais:** frontend `npm run check` **291 passed**, typecheck/lint/format/depcruise OK, `npm run build` OK; backend mypy **383** e ruff OK; integracao de conta/persistencia/migrations **49 passed**. A suite backend completa ainda tem falhas pre-existentes de isolamento/seguranca que a Fase 04 vai separar.
 - **NAO VALIDADO:** visual nos 3 temas e cores de destaque, RTL em navegador real, Stripe real e E2E; o perfil so sincroniza quando autenticado e o bootstrap do SSR continua vindo do cookie.
 
+## Moeda de exibicao - FASE 04: auditoria - 2026-10-31
+
+- **Alta - rollback de migration quebrado:** a 0038 dropava a constraint com prefixo duplo; corrigida para o nome curto. O mesmo defeito antigo existia em 0030/0033/0037 e foi corrigido; 0027 ganhou `op.execute` direto no downgrade. O roundtrip de migrations passou e o teste agora limpa dados antes do downgrade.
+- **Media - perfil:** moeda invalida no `PATCH /account/preferences` retornava 422; agora e normalizada e responde BRL. A leitura tambem normaliza valor invalido do banco. Testes com CHF, string especial e valor enorme; nenhum valor invalido e persistido.
+- **Media - contraste:** textos stale/indisponivel e o check usavam `text-warning`/`text-primary` com contraste baixo no tema claro; passaram a `text-foreground` com tinta de warning. Testes verificam as classes; calculo WCAG manual confirmou muted/foreground acima de 4.5:1.
+- **Baixa - testes pre-existentes:** chaves de idempotencia com menos de 16 caracteres nos testes de cupom, CNPJ demo duplicado em `test_companies_api` e 429 por rate limit no coupon admin. Corrigidos apenas nos testes, sem mudanca de produto.
+- **Cobranca e API externa:** testes novos provam que `currency`/`display_currency` no corpo de pedido/pagamento e rejeitado (422), query/header/cookie sao ignorados e o Stripe recebe `unit_amount=14940`/`currency=brl`. Taxas zero/negativas/NaN/Infinity/abc, payload nao-lista e data de referencia diferente do relogio estao cobertos; lock e stale mantidos.
+- **Front:** teste real de hidratacao com `hydrateRoot` sem mismatch, mesma conversao em catalogo/carrinho e troca de moeda sem chamar ordering/payment. Documentacao em `docs/CURRENCY.md`.
+- **Resultado real:** backend **1479 passed, 1 skipped, 2 failed pre-existentes** (`test_backend_nao_usa_em_dash` em 48 arquivos antigos e `test_nenhum_type_ignore_no_codigo` em 43 ocorrencias antigas, fora do escopo); frontend `npm run check` **294 passed**; mypy **383**, import-linter **5 kept**, OpenAPI `--check` OK.
+- **NAO VALIDADO:** Stripe real (sem chave/webhook), visual real dos 3 temas e 8 cores de destaque, RTL visual e performance/OAuth em navegador.
+
 ## Migrations 0033-0037 aplicadas no Render - 2026-10-30
 
 - **Backup:** `backups/forja_prod_pre_0033_20261030T160946Z.dump` (265.578 bytes, header PGDMP), feito com `pg_dump -Fc` antes da migration. Para o dump, o FORCE RLS foi temporariamente desligado nas 26 tabelas e restaurado em seguida (27 tabelas FORCE agora, incluindo `coupon_redemptions`).

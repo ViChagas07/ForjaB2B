@@ -28,12 +28,13 @@ export function RateDisclosure({ className }: { className?: string }) {
     <div
       data-testid="rate-disclosure"
       className={cn(
-        "rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground",
+        "rounded-xl border px-3 py-2 text-xs leading-relaxed text-muted-foreground",
+        stale ? "border-warning/40 bg-warning/10" : "border-border bg-muted/30",
         className,
       )}
     >
       <p>{t("rateDisclosure", { source: sourceLabel, date: dateLabel })}</p>
-      {stale ? <p className="mt-1 font-medium text-warning">{t("rateStale")}</p> : null}
+      {stale ? <p className="mt-1 font-medium text-foreground">{t("rateStale")}</p> : null}
     </div>
   );
 }

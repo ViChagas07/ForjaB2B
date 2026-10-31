@@ -48,6 +48,24 @@ def test_upgrade_downgrade_upgrade_roundtrip(
     finally:
         admin.close()
 
+    # O banco e compartilhado pela sessao de testes de integracao. Dados de
+    # outros testes impedem o downgrade quando uma constraint antiga e
+    # reaplicada (ex.: cnpj NOT NULL); limpe antes de voltar para base.
+    admin = pg.connect_admin()
+    try:
+        tables = [
+            row[0]
+            for row in admin.execute(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public' "
+                "AND tablename <> 'alembic_version'"
+            ).fetchall()
+        ]
+        if tables:
+            quoted = ", ".join(f'public."{table}"' for table in tables)
+            admin.execute(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE")
+    finally:
+        admin.close()
+
     command.downgrade(config, "base")
     admin = pg.connect_admin()
     try:

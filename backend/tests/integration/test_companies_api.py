@@ -18,7 +18,7 @@ from app.main import create_app
 
 from .conftest import PostgresInstance
 
-_CNPJ_A = "11222333000181"
+_CNPJ_A = "04252011000110"
 _CNPJ_DUP = "23456789000195"
 _CNPJ_TENANT_A = "34567890000130"
 _CNPJ_TENANT_B = "45678900000120"
@@ -64,7 +64,7 @@ async def test_registro_empresa_normaliza_e_hash(
     companies_client: httpx.AsyncClient, pg: PostgresInstance
 ) -> None:
     response = await companies_client.post(
-        "/api/v1/companies", json=_payload("11.222.333/0001-81", "a@empresa-a.com", "Empresa A")
+        "/api/v1/companies", json=_payload("04.252.011/0001-10", "a@empresa-a.com", "Empresa A")
     )
     assert response.status_code == 201
     body = response.json()

@@ -202,6 +202,49 @@ async def test_pix_pagamento_com_desconto(payment_client: httpx.AsyncClient) -> 
     assert payment["provider_reference"] == f"PIX-{order['id']}"
 
 
+async def test_moeda_de_exibicao_nao_altera_pagamento(
+    payment_client: httpx.AsyncClient,
+) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-currency-order-1")
+
+    response = await payment_client.post(
+        "/api/v1/payments?display_currency=USD&currency=USD",
+        json={
+            "order_id": order["id"],
+            "method": "PIX",
+            "idempotency_key": "pay-currency-init-1",
+        },
+        headers={
+            "X-Display-Currency": "USD",
+            "X-Currency": "USD",
+            "Cookie": "forja_currency=USD",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["amount"] == "9.50"
+    assert body["discount_amount"] == "0.50"
+
+
+async def test_pagamento_rejeita_moeda_de_exibicao_no_corpo(
+    payment_client: httpx.AsyncClient,
+) -> None:
+    order = await _create_order(payment_client, "PIX", "pay-currency-order-2")
+
+    response = await payment_client.post(
+        "/api/v1/payments",
+        json={
+            "order_id": order["id"],
+            "method": "PIX",
+            "idempotency_key": "pay-currency-init-2",
+            "display_currency": "USD",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 async def test_metodos_pagamento_sem_stripe(payment_client: httpx.AsyncClient) -> None:
     response = await payment_client.get("/api/v1/payments/methods")
 

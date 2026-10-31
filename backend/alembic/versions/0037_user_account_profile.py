@@ -40,8 +40,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_users_postal_code_format", "users", type_="check")
-    op.drop_constraint("ck_users_gender", "users", type_="check")
+    op.drop_constraint("postal_code_format", "users", type_="check")
+    op.drop_constraint("gender", "users", type_="check")
     op.drop_column("users", "postal_code")
     op.drop_column("users", "gender")
     op.drop_column("users", "birth_date")

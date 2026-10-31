@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildCurrencyBootstrap, type FxRatesSnapshot } from "@/core/domain/currency";
 import { CurrencyProfileSync } from "@/features/currency/currency-profile-sync";
-import { accountApi } from "@/infrastructure/http";
+import { accountApi, orderingApi, paymentApi } from "@/infrastructure/http";
 import { CurrencyProvider, useCurrency } from "@/shared/components/currency-provider";
 import { useAuthStore } from "@/shared/stores/auth-store";
 
@@ -59,6 +59,8 @@ describe("CurrencyProfileSync", () => {
     const persist = vi
       .spyOn(accountApi, "updatePreferences")
       .mockResolvedValue({ display_currency: "USD" });
+    const createOrder = vi.spyOn(orderingApi, "create");
+    const initiatePayment = vi.spyOn(paymentApi, "initiate");
 
     renderSync();
     fireEvent.click(screen.getByRole("button", { name: "Trocar para USD" }));
@@ -66,6 +68,8 @@ describe("CurrencyProfileSync", () => {
     await waitFor(() => {
       expect(persist).toHaveBeenCalledWith("access-token", "USD");
     });
+    expect(createOrder).not.toHaveBeenCalled();
+    expect(initiatePayment).not.toHaveBeenCalled();
   });
 
   it("não chama o perfil quando anônimo", async () => {

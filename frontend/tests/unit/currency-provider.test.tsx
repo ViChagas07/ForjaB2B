@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildCurrencyBootstrap,
@@ -80,6 +82,35 @@ describe("CurrencyProvider", () => {
 
     expect(container.textContent).toBe(serverText);
     expect(screen.getByTestId("probe").textContent).toContain("≈");
+  });
+
+  it("hidrata o mesmo markup sem erro de mismatch", async () => {
+    const initial = bootstrap("USD");
+    const html = renderToStaticMarkup(
+      <CurrencyProvider initial={initial}>
+        <Probe />
+      </CurrencyProvider>,
+    );
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const errors: string[] = [];
+    const errorSpy = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      errors.push(args.map(String).join(" "));
+    });
+
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(
+        container,
+        <CurrencyProvider initial={initial}>
+          <Probe />
+        </CurrencyProvider>,
+      );
+    });
+    root?.unmount();
+    errorSpy.mockRestore();
+
+    expect(errors.filter((message) => /hydrat/i.test(message))).toEqual([]);
   });
 
   it("expõe fonte, data de referência e stale para a UI", () => {

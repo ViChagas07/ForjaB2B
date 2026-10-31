@@ -141,7 +141,7 @@ def _to_profile(record: AccountRecord, *, role: str) -> AccountProfile:
         birth_date=record.birth_date,
         gender=record.gender,
         postal_code=record.postal_code,
-        display_currency=record.display_currency,
+        display_currency=normalize_currency(record.display_currency),
         account_type=record.account_type,
         role=role,
     )

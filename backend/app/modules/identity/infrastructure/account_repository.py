@@ -122,6 +122,6 @@ def _record(user: User, profile: ConsumerProfile | None, account_type: object) -
         birth_date=user.birth_date or (profile.birth_date if profile is not None else None),
         gender=user.gender or (profile.gender if profile is not None else None),
         postal_code=user.postal_code or (profile.postal_code if profile is not None else None),
-        display_currency=user.display_currency,
+        display_currency=normalize_currency(user.display_currency),
         account_type=str(account_type),
     )

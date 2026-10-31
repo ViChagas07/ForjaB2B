@@ -97,7 +97,7 @@ export function CurrencySettingsSection() {
           {hasAnyRate ? null : (
             <p
               role="status"
-              className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-warning"
+              className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-foreground"
             >
               {tc("unavailable")}
             </p>
@@ -138,7 +138,7 @@ export function CurrencySettingsSection() {
                       {getCurrencySymbol(option.code, locale)}
                     </span>
                     {selected ? (
-                      <Check aria-hidden="true" className="h-4 w-4 text-primary" />
+                      <Check aria-hidden="true" className="h-4 w-4 text-foreground" />
                     ) : null}
                   </span>
                 </button>
@@ -158,7 +158,7 @@ export function CurrencySettingsSection() {
               </p>
             ) : null}
             {stale && hasAnyRate ? (
-              <p className="font-medium text-warning">{tc("rateStale")}</p>
+              <p className="font-medium text-foreground">{tc("rateStale")}</p>
             ) : null}
             {currency !== "BRL" ? (
               <p className="font-semibold text-foreground">

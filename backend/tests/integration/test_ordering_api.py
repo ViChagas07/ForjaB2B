@@ -221,6 +221,46 @@ async def test_criar_pedido_pix_snapshot(order_client: httpx.AsyncClient) -> Non
     assert item["unit_price"] == "24.90"
 
 
+async def test_moeda_de_exibicao_nao_altera_pedido(order_client: httpx.AsyncClient) -> None:
+    response = await order_client.post(
+        "/api/v1/orders?display_currency=USD&currency=USD",
+        json={
+            "items": [_order(_P_NORMAL, 6)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-currency-1",
+        },
+        headers={
+            "X-Display-Currency": "USD",
+            "X-Currency": "USD",
+            "Cookie": "forja_currency=USD",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["currency"] == "BRL"
+    assert body["subtotal"] == "149.40"
+    assert body["total"] == "149.40"
+    assert body["items"][0]["unit_price"] == "24.90"
+    assert body["items"][0]["line_total"] == "149.40"
+
+
+async def test_pedido_rejeita_moeda_de_exibicao_no_corpo(
+    order_client: httpx.AsyncClient,
+) -> None:
+    response = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 6)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-currency-body-1",
+            "display_currency": "USD",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 async def test_pedido_multiplos_itens(order_client: httpx.AsyncClient) -> None:
     response = await order_client.post(
         "/api/v1/orders",

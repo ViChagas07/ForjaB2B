@@ -33,4 +33,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    _rename(_CORRECT_NAME, _LEGACY_NAME)
+    op.execute(
+        sa.text(
+            "UPDATE categories SET name = :new_name WHERE slug = :slug AND name = :old_name"
+        ).bindparams(new_name=_LEGACY_NAME, slug=_SLUG, old_name=_CORRECT_NAME)
+    )

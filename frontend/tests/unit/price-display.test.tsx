@@ -89,6 +89,21 @@ describe("PriceDisplay", () => {
     );
     expect(container.textContent).toBe("");
   });
+
+  it("o mesmo valor tem a mesma conversão no catálogo e no carrinho", () => {
+    const catalog = renderWithCurrency("USD", <CatalogPrice amount="100" priceOnRequest={false} />);
+    const catalogText = catalog.container.textContent ?? "";
+    catalog.unmount();
+
+    const cart = renderWithCurrency(
+      "USD",
+      <PriceDisplay amount="100" primary="converted" showSecondary />,
+    );
+    const cartText = cart.container.textContent ?? "";
+
+    expect(catalogText).toContain("18,41");
+    expect(cartText).toContain("18,41");
+  });
 });
 
 describe("RateDisclosure", () => {

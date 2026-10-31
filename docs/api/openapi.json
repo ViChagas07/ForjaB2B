@@ -3,19 +3,9 @@
     "schemas": {
       "AccountPreferencesRequest": {
         "additionalProperties": false,
-        "description": "Preferencias visuais persistidas no perfil (sem dados financeiros).",
+        "description": "Preferencias visuais persistidas no perfil (sem dados financeiros).\n\nO valor e normalizado pela lista fechada no caso de uso; qualquer string\ndesconhecida vira BRL, sem persistir um codigo invalido.",
         "properties": {
           "display_currency": {
-            "enum": [
-              "BRL",
-              "USD",
-              "EUR",
-              "GBP",
-              "CAD",
-              "AUD",
-              "JPY",
-              "CNY"
-            ],
             "title": "Display Currency",
             "type": "string"
           }

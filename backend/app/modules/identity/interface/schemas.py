@@ -120,11 +120,15 @@ class UpdateAccountRequest(BaseModel):
 
 
 class AccountPreferencesRequest(BaseModel):
-    """Preferencias visuais persistidas no perfil (sem dados financeiros)."""
+    """Preferencias visuais persistidas no perfil (sem dados financeiros).
+
+    O valor e normalizado pela lista fechada no caso de uso; qualquer string
+    desconhecida vira BRL, sem persistir um codigo invalido.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    display_currency: DisplayCurrency
+    display_currency: str
 
 
 class AccountPreferencesResponse(BaseModel):

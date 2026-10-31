@@ -106,6 +106,9 @@ async def coupon_client(
         update={"database_admin_url": PostgresDsn(admin_database_url)}
     )
     app = create_app(settings)
+    if app.state.redis_client is not None:
+        async for bucket_key in app.state.redis_client.scan_iter("rl:*"):
+            await app.state.redis_client.delete(bucket_key)
     transport = httpx.ASGITransport(app=app)
     try:
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

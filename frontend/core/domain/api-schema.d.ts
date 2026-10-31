@@ -1157,13 +1157,13 @@ export interface components {
         /**
          * AccountPreferencesRequest
          * @description Preferencias visuais persistidas no perfil (sem dados financeiros).
+         *
+         *     O valor e normalizado pela lista fechada no caso de uso; qualquer string
+         *     desconhecida vira BRL, sem persistir um codigo invalido.
          */
         AccountPreferencesRequest: {
-            /**
-             * Display Currency
-             * @enum {string}
-             */
-            display_currency: "BRL" | "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY";
+            /** Display Currency */
+            display_currency: string;
         };
         /**
          * AccountPreferencesResponse

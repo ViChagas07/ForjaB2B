@@ -478,8 +478,8 @@ async def test_snapshot_do_pedido_nao_muda_apos_edicao(
     coupon_id = _insert_coupon(pg, code="SNAPSHOT")
     order = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("SNAPSHOT", key="snapshot-order"),
-        headers={"Idempotency-Key": "snapshot-order"},
+        json=_order_payload("SNAPSHOT", key="snapshot-order-0001"),
+        headers={"Idempotency-Key": "snapshot-order-0001"},
     )
     assert order.status_code == 201
 
@@ -563,7 +563,7 @@ async def test_pix_usa_base_apos_cupom_e_bate_com_preview(
     payment = await checkout_client.post(
         "/api/v1/payments",
         json={"order_id": order.json()["id"], "method": "PIX"},
-        headers={"Idempotency-Key": "pay-coupon-pix"},
+        headers={"Idempotency-Key": "pay-coupon-pix-0001"},
     )
     assert payment.status_code == 201
     assert payment.json()["amount"] == preview.json()["total"]
@@ -577,15 +577,15 @@ async def test_webhook_pago_nao_altera_snapshots_nem_descontos(
     _insert_coupon(pg, code="PAGO")
     order = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("PAGO", key="paid-order"),
-        headers={"Idempotency-Key": "paid-order"},
+        json=_order_payload("PAGO", key="paid-order-key-0001"),
+        headers={"Idempotency-Key": "paid-order-key-0001"},
     )
     assert order.status_code == 201
     order_id = order.json()["id"]
     payment = await checkout_client.post(
         "/api/v1/payments",
         json={"order_id": order_id, "method": "PIX"},
-        headers={"Idempotency-Key": "paid-order-payment"},
+        headers={"Idempotency-Key": "paid-order-key-0001-payment"},
     )
     assert payment.status_code == 201
     webhook = await _post_webhook(
@@ -622,8 +622,8 @@ async def test_concorrencia_do_ultimo_uso(
         *[
             checkout_client.post(
                 "/api/v1/orders",
-                json=_order_payload("ULTIMO-USO", key=f"race-{index}"),
-                headers={"Idempotency-Key": f"race-{index}"},
+                json=_order_payload("ULTIMO-USO", key=f"race-order-key-{index:04d}"),
+                headers={"Idempotency-Key": f"race-order-key-{index:04d}"},
             )
             for index in range(5)
         ]
@@ -647,13 +647,13 @@ async def test_limite_por_empresa(checkout_client: httpx.AsyncClient, pg: Postgr
     _insert_coupon(pg, code="LIMITE-EMPRESA", usage_limit_per_company=1)
     first = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("LIMITE-EMPRESA", key="company-1"),
-        headers={"Idempotency-Key": "company-1"},
+        json=_order_payload("LIMITE-EMPRESA", key="company-limit-0001"),
+        headers={"Idempotency-Key": "company-limit-0001"},
     )
     second = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("LIMITE-EMPRESA", key="company-2"),
-        headers={"Idempotency-Key": "company-2"},
+        json=_order_payload("LIMITE-EMPRESA", key="company-limit-0002"),
+        headers={"Idempotency-Key": "company-limit-0002"},
     )
     assert first.status_code == 201
     assert second.status_code == 422
@@ -668,8 +668,8 @@ async def test_limite_por_empresa_concorrente(
         *[
             checkout_client.post(
                 "/api/v1/orders",
-                json=_order_payload("LIMITE-RACE", key=f"company-race-{index}"),
-                headers={"Idempotency-Key": f"company-race-{index}"},
+                json=_order_payload("LIMITE-RACE", key=f"company-race-order-key-{index:04d}"),
+                headers={"Idempotency-Key": f"company-race-order-key-{index:04d}"},
             )
             for index in range(3)
         ]
@@ -710,8 +710,8 @@ async def test_expira_entre_preview_e_compra(
 
     order = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("EXPIRA", key="expires-order"),
-        headers={"Idempotency-Key": "expires-order"},
+        json=_order_payload("EXPIRA", key="expires-order-0001"),
+        headers={"Idempotency-Key": "expires-order-0001"},
     )
     assert order.status_code == 422
     assert order.json()["type"] == "urn:forja:problem:coupon_expired"
@@ -732,8 +732,8 @@ async def test_cancelamento_libera_resgate(
     _insert_coupon(pg, code="CANCELA", usage_limit_total=1)
     order = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("CANCELA", key="cancel-order"),
-        headers={"Idempotency-Key": "cancel-order"},
+        json=_order_payload("CANCELA", key="cancel-order-0001"),
+        headers={"Idempotency-Key": "cancel-order-0001"},
     )
     assert order.status_code == 201
     cancel = await checkout_client.post(f"/api/v1/orders/{order.json()['id']}/cancel")
@@ -759,8 +759,8 @@ async def test_cancelamento_libera_resgate(
 
     again = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("CANCELA", key="cancel-again"),
-        headers={"Idempotency-Key": "cancel-again"},
+        json=_order_payload("CANCELA", key="cancel-again-0001"),
+        headers={"Idempotency-Key": "cancel-again-0001"},
     )
     assert again.status_code == 201
 
@@ -771,14 +771,14 @@ async def test_pagamento_falho_libera_e_cancela(
     _insert_coupon(pg, code="FALHA", usage_limit_total=1)
     order = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("FALHA", key="failed-order"),
-        headers={"Idempotency-Key": "failed-order"},
+        json=_order_payload("FALHA", key="failed-order-0001"),
+        headers={"Idempotency-Key": "failed-order-0001"},
     )
     assert order.status_code == 201
     payment = await checkout_client.post(
         "/api/v1/payments",
         json={"order_id": order.json()["id"], "method": "PIX"},
-        headers={"Idempotency-Key": "failed-payment"},
+        headers={"Idempotency-Key": "failed-payment-0001"},
     )
     assert payment.status_code == 201
 
@@ -826,7 +826,7 @@ async def test_pagamento_falho_libera_e_cancela(
 
     again = await checkout_client.post(
         "/api/v1/orders",
-        json=_order_payload("FALHA", key="failed-again"),
-        headers={"Idempotency-Key": "failed-again"},
+        json=_order_payload("FALHA", key="failed-again-0001"),
+        headers={"Idempotency-Key": "failed-again-0001"},
     )
     assert again.status_code == 201

@@ -180,6 +180,14 @@ async def test_moeda_fora_da_lista_cai_em_brl() -> None:
     assert result.display_currency == "BRL"
 
 
+async def test_leitura_normaliza_moeda_invalida_do_banco() -> None:
+    repository = FakeRepository(_record(display_currency="CHF"))
+
+    profile = await GetAccount(repository=repository).execute(_AUTH)
+
+    assert profile.display_currency == "BRL"
+
+
 async def test_moeda_de_usuario_ausente_404() -> None:
     with pytest.raises(AccountNotFoundError):
         await UpdateAccountCurrency(repository=FakeRepository(None)).execute(

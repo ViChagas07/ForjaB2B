@@ -38,6 +38,13 @@ describe("lista fechada e fallback", () => {
     expect(normalizeCurrency(undefined)).toBe("BRL");
   });
 
+  it("cookie enorme ou com caracteres especiais cai em BRL", () => {
+    expect(normalizeCurrency("USD".repeat(10_000))).toBe("BRL");
+    expect(normalizeCurrency("'; DROP TABLE users; --")).toBe("BRL");
+    expect(normalizeCurrency("<script>alert(1)</script>")).toBe("BRL");
+    expect(normalizeCurrency("\u0000USD")).toBe("BRL");
+  });
+
   it("moeda sem taxa cai em BRL", () => {
     expect(effectiveCurrency("USD", BRL_ONLY_RATES)).toBe("BRL");
     expect(effectiveCurrency("USD", { BRL: "1", USD: "0" })).toBe("BRL");

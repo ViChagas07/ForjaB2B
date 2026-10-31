@@ -245,14 +245,14 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_orders_coupon_snapshot_complete", "orders", type_="check")
-    op.drop_constraint("ck_orders_coupon_code_format", "orders", type_="check")
-    op.drop_constraint("ck_orders_shipping_discount_within_shipping", "orders", type_="check")
-    op.drop_constraint("ck_orders_coupon_discount_within_subtotal", "orders", type_="check")
-    op.drop_constraint("ck_orders_shipping_discount_non_negative", "orders", type_="check")
-    op.drop_constraint("ck_orders_coupon_discount_non_negative", "orders", type_="check")
-    op.drop_constraint("ck_orders_coupon_percent_range", "orders", type_="check")
-    op.drop_constraint("ck_orders_coupon_type", "orders", type_="check")
+    op.drop_constraint("coupon_snapshot_complete", "orders", type_="check")
+    op.drop_constraint("coupon_code_format", "orders", type_="check")
+    op.drop_constraint("shipping_discount_within_shipping", "orders", type_="check")
+    op.drop_constraint("coupon_discount_within_subtotal", "orders", type_="check")
+    op.drop_constraint("shipping_discount_non_negative", "orders", type_="check")
+    op.drop_constraint("coupon_discount_non_negative", "orders", type_="check")
+    op.drop_constraint("coupon_percent_range", "orders", type_="check")
+    op.drop_constraint("coupon_type", "orders", type_="check")
     op.drop_column("orders", "shipping_discount_amount")
     op.drop_column("orders", "coupon_discount_amount")
     op.drop_column("orders", "coupon_percent")

@@ -120,6 +120,6 @@ def downgrade() -> None:
     # voltaria a ser obrigatoria). O ALTER falha e a transacao inteira reverte.
     op.alter_column("companies", "cnpj", existing_type=sa.String(14), nullable=False)
     op.drop_table("consumer_profiles")
-    op.drop_constraint("ck_companies_account_type_cnpj", "companies", type_="check")
-    op.drop_constraint("ck_companies_account_type", "companies", type_="check")
+    op.drop_constraint("account_type_cnpj", "companies", type_="check")
+    op.drop_constraint("account_type", "companies", type_="check")
     op.drop_column("companies", "account_type")

@@ -59,6 +59,8 @@ describe("CurrencySettingsSection", () => {
     expect(radio(/USD/).textContent).toContain("Dólar americano");
     expect(screen.getByText(/Frankfurter \/ European Central Bank/)).toBeTruthy();
     expect(screen.getByText(/30 de out. de 2026/)).toBeTruthy();
+    const check = document.querySelector("svg");
+    expect(check?.getAttribute("class")).toContain("text-foreground");
   });
 
   it("troca a moeda, atualiza o exemplo de taxa e persiste no cookie", () => {
@@ -104,6 +106,8 @@ describe("CurrencySettingsSection", () => {
   it("mostra aviso discreto quando a taxa está stale", () => {
     renderSection({ ...SNAPSHOT, stale: true }, "USD");
 
-    expect(screen.getByText(/A taxa pode estar desatualizada/)).toBeTruthy();
+    const warning = screen.getByText(/A taxa pode estar desatualizada/);
+    expect(warning).toBeTruthy();
+    expect(warning.className).toContain("text-foreground");
   });
 });

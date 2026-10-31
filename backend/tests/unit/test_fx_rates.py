@@ -8,6 +8,7 @@ stale/erro tipado.
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
@@ -255,6 +256,67 @@ async def test_sucesso_na_primeira_tentativa_nao_repete() -> None:
         await provider.fetch_latest()
 
     assert attempt_count == 1
+
+
+async def test_data_de_referencia_vem_do_payload_e_nao_do_relogio() -> None:
+    reference_date = "2026-10-30"
+    fetched_at = datetime(2026, 11, 2, 9, 0, tzinfo=UTC)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_payload(rate_date=reference_date))
+
+    provider = FrankfurterFxRateProvider(
+        transport=httpx.MockTransport(handler),
+        clock=lambda: fetched_at,
+    )
+    try:
+        rates = await provider.fetch_latest()
+    finally:
+        await provider.aclose()
+
+    assert rates.rate_date == date(2026, 10, 30)
+    assert rates.fetched_at == fetched_at
+    assert rates.rate_date.isoformat() != rates.fetched_at.date().isoformat()
+
+
+@pytest.mark.parametrize(
+    "invalid_rate",
+    [0, -1, float("nan"), float("inf"), float("-inf"), "NaN", "Infinity", "abc"],
+)
+async def test_taxa_invalida_nunca_e_aceita(invalid_rate: object) -> None:
+    attempts = 0
+    rows = _payload()
+    rows[-1]["rate"] = invalid_rate
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(
+            200,
+            content=json.dumps(rows),
+            headers={"content-type": "application/json"},
+        )
+
+    async with _provider(handler) as provider:
+        with pytest.raises(FxProviderError):
+            await provider.fetch_latest()
+
+    assert attempts == 2
+
+
+async def test_payload_que_nao_e_lista_falha() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(200, json={"date": "2026-10-30", "rates": {}})
+
+    async with _provider(handler) as provider:
+        with pytest.raises(FxProviderError):
+            await provider.fetch_latest()
+
+    assert attempts == 2
 
 
 class _FakeRedis:

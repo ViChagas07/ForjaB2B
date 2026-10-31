@@ -178,4 +178,30 @@ async def test_update_account_preferences_moeda_invalida(
         "/api/v1/account/preferences",
         json={"display_currency": "CHF"},
     )
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["display_currency"] == "BRL"
+
+    profile = await account_client.get("/api/v1/account")
+    assert profile.json()["display_currency"] == "BRL"
+
+
+async def test_update_account_preferences_string_especial_cai_em_brl(
+    account_client: httpx.AsyncClient,
+) -> None:
+    response = await account_client.patch(
+        "/api/v1/account/preferences",
+        json={"display_currency": "' OR 1=1 --"},
+    )
+    assert response.status_code == 200
+    assert response.json()["display_currency"] == "BRL"
+
+
+async def test_update_account_preferences_valor_enorme_cai_em_brl(
+    account_client: httpx.AsyncClient,
+) -> None:
+    response = await account_client.patch(
+        "/api/v1/account/preferences",
+        json={"display_currency": "USD" * 5_000},
+    )
+    assert response.status_code == 200
+    assert response.json()["display_currency"] == "BRL"
