@@ -42,7 +42,15 @@
     "companyPasswordOnly": "Las cuentas de empresa solo acceden con correo y contraseña.",
     "logoutConfirmTitle": "¿Seguro que quieres cerrar sesión?",
     "logoutConfirmCancel": "Cancelar salida",
-    "logoutConfirmYes": "Sí"
+    "logoutConfirmYes": "Sí",
+    "oauth_unavailable": "Inicio de sesión con Google no disponible en este momento.",
+    "oauth_access_denied": "Acceso denegado por Google.",
+    "oauth_code_invalid": "Código de autorización inválido o expirado.",
+    "oauth_state_invalid": "Sesión de autenticación inválida. Inténtelo de nuevo.",
+    "oauth_company_account": "Las cuentas empresariales no pueden usar inicio de sesión con Google.",
+    "oauth_email_not_verified": "El correo de Google no está verificado.",
+    "oauth_client_invalid": "Configuración de Google OAuth inválida.",
+    "oauth_internal_error": "Error interno al procesar el inicio de sesión con Google."
   },
   "onboarding": {
     "title": "Registra tu empresa",

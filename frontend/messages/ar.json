@@ -42,7 +42,15 @@
     "companyPasswordOnly": "تدخل حسابات الشركات بالبريد الإلكتروني وكلمة المرور فقط.",
     "logoutConfirmTitle": "هل تريد تسجيل الخروج فعلاً؟",
     "logoutConfirmCancel": "إلغاء",
-    "logoutConfirmYes": "نعم"
+    "logoutConfirmYes": "نعم",
+    "oauth_unavailable": "تسجيل الدخول عبر Google غير متاح حالياً.",
+    "oauth_access_denied": "تم رفض الوصول من قبل Google.",
+    "oauth_code_invalid": "رمز التفويض غير صالح أو منتهي الصلاحية.",
+    "oauth_state_invalid": "جلسة المصادقة غير صالحة. يرجى المحاولة مرة أخرى.",
+    "oauth_company_account": "لا يمكن للحسابات التجارية استخدام تسجيل الدخول عبر Google.",
+    "oauth_email_not_verified": "بريد Google الإلكتروني غير مُحقق.",
+    "oauth_client_invalid": "تكوين Google OAuth غير صالح.",
+    "oauth_internal_error": "خطأ داخلي أثناء معالجة تسجيل الدخول عبر Google."
   },
   "onboarding": {
     "title": "سجّل شركتك",

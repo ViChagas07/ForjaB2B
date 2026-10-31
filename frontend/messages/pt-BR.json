@@ -42,7 +42,15 @@
     "companyPasswordOnly": "Contas empresariais entram somente com e-mail e senha.",
     "logoutConfirmTitle": "Deseja mesmo sair da conta?",
     "logoutConfirmCancel": "Cancelar",
-    "logoutConfirmYes": "Sim"
+    "logoutConfirmYes": "Sim",
+    "oauth_unavailable": "Login com Google indisponível no momento.",
+    "oauth_access_denied": "Acesso negado pelo Google.",
+    "oauth_code_invalid": "Código de autorização inválido ou expirado.",
+    "oauth_state_invalid": "Sessão de autenticação inválida. Tente novamente.",
+    "oauth_company_account": "Contas empresariais não podem usar login com Google.",
+    "oauth_email_not_verified": "O e-mail do Google não está verificado.",
+    "oauth_client_invalid": "Configuração do Google OAuth inválida.",
+    "oauth_internal_error": "Erro interno ao processar login com Google."
   },
   "onboarding": {
     "title": "Cadastre sua empresa",

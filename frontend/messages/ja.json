@@ -42,7 +42,15 @@
     "companyPasswordOnly": "企業アカウントはメールアドレスとパスワードでのみサインインできます。",
     "logoutConfirmTitle": "本当にログアウトしますか？",
     "logoutConfirmCancel": "キャンセル",
-    "logoutConfirmYes": "はい"
+    "logoutConfirmYes": "はい",
+    "oauth_unavailable": "現在 Google ログインをご利用いただけません。",
+    "oauth_access_denied": "Google によりアクセスが拒否されました。",
+    "oauth_code_invalid": "認証コードが無効または期限切れです。",
+    "oauth_state_invalid": "認証セッションが無効です。もう一度お試しください。",
+    "oauth_company_account": "法人アカウントでは Google ログインをご利用いただけません。",
+    "oauth_email_not_verified": "Google のメールアドレスが確認されていません。",
+    "oauth_client_invalid": "Google OAuth 設定が無効です。",
+    "oauth_internal_error": "Google ログイン処理中に内部エラーが発生しました。"
   },
   "onboarding": {
     "title": "会社を登録",

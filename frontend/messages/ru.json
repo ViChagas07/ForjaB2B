@@ -42,7 +42,15 @@
     "companyPasswordOnly": "Аккаунты компаний входят только по e-mail и паролю.",
     "logoutConfirmTitle": "Вы действительно хотите выйти?",
     "logoutConfirmCancel": "Отмена",
-    "logoutConfirmYes": "Да"
+    "logoutConfirmYes": "Да",
+    "oauth_unavailable": "Вход через Google временно недоступен.",
+    "oauth_access_denied": "Доступ запрещен Google.",
+    "oauth_code_invalid": "Код авторизации недействителен или истек.",
+    "oauth_state_invalid": "Сессия аутентификации недействительна. Попробуйте снова.",
+    "oauth_company_account": "Корпоративные аккаунты не могут использовать вход через Google.",
+    "oauth_email_not_verified": "Email Google не подтвержден.",
+    "oauth_client_invalid": "Неверная конфигурация Google OAuth.",
+    "oauth_internal_error": "Внутренняя ошибка при обработке входа через Google."
   },
   "onboarding": {
     "title": "Зарегистрируйте компанию",

@@ -42,7 +42,15 @@
     "companyPasswordOnly": "Gli account aziendali accedono solo con e-mail e password.",
     "logoutConfirmTitle": "Vuoi davvero uscire?",
     "logoutConfirmCancel": "Annulla",
-    "logoutConfirmYes": "Sì"
+    "logoutConfirmYes": "Sì",
+    "oauth_unavailable": "Accesso con Google non disponibile al momento.",
+    "oauth_access_denied": "Accesso negato da Google.",
+    "oauth_code_invalid": "Codice di autorizzazione non valido o scaduto.",
+    "oauth_state_invalid": "Sessione di autenticazione non valida. Riprova.",
+    "oauth_company_account": "Gli account aziendali non possono usare l'accesso Google.",
+    "oauth_email_not_verified": "Email Google non verificata.",
+    "oauth_client_invalid": "Configurazione Google OAuth non valida.",
+    "oauth_internal_error": "Errore interno durante l'accesso con Google."
   },
   "onboarding": {
     "title": "Registra la tua azienda",

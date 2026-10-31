@@ -488,7 +488,7 @@ class Settings(BaseSettings):
     @property
     def google_oauth_enabled(self) -> bool:
         return all(
-            value is not None
+            value is not None and value != ""
             for value in (
                 self.google_client_id,
                 self.google_client_secret,

@@ -315,6 +315,8 @@ async def google_callback(
         UserInactiveError,
     ) as exc:
         return _error_redirect(base_url, _callback_error_code(exc))
+    except Exception:  # pragma: no cover - defensive: evita 500 em falhas inesperadas
+        return _error_redirect(base_url, "oauth_internal_error")
     return _code_redirect(base_url, result)
 
 

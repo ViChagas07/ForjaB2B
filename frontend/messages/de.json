@@ -42,7 +42,15 @@
     "companyPasswordOnly": "Unternehmenskonten melden sich nur mit E-Mail und Passwort an.",
     "logoutConfirmTitle": "Möchten Sie sich wirklich abmelden?",
     "logoutConfirmCancel": "Abbrechen",
-    "logoutConfirmYes": "Ja"
+    "logoutConfirmYes": "Ja",
+    "oauth_unavailable": "Google-Anmeldung momentan nicht verfügbar.",
+    "oauth_access_denied": "Zugriff von Google verweigert.",
+    "oauth_code_invalid": "Autorisierungscode ungültig oder abgelaufen.",
+    "oauth_state_invalid": "Authentifizierungssitzung ungültig. Bitte versuchen Sie es erneut.",
+    "oauth_company_account": "Unternehmenskonten können keine Google-Anmeldung verwenden.",
+    "oauth_email_not_verified": "Google-E-Mail nicht verifiziert.",
+    "oauth_client_invalid": "Google OAuth-Konfiguration ungültig.",
+    "oauth_internal_error": "Interner Fehler bei der Google-Anmeldung."
   },
   "onboarding": {
     "title": "Unternehmen registrieren",

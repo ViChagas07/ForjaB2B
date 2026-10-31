@@ -42,7 +42,15 @@
     "companyPasswordOnly": "Company accounts can only sign in with email and password.",
     "logoutConfirmTitle": "Are you sure you want to sign out?",
     "logoutConfirmCancel": "Cancel",
-    "logoutConfirmYes": "Yes"
+    "logoutConfirmYes": "Yes",
+    "oauth_unavailable": "Google sign-in unavailable at the moment.",
+    "oauth_access_denied": "Access denied by Google.",
+    "oauth_code_invalid": "Authorization code invalid or expired.",
+    "oauth_state_invalid": "Authentication session invalid. Please try again.",
+    "oauth_company_account": "Company accounts cannot use Google sign-in.",
+    "oauth_email_not_verified": "Google email not verified.",
+    "oauth_client_invalid": "Google OAuth configuration invalid.",
+    "oauth_internal_error": "Internal error processing Google sign-in."
   },
   "onboarding": {
     "title": "Register your company",

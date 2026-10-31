@@ -42,7 +42,15 @@
     "companyPasswordOnly": "기업 계정은 이메일과 비밀번호로만 로그인할 수 있습니다.",
     "logoutConfirmTitle": "정말 로그아웃하시겠습니까?",
     "logoutConfirmCancel": "취소",
-    "logoutConfirmYes": "예"
+    "logoutConfirmYes": "예",
+    "oauth_unavailable": "현재 Google 로그인을 사용할 수 없습니다.",
+    "oauth_access_denied": "Google에서 액세스를 거부했습니다.",
+    "oauth_code_invalid": "인증 코드가 유효하지 않거나 만료되었습니다.",
+    "oauth_state_invalid": "인증 세션이 유효하지 않습니다. 다시 시도해 주세요.",
+    "oauth_company_account": "기업 계정은 Google 로그인을 사용할 수 없습니다.",
+    "oauth_email_not_verified": "Google 이메일이 인증되지 않았습니다.",
+    "oauth_client_invalid": "Google OAuth 설정이 유효하지 않습니다.",
+    "oauth_internal_error": "Google 로그인 처리 중 내부 오류가 발생했습니다."
   },
   "onboarding": {
     "title": "회사 등록",

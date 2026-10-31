@@ -42,7 +42,15 @@
     "companyPasswordOnly": "企业账户只能使用邮箱和密码登录。",
     "logoutConfirmTitle": "确定要退出登录吗？",
     "logoutConfirmCancel": "取消",
-    "logoutConfirmYes": "是"
+    "logoutConfirmYes": "是",
+    "oauth_unavailable": "Google 登录暂时不可用。",
+    "oauth_access_denied": "Google 拒绝访问。",
+    "oauth_code_invalid": "授权码无效或已过期。",
+    "oauth_state_invalid": "认证会话无效。请重试。",
+    "oauth_company_account": "企业账号不能使用 Google 登录。",
+    "oauth_email_not_verified": "Google 邮箱未验证。",
+    "oauth_client_invalid": "Google OAuth 配置无效。",
+    "oauth_internal_error": "处理 Google 登录时发生内部错误。"
   },
   "onboarding": {
     "title": "注册您的公司",
