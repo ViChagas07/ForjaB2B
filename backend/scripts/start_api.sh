@@ -11,17 +11,34 @@
 # CPF responde 503 ate a migration ser aplicada). /health/schema mostra o estado.
 set -e
 
+# Se ALLOW_START_WITH_FAILED_MIGRATION nao for "true" (padrao false em prod),
+# falha de migration aborta o container (exit != 0). Em dev, defina
+# ALLOW_START_WITH_FAILED_MIGRATION=true para permitir compatibilidade.
+ALLOW_FAILED="${ALLOW_START_WITH_FAILED_MIGRATION:-false}"
+
 if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" = "true" ] && [ -n "${DATABASE_ADMIN_URL:-}" ]; then
     echo "[start] aplicando migrations (alembic upgrade head)..."
     if python scripts/predeploy.py; then
         echo "[start] migrations aplicadas/validadas."
     else
-        echo "[start] AVISO: migration falhou; iniciando em modo de compatibilidade."
-        echo "[start] O cadastro CPF responderah 503 ate a migration 0030/0031 ser aplicada."
+        if [ "$ALLOW_FAILED" = "true" ]; then
+            echo "[start] AVISO: migration falhou; iniciando em modo de compatibilidade."
+            echo "[start] O cadastro CPF responderah 503 ate a migration 0030/0031 ser aplicada."
+        else
+            echo "[start] ERRO: migration falhou e ALLOW_START_WITH_FAILED_MIGRATION nao e true." >&2
+            echo "[start] Deploy abortado. Corrija a migration ou defina ALLOW_START_WITH_FAILED_MIGRATION=true (apenas dev)." >&2
+            exit 1
+        fi
     fi
 elif [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" = "true" ]; then
-    echo "[start] AVISO: DATABASE_ADMIN_URL ausente; migration nao aplicada no startup."
-    echo "[start] O cadastro CPF responderah 503 ate a migration 0030/0031 ser aplicada."
+    if [ "$ALLOW_FAILED" = "true" ]; then
+        echo "[start] AVISO: DATABASE_ADMIN_URL ausente; migration nao aplicada no startup."
+        echo "[start] O cadastro CPF responderah 503 ate a migration 0030/0031 ser aplicada."
+    else
+        echo "[start] ERRO: DATABASE_ADMIN_URL ausente e ALLOW_START_WITH_FAILED_MIGRATION nao e true." >&2
+        echo "[start] Deploy abortado. Configure DATABASE_ADMIN_URL ou defina ALLOW_START_WITH_FAILED_MIGRATION=true (apenas dev)." >&2
+        exit 1
+    fi
 fi
 
 exec python -m uvicorn app.main:app \

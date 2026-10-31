@@ -25,6 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy import text
 
 from app.application.idempotency import IdempotencyService
 from app.application.ports.translation import NullTranslationProvider
@@ -558,7 +559,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             async with engine.connect() as conn:
                 result = await conn.execute(
-                    "SELECT tablename, tableowner FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+                    text(
+                        "SELECT tablename, tableowner FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+                    )
                 )
                 owners = [(row[0], row[1]) for row in result]
                 _logger.info("table_owners", tables=[{"name": t, "owner": o} for t, o in owners])

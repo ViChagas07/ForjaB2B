@@ -18,12 +18,20 @@
 # (o image_url defasado no banco persiste ate o seed rodar de verdade).
 set -e
 
+ALLOW_FAILED="${ALLOW_START_WITH_FAILED_MIGRATION:-false}"
+
 if [ "${RUN_MIGRATIONS_ON_STARTUP:-true}" = "true" ] && [ -n "${DATABASE_ADMIN_URL:-}" ]; then
     echo "[start] aplicando migrations antes do bootstrap de busca..."
     if python scripts/predeploy.py; then
         echo "[start] migrations aplicadas/validadas."
     else
-        echo "[start] AVISO: migration falhou; seguindo para o bootstrap/API em modo de compatibilidade."
+        if [ "$ALLOW_FAILED" = "true" ]; then
+            echo "[start] AVISO: migration falhou; seguindo para o bootstrap/API em modo de compatibilidade."
+        else
+            echo "[start] ERRO: migration falhou e ALLOW_START_WITH_FAILED_MIGRATION nao e true." >&2
+            echo "[start] Deploy abortado. Corrija a migration ou defina ALLOW_START_WITH_FAILED_MIGRATION=true (apenas dev)." >&2
+            exit 1
+        fi
     fi
 fi
 

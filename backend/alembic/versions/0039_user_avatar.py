@@ -14,7 +14,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
-from migration_helpers import add_column_if_owner, create_check_constraint_if_owner
+from app.core.migration_helpers import add_column_if_owner, create_check_constraint_if_owner
 
 
 revision: str = "0039"
