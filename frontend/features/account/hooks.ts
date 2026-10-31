@@ -37,6 +37,20 @@ export function useUpdateAccount() {
   });
 }
 
+export function useUpdateSpendingVisibility() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (hideSpending: boolean) =>
+      withAuth((token) => accountApi.updateSpendingVisibility(token, hideSpending)),
+    onSuccess: (preferences) => {
+      queryClient.setQueryData<AccountProfile | undefined>(ACCOUNT_KEY, (current) =>
+        current ? { ...current, hide_spending: preferences.hide_spending } : current,
+      );
+    },
+  });
+}
+
 function applyAvatar(
   queryClient: ReturnType<typeof useQueryClient>,
   session: ReturnType<typeof useAuthStore.getState>["session"],

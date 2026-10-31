@@ -650,3 +650,84 @@ async def test_isolamento_entre_empresas(test_settings: Settings, order_seed: No
 
     await app.state.db_engine.dispose()
     await close_redis_client(app.state.redis_client)
+
+
+async def test_overview_agrega_gastos_historico_e_cupons(
+    order_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    first = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 6)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-overview-1",
+        },
+    )
+    second = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 1)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-overview-2",
+        },
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute(
+            "INSERT INTO coupons (code, type, percent, min_order_amount, valid_until, "
+            "is_active, created_by) VALUES ('OVERVIEW10', 'PRODUCT_TOTAL', 10.00, 0, "
+            "now() + interval '30 days', true, %s) ON CONFLICT (code) DO NOTHING",
+            (_BUYER_A,),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = await order_client.get("/api/v1/orders/overview?limit=5")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_spent"] == "174.30"
+    assert body["orders_count"] == 2
+    assert {order["id"] for order in body["orders"]} == {
+        first.json()["id"],
+        second.json()["id"],
+    }
+    assert body["orders"][0]["items"]
+    assert any(coupon["code"] == "OVERVIEW10" for coupon in body["coupons"])
+
+
+async def test_overview_ignora_cancelados_no_total_mas_preserva_historico(
+    order_client: httpx.AsyncClient,
+) -> None:
+    cancelled = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 6)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-overview-cancel-1",
+        },
+    )
+    kept = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 2)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-overview-cancel-2",
+        },
+    )
+    assert cancelled.status_code == 201
+    assert kept.status_code == 201
+    cancel_response = await order_client.post(f"/api/v1/orders/{cancelled.json()['id']}/cancel")
+    assert cancel_response.status_code == 200
+
+    response = await order_client.get("/api/v1/orders/overview")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_spent"] == "49.80"
+    assert body["orders_count"] == 1
+    assert len(body["orders"]) == 2
+    statuses = {order["id"]: order["status"] for order in body["orders"]}
+    assert statuses[cancelled.json()["id"]] == "CANCELLED"

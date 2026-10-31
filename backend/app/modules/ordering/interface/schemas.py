@@ -72,6 +72,28 @@ class OrderResponse(BaseModel):
     shipping_discount_amount: Decimal = Decimal("0.00")
 
 
+class AvailableCouponResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    type: CouponType
+    percent: Decimal
+    max_discount_amount: Decimal | None = None
+    min_order_amount: Decimal | None = None
+    valid_until: datetime | None = None
+
+
+class CustomerOverviewResponse(BaseModel):
+    """Painel do comprador: gasto, compras recentes e cupons disponiveis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_spent: Decimal
+    orders_count: int
+    orders: list[OrderResponse]
+    coupons: list[AvailableCouponResponse]
+
+
 class CouponPreviewRequest(BaseModel):
     """Previa do cupom no carrinho do comprador autenticado."""
 

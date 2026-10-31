@@ -4,9 +4,12 @@ import { ArrowRight, ShoppingCart, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import { useAccount } from "@/features/account/hooks";
 import { LogoutButton } from "@/features/auth";
 import { CompanyProfile, useCurrentCompany } from "@/features/companies";
 import { CreditAccountCard } from "@/features/credit";
+import { CustomerDashboard } from "@/features/dashboard/customer-dashboard";
+import { dashboardCoverForGender } from "@/features/dashboard/cover";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
 import { Badge } from "@/shared/ui/badge";
@@ -19,6 +22,7 @@ export function DashboardClient() {
   const session = useAuthStore((s) => s.session);
   const status = useAuthStore((s) => s.status);
   const companyQuery = useCurrentCompany();
+  const accountQuery = useAccount();
 
   if (status === "idle") {
     return (
@@ -58,11 +62,19 @@ export function DashboardClient() {
     !isConsumer &&
     (companyQuery.data?.account_type === "COMPANY" ||
       (companyQuery.isError && session.user.account_type === "COMPANY"));
+  const cover = dashboardCoverForGender(accountQuery.data?.gender);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <section className="surface-ink amber-glow relative overflow-hidden rounded-3xl p-7 sm:p-10">
-        <div aria-hidden="true" className="soft-grid absolute inset-0 opacity-40" />
+      <section
+        className="surface-ink relative overflow-hidden rounded-3xl bg-cover bg-center p-7 sm:p-10"
+        style={{ backgroundImage: `url("${cover}")` }}
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/25"
+        />
+        <div aria-hidden="true" className="soft-grid absolute inset-0 opacity-15" />
         <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
@@ -107,6 +119,8 @@ export function DashboardClient() {
           </div>
         </div>
       </section>
+
+      {isConsumer ? <CustomerDashboard /> : null}
 
       {showCompanyArea ? (
         <div className="grid gap-6 lg:grid-cols-2">

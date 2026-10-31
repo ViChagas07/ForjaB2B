@@ -171,6 +171,19 @@ export function formatNumber(value: number, locale: string): string {
   }
 }
 
+/** Data sem horário (cupons, prazos). Timestamps ISO são aceitos. */
+export function formatDateOnly(value: string, locale: string): string {
+  const date = new Date(value.length === 10 ? `${value}T12:00:00Z` : value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  try {
+    return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
+  } catch {
+    return value;
+  }
+}
+
 export function formatDate(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

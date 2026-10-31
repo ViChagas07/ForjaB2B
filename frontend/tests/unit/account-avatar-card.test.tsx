@@ -36,6 +36,7 @@ const PROFILE: AccountProfile = {
   avatar_url: null,
   account_type: "COMPANY",
   role: "BUYER",
+  hide_spending: false,
 };
 
 function renderCard(overrides: Partial<AccountProfile> = {}, fallback: string | null = null) {

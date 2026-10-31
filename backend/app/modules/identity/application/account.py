@@ -34,6 +34,7 @@ class AccountProfile:
     avatar_url: str | None
     account_type: str
     role: str
+    hide_spending: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -48,6 +49,11 @@ class UpdateAccountCommand:
 @dataclass(frozen=True, kw_only=True)
 class UpdateAccountCurrencyCommand:
     display_currency: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class UpdateAccountSpendingVisibilityCommand:
+    hide_spending: bool
 
 
 class GetAccount:
@@ -121,6 +127,25 @@ class UpdateAccountCurrency:
         return _to_profile(record, role=auth.role)
 
 
+class UpdateAccountSpendingVisibility:
+    """Atualiza apenas a preferencia de ocultar gastos, sem tocar no perfil."""
+
+    def __init__(self, *, repository: AccountRepository) -> None:
+        self._repository = repository
+
+    async def execute(
+        self, auth: AuthContext, command: UpdateAccountSpendingVisibilityCommand
+    ) -> AccountProfile:
+        record = await self._repository.update_hide_spending(
+            company_id=auth.company_id,
+            user_id=auth.user_id,
+            hide_spending=command.hide_spending,
+        )
+        if record is None:
+            raise AccountNotFoundError()
+        return _to_profile(record, role=auth.role)
+
+
 def _normalize_postal_code(raw: str | None) -> str:
     return _NON_DIGITS.sub("", raw or "")
 
@@ -146,4 +171,5 @@ def _to_profile(record: AccountRecord, *, role: str) -> AccountProfile:
         avatar_url=record.avatar_url,
         account_type=record.account_type,
         role=role,
+        hide_spending=record.hide_spending,
     )

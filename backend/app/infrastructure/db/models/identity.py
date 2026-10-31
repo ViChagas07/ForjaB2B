@@ -93,6 +93,11 @@ class User(TimestampMixin, Base):
     display_currency: Mapped[str] = mapped_column(
         String(3), nullable=False, default="BRL", server_default=text("'BRL'")
     )
+    # Preferencia de privacidade do painel: mascara gastos e totais do
+    # historico sem alterar nenhum valor financeiro persistido.
+    hide_spending: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     # Foto de perfil. Os bytes ficam no banco (2 MB max) e o frontend usa a
     # URL publica com a chave aleatoria; `deferred` evita carregar a imagem em
     # toda leitura de perfil.

@@ -16,6 +16,8 @@ from app.modules.identity.application.account import (
     UpdateAccountCommand,
     UpdateAccountCurrency,
     UpdateAccountCurrencyCommand,
+    UpdateAccountSpendingVisibility,
+    UpdateAccountSpendingVisibilityCommand,
 )
 from app.modules.identity.application.avatar import (
     MAX_AVATAR_BYTES,
@@ -30,6 +32,7 @@ from app.modules.identity.interface.schemas import (
     AccountPreferencesRequest,
     AccountPreferencesResponse,
     AccountProfileResponse,
+    AccountSpendingVisibilityRequest,
     DisplayCurrency,
     UpdateAccountRequest,
 )
@@ -47,6 +50,13 @@ def _update_usecase(request: Request) -> UpdateAccount:
 
 def _update_currency_usecase(request: Request) -> UpdateAccountCurrency:
     return cast(UpdateAccountCurrency, request.app.state.account_update_currency)
+
+
+def _update_spending_visibility_usecase(request: Request) -> UpdateAccountSpendingVisibility:
+    return cast(
+        UpdateAccountSpendingVisibility,
+        request.app.state.account_update_spending_visibility,
+    )
 
 
 def _upload_avatar_usecase(request: Request) -> UpdateAccountAvatar:
@@ -111,7 +121,31 @@ async def update_preferences(
         UpdateAccountCurrencyCommand(display_currency=payload.display_currency),
     )
     return AccountPreferencesResponse(
-        display_currency=cast(DisplayCurrency, profile.display_currency)
+        display_currency=cast(DisplayCurrency, profile.display_currency),
+        hide_spending=profile.hide_spending,
+    )
+
+
+@router.patch(
+    "/preferences/spending-visibility",
+    response_model=AccountPreferencesResponse,
+    summary="Ocultar ou exibir os gastos no painel",
+)
+async def update_spending_visibility(
+    payload: AccountSpendingVisibilityRequest,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[
+        UpdateAccountSpendingVisibility,
+        Depends(_update_spending_visibility_usecase),
+    ],
+) -> AccountPreferencesResponse:
+    profile = await use_case.execute(
+        auth,
+        UpdateAccountSpendingVisibilityCommand(hide_spending=payload.hide_spending),
+    )
+    return AccountPreferencesResponse(
+        display_currency=cast(DisplayCurrency, profile.display_currency),
+        hide_spending=profile.hide_spending,
     )
 
 
@@ -162,9 +196,7 @@ async def get_account_avatar(
     avatar_key: uuid.UUID,
     use_case: Annotated[GetAccountAvatar, Depends(_get_avatar_usecase)],
 ) -> Response:
-    avatar = await use_case.execute(
-        company_id=company_id, user_id=user_id, avatar_key=avatar_key
-    )
+    avatar = await use_case.execute(company_id=company_id, user_id=user_id, avatar_key=avatar_key)
     return Response(
         content=avatar.data,
         media_type=avatar.content_type,
@@ -211,4 +243,5 @@ def _to_response(profile: AccountProfile) -> AccountProfileResponse:
         avatar_url=profile.avatar_url,
         account_type=profile.account_type,
         role=profile.role,
+        hide_spending=profile.hide_spending,
     )

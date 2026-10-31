@@ -41,6 +41,19 @@ export const accountApi = {
     return response.body;
   },
 
+  async updateSpendingVisibility(
+    accessToken: string,
+    hideSpending: boolean,
+  ): Promise<AccountPreferences> {
+    const response = await apiClient.request<AccountPreferences>({
+      method: "PATCH",
+      path: "/account/preferences/spending-visibility",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: { hide_spending: hideSpending },
+    });
+    return response.body;
+  },
+
   async uploadAvatar(accessToken: string, file: Blob): Promise<AccountAvatar> {
     const response = await apiClient.request<AccountAvatar>({
       method: "PUT",

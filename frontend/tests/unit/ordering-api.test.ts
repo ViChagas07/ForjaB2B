@@ -118,6 +118,25 @@ describe("orderingApi.cancel", () => {
   });
 });
 
+describe("orderingApi.overview", () => {
+  it("consulta o painel via GET /orders/overview com limite", async () => {
+    const overview = {
+      total_spent: "149.80",
+      orders_count: 2,
+      orders: [],
+      coupons: [],
+    };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(overview));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await orderingApi.overview(TOKEN, "pt-BR", 5);
+
+    const [url] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(String(url)).toContain("/api/v1/orders/overview?limit=5");
+    expect(result.total_spent).toBe("149.80");
+  });
+});
+
 describe("orderingApi.get", () => {
   it("consulta pedido via GET /orders/{id}", async () => {
     const order = { id: "o-1", status: "RECEIVED", currency: "BRL", total: "20.00" };

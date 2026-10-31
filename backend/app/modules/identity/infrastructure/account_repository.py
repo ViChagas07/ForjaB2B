@@ -113,6 +113,31 @@ class SqlAlchemyAccountRepository:
             await uow.commit()
         return _record(user, profile, account_type)
 
+    async def update_hide_spending(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        hide_spending: bool,
+    ) -> AccountRecord | None:
+        tenant = TenantContext(company_id=company_id, user_id=user_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            row = (
+                await uow.session.execute(
+                    select(User, ConsumerProfile, _COMPANIES.c.account_type)
+                    .outerjoin(ConsumerProfile, ConsumerProfile.user_id == User.id)
+                    .join(_COMPANIES, _COMPANIES.c.id == User.company_id)
+                    .where(User.id == user_id, User.company_id == company_id)
+                )
+            ).first()
+            if row is None:
+                await uow.commit()
+                return None
+            user, profile, account_type = row
+            user.hide_spending = hide_spending
+            await uow.commit()
+        return _record(user, profile, account_type)
+
     async def set_avatar(
         self,
         *,
@@ -205,4 +230,5 @@ def _record(user: User, profile: ConsumerProfile | None, account_type: object) -
             else None
         ),
         account_type=str(account_type),
+        hide_spending=user.hide_spending,
     )

@@ -27,10 +27,12 @@ export interface AccountProfile {
   avatar_url: string | null;
   account_type: "PERSON" | "COMPANY";
   role: string;
+  hide_spending: boolean;
 }
 
 export interface AccountPreferences {
   display_currency: CurrencyCode;
+  hide_spending: boolean;
 }
 
 export interface AccountAvatar {

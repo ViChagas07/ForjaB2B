@@ -17,6 +17,11 @@ export function orderKey(orderId: string, locale: string) {
   return ["orders", orderId, locale] as const;
 }
 
+/** Chave do painel do comprador (gastos, histórico e cupons). */
+export function customerOverviewKey(locale: string) {
+  return ["orders", "overview", locale] as const;
+}
+
 /**
  * Hooks TanStack Query para pedidos (criação/consulta/cancelamento).
  */
@@ -31,6 +36,15 @@ export function useOrder(orderId: string | undefined) {
   });
 }
 
+export function useCustomerOverview(limit = 10) {
+  const locale = useLocale();
+  const { overview } = useOrderingApi();
+  return useQuery({
+    queryKey: customerOverviewKey(locale),
+    queryFn: () => withAuth((token) => overview(token, limit)),
+  });
+}
+
 export function useCreateOrder() {
   const queryClient = useQueryClient();
   const locale = useLocale();
@@ -41,6 +55,7 @@ export function useCreateOrder() {
       queryClient.setQueryData(orderKey(order.id, locale), order);
       queryClient.invalidateQueries({ queryKey: cartKey(locale) });
       queryClient.invalidateQueries({ queryKey: ["credit"] });
+      queryClient.invalidateQueries({ queryKey: customerOverviewKey(locale) });
     },
   });
 }
@@ -53,6 +68,7 @@ export function useCancelOrder() {
     mutationFn: (orderId: string) => withAuth((token) => cancel(token, orderId)),
     onSuccess: (order) => {
       queryClient.setQueryData(orderKey(order.id, locale), order);
+      queryClient.invalidateQueries({ queryKey: customerOverviewKey(locale) });
     },
   });
 }

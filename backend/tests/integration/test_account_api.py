@@ -166,9 +166,7 @@ async def test_update_account_preferences(
     conn = pg.connect_admin(autocommit=False)
     try:
         conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY, _USER))
-        row = conn.execute(
-            "SELECT display_currency FROM users WHERE id = %s", (_USER,)
-        ).fetchone()
+        row = conn.execute("SELECT display_currency FROM users WHERE id = %s", (_USER,)).fetchone()
         conn.commit()
     finally:
         conn.close()
@@ -277,3 +275,30 @@ async def test_avatar_rejeita_arquivo_acima_de_2mb(account_client: httpx.AsyncCl
     )
     assert response.status_code == 413
     assert response.json()["type"] == "urn:forja:problem:avatar_too_large"
+
+
+async def test_update_spending_visibility(
+    account_client: httpx.AsyncClient, pg: PostgresInstance
+) -> None:
+    profile = await account_client.get("/api/v1/account")
+    assert profile.status_code == 200
+    assert profile.json()["hide_spending"] is False
+
+    response = await account_client.patch(
+        "/api/v1/account/preferences/spending-visibility",
+        json={"hide_spending": True},
+    )
+    assert response.status_code == 200
+    assert response.json()["hide_spending"] is True
+
+    profile_after = await account_client.get("/api/v1/account")
+    assert profile_after.json()["hide_spending"] is True
+
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY, _USER))
+        row = conn.execute("SELECT hide_spending FROM users WHERE id = %s", (_USER,)).fetchone()
+        conn.commit()
+    finally:
+        conn.close()
+    assert row is not None and row[0] is True

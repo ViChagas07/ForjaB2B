@@ -58,7 +58,7 @@ describe("CurrencyProfileSync", () => {
     useAuthStore.setState({ session: SESSION, status: "authenticated" });
     const persist = vi
       .spyOn(accountApi, "updatePreferences")
-      .mockResolvedValue({ display_currency: "USD" });
+      .mockResolvedValue({ display_currency: "USD", hide_spending: false });
     const createOrder = vi.spyOn(orderingApi, "create");
     const initiatePayment = vi.spyOn(paymentApi, "initiate");
 

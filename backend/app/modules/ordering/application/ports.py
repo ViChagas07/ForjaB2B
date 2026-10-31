@@ -93,6 +93,18 @@ class CouponForCheckout:
 
 
 @dataclass(frozen=True, kw_only=True)
+class AvailableCouponView:
+    """Cupom ativo e ainda elegivel para a empresa (sem pedido minimo)."""
+
+    code: str
+    type: CouponType
+    percent: Decimal
+    max_discount_amount: Decimal | None
+    min_order_amount: Decimal | None
+    valid_until: datetime | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class OrderItemView:
     sku: str
     product_name: str
@@ -174,6 +186,25 @@ class OrderingRepository(Protocol):
 
     async def cancel_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView:
         """Cancela o pedido e libera a reserva de credito (se houver)."""
+
+
+class CustomerOverviewRepository(Protocol):
+    """Leitura agregada do painel do comprador autenticado."""
+
+    async def get_customer_spend(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID
+    ) -> tuple[Decimal, int]:
+        """Total gasto e quantidade de compras (exclui cancelados/recusados)."""
+
+    async def list_customer_orders(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID, limit: int
+    ) -> list[OrderView]:
+        """Pedidos recentes do comprador, do mais novo para o mais antigo."""
+
+    async def list_available_coupons(
+        self, company_id: uuid.UUID, now: datetime, limit: int
+    ) -> list[AvailableCouponView]:
+        """Cupons ativos, vigentes e com uso disponivel para a empresa."""
 
 
 class CheckoutCartReader(Protocol):

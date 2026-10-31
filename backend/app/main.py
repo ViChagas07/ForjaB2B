@@ -131,6 +131,7 @@ from app.modules.identity.application.account import (
     GetAccount,
     UpdateAccount,
     UpdateAccountCurrency,
+    UpdateAccountSpendingVisibility,
 )
 from app.modules.identity.application.auth import AuthenticateUser, Logout, RefreshSession
 from app.modules.identity.application.avatar import (
@@ -172,6 +173,7 @@ from app.modules.ordering.application.coupon_admin import (
     UpdateCoupon,
 )
 from app.modules.ordering.application.coupon_checkout import PreviewCoupon
+from app.modules.ordering.application.customer_overview import GetCustomerOverview
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.application.ports import (
     CheckoutCartItem,
@@ -649,6 +651,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.account_get = GetAccount(repository=account_repository)
     app.state.account_update = UpdateAccount(repository=account_repository)
     app.state.account_update_currency = UpdateAccountCurrency(repository=account_repository)
+    app.state.account_update_spending_visibility = UpdateAccountSpendingVisibility(
+        repository=account_repository
+    )
     app.state.account_upload_avatar = UpdateAccountAvatar(repository=account_repository)
     app.state.account_remove_avatar = RemoveAccountAvatar(repository=account_repository)
     app.state.account_get_avatar = GetAccountAvatar(repository=account_repository)
@@ -806,6 +811,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         repository=ordering_repository,
         pix_discount_rate=settings.pix_discount_rate,
     )
+    app.state.ordering_overview = GetCustomerOverview(repository=ordering_repository)
 
     # Composicao do contexto de faturamento (boleto + captura de credito).
     invoicing_repository = SqlAlchemyInvoicingRepository(app.state.uow_factory)

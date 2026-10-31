@@ -106,6 +106,7 @@ class AccountProfileResponse(BaseModel):
     avatar_url: str | None = None
     account_type: str
     role: str
+    hide_spending: bool
 
 
 class UpdateAccountRequest(BaseModel):
@@ -132,12 +133,21 @@ class AccountPreferencesRequest(BaseModel):
     display_currency: str
 
 
+class AccountSpendingVisibilityRequest(BaseModel):
+    """Preferencia de privacidade do painel (mascarar gastos)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hide_spending: bool
+
+
 class AccountPreferencesResponse(BaseModel):
     """Confirmacao da preferencia persistida."""
 
     model_config = ConfigDict(extra="forbid")
 
     display_currency: DisplayCurrency
+    hide_spending: bool
 
 
 class AccountAvatarResponse(BaseModel):

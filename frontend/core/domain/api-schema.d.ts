@@ -74,6 +74,23 @@ export interface paths {
         patch: operations["update_preferences_api_v1_account_preferences_patch"];
         trace?: never;
     };
+    "/api/v1/account/preferences/spending-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Ocultar ou exibir os gastos no painel */
+        patch: operations["update_spending_visibility_api_v1_account_preferences_spending_visibility_patch"];
+        trace?: never;
+    };
     "/api/v1/admin/catalog/categories/{category_slug}/attributes": {
         parameters: {
             query?: never;
@@ -843,6 +860,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Painel do cliente: gastos, compras e cupons disponiveis */
+        get: operations["get_customer_overview_api_v1_orders_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{order_id}": {
         parameters: {
             query?: never;
@@ -1220,6 +1254,8 @@ export interface components {
              * @enum {string}
              */
             display_currency: "BRL" | "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CNY";
+            /** Hide Spending */
+            hide_spending: boolean;
         };
         /**
          * AccountProfileResponse
@@ -1242,6 +1278,8 @@ export interface components {
             /** Full Name */
             full_name: string;
             gender: components["schemas"]["Gender"] | null;
+            /** Hide Spending */
+            hide_spending: boolean;
             /**
              * Id
              * Format: uuid
@@ -1253,6 +1291,14 @@ export interface components {
             postal_code: string | null;
             /** Role */
             role: string;
+        };
+        /**
+         * AccountSpendingVisibilityRequest
+         * @description Preferencia de privacidade do painel (mascarar gastos).
+         */
+        AccountSpendingVisibilityRequest: {
+            /** Hide Spending */
+            hide_spending: boolean;
         };
         /** AddItemRequest */
         AddItemRequest: {
@@ -1367,6 +1413,34 @@ export interface components {
         AutocompleteResponse: {
             /** Items */
             items: components["schemas"]["AutocompleteOut"][];
+        };
+        /** AvailableCouponResponse */
+        "AvailableCouponResponse-Input": {
+            /** Code */
+            code: string;
+            /** Max Discount Amount */
+            max_discount_amount?: number | string | null;
+            /** Min Order Amount */
+            min_order_amount?: number | string | null;
+            /** Percent */
+            percent: number | string;
+            type: components["schemas"]["CouponType"];
+            /** Valid Until */
+            valid_until?: string | null;
+        };
+        /** AvailableCouponResponse */
+        "AvailableCouponResponse-Output": {
+            /** Code */
+            code: string;
+            /** Max Discount Amount */
+            max_discount_amount?: string | null;
+            /** Min Order Amount */
+            min_order_amount?: string | null;
+            /** Percent */
+            percent: string;
+            type: components["schemas"]["CouponType"];
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /** BrandRef */
         BrandRef: {
@@ -1972,6 +2046,20 @@ export interface components {
             reference_id: string | null;
             /** Reference Type */
             reference_type: string | null;
+        };
+        /**
+         * CustomerOverviewResponse
+         * @description Painel do comprador: gasto, compras recentes e cupons disponiveis.
+         */
+        CustomerOverviewResponse: {
+            /** Coupons */
+            coupons: components["schemas"]["AvailableCouponResponse-Output"][];
+            /** Orders */
+            orders: components["schemas"]["OrderResponse"][];
+            /** Orders Count */
+            orders_count: number;
+            /** Total Spent */
+            total_spent: string;
         };
         /**
          * DiscountKind
@@ -4064,6 +4152,143 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AccountPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPreferencesResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_spending_visibility_api_v1_account_preferences_spending_visibility_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountSpendingVisibilityRequest"];
             };
         };
         responses: {
@@ -10437,6 +10662,101 @@ export interface operations {
                      *       "title": "Conflict",
                      *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
                      *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_customer_overview_api_v1_orders_overview_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerOverviewResponse"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
                      *     }
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];

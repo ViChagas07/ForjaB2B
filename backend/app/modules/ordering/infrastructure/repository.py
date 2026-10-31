@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.application.ports.tenant import TenantContext
@@ -36,6 +36,7 @@ from app.modules.ordering.application.errors import (
     OrderNotFoundError,
 )
 from app.modules.ordering.application.ports import (
+    AvailableCouponView,
     CouponForCheckout,
     OrderItemView,
     OrderView,
@@ -131,6 +132,35 @@ _SELECT_ORDER = text(
 _SELECT_ORDER_ITEMS = text(
     "SELECT sku, product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
     "line_total, content_locale FROM order_items WHERE order_id = :order_id ORDER BY created_at, id"
+)
+_SELECT_ORDER_ITEMS_BY_IDS = text(
+    "SELECT order_id, sku, product_name, quantity, unit_price, base_unit_price, "
+    "tier_min_quantity, line_total, content_locale FROM order_items "
+    "WHERE order_id IN :order_ids ORDER BY created_at, id"
+).bindparams(bindparam("order_ids", expanding=True))
+_SELECT_CUSTOMER_SPEND = text(
+    "SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS orders_count "
+    "FROM orders WHERE company_id = :company_id AND buyer_user_id = :buyer_user_id "
+    "AND status NOT IN ('CANCELLED', 'CREDIT_REJECTED')"
+)
+_SELECT_CUSTOMER_ORDERS = text(
+    "SELECT id, company_id, status, currency, subtotal, discount_total, "
+    "shipping_total, tax_total, total, created_at, content_locale, coupon_code, "
+    "coupon_type, coupon_percent, coupon_discount_amount, shipping_discount_amount "
+    "FROM orders WHERE company_id = :company_id AND buyer_user_id = :buyer_user_id "
+    "ORDER BY created_at DESC, id DESC LIMIT :limit"
+)
+_SELECT_AVAILABLE_COUPONS = text(
+    "SELECT c.code, c.type, c.percent, c.max_discount_amount, c.min_order_amount, "
+    "c.valid_until FROM coupons c "
+    "CROSS JOIN LATERAL app.coupon_usage_counts(c.id, :company_id) AS u "
+    "WHERE c.is_active "
+    "AND (c.restricted_company_id IS NULL OR c.restricted_company_id = :company_id) "
+    "AND (c.valid_from IS NULL OR c.valid_from <= :now) "
+    "AND (c.valid_until IS NULL OR c.valid_until > :now) "
+    "AND (c.usage_limit_total IS NULL OR u.total_uses < c.usage_limit_total) "
+    "AND (c.usage_limit_per_company IS NULL OR u.company_uses < c.usage_limit_per_company) "
+    "ORDER BY c.valid_until NULLS LAST, c.code LIMIT :limit"
 )
 _SELECT_RESERVE = text(
     "SELECT COALESCE(SUM(amount), 0) FROM credit_entries "
@@ -608,37 +638,74 @@ class SqlAlchemyOrderingRepository:
             ).all()
             await uow.commit()
 
-        return OrderView(
-            id=row.id,
-            company_id=row.company_id,
-            status=row.status,
-            currency=row.currency,
-            subtotal=row.subtotal,
-            discount_total=row.discount_total,
-            shipping_total=row.shipping_total,
-            tax_total=row.tax_total,
-            total=row.total,
-            created_at=row.created_at,
-            content_locale=row.content_locale or DEFAULT_LOCALE,
-            coupon_code=row.coupon_code,
-            coupon_type=CouponType(row.coupon_type) if row.coupon_type else None,
-            coupon_percent=row.coupon_percent,
-            coupon_discount_amount=row.coupon_discount_amount,
-            shipping_discount_amount=row.shipping_discount_amount,
-            items=[
-                OrderItemView(
-                    sku=r.sku,
-                    product_name=r.product_name,
-                    quantity=r.quantity,
-                    unit_price=r.unit_price,
-                    base_unit_price=r.base_unit_price,
-                    tier_min_quantity=r.tier_min_quantity,
-                    line_total=r.line_total,
-                    content_locale=r.content_locale or DEFAULT_LOCALE,
+        return _order_view(row, items_rows)
+
+    async def get_customer_spend(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID
+    ) -> tuple[Decimal, int]:
+        tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            row = (
+                await uow.session.execute(
+                    _SELECT_CUSTOMER_SPEND,
+                    {"company_id": company_id, "buyer_user_id": buyer_user_id},
                 )
-                for r in items_rows
-            ],
-        )
+            ).one()
+            await uow.commit()
+        return Decimal(row.total_spent or 0), int(row.orders_count)
+
+    async def list_customer_orders(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID, limit: int
+    ) -> list[OrderView]:
+        tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            rows = (
+                await uow.session.execute(
+                    _SELECT_CUSTOMER_ORDERS,
+                    {
+                        "company_id": company_id,
+                        "buyer_user_id": buyer_user_id,
+                        "limit": limit,
+                    },
+                )
+            ).all()
+            items_by_order: dict[uuid.UUID, list[Any]] = {}
+            if rows:
+                items_rows = (
+                    await uow.session.execute(
+                        _SELECT_ORDER_ITEMS_BY_IDS,
+                        {"order_ids": [row.id for row in rows]},
+                    )
+                ).all()
+                for item in items_rows:
+                    items_by_order.setdefault(item.order_id, []).append(item)
+            await uow.commit()
+
+        return [_order_view(row, items_by_order.get(row.id, [])) for row in rows]
+
+    async def list_available_coupons(
+        self, company_id: uuid.UUID, now: datetime, limit: int
+    ) -> list[AvailableCouponView]:
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            rows = (
+                await uow.session.execute(
+                    _SELECT_AVAILABLE_COUPONS,
+                    {"company_id": company_id, "now": now, "limit": limit},
+                )
+            ).all()
+            await uow.commit()
+        return [
+            AvailableCouponView(
+                code=row.code,
+                type=CouponType(row.type),
+                percent=row.percent,
+                max_discount_amount=row.max_discount_amount,
+                min_order_amount=row.min_order_amount,
+                valid_until=row.valid_until,
+            )
+            for row in rows
+        ]
 
     async def cancel_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView:
         tenant = TenantContext(company_id=company_id)
@@ -687,6 +754,40 @@ class SqlAlchemyOrderingRepository:
         if result is None:
             raise CreditAccountNotFoundError()  # pragma: no cover
         return result
+
+
+def _order_view(row: Any, items_rows: Any) -> OrderView:
+    return OrderView(
+        id=row.id,
+        company_id=row.company_id,
+        status=row.status,
+        currency=row.currency,
+        subtotal=row.subtotal,
+        discount_total=row.discount_total,
+        shipping_total=row.shipping_total,
+        tax_total=row.tax_total,
+        total=row.total,
+        created_at=row.created_at,
+        content_locale=row.content_locale or DEFAULT_LOCALE,
+        coupon_code=row.coupon_code,
+        coupon_type=CouponType(row.coupon_type) if row.coupon_type else None,
+        coupon_percent=row.coupon_percent,
+        coupon_discount_amount=row.coupon_discount_amount,
+        shipping_discount_amount=row.shipping_discount_amount,
+        items=[
+            OrderItemView(
+                sku=item.sku,
+                product_name=item.product_name,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                base_unit_price=item.base_unit_price,
+                tier_min_quantity=item.tier_min_quantity,
+                line_total=item.line_total,
+                content_locale=item.content_locale or DEFAULT_LOCALE,
+            )
+            for item in items_rows
+        ],
+    )
 
 
 def _coupon_from_row(row: Any) -> Coupon:

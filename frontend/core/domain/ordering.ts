@@ -87,6 +87,24 @@ export interface OrderItem {
   fallback: boolean;
 }
 
+export type CouponType = "PRODUCT_TOTAL" | "SHIPPING";
+
+export interface AvailableCoupon {
+  code: string;
+  type: CouponType;
+  percent: string;
+  max_discount_amount: string | null;
+  min_order_amount: string | null;
+  valid_until: string | null;
+}
+
+export interface CustomerOverview {
+  total_spent: string;
+  orders_count: number;
+  orders: Order[];
+  coupons: AvailableCoupon[];
+}
+
 export interface Order {
   id: string;
   company_id: string;

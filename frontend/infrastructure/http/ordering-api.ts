@@ -2,6 +2,7 @@ import type {
   CouponPreview,
   CouponPreviewInput,
   CreateOrderInput,
+  CustomerOverview,
   Order,
 } from "@/core/domain/ordering";
 import { useLocale } from "next-intl";
@@ -53,6 +54,16 @@ export const orderingApi = {
     return response.body;
   },
 
+  async overview(accessToken: string, locale: string, limit = 10): Promise<CustomerOverview> {
+    const response = await apiClient.request<CustomerOverview>({
+      method: "GET",
+      path: `/orders/overview?limit=${limit}`,
+      headers: { Authorization: `Bearer ${accessToken}` },
+      locale,
+    });
+    return response.body;
+  },
+
   async get(accessToken: string, orderId: string, locale: string): Promise<Order> {
     const response = await apiClient.request<Order>({
       method: "GET",
@@ -81,6 +92,7 @@ export function useOrderingApi() {
     create: (token: string, input: CreateOrderInput) => orderingApi.create(token, input, locale),
     previewCoupon: (token: string, input: CouponPreviewInput) =>
       orderingApi.previewCoupon(token, input, locale),
+    overview: (token: string, limit?: number) => orderingApi.overview(token, locale, limit),
     get: (token: string, orderId: string) => orderingApi.get(token, orderId, locale),
     cancel: (token: string, orderId: string) => orderingApi.cancel(token, orderId, locale),
   };

@@ -62,6 +62,7 @@ class AccountRecord:
     display_currency: str
     avatar_url: str | None
     account_type: str
+    hide_spending: bool = False
 
 
 class AccountRepository(Protocol):
@@ -91,6 +92,15 @@ class AccountRepository(Protocol):
         display_currency: str,
     ) -> AccountRecord | None:
         """Atualiza somente a moeda de exibicao; None se o usuario sumiu."""
+
+    async def update_hide_spending(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        hide_spending: bool,
+    ) -> AccountRecord | None:
+        """Atualiza somente a privacidade dos gastos; None se o usuario sumiu."""
 
     async def set_avatar(
         self,

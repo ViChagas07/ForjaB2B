@@ -17,6 +17,8 @@ from app.modules.identity.application.account import (
     UpdateAccountCommand,
     UpdateAccountCurrency,
     UpdateAccountCurrencyCommand,
+    UpdateAccountSpendingVisibility,
+    UpdateAccountSpendingVisibilityCommand,
 )
 from app.modules.identity.application.errors import (
     AccountNotFoundError,
@@ -77,6 +79,13 @@ class FakeRepository:
             return None
         self.last_update = kwargs
         self.record = replace(self.record, display_currency=kwargs["display_currency"])
+        return self.record
+
+    async def update_hide_spending(self, **kwargs: Any) -> AccountRecord | None:
+        if self.record is None:
+            return None
+        self.last_update = kwargs
+        self.record = replace(self.record, hide_spending=kwargs["hide_spending"])
         return self.record
 
     async def set_avatar(self, **kwargs: Any) -> bool:
@@ -208,4 +217,24 @@ async def test_moeda_de_usuario_ausente_404() -> None:
     with pytest.raises(AccountNotFoundError):
         await UpdateAccountCurrency(repository=FakeRepository(None)).execute(
             _AUTH, UpdateAccountCurrencyCommand(display_currency="USD")
+        )
+
+
+async def test_privacidade_dos_gastos_e_persistida() -> None:
+    repository = FakeRepository(_record())
+    use_case = UpdateAccountSpendingVisibility(repository=repository)
+
+    profile = await use_case.execute(
+        _AUTH, UpdateAccountSpendingVisibilityCommand(hide_spending=True)
+    )
+
+    assert profile.hide_spending is True
+    assert repository.last_update is not None
+    assert repository.last_update["hide_spending"] is True
+
+
+async def test_privacidade_dos_gastos_de_usuario_ausente_404() -> None:
+    with pytest.raises(AccountNotFoundError):
+        await UpdateAccountSpendingVisibility(repository=FakeRepository(None)).execute(
+            _AUTH, UpdateAccountSpendingVisibilityCommand(hide_spending=True)
         )

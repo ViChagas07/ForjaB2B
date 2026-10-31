@@ -80,6 +80,21 @@ describe("accountApi", () => {
     expect(result.display_currency).toBe("USD");
   });
 
+  it("persiste a privacidade dos gastos em PATCH /account/preferences/spending-visibility", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ display_currency: "BRL", hide_spending: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await accountApi.updateSpendingVisibility(TOKEN, true);
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(String(url)).toContain("/api/v1/account/preferences/spending-visibility");
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({ hide_spending: true });
+    expect(result.hide_spending).toBe(true);
+  });
+
   it("envia o avatar como corpo binario em PUT /account/avatar", async () => {
     const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "avatar.png", {
       type: "image/png",

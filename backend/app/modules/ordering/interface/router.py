@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Header, Request, status
+from fastapi import APIRouter, Depends, Header, Query, Request, status
 
 from app.application.idempotency import IdempotencyKeyRequiredError
 from app.application.security import AuthContext
@@ -19,12 +19,22 @@ from app.modules.ordering.application.coupon_checkout import (
     CouponPreviewResult,
     PreviewCoupon,
 )
+from app.modules.ordering.application.customer_overview import (
+    CustomerOverview,
+    GetCustomerOverview,
+)
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
-from app.modules.ordering.application.ports import OrderItemInput, OrderView
+from app.modules.ordering.application.ports import (
+    AvailableCouponView,
+    OrderItemInput,
+    OrderView,
+)
 from app.modules.ordering.interface.schemas import (
+    AvailableCouponResponse,
     CouponPreviewRequest,
     CouponPreviewResponse,
     CreateOrderRequest,
+    CustomerOverviewResponse,
     OrderItemResponse,
     OrderResponse,
 )
@@ -46,6 +56,10 @@ def _cancel_order(request: Request) -> CancelOrder:
 
 def _preview_coupon(request: Request) -> PreviewCoupon:
     return cast(PreviewCoupon, request.app.state.ordering_coupon_preview)
+
+
+def _customer_overview(request: Request) -> GetCustomerOverview:
+    return cast(GetCustomerOverview, request.app.state.ordering_overview)
 
 
 def _to_response(view: OrderView) -> OrderResponse:
@@ -79,6 +93,26 @@ def _to_response(view: OrderView) -> OrderResponse:
             )
             for i in view.items
         ],
+    )
+
+
+def _to_coupon_response(view: AvailableCouponView) -> AvailableCouponResponse:
+    return AvailableCouponResponse(
+        code=view.code,
+        type=view.type,
+        percent=view.percent,
+        max_discount_amount=view.max_discount_amount,
+        min_order_amount=view.min_order_amount,
+        valid_until=view.valid_until,
+    )
+
+
+def _to_overview_response(view: CustomerOverview) -> CustomerOverviewResponse:
+    return CustomerOverviewResponse(
+        total_spent=view.total_spent,
+        orders_count=view.orders_count,
+        orders=[_to_response(order) for order in view.orders],
+        coupons=[_to_coupon_response(coupon) for coupon in view.coupons],
     )
 
 
@@ -169,6 +203,26 @@ async def preview_coupon(
         locale=locale,
     )
     return _to_preview_response(result)
+
+
+@router.get(
+    "/overview",
+    response_model=CustomerOverviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Painel do cliente: gastos, compras e cupons disponiveis",
+)
+async def get_customer_overview(
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[GetCustomerOverview, Depends(_customer_overview)],
+    limit: Annotated[int, Query(ge=1, le=20)] = 10,
+) -> CustomerOverviewResponse:
+    return _to_overview_response(
+        await use_case.execute(
+            company_id=auth.company_id,
+            buyer_user_id=auth.user_id,
+            limit=limit,
+        )
+    )
 
 
 @router.get("/{order_id}", response_model=OrderResponse, status_code=status.HTTP_200_OK)

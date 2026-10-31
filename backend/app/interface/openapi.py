@@ -41,7 +41,7 @@ _TAG_DESCRIPTIONS: dict[str, str] = {
     "search": "Busca lexical/semantica com fallback PostgreSQL.",
     "fx": "Taxas de cambio BRL usadas apenas para exibicao aproximada.",
     "cart": "Carrinho de compras do tenant.",
-    "orders": "Criacao, consulta e cancelamento de pedidos.",
+    "orders": "Criacao, consulta, cancelamento e painel do comprador.",
     "invoicing": "Faturas e boletos.",
     "credit": "Conta de credito e lancamentos do tenant.",
     "payments": "Checkout, estorno e webhooks de pagamento.",
