@@ -33,6 +33,8 @@ from app.modules.identity.application.errors import (
     OAuthStateError,
     UserInactiveError,
 )
+import redis.exceptions
+import sqlalchemy.exc
 from app.modules.identity.application.google_oauth import (
     BuildGoogleAuthorizationUrl,
     CompleteGoogleOAuth,
@@ -315,6 +317,9 @@ async def google_callback(
         UserInactiveError,
     ) as exc:
         return _error_redirect(base_url, _callback_error_code(exc))
+    except (redis.exceptions.RedisError, sqlalchemy.exc.SQLAlchemyError):
+        # Falhas de infraestrutura (Redis/DB) tornam o servico temporariamente indisponivel
+        return _error_redirect(base_url, "oauth_unavailable")
     except Exception:  # pragma: no cover - defensive: evita 500 em falhas inesperadas
         return _error_redirect(base_url, "oauth_internal_error")
     return _code_redirect(base_url, result)
