@@ -103,9 +103,8 @@ def check_migrations():
                                                        "create_index", "drop_index",
                                                        "create_constraint", "drop_constraint",
                                                        "create_foreign_key", "drop_foreign_key")):
-                        # Verificar se ja e uma migration conhecida (0037-0040)
-                        if revision.revision in {"0037", "0038", "0039", "0040"}:
-                            continue
+                        # As migrations 0037-0040 agora usam helpers que so executam
+                        # se o usuario for owner, elas nao sao mais problematicas.
                         print(
                             f"ERROR: Migration {revision.revision} faz DDL ({type(op).__name__}) "
                             f"em tabela pre-existente: {op.table_name}"

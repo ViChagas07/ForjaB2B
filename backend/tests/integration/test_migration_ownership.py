@@ -87,7 +87,10 @@ DDL_OPERATIONS = {
 
 def _get_alembic_config() -> "AlembicConfig":
     from alembic.config import Config as AlembicConfig
-    return AlembicConfig("alembic.ini")
+    import os
+    # Config file is in backend directory
+    config_path = os.path.join(os.path.dirname(__file__), "..", "..", "alembic.ini")
+    return AlembicConfig(config_path)
 
 
 def _get_head_revision() -> str:
@@ -152,21 +155,13 @@ def test_no_ddl_on_pre_existing_tables():
                                   "0021", "0022", "0023", "0024", "0025", "0026", "0027", "0028", "0029", "0030"}
     ]
 
-    # Migrations 0037, 0038, 0039, 0040 sao as problemáticas (ja conhecidas)
-    known_problematic = {"0037", "0038", "0039", "0040"}
-    new_problematic = [op for op in recent_problematic if op["revision"] not in known_problematic]
-
-    if new_problematic:
+    # As migrations 0037-0040 agora usam helpers que so executam se o usuario for owner,
+    # entao elas nao sao mais problematicas.
+    if recent_problematic:
         error_msg = "Novas migrations fazem DDL em tabelas pre-existentes:\n"
-        for op in new_problematic:
+        for op in recent_problematic:
             error_msg += f"  - {op['revision']}: {op['operation']} em {op['table']}\n"
         pytest.fail(error_msg)
-
-    # Verificar se as conhecidas ainda estao la (documentacao)
-    known_found = [op for op in recent_problematic if op["revision"] in known_problematic]
-    if known_found:
-        # Isso e esperado - sao as migrations que causaram o problema original
-        pass
 
 
 def test_alembic_head_matches_current():

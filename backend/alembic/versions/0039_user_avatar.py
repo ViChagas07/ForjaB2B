@@ -14,6 +14,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
+from migration_helpers import add_column_if_owner, create_check_constraint_if_owner
+
 
 revision: str = "0039"
 down_revision: str | None = "0038"
@@ -22,29 +24,33 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("avatar_key", sa.Uuid(), nullable=True))
-    op.add_column("users", sa.Column("avatar_content_type", sa.String(32), nullable=True))
-    op.add_column("users", sa.Column("avatar_data", sa.LargeBinary(), nullable=True))
-    op.add_column(
-        "users", sa.Column("avatar_updated_at", sa.DateTime(timezone=True), nullable=True)
+    conn = op.get_bind()
+    add_column_if_owner(conn, "users", "avatar_key", "UUID", nullable=True)
+    add_column_if_owner(conn, "users", "avatar_content_type", "VARCHAR(32)", nullable=True)
+    add_column_if_owner(conn, "users", "avatar_data", "BYTEA", nullable=True)
+    add_column_if_owner(
+        conn, "users", "avatar_updated_at", "TIMESTAMPTZ", nullable=True
     )
-    op.create_check_constraint(
+
+    create_check_constraint_if_owner(
+        conn,
+        "users",
         "avatar_content_type",
-        "users",
-        "avatar_content_type IS NULL OR "
-        "avatar_content_type IN ('image/jpeg', 'image/png', 'image/webp')",
+        "avatar_content_type IS NULL OR avatar_content_type IN ('image/jpeg', 'image/png', 'image/webp')",
     )
-    op.create_check_constraint(
-        "avatar_consistency",
+    create_check_constraint_if_owner(
+        conn,
         "users",
+        "avatar_consistency",
         "(avatar_key IS NULL AND avatar_content_type IS NULL AND avatar_data IS NULL "
         "AND avatar_updated_at IS NULL) OR (avatar_key IS NOT NULL AND "
         "avatar_content_type IS NOT NULL AND avatar_data IS NOT NULL AND "
         "avatar_updated_at IS NOT NULL)",
     )
-    op.create_check_constraint(
-        "avatar_size",
+    create_check_constraint_if_owner(
+        conn,
         "users",
+        "avatar_size",
         "avatar_data IS NULL OR octet_length(avatar_data) <= 2097152",
     )
 

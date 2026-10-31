@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -29,15 +31,17 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # Registrar todos os mapeadores ORM para que Base.metadata reflita o schema
 # de dominio (target_metadata abaixo). Sem este import, o autogenerate/check
 # nao enxergaria as tabelas da Fase 1.
-import app.infrastructure.db.models  # noqa: F401
+# Garante que o diretorio backend esta no path para imports nas migrations
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 from alembic import context
+from alembic import fileConfig
 from app.core.config import normalize_async_database_url
 from app.infrastructure.db.base import Base
 
-config = context.config
-
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+import app.infrastructure.db.models  # noqa: F401
 
 target_metadata = Base.metadata
 

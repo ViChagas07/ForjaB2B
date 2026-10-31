@@ -15,6 +15,11 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
+from migration_helpers import (
+    add_column_if_owner,
+    create_check_constraint_if_owner,
+)
+
 
 revision: str = "0037"
 down_revision: str | None = "0036"
@@ -23,23 +28,29 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("users", sa.Column("birth_date", sa.Date(), nullable=True))
-    op.add_column("users", sa.Column("gender", sa.String(24), nullable=True))
-    op.add_column("users", sa.Column("postal_code", sa.String(8), nullable=True))
-    op.create_check_constraint(
+    conn = op.get_bind()
+    # Adiciona colunas apenas se for dono da tabela users
+    add_column_if_owner(conn, "users", "birth_date", "DATE", nullable=True)
+    add_column_if_owner(conn, "users", "gender", "VARCHAR(24)", nullable=True)
+    add_column_if_owner(conn, "users", "postal_code", "VARCHAR(8)", nullable=True)
+
+    # Constraints apenas se for dono
+    create_check_constraint_if_owner(
+        conn,
+        "users",
         "gender",
-        "users",
-        "gender IS NULL OR gender IN ('FEMININO', 'MASCULINO', 'NAO_BINARIO', "
-        "'OUTRO', 'PREFIRO_NAO_INFORMAR')",
+        "gender IS NULL OR gender IN ('FEMININO', 'MASCULINO', 'NAO_BINARIO', 'OUTRO', 'PREFIRO_NAO_INFORMAR')",
     )
-    op.create_check_constraint(
-        "postal_code_format",
+    create_check_constraint_if_owner(
+        conn,
         "users",
+        "postal_code_format",
         "postal_code IS NULL OR postal_code ~ '^[0-9]{8}$'",
     )
 
 
 def downgrade() -> None:
+    # Downgrade so remove se for dono - alembic lida com IF EXISTS
     op.drop_constraint("postal_code_format", "users", type_="check")
     op.drop_constraint("gender", "users", type_="check")
     op.drop_column("users", "postal_code")

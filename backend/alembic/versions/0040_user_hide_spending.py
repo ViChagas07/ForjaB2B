@@ -14,6 +14,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
+from migration_helpers import add_column_if_owner
+
 
 revision: str = "0040"
 down_revision: str | None = "0039"
@@ -22,14 +24,14 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
+    conn = op.get_bind()
+    add_column_if_owner(
+        conn,
         "users",
-        sa.Column(
-            "hide_spending",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.text("false"),
-        ),
+        "hide_spending",
+        "BOOLEAN",
+        nullable=False,
+        default="false",
     )
 
 

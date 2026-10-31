@@ -13,6 +13,11 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from alembic import op
+from migration_helpers import (
+    add_column_if_owner,
+    create_check_constraint_if_owner,
+)
+
 
 revision: str = "0038"
 down_revision: str | None = "0037"
@@ -21,18 +26,19 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
+    conn = op.get_bind()
+    add_column_if_owner(
+        conn,
         "users",
-        sa.Column(
-            "display_currency",
-            sa.String(3),
-            nullable=False,
-            server_default=sa.text("'BRL'"),
-        ),
-    )
-    op.create_check_constraint(
         "display_currency",
+        "VARCHAR(3)",
+        nullable=False,
+        default="'BRL'",
+    )
+    create_check_constraint_if_owner(
+        conn,
         "users",
+        "display_currency",
         "display_currency IN ('BRL', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY')",
     )
 

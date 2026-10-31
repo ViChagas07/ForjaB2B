@@ -26,14 +26,25 @@ _LIST_DUE = text(
     "ORDER BY created_at, id LIMIT :limit"
 )
 _LIST_DUE_TENANTS = text("SELECT company_id FROM app.list_due_notifications(:limit, :max_attempts)")
+# Resolve recipient joining with user_preferences for whatsapp fields (colunas
+# whatsapp_* movidas para user_preferences - Fase 2). Fallback para users se
+# user_preferences nao existir (dev/CI com migrations antigas).
 _RESOLVE_BUYER = text(
-    "SELECT u.id AS user_id, u.email, u.whatsapp_phone, u.whatsapp_opt_in FROM orders o "
+    "SELECT u.id AS user_id, u.email, "
+    "COALESCE(up.whatsapp_phone, u.whatsapp_phone) AS whatsapp_phone, "
+    "COALESCE(up.whatsapp_opt_in, u.whatsapp_opt_in) AS whatsapp_opt_in "
+    "FROM orders o "
     "JOIN users u ON u.id = o.buyer_user_id "
+    "LEFT JOIN user_preferences up ON up.user_id = u.id AND up.company_id = o.company_id "
     "WHERE o.id = :aggregate_id AND o.company_id = :company_id"
 )
 _RESOLVE_CART = text(
-    "SELECT u.id AS user_id, u.email, u.whatsapp_phone, u.whatsapp_opt_in FROM carts c "
+    "SELECT u.id AS user_id, u.email, "
+    "COALESCE(up.whatsapp_phone, u.whatsapp_phone) AS whatsapp_phone, "
+    "COALESCE(up.whatsapp_opt_in, u.whatsapp_opt_in) AS whatsapp_opt_in "
+    "FROM carts c "
     "JOIN users u ON u.id = c.user_id "
+    "LEFT JOIN user_preferences up ON up.user_id = u.id AND up.company_id = c.company_id "
     "WHERE c.id = :aggregate_id AND c.company_id = :company_id"
 )
 _SELECT_PREFERENCE = text(
@@ -57,10 +68,21 @@ _RESET = text(
     "UPDATE notifications SET status = 'PENDING', attempts = 0, error = NULL, "
     "sent_at = NULL, updated_at = now() WHERE id = :id AND company_id = :company_id"
 )
+# Atualiza whatsapp na tabela user_preferences (nova tabela) ou users (fallback)
 _UPDATE_WHATSAPP = text(
+    "WITH up AS ("
+    "    INSERT INTO user_preferences (user_id, company_id, whatsapp_phone, whatsapp_opt_in, whatsapp_opt_in_at, created_at, updated_at) "
+    "    VALUES (:user_id, :company_id, :phone, :opt_in, CASE WHEN :opt_in THEN now() ELSE NULL END, now(), now()) "
+    "    ON CONFLICT (user_id) DO UPDATE SET "
+    "        whatsapp_phone = EXCLUDED.whatsapp_phone, "
+    "        whatsapp_opt_in = EXCLUDED.whatsapp_opt_in, "
+    "        whatsapp_opt_in_at = EXCLUDED.whatsapp_opt_in_at, "
+    "        updated_at = now() "
+    "    RETURNING user_id"
+    ") "
     "UPDATE users SET whatsapp_phone = :phone, whatsapp_opt_in = :opt_in, "
-    "whatsapp_opt_in_at = CASE WHEN :opt_in THEN now() ELSE NULL END, "
-    "updated_at = now() WHERE id = :user_id AND company_id = :company_id"
+    "whatsapp_opt_in_at = CASE WHEN :opt_in THEN now() ELSE NULL END, updated_at = now() "
+    "WHERE id = :user_id AND company_id = :company_id"
 )
 
 
