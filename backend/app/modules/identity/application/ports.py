@@ -12,8 +12,24 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
-from app.domain.consumer import Gender
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
+
+
+@dataclass(frozen=True, kw_only=True)
+class UserPreferences:
+    """Preferencias do usuario (moeda, privacidade, avatar, whatsapp)."""
+
+    user_id: uuid.UUID
+    company_id: uuid.UUID
+    display_currency: str
+    hide_spending: bool
+    avatar_key: uuid.UUID | None = None
+    avatar_content_type: str | None = None
+    avatar_data: bytes | None = None
+    avatar_updated_at: datetime | None = None
+    whatsapp_phone: str | None = None
+    whatsapp_opt_in: bool = False
+    whatsapp_opt_in_at: datetime | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -78,11 +94,12 @@ class AccountRepository(Protocol):
         user_id: uuid.UUID,
         full_name: str,
         phone: str | None,
-        birth_date: date | None,
-        gender: Gender | None,
-        postal_code: str | None,
     ) -> AccountRecord | None:
-        """Atualiza nome/telefone/perfil pessoal; None se o usuario sumiu."""
+        """Atualiza nome/telefone; None se o usuario sumiu.
+
+        birth_date, gender, postal_code sao mantidos em consumer_profiles
+        (tabela antiga) e nao sao atualizados por este metodo.
+        """
 
     async def update_display_currency(
         self,
@@ -125,6 +142,14 @@ class AccountRepository(Protocol):
         avatar_key: uuid.UUID,
     ) -> AvatarBlob | None:
         """Le o avatar publico pela chave aleatoria, dentro do tenant."""
+
+    async def get_preferences(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> UserPreferences | None:
+        """Le as preferencias do usuario (moeda, privacidade, avatar, whatsapp)."""
 
 
 @dataclass(frozen=True, kw_only=True)

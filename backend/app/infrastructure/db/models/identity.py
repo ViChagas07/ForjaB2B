@@ -28,10 +28,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.domain.consumer import Gender
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.models.common import TimestampMixin, enum_check
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
+from app.domain.consumer import Gender
 
 if TYPE_CHECKING:  # pragma: no cover - apenas para o type checker
     from app.infrastructure.db.models.audit import AuditLog
@@ -39,6 +39,7 @@ if TYPE_CHECKING:  # pragma: no cover - apenas para o type checker
     from app.infrastructure.db.models.external_identity import UserExternalIdentity
     from app.infrastructure.db.models.ordering import Order
     from app.infrastructure.db.models.privacy import ConsentRecord
+    from app.infrastructure.db.models.user_preferences import UserPreferences
 
 
 class User(TimestampMixin, Base):
@@ -47,15 +48,6 @@ class User(TimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         enum_check("status", UserStatus),
-        enum_check("gender", Gender),
-        CheckConstraint(
-            "postal_code IS NULL OR postal_code ~ '^[0-9]{8}$'",
-            name="postal_code_format",
-        ),
-        CheckConstraint(
-            "display_currency IN ('BRL', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY')",
-            name="display_currency",
-        ),
         CheckConstraint(
             "avatar_content_type IS NULL OR "
             "avatar_content_type IN ('image/jpeg', 'image/png', 'image/webp')",
@@ -83,35 +75,22 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
-    birth_date: Mapped[date | None] = mapped_column(Date)
-    gender: Mapped[Gender | None] = mapped_column(
-        Enum(Gender, native_enum=False, create_constraint=False, length=24)
-    )
-    postal_code: Mapped[str | None] = mapped_column(String(8))
-    # Preferencia de EXIBICAO. A cobranca e sempre em BRL; a coluna so
-    # preserva a escolha do usuario entre sessoes/dispositivos.
-    display_currency: Mapped[str] = mapped_column(
-        String(3), nullable=False, default="BRL", server_default=text("'BRL'")
-    )
-    # Preferencia de privacidade do painel: mascara gastos e totais do
-    # historico sem alterar nenhum valor financeiro persistido.
-    hide_spending: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default=text("false")
-    )
     # Foto de perfil. Os bytes ficam no banco (2 MB max) e o frontend usa a
     # URL publica com a chave aleatoria; `deferred` evita carregar a imagem em
-    # toda leitura de perfil.
-    avatar_key: Mapped[uuid.UUID | None] = mapped_column(Uuid)
-    avatar_content_type: Mapped[str | None] = mapped_column(String(32))
+    # toda leitura de perfil. Colunas marcadas como deferred=True para nao
+    # quebrar em producao onde as colunas ainda nao existem (migrations 0039/0040
+    # nao aplicadas). Fase 2 movera para tabela user_preferences.
+    avatar_key: Mapped[uuid.UUID | None] = mapped_column(Uuid, deferred=True)
+    avatar_content_type: Mapped[str | None] = mapped_column(String(32), deferred=True)
     avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
-    avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), deferred=True)
     # WhatsApp (Fase 3, recuperacao de carrinho): opt-in EXPLICITO do usuario.
     # Nulo/falso = NUNCA enviar. `whatsapp_phone` e o numero E.164 confirmado.
-    whatsapp_phone: Mapped[str | None] = mapped_column(String(20))
+    whatsapp_phone: Mapped[str | None] = mapped_column(String(20), deferred=True)
     whatsapp_opt_in: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false")
+        Boolean, nullable=False, server_default=text("false"), deferred=True
     )
-    whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), deferred=True)
     cpf_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     cpf_encrypted: Mapped[bytes | None] = mapped_column(LargeBinary)
     password_hash: Mapped[str | None] = mapped_column(String(255))
@@ -130,6 +109,9 @@ class User(TimestampMixin, Base):
     audit_logs: Mapped[list[AuditLog]] = relationship(back_populates="actor")
     external_identities: Mapped[list[UserExternalIdentity]] = relationship(back_populates="user")
     consumer_profile: Mapped[ConsumerProfile | None] = relationship(
+        back_populates="user", uselist=False
+    )
+    preferences: Mapped[UserPreferences | None] = relationship(
         back_populates="user", uselist=False
     )
 
