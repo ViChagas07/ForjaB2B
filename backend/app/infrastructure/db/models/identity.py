@@ -14,7 +14,6 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -48,22 +47,6 @@ class User(TimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         enum_check("status", UserStatus),
-        CheckConstraint(
-            "avatar_content_type IS NULL OR "
-            "avatar_content_type IN ('image/jpeg', 'image/png', 'image/webp')",
-            name="avatar_content_type",
-        ),
-        CheckConstraint(
-            "(avatar_key IS NULL AND avatar_content_type IS NULL AND avatar_data IS NULL "
-            "AND avatar_updated_at IS NULL) OR (avatar_key IS NOT NULL AND "
-            "avatar_content_type IS NOT NULL AND avatar_data IS NOT NULL AND "
-            "avatar_updated_at IS NOT NULL)",
-            name="avatar_consistency",
-        ),
-        CheckConstraint(
-            "avatar_data IS NULL OR octet_length(avatar_data) <= 2097152",
-            name="avatar_size",
-        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -75,22 +58,6 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))
-    # Foto de perfil. Os bytes ficam no banco (2 MB max) e o frontend usa a
-    # URL publica com a chave aleatoria; `deferred` evita carregar a imagem em
-    # toda leitura de perfil. Colunas marcadas como deferred=True para nao
-    # quebrar em producao onde as colunas ainda nao existem (migrations 0039/0040
-    # nao aplicadas). Fase 2 movera para tabela user_preferences.
-    avatar_key: Mapped[uuid.UUID | None] = mapped_column(Uuid, deferred=True)
-    avatar_content_type: Mapped[str | None] = mapped_column(String(32), deferred=True)
-    avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
-    avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), deferred=True)
-    # WhatsApp (Fase 3, recuperacao de carrinho): opt-in EXPLICITO do usuario.
-    # Nulo/falso = NUNCA enviar. `whatsapp_phone` e o numero E.164 confirmado.
-    whatsapp_phone: Mapped[str | None] = mapped_column(String(20), deferred=True)
-    whatsapp_opt_in: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false"), deferred=True
-    )
-    whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), deferred=True)
     cpf_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     cpf_encrypted: Mapped[bytes | None] = mapped_column(LargeBinary)
     password_hash: Mapped[str | None] = mapped_column(String(255))
@@ -112,7 +79,7 @@ class User(TimestampMixin, Base):
         back_populates="user", uselist=False
     )
     preferences: Mapped[UserPreferences | None] = relationship(
-        back_populates="user", uselist=False
+        back_populates="user", uselist=False, lazy="raise"
     )
 
 

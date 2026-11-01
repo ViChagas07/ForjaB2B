@@ -6,6 +6,34 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## MissingGreenlet regression fix - login flow + preferences - 2026-10-31
+
+- **Tarefa 1 - Regressao MissingGreenlet CONFIRMADA:** Testes passavam no commit anterior a `user_preferences` (`3174a5fa`). Falha introduzida por colunas `deferred=True` no modelo `User` (`avatar_key`, `avatar_content_type`, `avatar_data`, `avatar_updated_at`, `whatsapp_phone`, `whatsapp_opt_in`, `whatsapp_opt_in_at`) acessadas em `SqlAlchemyMembershipReader.get_membership()` (linha 50: `user.avatar_key`). OpenTelemetry instrumenta a conexao e o lazy load falha com `MissingGreenlet: greenlet_spawn has not been called`.
+
+- **Tarefa 2 - Correcoes aplicadas:**
+  1. Removidas **todas** colunas `deferred=True` do modelo `User` (nao existem em producao).
+  2. Relacionamento `User.preferences` alterado para `lazy="raise"` (falha explicita se houver lazy load acidental).
+  3. `SqlAlchemyMembershipReader.get_membership()` agora usa `selectinload(User.preferences)` e le `prefs.avatar_key`.
+  4. `SqlAlchemyAccountRepository` corrigido: todos os `uow.session.get(UserPreferences, ...)` agora sao `await`ados; queries usam `selectinload(User.preferences)` e `selectinload(User.consumer_profile)`.
+  5. Metodo `update` do repositorio aceita `birth_date`, `gender`, `postal_code` e grava em `consumer_profiles`.
+  6. `UserPreferences.avatar_data` removido `deferred=True` (causava MissingGreenlet em `get_avatar`).
+
+- **Tarefa 3 - Testes de integracao com Postgres real (cenario producao simulada):**
+  - Tabelas antigas com owner diferente, `users` sem colunas novas, 3 usuarios existentes, `user_preferences` criada pela 0041.
+  - **Todos passam**: login por senha, callback Google (mock) para usuario existente e novo, `GET /me`, refresh, leitura de preferencias, avatar upload/download/remove.
+  - Testes unitarios: 1038 passam.
+  - Testes integracao: account API (11/11), consumers API (4/4), auth API (11/11), health/lifespan (16/16), migration ownership (2/2).
+  - Ruff: erros restantes sao pre-existentes (E501 em migrations/arquivos gerados, C901 complexidade, E402 em alembic/env.py). Nenhum erro novo introduzido.
+  - Mypy: schema_check.py OK; erros pre-existentes em outros modulos.
+
+- **Estado do git:** Branch `main` tem commits locais nao enviados (ver `git log origin/main..HEAD`). Sem push realizado.
+
+- **NAO VALIDADO / Pendencias:**
+  - Cenario 4 do lifespan (drift sem flag) nao testado via mock; funcionalidade real validada via Testcontainers.
+  - Teste `test_persistence_migrations.py` falha no downgrade (constraint inexistente) - problema pre-existente das migrations 0037-0040.
+  - Login Google / user_preferences RLS / callback mock nao testados E2E (requer ambiente completo com OAuth).
+  - Log do proximo deploy no Render e login Google necessarios para confirmar RLS na tabela `user_preferences`.
+
 ## Schema check centralizado + Lifespan hardening + Migration scenarios A/B/C - 2026-10-31
 
 - **Tarefa 1 - Schema check centralizado:** Criado `app/infrastructure/db/schema_check.py` com `check_schema_current(engine)` e `check_schema_current_from_url(url)` unificando a logica usada por:

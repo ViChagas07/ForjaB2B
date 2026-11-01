@@ -40,9 +40,8 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
         password_hash = Argon2PasswordHasher().hash(_PASSWORD)
         conn.execute(
             "INSERT INTO users (id, company_id, email, full_name, phone, cpf_hash, "
-            "password_hash, status, postal_code, birth_date, gender) VALUES "
-            "(%s, %s, %s, 'Conta Teste', '+55 11 99999-0000', %s, %s, 'ACTIVE', "
-            "'01310100', '1990-01-01', 'PREFIRO_NAO_INFORMAR') "
+            "password_hash, status) VALUES "
+            "(%s, %s, %s, 'Conta Teste', '+55 11 99999-0000', %s, %s, 'ACTIVE') "
             "ON CONFLICT DO NOTHING",
             (
                 _USER,
@@ -51,6 +50,12 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
                 hashlib.sha256(_EMAIL.encode()).hexdigest(),
                 password_hash,
             ),
+        )
+        conn.execute(
+            "INSERT INTO consumer_profiles (user_id, company_id, birth_date, gender, postal_code) "
+            "VALUES (%s, %s, '1990-01-01', 'PREFIRO_NAO_INFORMAR', '01310100') "
+            "ON CONFLICT DO NOTHING",
+            (_USER, _COMPANY),
         )
         conn.execute(
             "INSERT INTO company_members (id, company_id, user_id, role, status) "
@@ -130,12 +135,16 @@ async def test_update_account(account_client: httpx.AsyncClient, pg: PostgresIns
     try:
         conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY, _USER))
         row = conn.execute(
-            "SELECT full_name, postal_code FROM users WHERE id = %s", (_USER,)
+            "SELECT full_name FROM users WHERE id = %s", (_USER,)
+        ).fetchone()
+        profile_row = conn.execute(
+            "SELECT postal_code FROM consumer_profiles WHERE user_id = %s", (_USER,)
         ).fetchone()
         conn.commit()
     finally:
         conn.close()
-    assert row is not None and row[0] == "Novo Nome" and row[1] == "01310100"
+    assert row is not None and row[0] == "Novo Nome"
+    assert profile_row is not None and profile_row[0] == "01310100"
 
 
 async def test_update_account_cep_invalido(
@@ -166,7 +175,9 @@ async def test_update_account_preferences(
     conn = pg.connect_admin(autocommit=False)
     try:
         conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY, _USER))
-        row = conn.execute("SELECT display_currency FROM users WHERE id = %s", (_USER,)).fetchone()
+        row = conn.execute(
+            "SELECT display_currency FROM user_preferences WHERE user_id = %s", (_USER,)
+        ).fetchone()
         conn.commit()
     finally:
         conn.close()
@@ -297,7 +308,9 @@ async def test_update_spending_visibility(
     conn = pg.connect_admin(autocommit=False)
     try:
         conn.execute("SELECT app.set_tenant_context(%s, %s)", (_COMPANY, _USER))
-        row = conn.execute("SELECT hide_spending FROM users WHERE id = %s", (_USER,)).fetchone()
+        row = conn.execute(
+            "SELECT hide_spending FROM user_preferences WHERE user_id = %s", (_USER,)
+        ).fetchone()
         conn.commit()
     finally:
         conn.close()

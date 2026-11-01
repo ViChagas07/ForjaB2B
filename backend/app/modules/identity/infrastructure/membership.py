@@ -10,6 +10,7 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.application.ports.tenant import TenantContext
 from app.infrastructure.db.models.identity import CompanyMember, User
@@ -30,6 +31,7 @@ class SqlAlchemyMembershipReader:
             stmt = (
                 select(CompanyMember, User)
                 .join(User, User.id == CompanyMember.user_id)
+                .options(selectinload(User.preferences))
                 .where(
                     CompanyMember.company_id == company_id,
                     CompanyMember.user_id == user_id,
@@ -40,14 +42,16 @@ class SqlAlchemyMembershipReader:
             if row is None:
                 return None
             member, user = row
+            prefs = user.preferences
+            avatar_key = prefs.avatar_key if prefs is not None else None
             return Membership(
                 role=member.role,
                 status=member.status,
                 full_name=user.full_name,
                 email=user.email,
                 avatar_url=(
-                    account_avatar_url(user.company_id, user.id, user.avatar_key)
-                    if user.avatar_key is not None
+                    account_avatar_url(user.company_id, user.id, avatar_key)
+                    if avatar_key is not None
                     else None
                 ),
             )

@@ -73,7 +73,7 @@ class UserPreferences(TimestampMixin, Base):
     )
     avatar_key: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     avatar_content_type: Mapped[str | None] = mapped_column(String(32))
-    avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+    avatar_data: Mapped[bytes | None] = mapped_column(LargeBinary)
     avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     whatsapp_phone: Mapped[str | None] = mapped_column(String(20))
     whatsapp_opt_in: Mapped[bool] = mapped_column(

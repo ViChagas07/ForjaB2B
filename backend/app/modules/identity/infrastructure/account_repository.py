@@ -9,18 +9,23 @@ producao onde as migrations 0037-0040 nao foram aplicadas.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import String, Uuid, column, select, table
 from sqlalchemy.orm import selectinload
 
 from app.application.ports.tenant import TenantContext
+from app.domain.consumer import Gender
 from app.domain.currency import normalize_currency
 from app.infrastructure.db.models.identity import ConsumerProfile, User
 from app.infrastructure.db.models.user_preferences import UserPreferences
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
 from app.modules.identity.application.avatar import account_avatar_url
 from app.modules.identity.application.ports import AccountRecord, AvatarBlob
+
+if TYPE_CHECKING:
+    from app.infrastructure.db.models.identity import User
 
 # Tabela leve (sem importar o modulo companies) apenas para ler account_type.
 _COMPANIES = table(
@@ -30,9 +35,9 @@ _COMPANIES = table(
 )
 
 
-def _get_preferences_or_create(uow, company_id: uuid.UUID, user_id: uuid.UUID) -> UserPreferences:
+async def _get_preferences_or_create(uow, company_id: uuid.UUID, user_id: uuid.UUID) -> UserPreferences:
     """Obtem ou cria as preferencias do usuario (upsert)."""
-    prefs = uow.session.get(UserPreferences, user_id)
+    prefs = await uow.session.get(UserPreferences, user_id)
     if prefs is None:
         prefs = UserPreferences(user_id=user_id, company_id=company_id)
         uow.session.add(prefs)
@@ -51,14 +56,18 @@ class SqlAlchemyAccountRepository:
                     select(User, ConsumerProfile, _COMPANIES.c.account_type)
                     .outerjoin(ConsumerProfile, ConsumerProfile.user_id == User.id)
                     .join(_COMPANIES, _COMPANIES.c.id == User.company_id)
+                    .options(
+                        selectinload(User.preferences),
+                        selectinload(User.consumer_profile),
+                    )
                     .where(User.id == user_id, User.company_id == company_id)
                 )
             ).first()
-            prefs = uow.session.get(UserPreferences, user_id)
             await uow.commit()
         if row is None:
             return None
         user, profile, account_type = row
+        prefs = user.preferences
         return _record(user, profile, account_type, prefs)
 
     async def update(
@@ -68,6 +77,9 @@ class SqlAlchemyAccountRepository:
         user_id: uuid.UUID,
         full_name: str,
         phone: str | None,
+        birth_date: date | None = None,
+        gender: Gender | None = None,
+        postal_code: str | None = None,
     ) -> AccountRecord | None:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
@@ -84,14 +96,21 @@ class SqlAlchemyAccountRepository:
                 await uow.commit()
                 return None
             user, profile, account_type = row
-            if profile is not None:
-                # Contas PERSON mantem as colunas antigas preenchidas; o
-                # formulario nao consegue apagar dados obrigatorios.
-                # birth_date, gender, postal_code estao em consumer_profiles
-                # e sao atualizados la se necessario (fora do escopo deste metodo).
-                pass
             user.full_name = full_name
             user.phone = phone
+
+            # Atualiza consumer_profiles se informado (contas PERSON)
+            if birth_date is not None or gender is not None or postal_code is not None:
+                if profile is None:
+                    profile = ConsumerProfile(user_id=user_id, company_id=company_id)
+                    uow.session.add(profile)
+                if birth_date is not None:
+                    profile.birth_date = birth_date
+                if gender is not None:
+                    profile.gender = gender
+                if postal_code is not None:
+                    profile.postal_code = postal_code
+
             await uow.commit()
         return _record(user, profile, account_type)
 
@@ -109,6 +128,7 @@ class SqlAlchemyAccountRepository:
                     select(User, ConsumerProfile, _COMPANIES.c.account_type)
                     .outerjoin(ConsumerProfile, ConsumerProfile.user_id == User.id)
                     .join(_COMPANIES, _COMPANIES.c.id == User.company_id)
+                    .options(selectinload(User.preferences))
                     .where(User.id == user_id, User.company_id == company_id)
                 )
             ).first()
@@ -116,10 +136,13 @@ class SqlAlchemyAccountRepository:
                 await uow.commit()
                 return None
             user, profile, account_type = row
-            prefs = _get_preferences_or_create(uow, company_id, user_id)
+            prefs = user.preferences
+            if prefs is None:
+                prefs = UserPreferences(user_id=user_id, company_id=company_id)
+                uow.session.add(prefs)
             prefs.display_currency = normalize_currency(display_currency)
             await uow.commit()
-        return _record(user, profile, account_type)
+        return _record(user, profile, account_type, prefs)
 
     async def update_hide_spending(
         self,
@@ -135,6 +158,7 @@ class SqlAlchemyAccountRepository:
                     select(User, ConsumerProfile, _COMPANIES.c.account_type)
                     .outerjoin(ConsumerProfile, ConsumerProfile.user_id == User.id)
                     .join(_COMPANIES, _COMPANIES.c.id == User.company_id)
+                    .options(selectinload(User.preferences))
                     .where(User.id == user_id, User.company_id == company_id)
                 )
             ).first()
@@ -142,10 +166,13 @@ class SqlAlchemyAccountRepository:
                 await uow.commit()
                 return None
             user, profile, account_type = row
-            prefs = _get_preferences_or_create(uow, company_id, user_id)
+            prefs = user.preferences
+            if prefs is None:
+                prefs = UserPreferences(user_id=user_id, company_id=company_id)
+                uow.session.add(prefs)
             prefs.hide_spending = hide_spending
             await uow.commit()
-        return _record(user, profile, account_type)
+        return _record(user, profile, account_type, prefs)
 
     async def set_avatar(
         self,
@@ -159,7 +186,7 @@ class SqlAlchemyAccountRepository:
     ) -> bool:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
-            prefs = _get_preferences_or_create(uow, company_id, user_id)
+            prefs = await _get_preferences_or_create(uow, company_id, user_id)
             prefs.avatar_key = avatar_key
             prefs.avatar_content_type = content_type
             prefs.avatar_data = data
@@ -170,7 +197,7 @@ class SqlAlchemyAccountRepository:
     async def clear_avatar(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
-            prefs = uow.session.get(UserPreferences, user_id)
+            prefs = await uow.session.get(UserPreferences, user_id)
             if prefs is not None:
                 prefs.avatar_key = None
                 prefs.avatar_content_type = None
@@ -189,7 +216,7 @@ class SqlAlchemyAccountRepository:
     ) -> AvatarBlob | None:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
-            prefs = uow.session.get(UserPreferences, user_id)
+            prefs = await uow.session.get(UserPreferences, user_id)
             if prefs is None or prefs.avatar_key != avatar_key:
                 return None
             if prefs.avatar_content_type is None or prefs.avatar_data is None or prefs.avatar_updated_at is None:
@@ -208,7 +235,7 @@ class SqlAlchemyAccountRepository:
     ) -> UserPreferences | None:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
-            prefs = uow.session.get(UserPreferences, user_id)
+            prefs = await uow.session.get(UserPreferences, user_id)
             return prefs
 
 

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
+from app.domain.consumer import Gender
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
 
 
@@ -94,12 +95,11 @@ class AccountRepository(Protocol):
         user_id: uuid.UUID,
         full_name: str,
         phone: str | None,
+        birth_date: date | None = None,
+        gender: Gender | None = None,
+        postal_code: str | None = None,
     ) -> AccountRecord | None:
-        """Atualiza nome/telefone; None se o usuario sumiu.
-
-        birth_date, gender, postal_code sao mantidos em consumer_profiles
-        (tabela antiga) e nao sao atualizados por este metodo.
-        """
+        """Atualiza nome/telefone e opcionalmente birth_date/gender/postal_code (consumer_profiles); None se o usuario sumiu."""
 
     async def update_display_currency(
         self,
