@@ -13,7 +13,7 @@ export async function SiteHeader() {
   const t = await getTranslations();
 
   return (
-    <header className="sticky top-0 z-50 w-screen max-w-none border-b border-white/10 bg-ink/95 text-white backdrop-blur supports-[backdrop-filter]:bg-ink/90">
+    <header className="sticky top-0 left-0 right-0 z-50 w-full border-b border-white/10 bg-ink/95 text-white backdrop-blur supports-[backdrop-filter]:bg-ink/90">
       <div className="flex h-[72px] w-full items-center gap-4 px-0 lg:gap-7">
         <BrandLogo />
 
