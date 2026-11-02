@@ -22,10 +22,11 @@
   pré-existentes. Por isso, uma migration nova não deve fazer `ALTER TABLE` /
   `DROP` nelas; quando precisa guardar dados novos, crie uma tabela nova
   (owner = role de migrations). A 0042 segue esse padrão: o snapshot do
-  desconto CNPJ fica em `order_item_pricing` (PK/FK 1:1 para `order_items`,
-  `ON DELETE CASCADE`), sem alterar `order_items`. A FK exige `REFERENCES` em
-  `order_items` (privilégio normal, não ownership); o preflight do Render deve
-  confirmar esse grant.
+  desconto CNPJ fica em `order_item_pricing` (PK `order_item_id` 1:1 lógica,
+  **sem FK** para `order_items`), sem alterar `order_items`. A integridade é
+  feita no código (mesma transação; `LEFT JOIN` para pedidos antigos). O
+  preflight não exige `REFERENCES`; ele só confirma `CREATE` e avisa sobre
+  ownership.
 - Banco local que aplicou a 0042 antiga (colunas em `order_items`): veja o
   procedimento em `docs/PRICING.md` (downgrade para 0041 antes de puxar o
   código novo, ou limpeza manual + `alembic upgrade head`).

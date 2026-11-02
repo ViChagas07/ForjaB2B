@@ -66,6 +66,11 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
             "VALUES (%s, %s, %s, 'BUYER', 'ACTIVE') ON CONFLICT (id) DO NOTHING",
             (_MEMBER, _COMPANY, _BUYER),
         )
+        conn.execute(
+            "DELETE FROM order_item_pricing WHERE order_item_id IN "
+            "(SELECT id FROM order_items WHERE company_id = %s)",
+            (_COMPANY,),
+        )
         conn.execute("DELETE FROM order_items WHERE company_id = %s", (_COMPANY,))
         conn.execute("DELETE FROM orders WHERE company_id = %s", (_COMPANY,))
         conn.execute("DELETE FROM credit_entries WHERE company_id = %s", (_COMPANY,))

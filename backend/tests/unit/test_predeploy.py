@@ -56,28 +56,26 @@ def _preflight_row(**overrides: Any) -> dict[str, Any]:
         "has_products": True,
         "can_act_as_owner": True,
         "can_create": True,
-        "has_order_items": True,
-        "can_reference_order_items": True,
     }
     row.update(overrides)
     return row
 
 
-def test_preflight_exige_references_em_order_items(
-    monkeypatch: pytest.MonkeyPatch,
+def test_preflight_avisa_sem_ownership_sem_abortar(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    row = _preflight_row(can_reference_order_items=False)
-    monkeypatch.setattr(predeploy, "create_async_engine", lambda _url: _FakeEngine(row))
-    with pytest.raises(PreDeployError, match=r"REFERENCES em public\.order_items"):
-        asyncio.run(_preflight("postgresql+asyncpg://forja:secret@localhost/db"))
-
-
-def test_preflight_aceita_references(monkeypatch: pytest.MonkeyPatch) -> None:
-    row = _preflight_row()
+    row = _preflight_row(can_act_as_owner=False)
     monkeypatch.setattr(predeploy, "create_async_engine", lambda _url: _FakeEngine(row))
     result = asyncio.run(_preflight("postgresql+asyncpg://forja:secret@localhost/db"))
     assert result["role"] == "forja"
-    assert result["has_order_items"] is True
+    assert "nao e owner de products" in capsys.readouterr().err
+
+
+def test_preflight_aborta_sem_create(monkeypatch: pytest.MonkeyPatch) -> None:
+    row = _preflight_row(can_create=False)
+    monkeypatch.setattr(predeploy, "create_async_engine", lambda _url: _FakeEngine(row))
+    with pytest.raises(PreDeployError, match="CREATE no schema public"):
+        asyncio.run(_preflight("postgresql+asyncpg://forja:secret@localhost/db"))
 
 
 def test_admin_url_exige_variavel_de_ambiente(monkeypatch: pytest.MonkeyPatch) -> None:

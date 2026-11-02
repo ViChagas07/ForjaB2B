@@ -3,9 +3,9 @@
 A 0042 cria ``order_item_pricing`` em vez de alterar ``order_items``. O teste
 cria um database descartavel, roda o Alembic do zero, popula a revisao 0041,
 aplica a 0042, confere que nenhum dado antigo mudou, faz downgrade e reaplica.
-O segundo teste repete a 0042 com uma role que NAO e owner de ``order_items``
-(mas tem REFERENCES, como o cenario de producao), provando que o ALTER antigo
-nao e mais executado.
+O segundo teste repete a 0042 com uma role que NAO e owner e NAO tem
+REFERENCES em ``order_items`` — exatamente o cenario do Render — provando que a
+migration nao depende de ownership, GRANT ou FK para tabelas existentes.
 """
 
 from __future__ import annotations
@@ -220,17 +220,47 @@ def _pricing_columns(pg: PostgresInstance, database: str) -> set[str]:
         conn.close()
 
 
-def _pricing_fk(pg: PostgresInstance, database: str) -> tuple[str, str] | None:
+def _pricing_fk_count(pg: PostgresInstance, database: str) -> int:
     conn = pg.connect(BOOTSTRAP_USER, BOOTSTRAP_PASSWORD, dbname=database, autocommit=True)
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT confrelid::regclass::text, confdeltype::text "
-                "FROM pg_constraint WHERE conrelid = 'order_item_pricing'::regclass "
-                "AND contype = 'f'"
+                "SELECT count(*) FROM pg_constraint "
+                "WHERE conrelid = 'order_item_pricing'::regclass AND contype = 'f'"
             )
             row = cur.fetchone()
-            return (row[0], row[1]) if row else None
+            assert row is not None
+            return int(row[0])
+    finally:
+        conn.close()
+
+
+def _order_items_owner(pg: PostgresInstance, database: str) -> str:
+    conn = pg.connect(BOOTSTRAP_USER, BOOTSTRAP_PASSWORD, dbname=database, autocommit=True)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT tableowner FROM pg_tables "
+                "WHERE schemaname = 'public' AND tablename = 'order_items'"
+            )
+            row = cur.fetchone()
+            assert row is not None
+            return str(row[0])
+    finally:
+        conn.close()
+
+
+def _has_references(pg: PostgresInstance, database: str, role: str) -> bool:
+    conn = pg.connect(BOOTSTRAP_USER, BOOTSTRAP_PASSWORD, dbname=database, autocommit=True)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT has_table_privilege(%s, 'public.order_items', 'REFERENCES')",
+                (role,),
+            )
+            row = cur.fetchone()
+            assert row is not None
+            return bool(row[0])
     finally:
         conn.close()
 
@@ -272,7 +302,7 @@ def test_0042_upgrade_do_zero_populado_e_downgrade(
     # 3. Upgrade 0042 cria a tabela nova e nao toca nos dados/colunas antigas.
     command.upgrade(config, "head")
     assert _pricing_columns(pg, database) == _PRICING_COLUMNS
-    assert _pricing_fk(pg, database) == ("order_items", "c")
+    assert _pricing_fk_count(pg, database) == 0
     _assert_old_item_preserved(pg, database)
     # Pedido antigo nao tem snapshot: ausencia = "sem snapshot".
     assert _pricing_count(pg, database) == 0
@@ -336,10 +366,10 @@ def _grant_migration_privileges(
                 sql.Identifier(migration_role)
             )
         )
-        # REFERENCES simula o grant de producao; a role continua NÃO sendo owner.
+        # Sem REFERENCES: a role continua NÃO sendo owner nem tendo o grant.
         conn.execute(
             sql.SQL(
-                "GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES ON TABLE public.order_items TO {}"
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.order_items TO {}"
             ).format(sql.Identifier(migration_role))
         )
         conn.execute(
@@ -385,6 +415,8 @@ def test_0042_passa_com_role_nao_owner_de_order_items(
     finally:
         bootstrap.close()
     _grant_migration_privileges(pg, database, migration_role=migration_role)
+    assert _order_items_owner(pg, database.name) == owner_role
+    assert _has_references(pg, database.name, migration_role) is False
 
     conn = pg.connect(migration_role, migration_password, dbname=database.name, autocommit=False)
     try:
@@ -402,7 +434,7 @@ def test_0042_passa_com_role_nao_owner_de_order_items(
     command.upgrade(config, "head")
 
     assert _pricing_columns(pg, database.name) == _PRICING_COLUMNS
-    assert _pricing_fk(pg, database.name) == ("order_items", "c")
+    assert _pricing_fk_count(pg, database.name) == 0
     _assert_old_item_preserved(pg, database.name)
 
     command.downgrade(config, "0041")

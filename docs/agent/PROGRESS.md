@@ -6,6 +6,16 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## Fix final da 0042: snapshot CNPJ sem FK/ownership/REFERENCES - 2026-11-02
+
+- **Causa:** o preflight do Render reportou que a role `forja` (mesma de `DATABASE_URL` e `DATABASE_ADMIN_URL`) nao tem `REFERENCES` em `order_items`; ela tambem nao e owner de `order_items`/`products`. Nao vamos depender de GRANT nem ownership.
+- **Mudanca:** a 0042 cria `order_item_pricing` com PK `order_item_id` (UUID, mesmo tipo de `order_items.id`) e colunas nullable de snapshot, **sem FK** e sem ALTER/INDEX em tabela existente. Integridade no codigo: item + snapshot na mesma transacao; leitura com `LEFT JOIN`; ausencia = "sem snapshot". Nenhum fluxo apaga `order_items` (cancelamento muda status); testes que limpam dados apagam `order_item_pricing` antes.
+- **Preflight:** nao exige mais `REFERENCES`; mantem o aviso de ownership de `products` e aborta apenas se faltar `CREATE` no schema `public` (necessario para criar a tabela nova).
+- **Migrations pendentes:** apenas a 0042. 0038-0040 ja aplicadas usam `add_column_if_owner`; 0041 cria tabela nova. Nenhuma pendente exige ownership/GRANT/FK em tabela existente.
+- **Testes:** `test_cnpj_migration.py` **2 passed** � do zero/populado/downgrade/reaplicar e role que nao e owner, nao tem `REFERENCES` nem SELECT nas tabelas existentes (o ALTER falha de proposito; a 0042 passa). CNPJ API **16 passed**; integracao direcionada **113 passed**; unit **1063 passed**; suite completa **1548 passed, 2 skipped, 1 deselected, 6 failed pre-existentes/cascata** (boundaries, downgrade 0039, drift users/user_preferences, `test_search_api` que passa isolado). `check_migration_ddl.py` exit 0. Frontend **314 passed**, lint 4 warnings pre-existentes, build OK.
+- **Docs:** `PRICING.md` (sem FK, motivo de permissao, integridade no codigo), `MIGRATIONS.md`, `DEPLOY_RENDER.md` e `PROGRESS.md` atualizados.
+- **NAO VALIDADO:** deploy real no Render e o `CREATE` da role `forja` em `public` (o preflight continua exigindo). A 0042 ainda nao foi aplicada em producao.
+
 ## Fix de ownership da 0042: snapshot CNPJ em tabela nova - 2026-11-02
 
 - **Causa:** o deploy no Render falhou em `ALTER TABLE order_items ADD COLUMN` com `InsufficientPrivilegeError: must be owner of table order_items`. A 0042 nunca foi aplicada em producao; a revisao permaneceu em 0041.

@@ -1,10 +1,12 @@
-"""Snapshot do desconto automatico CNPJ em tabela nova (sem ALTER em order_items).
+"""Snapshot do desconto automatico CNPJ em tabela nova (sem ALTER/FK em tabelas existentes).
 
-Em producao a role de migrations nao e owner de ``order_items``; portanto
-``ALTER TABLE order_items ADD COLUMN`` falha com InsufficientPrivilege. O
-snapshot vai para ``order_item_pricing`` (1:1, PK/FK, ON DELETE CASCADE), que e
-criada e pertence a role de migrations. ``order_items`` permanece intocado e o
-preco final continua em ``order_items.unit_price``.
+Em producao a role de migrations nao e owner de ``order_items`` nem tem
+REFERENCES nela; portanto ``ALTER TABLE ... ADD COLUMN`` e ``CREATE TABLE ...
+REFERENCES order_items`` falham. O snapshot vai para ``order_item_pricing``,
+criada pela propria role de migrations, apenas com PK ``order_item_id`` (mesmo
+tipo/UUID de ``order_items.id``) e colunas nullable. Nao ha FK para tabela
+existente: a integridade e garantida pelo codigo, que grava a linha na mesma
+transacao do item e le com LEFT JOIN.
 
 Pedidos antigos simplesmente nao tem linha em ``order_item_pricing``; o
 repositorio trata a ausencia como "sem snapshot". Nenhum dado e apagado.
@@ -43,12 +45,10 @@ def upgrade() -> None:
     # existente: a role de migrations e owner desta tabela recem-criada.
     op.create_table(
         _TABLE,
-        sa.Column(
-            "order_item_id",
-            sa.Uuid(),
-            sa.ForeignKey("order_items.id", ondelete="CASCADE"),
-            primary_key=True,
-        ),
+        # Sem ForeignKey: a role de producao nao e owner nem tem REFERENCES em
+        # order_items. O PK garante 1:1; a aplicacao grava/limpa na mesma
+        # transacao e trata ausencia como "sem snapshot".
+        sa.Column("order_item_id", sa.Uuid(), primary_key=True),
         sa.Column("list_unit_price", sa.Numeric(12, 2), nullable=True),
         sa.Column("list_line_total", sa.Numeric(14, 2), nullable=True),
         sa.Column("cnpj_discount_percent", sa.Numeric(5, 2), nullable=True),

@@ -198,18 +198,15 @@ class OrderItem(TimestampMixin, Base):
 class OrderItemPricing(Base):
     """Snapshot 1:1 do preco de tabela e do desconto CNPJ de um item.
 
-    Tabela separada para nao exigir ALTER em ``order_items`` (a role de
-    migrations nao e owner das tabelas pre-existentes em producao). Pedidos
-    antigos nao tem linha aqui: a ausencia significa "sem snapshot".
+    Tabela separada para nao exigir ALTER/FK em ``order_items`` (a role de
+    migrations no Render nao e owner nem tem REFERENCES nas tabelas
+    pre-existentes). O PK garante 1:1; o repositorio grava na mesma transacao
+    do item e a ausencia significa "sem snapshot" para pedidos antigos.
     """
 
     __tablename__ = "order_item_pricing"
 
-    order_item_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid,
-        ForeignKey("order_items.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
+    order_item_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
     list_unit_price: Mapped[Decimal | None] = mapped_column(unit_money())
     list_line_total: Mapped[Decimal | None] = mapped_column(aggregate_money())
     cnpj_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))

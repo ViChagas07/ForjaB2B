@@ -84,6 +84,11 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
             conn.execute("DELETE FROM payment_events WHERE company_id = %s", (company_id,))
             conn.execute("DELETE FROM payments WHERE company_id = %s", (company_id,))
             conn.execute("DELETE FROM coupon_redemptions WHERE company_id = %s", (company_id,))
+            conn.execute(
+                "DELETE FROM order_item_pricing WHERE order_item_id IN "
+                "(SELECT id FROM order_items WHERE company_id = %s)",
+                (company_id,),
+            )
             conn.execute("DELETE FROM order_items WHERE company_id = %s", (company_id,))
             conn.execute("DELETE FROM orders WHERE company_id = %s", (company_id,))
         conn.commit()
@@ -131,9 +136,19 @@ def cnpj_seed(pg: PostgresInstance, migrated_domain_schema: None) -> Iterator[No
         conn.execute("DELETE FROM coupons WHERE code = 'CNPJ10'")
         conn.execute("DELETE FROM payment_events WHERE company_id = %s", (_CNPJ_COMPANY,))
         conn.execute("DELETE FROM payments WHERE company_id = %s", (_CNPJ_COMPANY,))
+        conn.execute(
+            "DELETE FROM order_item_pricing WHERE order_item_id IN "
+            "(SELECT id FROM order_items WHERE company_id = %s)",
+            (_CNPJ_COMPANY,),
+        )
         conn.execute("DELETE FROM order_items WHERE company_id = %s", (_CNPJ_COMPANY,))
         conn.execute("DELETE FROM orders WHERE company_id = %s", (_CNPJ_COMPANY,))
         conn.execute("DELETE FROM carts WHERE company_id = %s", (_CNPJ_COMPANY,))
+        conn.execute(
+            "DELETE FROM order_item_pricing WHERE order_item_id IN "
+            "(SELECT id FROM order_items WHERE company_id = %s)",
+            (_PERSON_COMPANY,),
+        )
         conn.execute("DELETE FROM order_items WHERE company_id = %s", (_PERSON_COMPANY,))
         conn.execute("DELETE FROM orders WHERE company_id = %s", (_PERSON_COMPANY,))
         conn.execute("DELETE FROM carts WHERE company_id = %s", (_PERSON_COMPANY,))

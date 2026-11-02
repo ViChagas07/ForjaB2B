@@ -75,6 +75,11 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
                 (member_id, company_id, buyer_id),
             )
             conn.execute("DELETE FROM invoices WHERE company_id = %s", (company_id,))
+            conn.execute(
+                "DELETE FROM order_item_pricing WHERE order_item_id IN "
+                "(SELECT id FROM order_items WHERE company_id = %s)",
+                (company_id,),
+            )
             conn.execute("DELETE FROM order_items WHERE company_id = %s", (company_id,))
             conn.execute("DELETE FROM orders WHERE company_id = %s", (company_id,))
             conn.execute("DELETE FROM credit_entries WHERE company_id = %s", (company_id,))

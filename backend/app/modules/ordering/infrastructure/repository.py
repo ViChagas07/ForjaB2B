@@ -522,6 +522,9 @@ class SqlAlchemyOrderingRepository:
                     },
                 )
             ).scalar_one()
+            # Sem FK (producao nao tem ownership/REFERENCES): o snapshot e
+            # gravado na MESMA transacao. Se um fluxo futuro apagar o item,
+            # apague tambem esta linha antes/depois, na mesma transacao.
             list_line_total = item.list_unit_price * item.quantity
             await uow.session.execute(
                 _INSERT_ITEM_PRICING,

@@ -41,20 +41,24 @@ O tipo de conta é lido do banco no carrinho/pedido (`companies.account_type`). 
 
 ## Snapshot do pedido
 
-O snapshot fica em uma tabela nova, `order_item_pricing`, com relação 1:1 e `ON DELETE CASCADE` para `order_items`:
+O snapshot fica em uma tabela nova, `order_item_pricing`, com relação 1:1 **lógica** (PK em `order_item_id`), sem FK para tabelas existentes:
 
-- `order_item_id` — PK e FK para `order_items`;
+- `order_item_id` — PK, mesmo UUID de `order_items.id` (sem FK);
 - `list_unit_price` — preço de tabela antes do CNPJ;
 - `list_line_total` — preço de tabela × quantidade;
 - `cnpj_discount_percent` — 15.00 ou 30.00;
 - `cnpj_discount_band` — 15 ou 30;
 - `cnpj_discount_amount` — economia CNPJ da linha.
 
-`order_items.unit_price` continua sendo o preço final e **não** foi alterado. A migration `0042_order_item_cnpj_discount` apenas cria a tabela nova (e suas policies RLS); não executa `ALTER TABLE` em nenhuma tabela existente.
+`order_items.unit_price` continua sendo o preço final e **não** foi alterado. A migration `0042_order_item_cnpj_discount` apenas cria a tabela nova (e suas policies RLS); não executa `ALTER TABLE` em nenhuma tabela existente e não cria FK para tabela existente.
 
-Motivo: em produção a role de migrations não é owner de `order_items` e `ALTER TABLE ... ADD COLUMN` falha com `InsufficientPrivilegeError`. Criar uma tabela nova não depende desse ownership. A role de migrations precisa apenas de `CREATE` no schema e `REFERENCES` em `order_items` para a FK — privilégios normais, não ownership.
+Motivo: em produção a role `forja` não é owner de `order_items`/`products` e não tem `REFERENCES` nelas; `ALTER TABLE ... ADD COLUMN` e `CREATE TABLE ... REFERENCES order_items` falham com `InsufficientPrivilegeError`. Criar uma tabela nova não depende de ownership, GRANT ou FK. A integridade é garantida pelo código:
 
-Pedidos antigos não têm linha em `order_item_pricing`; o repositório lê com `LEFT JOIN` e trata a ausência como "sem snapshot". Mudanças futuras de regra não recalculam pedidos existentes.
+- o repositório grava o item e a linha de `order_item_pricing` na **mesma transação**;
+- a leitura usa `LEFT JOIN` e trata a ausência como "sem snapshot" (pedidos antigos);
+- nenhum fluxo da aplicação apaga `order_items` (cancelamento muda o status do pedido; retenção/fiscalização preservam o histórico). Se um fluxo futuro apagar itens, ele deve apagar também `order_item_pricing` na mesma transação. Os testes de integração que limpam dados apagam o snapshot antes dos itens.
+
+Mudanças futuras de regra não recalculam pedidos existentes.
 
 ## Banco local que aplicou a 0042 antiga
 
@@ -75,4 +79,4 @@ Em produção não há nada a limpar: o deploy falhou antes de aplicar a 0042, e
 
 - `backend/tests/unit/test_cnpj_discount.py` — faixas 1/29/30/31, 10+20, 30+10, duplicatas, arredondamento, cupom/recovery, total não negativo, payload adulterado e cobrança BRL.
 - `backend/tests/integration/test_cnpj_discount_api.py` — fluxo HTTP real CNPJ x CPF, carrinho, preview, pagamento e snapshot.
-- `backend/tests/integration/test_cnpj_migration.py` — migration 0042 do zero, banco populado, downgrade, re-upgrade e execução com role que não é owner de `order_items` (mas tem `REFERENCES`).
+- `backend/tests/integration/test_cnpj_migration.py` — migration 0042 do zero, banco populado, downgrade, re-upgrade e execução com role que não é owner e **não tem `REFERENCES`** em `order_items`.
