@@ -78,7 +78,7 @@ function DeliveryRoute({ order }: DeliveryRouteProps) {
     );
   }
 
-  const stage = deliveryStage(order.status);
+  const stage = order.status === "RECEIVED" ? 3 : deliveryStage(order.status);
   const stopped = isCancelledStatus(order.status);
 
   return (
