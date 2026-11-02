@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { getTranslations } from "next-intl/server";
 
 import { SiteFooter } from "@/shared/components/site-footer";
@@ -8,6 +8,11 @@ import { SettingsClient } from "./settings-client";
 interface SettingsPageProps {
   params: { locale: string };
 }
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export async function generateMetadata({ params }: SettingsPageProps): Promise<Metadata> {
   const t = await getTranslations({ locale: params.locale });

@@ -92,7 +92,7 @@ export function SettingsClient() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
-      <nav aria-label={t("navLabel")} className="lg:sticky lg:top-24 lg:self-start">
+      <nav aria-label={t("navLabel")} className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
           {t("title")}
         </p>
