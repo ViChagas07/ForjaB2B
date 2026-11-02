@@ -11,9 +11,11 @@ Uso (a partir de ``backend/``):
     DATABASE_ADMIN_URL=postgresql://forja_admin:...@host/db?sslmode=require \
         python scripts/predeploy.py
 
-A credencial deve ser a role de migracao (``forja_admin`` em producao), owner
-das tabelas. A role de runtime (``forja_app``) nao tem privilegio de DDL. O
-script nunca imprime a URL nem a senha.
+A credencial deve ser a role de migracao (``forja_admin`` em producao), com
+CREATE no schema ``public``. Ela nao precisa ser owner das tabelas
+pre-existentes; para a 0042 precisa também de ``REFERENCES`` em
+``order_items`` (FK da tabela nova). A role de runtime (``forja_app``) nao tem
+privilegio de DDL. O script nunca imprime a URL nem a senha.
 """
 
 from __future__ import annotations
@@ -55,7 +57,15 @@ _PREFLIGHT_QUERY = text(
             ),
             true
         ) AS can_act_as_owner,
-        has_schema_privilege(current_user, 'public', 'CREATE') AS can_create
+        has_schema_privilege(current_user, 'public', 'CREATE') AS can_create,
+        to_regclass('public.order_items') IS NOT NULL AS has_order_items,
+        COALESCE(
+            (
+                SELECT has_table_privilege(current_user, 'public.order_items', 'REFERENCES')
+                WHERE to_regclass('public.order_items') IS NOT NULL
+            ),
+            true
+        ) AS can_reference_order_items
     """
 )
 
@@ -121,7 +131,17 @@ async def _preflight(url: str) -> dict[str, object]:
             f"O usuario {row['role']!r} nao tem CREATE no schema public. "
             "Use uma role com DDL/ownership."
         )
-    return {"role": row["role"], "has_products": row["has_products"]}
+    if row["has_order_items"] and not row["can_reference_order_items"]:
+        raise PreDeployError(
+            f"O usuario {row['role']!r} nao tem REFERENCES em public.order_items. "
+            "A 0042 cria a FK de order_item_pricing; o owner da tabela precisa "
+            "executar: GRANT REFERENCES ON public.order_items TO <role>."
+        )
+    return {
+        "role": row["role"],
+        "has_products": row["has_products"],
+        "has_order_items": row["has_order_items"],
+    }
 
 
 def _config() -> Config:
@@ -163,12 +183,11 @@ def main() -> int:
 
     result = asyncio.run(check_schema_current_from_url(url))
     if result.has_technical_failure:
-        raise PreDeployError(
-            f"Falha tecnica ao verificar revisao apos upgrade: {result.error}"
-        )
+        raise PreDeployError(f"Falha tecnica ao verificar revisao apos upgrade: {result.error}")
     if result.has_drift:
         raise PreDeployError(
-            f"Migration nao atingiu o head: banco em {result.current_revision!r}, esperado {result.head_revision!r}."
+            "Migration nao atingiu o head: banco em "
+            f"{result.current_revision!r}, esperado {result.head_revision!r}."
         )
     print(f"[predeploy] migrations at head: {result.current_revision}", flush=True)
     return 0

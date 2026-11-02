@@ -13,7 +13,10 @@ falhar, o deploy é abortado. Configure no serviço da API:
 
 1. **Settings → Pre-Deploy Command:** `python scripts/predeploy.py`
 2. **Environment:** `DATABASE_ADMIN_URL` com a URL da role de migrations (`forja_admin`),
-   nunca a role de runtime (`forja_app`). Marque como secret.
+   nunca a role de runtime (`forja_app`). Marque como secret. A role não precisa
+   ser owner das tabelas pré-existentes, mas precisa de `CREATE` no schema
+   `public` e de `REFERENCES` em `order_items` para a FK da migration 0042
+   (`order_item_pricing`); o predeploy falha com mensagem clara se faltar.
 3. O script valida `CREATE` em `public`, aplica `alembic upgrade head`, confere que a
    revisão atual é o head e só então retorna 0. Ownership de tabelas existentes é
    verificado pelo próprio Alembic (transacional): se a role não puder alterar, o erro

@@ -1,8 +1,83 @@
 """Testes do script de pre-deploy (migrations no Render)."""
 
+import asyncio
+from typing import Any
+
 import pytest
 
-from scripts.predeploy import PreDeployError, _admin_url
+from scripts import predeploy
+from scripts.predeploy import PreDeployError, _admin_url, _preflight
+
+
+class _FakeMappings:
+    def __init__(self, row: dict[str, Any]) -> None:
+        self._row = row
+
+    def one(self) -> dict[str, Any]:
+        return self._row
+
+
+class _FakeResult:
+    def __init__(self, row: dict[str, Any]) -> None:
+        self._row = row
+
+    def mappings(self) -> _FakeMappings:
+        return _FakeMappings(self._row)
+
+
+class _FakeConnection:
+    def __init__(self, row: dict[str, Any]) -> None:
+        self._row = row
+
+    async def execute(self, _statement: object) -> _FakeResult:
+        return _FakeResult(self._row)
+
+    async def __aenter__(self) -> "_FakeConnection":
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+
+class _FakeEngine:
+    def __init__(self, row: dict[str, Any]) -> None:
+        self._row = row
+
+    def connect(self) -> _FakeConnection:
+        return _FakeConnection(self._row)
+
+    async def dispose(self) -> None:
+        return None
+
+
+def _preflight_row(**overrides: Any) -> dict[str, Any]:
+    row = {
+        "role": "forja",
+        "has_products": True,
+        "can_act_as_owner": True,
+        "can_create": True,
+        "has_order_items": True,
+        "can_reference_order_items": True,
+    }
+    row.update(overrides)
+    return row
+
+
+def test_preflight_exige_references_em_order_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    row = _preflight_row(can_reference_order_items=False)
+    monkeypatch.setattr(predeploy, "create_async_engine", lambda _url: _FakeEngine(row))
+    with pytest.raises(PreDeployError, match=r"REFERENCES em public\.order_items"):
+        asyncio.run(_preflight("postgresql+asyncpg://forja:secret@localhost/db"))
+
+
+def test_preflight_aceita_references(monkeypatch: pytest.MonkeyPatch) -> None:
+    row = _preflight_row()
+    monkeypatch.setattr(predeploy, "create_async_engine", lambda _url: _FakeEngine(row))
+    result = asyncio.run(_preflight("postgresql+asyncpg://forja:secret@localhost/db"))
+    assert result["role"] == "forja"
+    assert result["has_order_items"] is True
 
 
 def test_admin_url_exige_variavel_de_ambiente(monkeypatch: pytest.MonkeyPatch) -> None:

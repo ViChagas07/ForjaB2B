@@ -1,8 +1,9 @@
 """Mapeadores ORM do contexto de pedidos (Order, OrderItem).
 
 O pedido preserva o estado financeiro no momento da compra: ``order_items``
-carrega snapshot de sku, nome, preco unitario, tier e impostos. O historico
-nao depende de consultar o preco atual do produto.
+carrega snapshot de sku, nome, preco unitario, tier e impostos, e
+``order_item_pricing`` guarda 1:1 o preco de tabela e o desconto CNPJ. O
+historico nao depende de consultar o preco atual do produto.
 """
 
 from __future__ import annotations
@@ -172,13 +173,10 @@ class OrderItem(TimestampMixin, Base):
     sku: Mapped[str] = mapped_column(String(64), nullable=False)
     product_name: Mapped[str] = mapped_column(String(200), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    # unit_price e o preco final (com desconto CNPJ); list_unit_price e o preco
-    # de tabela (empresa/tier) que serviu de base antes do desconto.
+    # unit_price e o preco final (com desconto CNPJ). O snapshot da tabela e do
+    # desconto CNPJ fica em order_item_pricing (1:1), sem ALTER nesta tabela.
     unit_price: Mapped[Decimal] = mapped_column(unit_money(), nullable=False)
     base_unit_price: Mapped[Decimal | None] = mapped_column(unit_money())
-    list_unit_price: Mapped[Decimal | None] = mapped_column(unit_money())
-    cnpj_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
-    cnpj_discount_band: Mapped[int | None] = mapped_column(SmallInteger)
     discount_amount: Mapped[Decimal] = mapped_column(
         unit_money(), nullable=False, server_default=text("0")
     )
@@ -195,3 +193,25 @@ class OrderItem(TimestampMixin, Base):
     company: Mapped[Company] = relationship()
     product: Mapped[Product] = relationship(back_populates="order_items")
     price_tier: Mapped[ProductPriceTier | None] = relationship(back_populates="order_items")
+
+
+class OrderItemPricing(Base):
+    """Snapshot 1:1 do preco de tabela e do desconto CNPJ de um item.
+
+    Tabela separada para nao exigir ALTER em ``order_items`` (a role de
+    migrations nao e owner das tabelas pre-existentes em producao). Pedidos
+    antigos nao tem linha aqui: a ausencia significa "sem snapshot".
+    """
+
+    __tablename__ = "order_item_pricing"
+
+    order_item_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid,
+        ForeignKey("order_items.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    list_unit_price: Mapped[Decimal | None] = mapped_column(unit_money())
+    list_line_total: Mapped[Decimal | None] = mapped_column(aggregate_money())
+    cnpj_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    cnpj_discount_band: Mapped[int | None] = mapped_column(SmallInteger)
+    cnpj_discount_amount: Mapped[Decimal | None] = mapped_column(aggregate_money())

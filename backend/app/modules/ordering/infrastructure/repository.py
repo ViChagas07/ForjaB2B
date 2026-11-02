@@ -114,12 +114,17 @@ _INSERT_COUPON_REDEMPTION = text(
 )
 _INSERT_ITEM = text(
     "INSERT INTO order_items (order_id, company_id, product_id, price_tier_id, sku, "
-    "product_name, quantity, unit_price, base_unit_price, list_unit_price, "
-    "cnpj_discount_percent, cnpj_discount_band, tier_min_quantity, "
+    "product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
     "line_total, content_locale) VALUES (:order_id, :company_id, :product_id, "
     ":price_tier_id, :sku, :product_name, :quantity, :unit_price, "
-    ":base_unit_price, :list_unit_price, :cnpj_discount_percent, "
-    ":cnpj_discount_band, :tier_min_quantity, :line_total, :content_locale)"
+    ":base_unit_price, :tier_min_quantity, :line_total, :content_locale) "
+    "RETURNING id"
+)
+_INSERT_ITEM_PRICING = text(
+    "INSERT INTO order_item_pricing (order_item_id, list_unit_price, list_line_total, "
+    "cnpj_discount_percent, cnpj_discount_band, cnpj_discount_amount) "
+    "VALUES (:order_item_id, :list_unit_price, :list_line_total, "
+    ":cnpj_discount_percent, :cnpj_discount_band, :cnpj_discount_amount)"
 )
 _INSERT_CREDIT = text(
     "INSERT INTO credit_entries (credit_account_id, company_id, entry_type, amount, "
@@ -133,16 +138,20 @@ _SELECT_ORDER = text(
     "FROM orders WHERE id = :order_id AND company_id = :company_id"
 )
 _SELECT_ORDER_ITEMS = text(
-    "SELECT sku, product_name, quantity, unit_price, base_unit_price, list_unit_price, "
-    "cnpj_discount_percent, cnpj_discount_band, tier_min_quantity, "
-    "line_total, content_locale FROM order_items WHERE order_id = :order_id "
-    "ORDER BY created_at, id"
+    "SELECT oi.sku, oi.product_name, oi.quantity, oi.unit_price, oi.base_unit_price, "
+    "oip.list_unit_price, oip.list_line_total, oip.cnpj_discount_percent, "
+    "oip.cnpj_discount_band, oip.cnpj_discount_amount, oi.tier_min_quantity, "
+    "oi.line_total, oi.content_locale FROM order_items oi "
+    "LEFT JOIN order_item_pricing oip ON oip.order_item_id = oi.id "
+    "WHERE oi.order_id = :order_id ORDER BY oi.created_at, oi.id"
 )
 _SELECT_ORDER_ITEMS_BY_IDS = text(
-    "SELECT order_id, sku, product_name, quantity, unit_price, base_unit_price, "
-    "list_unit_price, cnpj_discount_percent, cnpj_discount_band, "
-    "tier_min_quantity, line_total, content_locale FROM order_items "
-    "WHERE order_id IN :order_ids ORDER BY created_at, id"
+    "SELECT oi.order_id, oi.sku, oi.product_name, oi.quantity, oi.unit_price, "
+    "oi.base_unit_price, oip.list_unit_price, oip.list_line_total, "
+    "oip.cnpj_discount_percent, oip.cnpj_discount_band, oip.cnpj_discount_amount, "
+    "oi.tier_min_quantity, oi.line_total, oi.content_locale FROM order_items oi "
+    "LEFT JOIN order_item_pricing oip ON oip.order_item_id = oi.id "
+    "WHERE oi.order_id IN :order_ids ORDER BY oi.created_at, oi.id"
 ).bindparams(bindparam("order_ids", expanding=True))
 _SELECT_CUSTOMER_SPEND = text(
     "SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS orders_count "
@@ -494,24 +503,35 @@ class SqlAlchemyOrderingRepository:
         content_locale: str,
     ) -> None:
         for item in items:
+            order_item_id = (
+                await uow.session.execute(
+                    _INSERT_ITEM,
+                    {
+                        "order_id": order_id,
+                        "company_id": company_id,
+                        "product_id": item.product_id,
+                        "price_tier_id": item.price_tier_id,
+                        "sku": item.sku,
+                        "product_name": item.name,
+                        "quantity": item.quantity,
+                        "unit_price": item.unit_price,
+                        "base_unit_price": item.base_unit_price,
+                        "tier_min_quantity": item.tier_min_quantity,
+                        "line_total": item.line_total,
+                        "content_locale": content_locale,
+                    },
+                )
+            ).scalar_one()
+            list_line_total = item.list_unit_price * item.quantity
             await uow.session.execute(
-                _INSERT_ITEM,
+                _INSERT_ITEM_PRICING,
                 {
-                    "order_id": order_id,
-                    "company_id": company_id,
-                    "product_id": item.product_id,
-                    "price_tier_id": item.price_tier_id,
-                    "sku": item.sku,
-                    "product_name": item.name,
-                    "quantity": item.quantity,
-                    "unit_price": item.unit_price,
-                    "base_unit_price": item.base_unit_price,
+                    "order_item_id": order_item_id,
                     "list_unit_price": item.list_unit_price,
+                    "list_line_total": list_line_total,
                     "cnpj_discount_percent": item.cnpj_discount_percent,
                     "cnpj_discount_band": item.cnpj_discount_band,
-                    "tier_min_quantity": item.tier_min_quantity,
-                    "line_total": item.line_total,
-                    "content_locale": content_locale,
+                    "cnpj_discount_amount": list_line_total - item.line_total,
                 },
             )
 
@@ -773,8 +793,12 @@ class SqlAlchemyOrderingRepository:
 
 
 def _order_item_view(item: Any) -> OrderItemView:
-    list_price = item.list_unit_price if item.list_unit_price is not None else item.unit_price
-    list_line_total = list_price * item.quantity
+    list_line_total = item.list_line_total
+    if list_line_total is None and item.list_unit_price is not None:
+        list_line_total = item.list_unit_price * item.quantity
+    cnpj_discount_amount = item.cnpj_discount_amount
+    if cnpj_discount_amount is None and list_line_total is not None:
+        cnpj_discount_amount = list_line_total - item.line_total
     return OrderItemView(
         sku=item.sku,
         product_name=item.product_name,
@@ -788,7 +812,7 @@ def _order_item_view(item: Any) -> OrderItemView:
         line_total=item.line_total,
         content_locale=item.content_locale or DEFAULT_LOCALE,
         list_line_total=list_line_total,
-        cnpj_discount_amount=list_line_total - item.line_total,
+        cnpj_discount_amount=cnpj_discount_amount,
     )
 
 

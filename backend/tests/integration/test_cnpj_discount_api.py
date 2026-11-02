@@ -449,6 +449,47 @@ async def test_pedido_cpf_nao_recebe_desconto(
     assert item["cnpj_discount_band"] is None
 
 
+async def test_pedido_antigo_sem_snapshot_continua_legivel(
+    cnpj_api: tuple[httpx.AsyncClient, httpx.AsyncClient],
+    pg: PostgresInstance,
+) -> None:
+    cnpj_client, _ = cnpj_api
+    order_id = uuid.uuid4()
+    item_id = uuid.uuid4()
+    conn = pg.connect_admin(autocommit=False)
+    try:
+        conn.execute("SELECT app.set_tenant_context(%s, NULL)", (_CNPJ_COMPANY,))
+        conn.execute(
+            "INSERT INTO orders (id, company_id, buyer_user_id, subtotal, total) "
+            "VALUES (%s, %s, %s, 100.00, 100.00)",
+            (order_id, _CNPJ_COMPANY, _CNPJ_USER),
+        )
+        conn.execute(
+            "INSERT INTO order_items (id, order_id, company_id, product_id, sku, "
+            "product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
+            "line_total) VALUES (%s, %s, %s, %s, 'LEGACY-1', 'Item Legado', "
+            "1, 100.00, 100.00, 1, 100.00)",
+            (item_id, order_id, _CNPJ_COMPANY, _PRODUCT_A),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    response = await cnpj_client.get(f"/api/v1/orders/{order_id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["subtotal"] == "100.00"
+    assert body["cnpj_discount_total"] == "0.00"
+    item = body["items"][0]
+    assert item["unit_price"] == "100.00"
+    assert item["line_total"] == "100.00"
+    assert item["list_unit_price"] is None
+    assert item["list_line_total"] is None
+    assert item["cnpj_discount_percent"] is None
+    assert item["cnpj_discount_band"] is None
+    assert item["cnpj_discount_amount"] is None
+
+
 async def test_pagamento_usa_total_final_do_servidor(
     cnpj_api: tuple[httpx.AsyncClient, httpx.AsyncClient],
 ) -> None:

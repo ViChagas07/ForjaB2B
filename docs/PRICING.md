@@ -41,16 +41,38 @@ O tipo de conta é lido do banco no carrinho/pedido (`companies.account_type`). 
 
 ## Snapshot do pedido
 
-A migration `0042_order_item_cnpj_discount` adiciona em `order_items`, de forma nullable e sem backfill:
+O snapshot fica em uma tabela nova, `order_item_pricing`, com relação 1:1 e `ON DELETE CASCADE` para `order_items`:
 
+- `order_item_id` — PK e FK para `order_items`;
 - `list_unit_price` — preço de tabela antes do CNPJ;
+- `list_line_total` — preço de tabela × quantidade;
 - `cnpj_discount_percent` — 15.00 ou 30.00;
-- `cnpj_discount_band` — 15 ou 30.
+- `cnpj_discount_band` — 15 ou 30;
+- `cnpj_discount_amount` — economia CNPJ da linha.
 
-`unit_price` continua sendo o preço final da linha. Pedidos antigos ficam com `NULL` e não são alterados. Mudanças futuras de regra não recalculam pedidos existentes.
+`order_items.unit_price` continua sendo o preço final e **não** foi alterado. A migration `0042_order_item_cnpj_discount` apenas cria a tabela nova (e suas policies RLS); não executa `ALTER TABLE` em nenhuma tabela existente.
+
+Motivo: em produção a role de migrations não é owner de `order_items` e `ALTER TABLE ... ADD COLUMN` falha com `InsufficientPrivilegeError`. Criar uma tabela nova não depende desse ownership. A role de migrations precisa apenas de `CREATE` no schema e `REFERENCES` em `order_items` para a FK — privilégios normais, não ownership.
+
+Pedidos antigos não têm linha em `order_item_pricing`; o repositório lê com `LEFT JOIN` e trata a ausência como "sem snapshot". Mudanças futuras de regra não recalculam pedidos existentes.
+
+## Banco local que aplicou a 0042 antiga
+
+A 0042 antiga adicionava colunas em `order_items`; ela nunca foi aplicada em produção, mas pode existir em um banco local/dev. Para migrar para o formato novo:
+
+1. Antes de puxar o código novo, rode `alembic downgrade 0041` (com a migration antiga) para remover as colunas. O `downgrade` antigo fazia exatamente isso.
+2. Atualize o código e rode `alembic upgrade head`; a 0042 nova cria `order_item_pricing`.
+
+Se o código novo já foi baixado e o banco está em 0042 com as colunas antigas:
+
+1. `alembic downgrade 0041` remove a tabela `order_item_pricing` (que talvez nem exista), mas **não** remove as colunas antigas.
+2. Como owner do banco local, remova manualmente as colunas antigas de `order_items` (`list_unit_price`, `cnpj_discount_percent`, `cnpj_discount_band`) ou restaure o backup anterior.
+3. Confirme `alembic_version = 0041`, rode `alembic upgrade head` e `alembic check`.
+
+Em produção não há nada a limpar: o deploy falhou antes de aplicar a 0042, então a revisão permanece em 0041.
 
 ## Testes de referência
 
 - `backend/tests/unit/test_cnpj_discount.py` — faixas 1/29/30/31, 10+20, 30+10, duplicatas, arredondamento, cupom/recovery, total não negativo, payload adulterado e cobrança BRL.
 - `backend/tests/integration/test_cnpj_discount_api.py` — fluxo HTTP real CNPJ x CPF, carrinho, preview, pagamento e snapshot.
-- `backend/tests/integration/test_cnpj_migration.py` — migration 0042 do zero, banco populado, downgrade e re-upgrade sem perda de dados.
+- `backend/tests/integration/test_cnpj_migration.py` — migration 0042 do zero, banco populado, downgrade, re-upgrade e execução com role que não é owner de `order_items` (mas tem `REFERENCES`).

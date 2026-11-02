@@ -18,6 +18,17 @@
   irreversivel nao estiver documentada.
 - Migrations rodam com `forja_admin` (`DATABASE_ADMIN_URL`). O runtime
   (`forja_app`) nunca executa DDL.
+- Em produção a role de migrations pode **não ser owner** de tabelas
+  pré-existentes. Por isso, uma migration nova não deve fazer `ALTER TABLE` /
+  `DROP` nelas; quando precisa guardar dados novos, crie uma tabela nova
+  (owner = role de migrations). A 0042 segue esse padrão: o snapshot do
+  desconto CNPJ fica em `order_item_pricing` (PK/FK 1:1 para `order_items`,
+  `ON DELETE CASCADE`), sem alterar `order_items`. A FK exige `REFERENCES` em
+  `order_items` (privilégio normal, não ownership); o preflight do Render deve
+  confirmar esse grant.
+- Banco local que aplicou a 0042 antiga (colunas em `order_items`): veja o
+  procedimento em `docs/PRICING.md` (downgrade para 0041 antes de puxar o
+  código novo, ou limpeza manual + `alembic upgrade head`).
 
 ## 2. Inventario (revisao 0022)
 

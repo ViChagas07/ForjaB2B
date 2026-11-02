@@ -6,6 +6,15 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## Fix de ownership da 0042: snapshot CNPJ em tabela nova - 2026-11-02
+
+- **Causa:** o deploy no Render falhou em `ALTER TABLE order_items ADD COLUMN` com `InsufficientPrivilegeError: must be owner of table order_items`. A 0042 nunca foi aplicada em producao; a revisao permaneceu em 0041.
+- **Mudanca:** a 0042 agora so faz `CREATE TABLE order_item_pricing` (PK `order_item_id` + FK 1:1 `ON DELETE CASCADE` para `order_items`), colunas nullable `list_unit_price`, `list_line_total`, `cnpj_discount_percent`, `cnpj_discount_band`, `cnpj_discount_amount`, RLS por tenant via EXISTS em `order_items`/`orders` e grant de DML ao `forja_app`. Nenhum ALTER/DROP em tabela existente; `order_items.unit_price` continua sendo o preco final. Modelo `OrderItemPricing` novo; o repositorio insere a linha apos o item e le com `LEFT JOIN` (pedido antigo sem linha = "sem snapshot", campos nulos).
+- **Migrations pendentes revisadas:** apenas a 0042 estava pendente. 0038-0040 ja foram aplicadas e usam `add_column_if_owner`; 0041 cria `user_preferences` (tabela nova). Nenhuma outra pendente faz ALTER/DROP em tabela existente.
+- **Testes:** `test_cnpj_migration.py` reescrito (do zero, populado, downgrade, reaplicar) **2 passed**, incluindo role que nao e owner de `order_items` e tem apenas `REFERENCES` (o ALTER falha de proposito; a 0042 passa). Integracao direcionada **97 passed**; unit **1063 passed** (2 novos de predeploy); suite completa **1548 passed, 2 skipped, 1 deselected, 5 failed + 1 error pre-existentes/cascata** (boundaries, downgrade 0039, drift de users/user_preferences; `test_search_api` isolado passa). `check_migration_ddl.py` exit 0. Frontend **314 passed**, lint 4 warnings pre-existentes, build OK.
+- **Docs:** `docs/PRICING.md` atualizado (tabela nova, motivo de ownership, como resolver banco local com a 0042 antiga); `docs/MIGRATIONS.md` ganhou a regra de nao alterar tabelas existentes e o caso 0042.
+- **NAO VALIDADO:** grants reais do Render (a migration exige `REFERENCES` em `order_items`, privilegio normal, nao ownership); deploy real nao executado. Banco local com 0042 antiga precisa de downgrade/limpeza conforme `docs/PRICING.md`.
+
 ## Fechamento e validacao ponta a ponta do desconto CNPJ - 2026-11-02
 
 - **E2E real (FastAPI + PostgreSQL):** `test_cnpj_discount_api.py` valida CNPJ 10 luvas + 20 oculos (ambos 15%), 30 luvas + 10 oculos (30%/15%), 29/30 unidades, CPF sem desconto, preview de checkout igual ao subtotal do carrinho, snapshot por item e pagamento. `test_cnpj_migration.py` roda Alembic do zero em database novo, popula a revisao 0041, aplica 0042 sem perder dados, faz downgrade e reaplica.

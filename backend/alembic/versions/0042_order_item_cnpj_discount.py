@@ -1,9 +1,13 @@
-"""Snapshot do desconto automatico CNPJ nos itens do pedido.
+"""Snapshot do desconto automatico CNPJ em tabela nova (sem ALTER em order_items).
 
-Adiciona colunas nullable em ``order_items`` para preservar o calculo aplicado
-no momento da compra: preco de tabela (antes do CNPJ), percentual, faixa
-(15/30) e o preco final continua em ``unit_price``. Pedidos antigos ficam com
-NULL (sem desconto CNPJ registrado) e nao sao alterados. Nenhum dado e apagado.
+Em producao a role de migrations nao e owner de ``order_items``; portanto
+``ALTER TABLE order_items ADD COLUMN`` falha com InsufficientPrivilege. O
+snapshot vai para ``order_item_pricing`` (1:1, PK/FK, ON DELETE CASCADE), que e
+criada e pertence a role de migrations. ``order_items`` permanece intocado e o
+preco final continua em ``order_items.unit_price``.
+
+Pedidos antigos simplesmente nao tem linha em ``order_item_pricing``; o
+repositorio trata a ausencia como "sem snapshot". Nenhum dado e apagado.
 
 Revision ID: 0042
 Revises: 0041
@@ -21,23 +25,67 @@ down_revision: str | None = "0041"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+_TABLE = "order_item_pricing"
+
+
+def _tenant_visible() -> str:
+    """Expressao de tenant para a policy (o item pertence a um pedido da empresa)."""
+    return (
+        "EXISTS (SELECT 1 FROM order_items oi "
+        "JOIN orders o ON o.id = oi.order_id "
+        f"WHERE oi.id = {_TABLE}.order_item_id "
+        "AND o.company_id = app.current_company_id())"
+    )
+
 
 def upgrade() -> None:
-    op.add_column(
-        "order_items",
+    # Somente CREATE TABLE/INDEX e DDL na tabela NOVA. Nenhum ALTER em tabela
+    # existente: a role de migrations e owner desta tabela recem-criada.
+    op.create_table(
+        _TABLE,
+        sa.Column(
+            "order_item_id",
+            sa.Uuid(),
+            sa.ForeignKey("order_items.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
         sa.Column("list_unit_price", sa.Numeric(12, 2), nullable=True),
-    )
-    op.add_column(
-        "order_items",
+        sa.Column("list_line_total", sa.Numeric(14, 2), nullable=True),
         sa.Column("cnpj_discount_percent", sa.Numeric(5, 2), nullable=True),
-    )
-    op.add_column(
-        "order_items",
         sa.Column("cnpj_discount_band", sa.SmallInteger(), nullable=True),
+        sa.Column("cnpj_discount_amount", sa.Numeric(14, 2), nullable=True),
+    )
+
+    # RLS: o snapshot acompanha a visibilidade do item/pedido. A role de
+    # migrations e owner da tabela nova, entao pode habilitar/criar policies.
+    op.execute(f"ALTER TABLE {_TABLE} ENABLE ROW LEVEL SECURITY")
+    op.execute(f"ALTER TABLE {_TABLE} FORCE ROW LEVEL SECURITY")
+    visible = _tenant_visible()
+    op.execute(f"CREATE POLICY {_TABLE}_select ON {_TABLE} FOR SELECT USING ({visible})")
+    op.execute(f"CREATE POLICY {_TABLE}_insert ON {_TABLE} FOR INSERT WITH CHECK ({visible})")
+    op.execute(
+        f"CREATE POLICY {_TABLE}_update ON {_TABLE} FOR UPDATE "
+        f"USING ({visible}) WITH CHECK ({visible})"
+    )
+    op.execute(f"CREATE POLICY {_TABLE}_delete ON {_TABLE} FOR DELETE USING ({visible})")
+
+    # Garante DML ao runtime mesmo quando a role de migrations nao tem default
+    # privileges (cenario do Render). A tabela e nova e pertence a esta role.
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'forja_app') THEN
+                EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE
+                         ON order_item_pricing TO forja_app';
+            END IF;
+        END
+        $$;
+        """
     )
 
 
 def downgrade() -> None:
-    op.drop_column("order_items", "cnpj_discount_band")
-    op.drop_column("order_items", "cnpj_discount_percent")
-    op.drop_column("order_items", "list_unit_price")
+    # DROP TABLE remove a tabela, policies, grants e o indice da PK. Nenhum
+    # dado de order_items/orders e tocado.
+    op.drop_table(_TABLE)
