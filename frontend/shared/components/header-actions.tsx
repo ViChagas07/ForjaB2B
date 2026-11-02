@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   ChevronDown,
-  Files,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -29,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
+import { CatalogIcon } from "./catalog-icon";
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
 import { UserAvatar } from "./user-avatar";
@@ -162,7 +162,7 @@ export function HeaderActions() {
           <DropdownMenuItem asChild>
             <Link href="/catalog" className="flex w-full items-center justify-between gap-3">
               <span>{t("catalog.title")}</span>
-              <Files aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+              <CatalogIcon className="h-5 w-5 text-muted-foreground" />
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
