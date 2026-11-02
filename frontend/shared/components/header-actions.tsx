@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { Link, useRouter } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { AiChatWidget } from "@/features/ai-chat/ai-chat-widget";
 import { logout } from "@/shared/stores/auth-actions";
 import { useAuthStore } from "@/shared/stores/auth-store";
@@ -33,18 +33,38 @@ import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
 import { UserAvatar } from "./user-avatar";
 
-const iconButtonClass =
-  "text-white/70 hover:bg-white/10 hover:text-white focus-visible:ring-primary focus-visible:ring-offset-ink";
+const iconButtonClass = [
+  "relative text-white/70 hover:bg-white/10 hover:text-white",
+  "transition-all duration-200 ease-out hover:-translate-y-1",
+  "after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-200",
+  "hover:after:scale-x-100 focus-visible:after:scale-x-100",
+  "data-[state=open]:-translate-y-1 data-[state=open]:bg-white/10 data-[state=open]:text-white data-[state=open]:after:scale-x-100",
+  "focus-visible:ring-primary focus-visible:ring-offset-ink",
+  "motion-reduce:transform-none motion-reduce:transition-none",
+].join(" ");
+
+const cartLinkClass = [
+  "relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/70",
+  "transition-all duration-200 ease-out hover:-translate-y-1 hover:bg-white/10 hover:text-white",
+  "after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-200",
+  "hover:after:scale-x-100",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
+  "motion-reduce:transform-none motion-reduce:transition-none",
+].join(" ");
+
+const activeCartLinkClass = "-translate-y-1 bg-white/10 text-white after:scale-x-100";
 
 export function HeaderActions() {
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
   const status = useAuthStore((s) => s.status);
   const session = useAuthStore((s) => s.session);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = React.useState(false);
 
   const isAuthenticated = status === "authenticated" && Boolean(session);
+  const isCartActive = pathname === "/cart" || pathname.startsWith("/cart/");
 
   async function handleLogout() {
     setIsLoggingOut(true);
@@ -67,7 +87,8 @@ export function HeaderActions() {
       <Link
         href="/cart"
         aria-label={t("nav.cart")}
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+        aria-current={isCartActive ? "page" : undefined}
+        className={`${cartLinkClass} ${isCartActive ? activeCartLinkClass : ""}`}
       >
         <ShoppingCart aria-hidden="true" className="h-4 w-4" />
         {isAuthenticated ? (
