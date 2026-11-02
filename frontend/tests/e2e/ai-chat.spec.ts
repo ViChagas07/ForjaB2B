@@ -49,7 +49,7 @@ test("abre o widget pelo navbar, envia mensagem e mostra cartoes reais", async (
   await page.getByTestId("ai-chat-trigger").click();
   const panel = page.getByTestId("ai-chat-panel");
   await expect(panel).toBeVisible();
-  await expect(page.getByText(/assistente de IA/i)).toBeVisible();
+  await expect(page.getByText(/Seja bem-vindo ao ForjaB2B/i)).toBeVisible();
 
   const input = page.getByLabel(/Pergunte sobre produtos/i);
   await input.fill("capacete para soldador");
