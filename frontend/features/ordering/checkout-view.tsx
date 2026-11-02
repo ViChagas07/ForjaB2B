@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { CreditCard as CreditCardIcon, LockKeyhole, ShieldCheck } from "lucide-react";
-import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { Cart } from "@/core/domain/cart";
@@ -12,6 +11,7 @@ import type { PaymentMethod } from "@/core/domain/ordering";
 import { PAYMENT_METHODS } from "@/core/domain/ordering";
 import { Link } from "@/i18n/navigation";
 import { problemCode } from "@/infrastructure/http";
+import { PaymentMethodIcon } from "@/shared/components/payment-method-icon";
 import { ProductImage } from "@/shared/components/product-image";
 import { PriceDisplay } from "@/shared/components/price-display";
 import { RateDisclosure } from "@/shared/components/rate-disclosure";
@@ -155,9 +155,9 @@ export function CheckoutView({
     return t("ordering.boletoDescription");
   }
 
-  function methodIcon(method: PaymentMethod): string | null {
-    if (method === "PIX") return "/payment/pix.jpeg";
-    if (method === "CARD") return "/payment/credit-card.jpeg";
+  function methodIconVariant(method: PaymentMethod): "pix" | "card" | null {
+    if (method === "PIX") return "pix";
+    if (method === "CARD") return "card";
     return null;
   }
 
@@ -223,7 +223,7 @@ export function CheckoutView({
                   const selected = paymentMethod === method;
                   const label = methodLabel(method);
                   const description = methodDescription(method);
-                  const iconSrc = methodIcon(method);
+                  const iconVariant = methodIconVariant(method);
                   return (
                     <button
                       key={method}
@@ -250,15 +250,12 @@ export function CheckoutView({
                           {description}
                         </span>
                       </span>
-                      {iconSrc ? (
-                        <Image
-                          src={iconSrc}
-                          alt=""
-                          aria-hidden="true"
-                          width={40}
-                          height={40}
-                          unoptimized
-                          className="ms-3 h-10 w-10 shrink-0 rounded-lg object-contain"
+                      {iconVariant ? (
+                        <PaymentMethodIcon
+                          variant={iconVariant}
+                          className={`ms-3 h-6 w-6 shrink-0 ${
+                            selected ? "text-primary" : "text-muted-foreground"
+                          }`}
                         />
                       ) : null}
                     </button>
