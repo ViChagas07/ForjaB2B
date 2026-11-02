@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { CreditCard as CreditCardIcon, LockKeyhole, ShieldCheck } from "lucide-react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { Cart } from "@/core/domain/cart";
@@ -154,6 +155,12 @@ export function CheckoutView({
     return t("ordering.boletoDescription");
   }
 
+  function methodIcon(method: PaymentMethod): string | null {
+    if (method === "PIX") return "/payment/pix.jpeg";
+    if (method === "CARD") return "/payment/credit-card.jpeg";
+    return null;
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onPlaceOrder(
@@ -216,6 +223,7 @@ export function CheckoutView({
                   const selected = paymentMethod === method;
                   const label = methodLabel(method);
                   const description = methodDescription(method);
+                  const iconSrc = methodIcon(method);
                   return (
                     <button
                       key={method}
@@ -236,12 +244,23 @@ export function CheckoutView({
                       >
                         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-primary" /> : null}
                       </span>
-                      <span className="space-y-0.5">
+                      <span className="flex-1 space-y-0.5">
                         <span className="block text-sm font-semibold">{label}</span>
                         <span className="block text-xs leading-relaxed text-muted-foreground">
                           {description}
                         </span>
                       </span>
+                      {iconSrc ? (
+                        <Image
+                          src={iconSrc}
+                          alt=""
+                          aria-hidden="true"
+                          width={40}
+                          height={40}
+                          unoptimized
+                          className="ms-3 h-10 w-10 shrink-0 rounded-lg object-contain"
+                        />
+                      ) : null}
                     </button>
                   );
                 })}
