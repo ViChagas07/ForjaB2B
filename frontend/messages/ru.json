@@ -270,7 +270,10 @@
     "buyNow": "Купить сейчас",
     "stockAvailable": "Доступно {count} шт.",
     "inStock": "{count} в наличии",
-    "outOfStock": "Нет в наличии"
+    "outOfStock": "Нет в наличии",
+    "listPrice": "Цена по прайсу",
+    "cnpjBadge": "CNPJ: скидка {percent}%",
+    "cnpjVolumeHint": "Купите 30 или более единиц и платите на 30% меньше"
   },
   "cart": {
     "title": "Корзина",
@@ -304,7 +307,9 @@
     "benefit2Description": "Здоровый денежный поток с B2B-выставлением счетов.",
     "benefit3Title": "Доставка по стране",
     "benefit3Description": "Планируемая логистика для вашей компании.",
-    "itemCountOne": "1 товар"
+    "itemCountOne": "1 товар",
+    "cnpjVolumeRemaining": "До скидки 30% на этот товар осталось {count} шт.",
+    "cnpjVolumeReached": "На этот товар применена скидка 30%"
   },
   "ordering": {
     "reviewTitle": "Проверка заказа",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "Купон ({code})",
       "orderShippingDiscount": "Скидка на доставку ({code})"
-    }
+    },
+    "listSubtotal": "Промежуточный итог до скидки",
+    "cnpjDiscountLine": "Скидка CNPJ",
+    "cnpjSavings": "Экономия по скидке CNPJ"
   },
   "credit": {
     "title": "Кредит",

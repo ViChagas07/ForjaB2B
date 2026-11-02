@@ -59,6 +59,7 @@ preservado, congelado e possivelmente superado. O README da raiz é a porta de e
 | :--- | :--- | :--- |
 | [`docs/CATALOG_ADMIN.md`](CATALOG_ADMIN.md) | Modelo de atributos, admin, validação e formulário | Atual |
 | [`docs/CATALOG_DEMO.md`](CATALOG_DEMO.md) | Fotos, manifesto, licença e checklist do responsável | Atual |
+| [`docs/PRICING.md`](PRICING.md) | Regra de preço, desconto CNPJ 15%/30%, constantes, snapshot e API | Atual |
 | [`docs/ADRs/0006-precos-fora-do-indice.md`](ADRs/0006-precos-fora-do-indice.md) | Preços por empresa | Atual |
 | [`docs/ADRs/0008-atributos-jsonb.md`](ADRs/0008-atributos-jsonb.md) | Atributos | Atual |
 | [`docs/ADRs/0009-outbox-indice-versionado.md`](ADRs/0009-outbox-indice-versionado.md) | Outbox/índice | Atual |

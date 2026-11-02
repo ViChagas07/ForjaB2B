@@ -270,7 +270,10 @@
     "buyNow": "立即购买",
     "stockAvailable": "有 {count} 件现货",
     "inStock": "库存 {count} 件",
-    "outOfStock": "缺货"
+    "outOfStock": "缺货",
+    "listPrice": "标价",
+    "cnpjBadge": "CNPJ {percent}% 折扣",
+    "cnpjVolumeHint": "购买 30 件或以上，立减 30%"
   },
   "cart": {
     "title": "购物车",
@@ -304,7 +307,9 @@
     "benefit2Description": "通过 B2B 账期保持健康现金流。",
     "benefit3Title": "全国配送",
     "benefit3Description": "为您的运营规划物流。",
-    "itemCountOne": "1 件商品"
+    "itemCountOne": "1 件商品",
+    "cnpjVolumeRemaining": "再买 {count} 件即可享受此商品 30% 折扣",
+    "cnpjVolumeReached": "此商品已应用 30% 折扣"
   },
   "ordering": {
     "reviewTitle": "订单审核",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "优惠券（{code}）",
       "orderShippingDiscount": "运费折扣（{code}）"
-    }
+    },
+    "listSubtotal": "折扣前小计",
+    "cnpjDiscountLine": "CNPJ 折扣",
+    "cnpjSavings": "CNPJ 折扣节省"
   },
   "credit": {
     "title": "信贷",

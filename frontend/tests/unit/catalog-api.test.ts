@@ -49,6 +49,18 @@ describe("catalogApi.listProducts", () => {
     expect(url).toContain("page_size=10");
   });
 
+  it("envia Authorization quando há sessão para receber o preço CNPJ", async () => {
+    const page = { items: [], total: 0, page: 1, page_size: 20, pages: 0 };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(page));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await catalogApi.listProducts({}, "pt-BR", undefined, "token-123");
+
+    const [, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    const headers = init?.headers as Record<string, string> | undefined;
+    expect(headers?.Authorization).toBe("Bearer token-123");
+  });
+
   it("omite parâmetros indefinidos", async () => {
     const page = { items: [], total: 0, page: 1, page_size: 20, pages: 0 };
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(page));

@@ -70,6 +70,14 @@ class ProductView:
     content_locale: str
     fallback: bool
     stock_quantity: int = 0
+    # Preco CNPJ (preenchido na camada de aplicacao; nunca persistido).
+    # ``list_unit_price`` e o preco antes do desconto (empresa/tier) e
+    # ``unit_price`` e o preco final; ``base_unit_price`` carrega o final por
+    # compatibilidade com consumidores antigos.
+    list_unit_price: Decimal | None = None
+    unit_price: Decimal | None = None
+    discount_percent: Decimal = Decimal("0.00")
+    discount_band: int | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

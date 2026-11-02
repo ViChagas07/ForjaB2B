@@ -17,6 +17,15 @@ describe("cache por idioma", () => {
     expect(orderKey("o1", "pt-BR")).not.toEqual(orderKey("o1", "en"));
   });
 
+  it("separa catálogo público do catálogo personalizado por sessão", () => {
+    expect(catalogKeys.products("pt-BR", { q: "x" }, "user-1")).not.toEqual(
+      catalogKeys.products("pt-BR", { q: "x" }),
+    );
+    expect(catalogKeys.product("pt-BR", "p1", "user-1")).not.toEqual(
+      catalogKeys.product("pt-BR", "p1"),
+    );
+  });
+
   it("inclui parâmetros que alteram a resposta de produtos", () => {
     expect(catalogKeys.products("pt-BR", { page_size: 50 })).not.toEqual(
       catalogKeys.products("pt-BR", { page_size: 20 }),

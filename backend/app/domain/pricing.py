@@ -11,6 +11,11 @@ aplicacao expoe apenas ``price_on_request`` (preco consultivo). Usada pelos
 contexts cart, ordering e search (que nao podem importar o modulo pricing,
 bounded contexts independentes). Dinheiro sempre em ``Decimal``, arredondamento
 ``ROUND_HALF_UP`` ao centavo.
+
+Desconto automatico CNPJ: ``resolve_cnpj_price`` aplica 15% a qualquer quantidade
+e 30% a partir de 30 unidades do MESMO produto. ``resolve_customer_price``
+compõe a regra da empresa/tier com esse desconto e e a unica entrada usada por
+carrinho e pedidos, garantindo que o preco cobrado seja sempre o do servidor.
 """
 
 from __future__ import annotations
@@ -18,7 +23,14 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
-from enum import StrEnum
+from enum import IntEnum, StrEnum
+
+# Desconto automatico para contas CNPJ (Company). Os percentuais e o limite
+# ficam centralizados aqui: nenhum outro modulo repete estes numeros.
+CNPJ_ACCOUNT_TYPE = "COMPANY"
+CNPJ_STANDARD_DISCOUNT_PERCENT = Decimal("15.00")
+CNPJ_VOLUME_DISCOUNT_PERCENT = Decimal("30.00")
+CNPJ_VOLUME_MIN_QUANTITY = 30
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -99,12 +111,151 @@ class ResolvedCompanyPrice:
     tier_min_quantity: int | None
 
 
+class CnpjDiscountBand(IntEnum):
+    """Faixa do desconto automatico CNPJ (0 = sem desconto)."""
+
+    NONE = 0
+    STANDARD = 15
+    VOLUME = 30
+
+
+@dataclass(frozen=True, kw_only=True)
+class CnpjPrice:
+    """Preco unitario apos o desconto automatico CNPJ.
+
+    ``list_unit_price`` e o preco de tabela que serviu de base (o preco da
+    empresa/tier antes do desconto CNPJ); ``unit_price`` e o valor final.
+    """
+
+    list_unit_price: Decimal
+    unit_price: Decimal
+    discount_percent: Decimal
+    discount_band: CnpjDiscountBand
+    units_to_volume_discount: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedCustomerPrice:
+    """Preco completo do cliente: regra da empresa + desconto CNPJ."""
+
+    unit_price: Decimal
+    list_unit_price: Decimal
+    source: PriceSource
+    rule_id: uuid.UUID | None
+    tier_id: uuid.UUID | None
+    tier_min_quantity: int | None
+    discount_percent: Decimal
+    discount_band: CnpjDiscountBand
+    units_to_volume_discount: int | None
+
+
 _CENTS = Decimal("0.01")
+_ZERO = Decimal("0.00")
 _HUNDRED = Decimal("100")
 
 
 def _round_money(value: Decimal) -> Decimal:
     return value.quantize(_CENTS, rounding=ROUND_HALF_UP)
+
+
+def _require_decimal(name: str, value: Decimal) -> Decimal:
+    if not isinstance(value, Decimal):
+        raise TypeError(f"{name} must be a Decimal, never float")
+    if not value.is_finite():
+        raise ValueError(f"{name} must be finite")
+    return value
+
+
+def _validate_quantity(quantity: int) -> None:
+    if isinstance(quantity, bool) or not isinstance(quantity, int):
+        raise TypeError("quantity must be an int")
+    if quantity < 1:
+        raise ValueError("quantity must be at least 1")
+
+
+def resolve_cnpj_price(*, account_type: str, quantity: int, list_unit_price: Decimal) -> CnpjPrice:
+    """Aplica o desconto automatico CNPJ a uma linha de produto.
+
+    Contas ``COMPANY`` (CNPJ) recebem 15% em qualquer quantidade e 30% a partir
+    de ``CNPJ_VOLUME_MIN_QUANTITY`` unidades do MESMO produto. A decisao usa a
+    quantidade da linha (nunca a soma do carrinho). Contas que nao sao CNPJ
+    mantem o preco de tabela, sem desconto novo.
+
+    Dinheiro sempre em ``Decimal`` com arredondamento ``ROUND_HALF_UP`` ao
+    centavo. Quantidade invalida (nao inteira ou < 1) falha explicitamente.
+    """
+    _validate_quantity(quantity)
+    list_price = _round_money(_require_decimal("list_unit_price", list_unit_price))
+    if list_price < _ZERO:
+        raise ValueError("list_unit_price must be non-negative")
+
+    if account_type != CNPJ_ACCOUNT_TYPE:
+        return CnpjPrice(
+            list_unit_price=list_price,
+            unit_price=list_price,
+            discount_percent=_ZERO,
+            discount_band=CnpjDiscountBand.NONE,
+            units_to_volume_discount=None,
+        )
+
+    if quantity >= CNPJ_VOLUME_MIN_QUANTITY:
+        percent = CNPJ_VOLUME_DISCOUNT_PERCENT
+        band = CnpjDiscountBand.VOLUME
+        units_to_volume_discount = None
+    else:
+        percent = CNPJ_STANDARD_DISCOUNT_PERCENT
+        band = CnpjDiscountBand.STANDARD
+        units_to_volume_discount = CNPJ_VOLUME_MIN_QUANTITY - quantity
+
+    final_price = _round_money(list_price * (_HUNDRED - percent) / _HUNDRED)
+    return CnpjPrice(
+        list_unit_price=list_price,
+        unit_price=final_price,
+        discount_percent=percent,
+        discount_band=band,
+        units_to_volume_discount=units_to_volume_discount,
+    )
+
+
+def resolve_customer_price(
+    *,
+    account_type: str,
+    base_unit_price: Decimal,
+    tiers: list[PriceTier],
+    quantity: int,
+    category_id: uuid.UUID | None,
+    rules: list[CompanyPriceRule],
+) -> ResolvedCustomerPrice:
+    """Resolve o preco final do cliente: regra da empresa e depois CNPJ.
+
+    Esta e a UNICA entrada usada por carrinho e pedidos. O preco de tabela
+    (``list_unit_price``) e o preco ja resolvido pela empresa/tier; o desconto
+    CNPJ incide sobre ele. Cupom e recuperacao incidem depois, sobre o valor
+    final da linha (fora desta funcao pura).
+    """
+    company = resolve_company_price(
+        base_unit_price=base_unit_price,
+        tiers=tiers,
+        quantity=quantity,
+        category_id=category_id,
+        rules=rules,
+    )
+    cnpj = resolve_cnpj_price(
+        account_type=account_type,
+        quantity=quantity,
+        list_unit_price=company.unit_price,
+    )
+    return ResolvedCustomerPrice(
+        unit_price=cnpj.unit_price,
+        list_unit_price=cnpj.list_unit_price,
+        source=company.source,
+        rule_id=company.rule_id,
+        tier_id=company.tier_id,
+        tier_min_quantity=company.tier_min_quantity,
+        discount_percent=cnpj.discount_percent,
+        discount_band=cnpj.discount_band,
+        units_to_volume_discount=cnpj.units_to_volume_discount,
+    )
 
 
 def resolve_company_price(

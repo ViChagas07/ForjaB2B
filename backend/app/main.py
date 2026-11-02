@@ -468,6 +468,8 @@ class _CheckoutCartAdapter:
             return None
         return CheckoutCartSnapshot(
             subtotal=view.subtotal,
+            list_subtotal=view.list_subtotal,
+            cnpj_discount_total=view.cnpj_discount_total,
             items=[
                 CheckoutCartItem(
                     product_id=item.product_id,

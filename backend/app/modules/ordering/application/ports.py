@@ -44,8 +44,13 @@ class ResolvedItem:
     sku: str
     name: str
     quantity: int
+    # unit_price/line_total ja incluem o desconto automatico CNPJ.
     unit_price: Decimal
     base_unit_price: Decimal
+    # Preco de tabela antes do desconto CNPJ (empresa/tier) + snapshot da regra.
+    list_unit_price: Decimal
+    cnpj_discount_percent: Decimal | None
+    cnpj_discount_band: int | None
     tier_min_quantity: int | None
     price_tier_id: uuid.UUID | None
     line_total: Decimal
@@ -81,6 +86,9 @@ class CheckoutCartSnapshot:
 
     items: list[CheckoutCartItem]
     subtotal: Decimal
+    # ``subtotal`` ja e o valor final (com CNPJ).
+    list_subtotal: Decimal = Decimal("0.00")
+    cnpj_discount_total: Decimal = Decimal("0.00")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -109,11 +117,18 @@ class OrderItemView:
     sku: str
     product_name: str
     quantity: int
+    # unit_price/line_total ja incluem o desconto automatico CNPJ.
     unit_price: Decimal
     base_unit_price: Decimal | None
+    list_unit_price: Decimal | None
+    cnpj_discount_percent: Decimal | None
+    cnpj_discount_band: int | None
     tier_min_quantity: int | None
     line_total: Decimal
     content_locale: str
+    # Exibicao calculada no servidor a partir do snapshot.
+    list_line_total: Decimal | None = None
+    cnpj_discount_amount: Decimal | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -135,6 +150,9 @@ class OrderView:
     coupon_percent: Decimal | None = None
     coupon_discount_amount: Decimal = Decimal("0.00")
     shipping_discount_amount: Decimal = Decimal("0.00")
+    # Exibicao: ``subtotal`` ja e o valor final (com CNPJ).
+    list_subtotal: Decimal = Decimal("0.00")
+    cnpj_discount_total: Decimal = Decimal("0.00")
 
 
 class OrderingRepository(Protocol):
@@ -144,6 +162,9 @@ class OrderingRepository(Protocol):
         self, company_id: uuid.UUID, product_id: uuid.UUID, locale: str = "pt-BR"
     ) -> ProductForOrder | None:
         """Le produto + tiers + regras da empresa para validacao/precificacao."""
+
+    async def get_company_account_type(self, company_id: uuid.UUID) -> str:
+        """Le o tipo de conta (COMPANY/PERSON) da empresa no servidor."""
 
     async def find_active_offer(
         self, company_id: uuid.UUID, buyer_user_id: uuid.UUID

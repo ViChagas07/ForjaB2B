@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { OrderStatus } from "@/core/domain/ordering";
 import { formatBrl, formatDate } from "@/shared/lib/money";
+import { CnpjPrice, CnpjVolumeNotice } from "@/shared/components/cnpj-price";
 import { PriceDisplay } from "@/shared/components/price-display";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Badge } from "@/shared/ui/badge";
@@ -81,6 +82,8 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
   const statusKey = statusLabelKey(order.status);
   const cancellable = (CANCELLABLE as readonly string[]).includes(order.status);
+  const cnpjDiscountTotal = order.cnpj_discount_total ?? "0.00";
+  const hasCnpjDiscount = Number(cnpjDiscountTotal) > 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -114,15 +117,36 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           {order.items.map((item) => (
-            <div key={item.sku} className="flex items-center justify-between text-sm">
-              <div>
+            <div key={item.sku} className="flex items-start justify-between gap-3 text-sm">
+              <div className="min-w-0">
                 <span className="font-medium">{item.product_name}</span>
                 <span className="text-muted-foreground">
                   {" "}
                   ({item.sku}) × {item.quantity}
                 </span>
+                {Number(item.cnpj_discount_percent ?? 0) > 0 ? (
+                  <div className="mt-1.5">
+                    <CnpjPrice
+                      listAmount={item.list_unit_price}
+                      finalAmount={item.unit_price}
+                      percent={item.cnpj_discount_percent}
+                      primary="brl"
+                      showBrl
+                      priceClassName="text-sm font-bold"
+                    />
+                    <CnpjVolumeNotice band={item.cnpj_discount_band} />
+                  </div>
+                ) : null}
               </div>
-              <span className="font-medium">{formatBrl(item.line_total, locale)}</span>
+              <div className="shrink-0 text-end">
+                <span className="font-medium">{formatBrl(item.line_total, locale)}</span>
+                {Number(item.cnpj_discount_amount ?? 0) > 0 ? (
+                  <span className="mt-0.5 block text-[11px] font-semibold text-success">
+                    <span className="sr-only">{t("ordering.cnpjDiscountLine")}: </span>
+                    {formatBrl(`-${item.cnpj_discount_amount}`, locale)}
+                  </span>
+                ) : null}
+              </div>
             </div>
           ))}
         </CardContent>
@@ -130,6 +154,20 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
 
       <Card>
         <CardContent className="grid gap-2 py-6 text-sm">
+          {hasCnpjDiscount ? (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("ordering.listSubtotal")}</span>
+              <span className="text-muted-foreground">
+                {formatBrl(order.list_subtotal ?? "0.00", locale)}
+              </span>
+            </div>
+          ) : null}
+          {hasCnpjDiscount ? (
+            <div className="flex justify-between" data-testid="order-cnpj-discount-line">
+              <span className="text-muted-foreground">{t("ordering.cnpjDiscountLine")}</span>
+              <span className="text-success">{formatBrl(`-${cnpjDiscountTotal}`, locale)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t("ordering.subtotal")}</span>
             <span>{formatBrl(order.subtotal, locale)}</span>
@@ -168,6 +206,12 @@ export function OrderDetailView({ orderId }: OrderDetailViewProps) {
             <span className="text-muted-foreground">{t("ordering.taxTotal")}</span>
             <span>{formatBrl(order.tax_total, locale)}</span>
           </div>
+          {hasCnpjDiscount ? (
+            <div className="flex justify-between rounded-lg bg-success/10 px-3 py-2 text-success">
+              <span className="text-xs font-semibold">{t("ordering.cnpjSavings")}</span>
+              <span className="text-sm font-bold">{formatBrl(cnpjDiscountTotal, locale)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between border-t pt-2 text-base font-semibold">
             <span>{t("ordering.total")}</span>
             <PriceDisplay

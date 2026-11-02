@@ -60,7 +60,13 @@ class ProductSummary(BaseModel):
     ca_status: str
     category: CategoryRef
     brand: BrandRef | None
+    # ``base_unit_price``/``unit_price`` sao o preco final (com CNPJ);
+    # ``list_unit_price`` e o preco antes do desconto automatico.
     base_unit_price: Decimal | None
+    list_unit_price: Decimal | None = None
+    unit_price: Decimal | None = None
+    discount_percent: Decimal = Decimal("0.00")
+    discount_band: int | None = None
     currency: str
     min_order_qty: int
     stock_quantity: int

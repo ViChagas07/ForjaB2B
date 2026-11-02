@@ -48,8 +48,8 @@ def tenant_tx(pg: object) -> Iterator[Connection]:
 def seed(pg: object) -> None:
     with tenant_tx(pg) as conn:
         conn.execute(
-            "INSERT INTO companies (id, cnpj, legal_name, status) "
-            "VALUES (%s, '11222333000191', 'Recovery Alfa', 'ACTIVE') ON CONFLICT DO NOTHING",
+            "INSERT INTO companies (id, legal_name, status, account_type) "
+            "VALUES (%s, 'Recovery Alfa', 'ACTIVE', 'PERSON') ON CONFLICT DO NOTHING",
             (COMPANY,),
         )
         for user_id, email, tag in (

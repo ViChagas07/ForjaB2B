@@ -56,6 +56,8 @@ export interface CouponPreview {
   reason: CouponRejectionReason | null;
   missing_amount: string | null;
   subtotal: string | null;
+  list_subtotal?: string | null;
+  cnpj_discount_total?: string | null;
   recovery_discount: string | null;
   coupon_discount: string | null;
   shipping_discount: string | null;
@@ -81,6 +83,11 @@ export interface OrderItem {
   quantity: number;
   unit_price: string;
   base_unit_price: string | null;
+  list_unit_price?: string | null;
+  list_line_total?: string | null;
+  cnpj_discount_percent?: string | null;
+  cnpj_discount_band?: number | null;
+  cnpj_discount_amount?: string | null;
   tier_min_quantity: number | null;
   line_total: string;
   content_locale: string;
@@ -110,7 +117,10 @@ export interface Order {
   company_id: string;
   status: OrderStatus;
   currency: string;
+  /** Subtotal final (com CNPJ). */
   subtotal: string;
+  list_subtotal?: string;
+  cnpj_discount_total?: string;
   discount_total: string;
   shipping_total: string;
   tax_total: string;

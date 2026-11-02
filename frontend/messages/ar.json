@@ -270,7 +270,10 @@
     "buyNow": "اشترِ الآن",
     "stockAvailable": "متوفر {count} وحدة",
     "inStock": "{count} متوفر",
-    "outOfStock": "غير متوفر"
+    "outOfStock": "غير متوفر",
+    "listPrice": "سعر القائمة",
+    "cnpjBadge": "CNPJ خصم {percent}%",
+    "cnpjVolumeHint": "اشترِ 30 وحدة أو أكثر واحصل على خصم 30%"
   },
   "cart": {
     "title": "السلة",
@@ -304,7 +307,9 @@
     "benefit2Description": "تدفق نقدي صحي مع فوترة B2B.",
     "benefit3Title": "توصيل وطني",
     "benefit3Description": "لوجستيات مخططة لعملياتك.",
-    "itemCountOne": "عنصر واحد"
+    "itemCountOne": "عنصر واحد",
+    "cnpjVolumeRemaining": "تبقّى {count} وحدات للحصول على خصم 30% على هذا المنتج",
+    "cnpjVolumeReached": "تم تطبيق خصم 30% على هذا المنتج"
   },
   "ordering": {
     "reviewTitle": "مراجعة الطلب",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "القسيمة ({code})",
       "orderShippingDiscount": "خصم الشحن ({code})"
-    }
+    },
+    "listSubtotal": "المجموع الفرعي قبل الخصم",
+    "cnpjDiscountLine": "خصم CNPJ",
+    "cnpjSavings": "التوفير من خصم CNPJ"
   },
   "credit": {
     "title": "ائتمان",

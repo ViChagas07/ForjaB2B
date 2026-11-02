@@ -8,6 +8,7 @@ import { AddToCartButton, BuyNowButton } from "@/features/cart";
 import { Link } from "@/i18n/navigation";
 import { displayCategoryName } from "@/shared/lib/category-display";
 import { cn } from "@/shared/lib/utils";
+import { CnpjPrice } from "@/shared/components/cnpj-price";
 import { ProductImage } from "@/shared/components/product-image";
 
 import { isPurchasable } from "./availability";
@@ -76,11 +77,21 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
         <div className="mt-auto space-y-3 pt-1">
           <div>
-            <CatalogPrice
-              amount={product.base_unit_price}
-              priceOnRequest={product.price_on_request}
-              className="text-xl font-bold tracking-tight"
-            />
+            {product.price_on_request ? (
+              <CatalogPrice
+                amount={product.base_unit_price}
+                priceOnRequest
+                className="text-xl font-bold tracking-tight"
+              />
+            ) : (
+              <CnpjPrice
+                listAmount={product.list_unit_price}
+                finalAmount={product.unit_price ?? product.base_unit_price}
+                percent={product.discount_percent}
+                showVolumeHint
+                priceClassName="text-xl font-bold tracking-tight"
+              />
+            )}
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               {t("cart.minQuantity", { qty: product.min_order_qty })}
             </p>

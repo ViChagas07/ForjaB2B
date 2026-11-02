@@ -43,8 +43,14 @@ class OrderItemResponse(BaseModel):
     sku: str
     product_name: str
     quantity: int
+    # unit_price/line_total ja incluem o desconto automatico CNPJ.
     unit_price: Decimal
     base_unit_price: Decimal | None
+    list_unit_price: Decimal | None = None
+    list_line_total: Decimal | None = None
+    cnpj_discount_percent: Decimal | None = None
+    cnpj_discount_band: int | None = None
+    cnpj_discount_amount: Decimal | None = None
     tier_min_quantity: int | None
     line_total: Decimal
     content_locale: str
@@ -58,6 +64,9 @@ class OrderResponse(BaseModel):
     status: str
     currency: str
     subtotal: Decimal
+    # Exibicao: ``subtotal`` ja e o valor final (com CNPJ).
+    list_subtotal: Decimal = Decimal("0.00")
+    cnpj_discount_total: Decimal = Decimal("0.00")
     discount_total: Decimal
     shipping_total: Decimal
     tax_total: Decimal
@@ -112,6 +121,8 @@ class CouponPreviewResponse(BaseModel):
     reason: CouponRejectionReason | None = None
     missing_amount: Decimal | None = None
     subtotal: Decimal | None = None
+    list_subtotal: Decimal | None = None
+    cnpj_discount_total: Decimal | None = None
     recovery_discount: Decimal | None = None
     coupon_discount: Decimal | None = None
     shipping_discount: Decimal | None = None

@@ -44,6 +44,8 @@ class CouponPreviewResult:
     reason: CouponRejectionReason | None = None
     missing_amount: Decimal | None = None
     subtotal: Decimal | None = None
+    list_subtotal: Decimal | None = None
+    cnpj_discount_total: Decimal | None = None
     recovery_discount: Decimal | None = None
     coupon_discount: Decimal | None = None
     shipping_discount: Decimal | None = None
@@ -123,7 +125,13 @@ class PreviewCoupon:
                 self._pix_discount_rate if payment_method == PaymentMethod.PIX else None
             ),
         )
-        return _valid(totals, effective_shipping, recovery_applied)
+        return _valid(
+            totals,
+            effective_shipping,
+            recovery_applied,
+            list_subtotal=cart.list_subtotal,
+            cnpj_discount_total=cart.cnpj_discount_total,
+        )
 
     async def _coupon_for_preview(
         self, *, code: str | None, company_id: uuid.UUID, subtotal: Decimal
@@ -164,7 +172,12 @@ def _invalid(
 
 
 def _valid(
-    totals: OrderTotals, effective_shipping: Decimal, recovery_applied: bool
+    totals: OrderTotals,
+    effective_shipping: Decimal,
+    recovery_applied: bool,
+    *,
+    list_subtotal: Decimal,
+    cnpj_discount_total: Decimal,
 ) -> CouponPreviewResult:
     applied = set(totals.applied_discounts)
     if recovery_applied:
@@ -172,6 +185,8 @@ def _valid(
     return CouponPreviewResult(
         valid=True,
         subtotal=totals.subtotal,
+        list_subtotal=list_subtotal,
+        cnpj_discount_total=cnpj_discount_total,
         recovery_discount=totals.recovery_discount,
         coupon_discount=totals.coupon_discount,
         shipping_discount=totals.shipping_discount,

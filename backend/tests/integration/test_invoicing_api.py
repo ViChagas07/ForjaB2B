@@ -48,15 +48,15 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
     password_hash = hasher.hash(_PASSWORD)
     conn = pg.connect_admin(autocommit=False)
     try:
-        for company_id, cnpj, name, buyer_id, email, member_id in (
+        for company_id, _cnpj, name, buyer_id, email, member_id in (
             (_COMPANY_A, "19999999000121", "Invoice Empresa A", _BUYER_A, _EMAIL_A, _MEMBER_A),
             (_COMPANY_B, "19999999000122", "Invoice Empresa B", _BUYER_B, _EMAIL_B, _MEMBER_B),
         ):
             conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
             conn.execute(
-                "INSERT INTO companies (id, cnpj, legal_name, status) "
-                "VALUES (%s, %s, %s, 'ACTIVE') ON CONFLICT (id) DO NOTHING",
-                (company_id, cnpj, name),
+                "INSERT INTO companies (id, legal_name, status, account_type) "
+                "VALUES (%s, %s, 'ACTIVE', 'PERSON') ON CONFLICT (id) DO NOTHING",
+                (company_id, name),
             )
             conn.execute(
                 "INSERT INTO credit_accounts (company_id, credit_limit) "

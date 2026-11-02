@@ -18,6 +18,7 @@ from sqlalchemy import (
     Index,
     Integer,
     Numeric,
+    SmallInteger,
     String,
     Text,
     Uuid,
@@ -171,8 +172,13 @@ class OrderItem(TimestampMixin, Base):
     sku: Mapped[str] = mapped_column(String(64), nullable=False)
     product_name: Mapped[str] = mapped_column(String(200), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    # unit_price e o preco final (com desconto CNPJ); list_unit_price e o preco
+    # de tabela (empresa/tier) que serviu de base antes do desconto.
     unit_price: Mapped[Decimal] = mapped_column(unit_money(), nullable=False)
     base_unit_price: Mapped[Decimal | None] = mapped_column(unit_money())
+    list_unit_price: Mapped[Decimal | None] = mapped_column(unit_money())
+    cnpj_discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    cnpj_discount_band: Mapped[int | None] = mapped_column(SmallInteger)
     discount_amount: Mapped[Decimal] = mapped_column(
         unit_money(), nullable=False, server_default=text("0")
     )

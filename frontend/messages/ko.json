@@ -270,7 +270,10 @@
     "buyNow": "바로 구매",
     "stockAvailable": "{count}개 재고 있음",
     "inStock": "재고 {count}개",
-    "outOfStock": "품절"
+    "outOfStock": "품절",
+    "listPrice": "정가",
+    "cnpjBadge": "CNPJ {percent}% 할인",
+    "cnpjVolumeHint": "30개 이상 구매 시 30% 할인"
   },
   "cart": {
     "title": "장바구니",
@@ -304,7 +307,9 @@
     "benefit2Description": "B2B 청구로 건강한 현금 흐름.",
     "benefit3Title": "전국 배송",
     "benefit3Description": "운영을 위한 계획된 물류.",
-    "itemCountOne": "1개 상품"
+    "itemCountOne": "1개 상품",
+    "cnpjVolumeRemaining": "이 상품 30% 할인까지 {count}개 남음",
+    "cnpjVolumeReached": "이 상품에 30% 할인이 적용되었습니다"
   },
   "ordering": {
     "reviewTitle": "주문 검토",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "쿠폰 ({code})",
       "orderShippingDiscount": "배송 할인 ({code})"
-    }
+    },
+    "listSubtotal": "할인 전 소계",
+    "cnpjDiscountLine": "CNPJ 할인",
+    "cnpjSavings": "CNPJ 할인 절약액"
   },
   "credit": {
     "title": "크레딧",

@@ -49,8 +49,8 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
     try:
         _tenant(conn)
         conn.execute(
-            "INSERT INTO companies (id, cnpj, legal_name, status) "
-            "VALUES (%s, '77666555000144', 'Cupom Checkout Empresa', 'ACTIVE') "
+            "INSERT INTO companies (id, legal_name, status, account_type) "
+            "VALUES (%s, 'Cupom Checkout Empresa', 'ACTIVE', 'PERSON') "
             "ON CONFLICT DO NOTHING",
             (_COMPANY,),
         )
@@ -67,8 +67,8 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
         )
         conn.execute("SELECT app.set_tenant_context(%s, NULL)", (_OTHER_COMPANY,))
         conn.execute(
-            "INSERT INTO companies (id, cnpj, legal_name, status) "
-            "VALUES (%s, '77666555000225', 'Cupom Outra Empresa', 'ACTIVE') "
+            "INSERT INTO companies (id, legal_name, status, account_type) "
+            "VALUES (%s, 'Cupom Outra Empresa', 'ACTIVE', 'PERSON') "
             "ON CONFLICT DO NOTHING",
             (_OTHER_COMPANY,),
         )

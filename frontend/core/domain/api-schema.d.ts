@@ -1470,12 +1470,22 @@ export interface components {
         "CartItemResponse-Input": {
             /** Content Locale */
             content_locale: string;
+            /** Discount Amount */
+            discount_amount: number | string;
+            /** Discount Band */
+            discount_band?: number | null;
+            /** Discount Percent */
+            discount_percent: number | string;
             /** Image Alt */
             image_alt: string;
             /** Image Url */
             image_url: string;
             /** Line Total */
             line_total: number | string;
+            /** List Line Total */
+            list_line_total: number | string;
+            /** List Unit Price */
+            list_unit_price: number | string;
             /** Name */
             name: string;
             /**
@@ -1491,17 +1501,29 @@ export interface components {
             tier_min_quantity: number | null;
             /** Unit Price */
             unit_price: number | string;
+            /** Units To Volume Discount */
+            units_to_volume_discount?: number | null;
         };
         /** CartItemResponse */
         "CartItemResponse-Output": {
             /** Content Locale */
             content_locale: string;
+            /** Discount Amount */
+            discount_amount: string;
+            /** Discount Band */
+            discount_band?: number | null;
+            /** Discount Percent */
+            discount_percent: string;
             /** Image Alt */
             image_alt: string;
             /** Image Url */
             image_url: string;
             /** Line Total */
             line_total: string;
+            /** List Line Total */
+            list_line_total: string;
+            /** List Unit Price */
+            list_unit_price: string;
             /** Name */
             name: string;
             /**
@@ -1517,6 +1539,8 @@ export interface components {
             tier_min_quantity: number | null;
             /** Unit Price */
             unit_price: string;
+            /** Units To Volume Discount */
+            units_to_volume_discount?: number | null;
         };
         /** CartResponse */
         CartResponse: {
@@ -1525,6 +1549,8 @@ export interface components {
              * Format: uuid
              */
             cart_id: string;
+            /** Cnpj Discount Total */
+            cnpj_discount_total: string;
             /**
              * Company Id
              * Format: uuid
@@ -1532,6 +1558,8 @@ export interface components {
             company_id: string;
             /** Items */
             items: components["schemas"]["CartItemResponse-Output"][];
+            /** List Subtotal */
+            list_subtotal: string;
             /** Subtotal */
             subtotal: string;
             /**
@@ -1830,6 +1858,8 @@ export interface components {
         CouponPreviewResponse: {
             /** Applied Discounts */
             applied_discounts?: components["schemas"]["DiscountKind"][];
+            /** Cnpj Discount Total */
+            cnpj_discount_total?: string | null;
             /** Coupon Discount */
             coupon_discount?: string | null;
             /**
@@ -1837,6 +1867,8 @@ export interface components {
              * @default BRL
              */
             currency: string;
+            /** List Subtotal */
+            list_subtotal?: string | null;
             /** Missing Amount */
             missing_amount?: string | null;
             /** Pix Discount */
@@ -2308,10 +2340,20 @@ export interface components {
         "OrderItemResponse-Input": {
             /** Base Unit Price */
             base_unit_price: number | string | null;
+            /** Cnpj Discount Amount */
+            cnpj_discount_amount?: number | string | null;
+            /** Cnpj Discount Band */
+            cnpj_discount_band?: number | null;
+            /** Cnpj Discount Percent */
+            cnpj_discount_percent?: number | string | null;
             /** Content Locale */
             content_locale: string;
             /** Line Total */
             line_total: number | string;
+            /** List Line Total */
+            list_line_total?: number | string | null;
+            /** List Unit Price */
+            list_unit_price?: number | string | null;
             /** Product Name */
             product_name: string;
             /** Quantity */
@@ -2327,10 +2369,20 @@ export interface components {
         "OrderItemResponse-Output": {
             /** Base Unit Price */
             base_unit_price: string | null;
+            /** Cnpj Discount Amount */
+            cnpj_discount_amount?: string | null;
+            /** Cnpj Discount Band */
+            cnpj_discount_band?: number | null;
+            /** Cnpj Discount Percent */
+            cnpj_discount_percent?: string | null;
             /** Content Locale */
             content_locale: string;
             /** Line Total */
             line_total: string;
+            /** List Line Total */
+            list_line_total?: string | null;
+            /** List Unit Price */
+            list_unit_price?: string | null;
             /** Product Name */
             product_name: string;
             /** Quantity */
@@ -2344,6 +2396,11 @@ export interface components {
         };
         /** OrderResponse */
         OrderResponse: {
+            /**
+             * Cnpj Discount Total
+             * @default 0.00
+             */
+            cnpj_discount_total: string;
             /**
              * Company Id
              * Format: uuid
@@ -2377,6 +2434,11 @@ export interface components {
             id: string;
             /** Items */
             items: components["schemas"]["OrderItemResponse-Output"][];
+            /**
+             * List Subtotal
+             * @default 0.00
+             */
+            list_subtotal: string;
             /**
              * Shipping Discount Amount
              * @default 0.00
@@ -2805,6 +2867,13 @@ export interface components {
             currency: string;
             /** Description */
             description: string | null;
+            /** Discount Band */
+            discount_band?: number | null;
+            /**
+             * Discount Percent
+             * @default 0.00
+             */
+            discount_percent: string;
             /** Fallback */
             fallback: boolean;
             /**
@@ -2818,6 +2887,8 @@ export interface components {
             image_url: string;
             /** Is Epi */
             is_epi: boolean;
+            /** List Unit Price */
+            list_unit_price?: string | null;
             /** Min Order Qty */
             min_order_qty: number;
             /** Name */
@@ -2836,6 +2907,8 @@ export interface components {
             stock_quantity: number;
             /** Unit Of Measure */
             unit_of_measure: string | null;
+            /** Unit Price */
+            unit_price?: string | null;
             /** Weight Kg */
             weight_kg: string | null;
         };
@@ -2850,6 +2923,8 @@ export interface components {
             category_id?: string | null;
             /** Is Epi */
             is_epi?: boolean | null;
+            /** Lang */
+            lang?: string | null;
             /**
              * Order
              * @default asc
@@ -2918,6 +2993,13 @@ export interface components {
             content_locale: string;
             /** Currency */
             currency: string;
+            /** Discount Band */
+            discount_band?: number | null;
+            /**
+             * Discount Percent
+             * @default 0.00
+             */
+            discount_percent: number | string;
             /** Fallback */
             fallback: boolean;
             /**
@@ -2931,6 +3013,8 @@ export interface components {
             image_url: string;
             /** Is Epi */
             is_epi: boolean;
+            /** List Unit Price */
+            list_unit_price?: number | string | null;
             /** Min Order Qty */
             min_order_qty: number;
             /** Name */
@@ -2945,6 +3029,8 @@ export interface components {
             status: string;
             /** Stock Quantity */
             stock_quantity: number;
+            /** Unit Price */
+            unit_price?: number | string | null;
         };
         /** ProductSummary */
         "ProductSummary-Output": {
@@ -2958,6 +3044,13 @@ export interface components {
             content_locale: string;
             /** Currency */
             currency: string;
+            /** Discount Band */
+            discount_band?: number | null;
+            /**
+             * Discount Percent
+             * @default 0.00
+             */
+            discount_percent: string;
             /** Fallback */
             fallback: boolean;
             /**
@@ -2971,6 +3064,8 @@ export interface components {
             image_url: string;
             /** Is Epi */
             is_epi: boolean;
+            /** List Unit Price */
+            list_unit_price?: string | null;
             /** Min Order Qty */
             min_order_qty: number;
             /** Name */
@@ -2985,6 +3080,8 @@ export interface components {
             status: string;
             /** Stock Quantity */
             stock_quantity: number;
+            /** Unit Price */
+            unit_price?: string | null;
         };
         /**
          * ProductTranslationsListResponse

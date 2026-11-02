@@ -28,6 +28,8 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { CnpjPrice } from "@/shared/components/cnpj-price";
+
 import { isPurchasable } from "./availability";
 import { CatalogPrice } from "./catalog-price";
 import { readCatalogReturn } from "./catalog-return";
@@ -213,12 +215,23 @@ export function ProductDetailView({ productId }: ProductDetailViewProps) {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <CatalogPrice
-              amount={product.base_unit_price}
-              priceOnRequest={product.price_on_request}
-              showBrl
-              className="text-3xl font-black tracking-tight"
-            />
+            {product.price_on_request ? (
+              <CatalogPrice
+                amount={product.base_unit_price}
+                priceOnRequest
+                showBrl
+                className="text-3xl font-black tracking-tight"
+              />
+            ) : (
+              <CnpjPrice
+                listAmount={product.list_unit_price}
+                finalAmount={product.unit_price ?? product.base_unit_price}
+                percent={product.discount_percent}
+                showBrl
+                showVolumeHint
+                priceClassName="text-3xl font-black tracking-tight"
+              />
+            )}
             <p className="mt-2 text-xs text-muted-foreground">
               {t("catalog.minOrderQty")}:{" "}
               <span className="font-semibold text-foreground">{minQuantity}</span>

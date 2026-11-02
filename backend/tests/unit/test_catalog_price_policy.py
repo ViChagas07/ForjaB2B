@@ -89,10 +89,14 @@ async def _first_item(
     *,
     company_id: uuid.UUID | None = None,
     rules: list[CompanyPriceRule] | None = None,
+    account_type: str = "PERSON",
 ) -> ProductView:
     repository = cast(CatalogRepository, _FakeCatalogRepository(view, rules=rules))
     page = await ListProducts(repository=repository).list(
-        ProductFilters(), company_id=company_id, locale="pt-BR"
+        ProductFilters(),
+        company_id=company_id,
+        account_type=account_type,
+        locale="pt-BR",
     )
     return page.items[0]
 
@@ -162,6 +166,30 @@ async def test_empresa_ve_desconto_em_produto_vendavel() -> None:
     )
     assert item.price_on_request is False
     assert item.base_unit_price == Decimal("90.00")
+    assert item.list_unit_price == Decimal("90.00")
+    assert item.unit_price == Decimal("90.00")
+    assert item.discount_percent == Decimal("0.00")
+    assert item.discount_band is None
+
+
+async def test_empresa_cnpj_ve_preco_de_tabela_e_com_15_por_cento() -> None:
+    rule = CompanyPriceRule(
+        rule_id=uuid.uuid4(),
+        rule_type="PERCENT_DISCOUNT",
+        percent=Decimal("10"),
+    )
+    item = await _first_item(
+        _view(base_unit_price=Decimal("100.00")),
+        company_id=uuid.uuid4(),
+        rules=[rule],
+        account_type="COMPANY",
+    )
+    assert item.price_on_request is False
+    assert item.list_unit_price == Decimal("90.00")
+    assert item.unit_price == Decimal("76.50")
+    assert item.base_unit_price == Decimal("76.50")
+    assert item.discount_percent == Decimal("15.00")
+    assert item.discount_band == 15
 
 
 async def test_empresa_nao_ve_preco_de_produto_bloqueado() -> None:

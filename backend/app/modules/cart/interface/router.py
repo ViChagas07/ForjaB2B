@@ -42,6 +42,12 @@ def _to_response(view: CartView) -> CartResponse:
                 quantity=i.quantity,
                 unit_price=i.unit_price,
                 line_total=i.line_total,
+                list_line_total=i.list_line_total,
+                discount_amount=i.discount_amount,
+                list_unit_price=i.list_unit_price,
+                discount_percent=i.discount_percent,
+                discount_band=i.discount_band,
+                units_to_volume_discount=i.units_to_volume_discount,
                 tier_min_quantity=i.tier_min_quantity,
                 image_url=i.image_url,
                 image_alt=i.image_alt,
@@ -49,6 +55,8 @@ def _to_response(view: CartView) -> CartResponse:
             )
             for i in view.items
         ],
+        list_subtotal=view.list_subtotal,
+        cnpj_discount_total=view.cnpj_discount_total,
         subtotal=view.subtotal,
     )
 

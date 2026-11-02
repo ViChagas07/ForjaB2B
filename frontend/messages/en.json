@@ -270,7 +270,10 @@
     "buyNow": "Buy",
     "stockAvailable": "{count} units available",
     "inStock": "{count} in stock",
-    "outOfStock": "Out of stock"
+    "outOfStock": "Out of stock",
+    "listPrice": "List price",
+    "cnpjBadge": "CNPJ {percent}% off",
+    "cnpjVolumeHint": "Buy 30 or more units and pay 30% less"
   },
   "cart": {
     "title": "Cart",
@@ -304,7 +307,9 @@
     "benefit2Description": "Healthy cash flow with B2B invoicing.",
     "benefit3Title": "Nationwide delivery",
     "benefit3Description": "Logistics planned for your operation.",
-    "itemCountOne": "One item"
+    "itemCountOne": "One item",
+    "cnpjVolumeRemaining": "{count} more units for 30% off this product",
+    "cnpjVolumeReached": "30% off applied to this product"
   },
   "ordering": {
     "reviewTitle": "Order review",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "Coupon ({code})",
       "orderShippingDiscount": "Shipping discount ({code})"
-    }
+    },
+    "listSubtotal": "Subtotal before discount",
+    "cnpjDiscountLine": "CNPJ discount",
+    "cnpjSavings": "Savings with CNPJ discount"
   },
   "credit": {
     "title": "Credit",

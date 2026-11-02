@@ -40,6 +40,8 @@ class CartService:
                 company_id=company_id,
                 user_id=user_id,
                 items=[],
+                list_subtotal=Decimal("0.00"),
+                cnpj_discount_total=Decimal("0.00"),
                 subtotal=Decimal("0.00"),
             )
         return cart

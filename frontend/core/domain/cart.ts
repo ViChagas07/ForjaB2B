@@ -12,6 +12,12 @@ export interface CartItem {
   quantity: number;
   unit_price: string;
   line_total: string;
+  list_line_total?: string;
+  discount_amount?: string;
+  list_unit_price?: string;
+  discount_percent?: string;
+  discount_band?: number | null;
+  units_to_volume_discount?: number | null;
   tier_min_quantity: number | null;
   image_url: string;
   image_alt: string;
@@ -24,7 +30,10 @@ export interface Cart {
   company_id: string;
   user_id: string;
   items: CartItem[];
+  /** Subtotal final (com CNPJ). */
   subtotal: string;
+  list_subtotal?: string;
+  cnpj_discount_total?: string;
 }
 
 export interface AddCartItemInput {

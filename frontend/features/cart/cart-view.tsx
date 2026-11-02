@@ -26,6 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { CnpjPrice, CnpjVolumeNotice } from "@/shared/components/cnpj-price";
 import { useCurrency } from "@/shared/components/currency-provider";
 import { PriceDisplay } from "@/shared/components/price-display";
 import { ProductImage } from "@/shared/components/product-image";
@@ -155,6 +156,8 @@ export function CartView() {
   const cart = cartQuery.data;
   const items = cart?.items ?? [];
   const availableCredit = creditQuery.data?.available;
+  const cnpjDiscountTotal = cart?.cnpj_discount_total ?? "0.00";
+  const hasCnpjDiscount = Number(cnpjDiscountTotal) > 0;
   const itemCountLabel =
     items.length === 1 ? t("cart.itemCountOne") : t("cart.itemsCount", { count: items.length });
 
@@ -284,18 +287,39 @@ export function CartView() {
                   <p className="mt-1 font-mono text-[11px] text-muted-foreground">
                     {t("catalog.sku")}: {item.sku}
                   </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {t("ordering.unitPrice")}:{" "}
-                      <span className="font-semibold text-foreground">
-                        {formatMoney(item.unit_price, { currency, locale, rates })}
-                      </span>
-                      {currency !== "BRL" ? (
-                        <span className="ms-1 text-[11px]">
-                          ({formatBrl(item.unit_price, locale)})
+                  <div className="mt-2 space-y-1.5">
+                    {Number(item.discount_percent ?? 0) > 0 ? (
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {t("ordering.unitPrice")}
+                        </p>
+                        <CnpjPrice
+                          listAmount={item.list_unit_price}
+                          finalAmount={item.unit_price}
+                          percent={item.discount_percent}
+                          showBrl
+                          priceClassName="text-sm font-bold"
+                        />
+                        <CnpjVolumeNotice
+                          unitsToVolume={item.units_to_volume_discount}
+                          band={item.discount_band}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {t("ordering.unitPrice")}:{" "}
+                          <span className="font-semibold text-foreground">
+                            {formatMoney(item.unit_price, { currency, locale, rates })}
+                          </span>
+                          {currency !== "BRL" ? (
+                            <span className="ms-1 text-[11px]">
+                              ({formatBrl(item.unit_price, locale)})
+                            </span>
+                          ) : null}
                         </span>
-                      ) : null}
-                    </span>
+                      </div>
+                    )}
                     {item.tier_min_quantity != null ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
                         {t("cart.tierApplied")}
@@ -364,6 +388,22 @@ export function CartView() {
             <h2 className="text-base font-bold tracking-tight">{t("ordering.summaryTitle")}</h2>
 
             <dl className="mt-5 space-y-3 text-sm">
+              {hasCnpjDiscount ? (
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">{t("ordering.listSubtotal")}</dt>
+                  <dd className="font-semibold text-muted-foreground">
+                    <PriceDisplay amount={cart.list_subtotal ?? null} primary="converted" />
+                  </dd>
+                </div>
+              ) : null}
+              {hasCnpjDiscount ? (
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">{t("ordering.cnpjDiscountLine")}</dt>
+                  <dd className="font-semibold text-success">
+                    <PriceDisplay amount={`-${cnpjDiscountTotal}`} primary="converted" />
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">{t("cart.subtotal")}</dt>
                 <dd className="font-semibold">
@@ -383,6 +423,14 @@ export function CartView() {
                 </dd>
               </div>
             </dl>
+            {hasCnpjDiscount ? (
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-success/10 px-3.5 py-3 text-success">
+                <span className="text-xs font-semibold">{t("ordering.cnpjSavings")}</span>
+                <span className="text-sm font-bold">
+                  <PriceDisplay amount={cnpjDiscountTotal} primary="converted" />
+                </span>
+              </div>
+            ) : null}
 
             <RateDisclosure className="mt-4" />
 

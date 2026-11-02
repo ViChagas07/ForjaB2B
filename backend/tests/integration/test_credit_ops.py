@@ -36,15 +36,15 @@ def credit_seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
     """Empresas dedicadas + conta de credito RESETADA a cada teste (isolamento)."""
     conn = pg.connect_admin(autocommit=False)
     try:
-        for company_id, cnpj, name in (
+        for company_id, _cnpj, name in (
             (_COMPANY_A, "19999999000101", "Credit Empresa A"),
             (_COMPANY_B, "19999999000102", "Credit Empresa B"),
         ):
             conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
             conn.execute(
-                "INSERT INTO companies (id, cnpj, legal_name, status) "
-                "VALUES (%s, %s, %s, 'ACTIVE') ON CONFLICT (id) DO NOTHING",
-                (company_id, cnpj, name),
+                "INSERT INTO companies (id, legal_name, status, account_type) "
+                "VALUES (%s, %s, 'ACTIVE', 'PERSON') ON CONFLICT (id) DO NOTHING",
+                (company_id, name),
             )
             # Reseta o estado de credito (ledger + conta) para o teste atual.
             conn.execute("DELETE FROM credit_entries WHERE company_id = %s", (company_id,))

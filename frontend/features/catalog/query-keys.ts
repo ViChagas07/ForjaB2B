@@ -9,8 +9,10 @@ import type { ProductListQuery } from "@/core/domain/catalog";
 export const catalogKeys = {
   categories: (locale: string) => ["catalog", "categories", locale] as const,
   brands: (locale: string) => ["catalog", "brands", locale] as const,
-  products: (locale: string, query: ProductListQuery) =>
-    ["catalog", "products", locale, query] as const,
-  product: (locale: string, productId: string | undefined) =>
-    ["catalog", "product", locale, productId] as const,
+  // `viewerKey` separa o preco publico (prefetch do servidor) do preco
+  // personalizado (empresa/CNPJ) sem misturar cache entre sessoes.
+  products: (locale: string, query: ProductListQuery, viewerKey = "guest") =>
+    ["catalog", "products", locale, viewerKey, query] as const,
+  product: (locale: string, productId: string | undefined, viewerKey = "guest") =>
+    ["catalog", "product", locale, viewerKey, productId] as const,
 };

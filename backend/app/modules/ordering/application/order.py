@@ -13,7 +13,11 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from app.core.metrics import increment_order_created
-from app.domain.pricing import PriceSource, resolve_company_price
+from app.domain.pricing import (
+    CnpjDiscountBand,
+    PriceSource,
+    resolve_customer_price,
+)
 from app.domain.product_availability import is_sellable
 from app.domain.shipping import compute_shipping, compute_total_weight
 from app.modules.ordering.application.errors import (
@@ -68,12 +72,16 @@ class CreateOrder:
         if not items:
             raise EmptyOrderError()
 
+        # A faixa de 30% e POR PRODUTO: linhas repetidas no payload sao somadas
+        # antes da precificacao, exatamente como o carrinho faz (unique por
+        # produto). O cliente nunca decide quantidade final/preco.
+        quantities = _aggregate_quantities(items)
+        account_type = await self._repository.get_company_account_type(company_id)
+
         resolved: list[ResolvedItem] = []
         line_weights: list[tuple[int, Decimal | None]] = []
-        for item in items:
-            product = await self._repository.get_product_for_order(
-                company_id, item.product_id, locale
-            )
+        for product_id, quantity in quantities.items():
+            product = await self._repository.get_product_for_order(company_id, product_id, locale)
             if product is None:
                 raise ProductNotFoundError()
             if not is_sellable(
@@ -83,31 +91,36 @@ class CreateOrder:
                 today=self._today,
             ):
                 raise ProductNotSellableError()
-            if item.quantity < product.min_order_qty:
+            if quantity < product.min_order_qty:
                 raise QuantityBelowMinimumError()
 
-            price = resolve_company_price(
+            price = resolve_customer_price(
+                account_type=account_type,
                 base_unit_price=product.base_unit_price,
                 tiers=product.tiers,
-                quantity=item.quantity,
+                quantity=quantity,
                 category_id=product.category_id,
                 rules=product.company_rules,
             )
+            has_cnpj_discount = price.discount_band is not CnpjDiscountBand.NONE
             resolved.append(
                 ResolvedItem(
                     product_id=product.id,
                     sku=product.sku,
                     name=product.name,
-                    quantity=item.quantity,
+                    quantity=quantity,
                     unit_price=price.unit_price,
                     base_unit_price=product.base_unit_price,
+                    list_unit_price=price.list_unit_price,
+                    cnpj_discount_percent=(price.discount_percent if has_cnpj_discount else None),
+                    cnpj_discount_band=(int(price.discount_band) if has_cnpj_discount else None),
                     tier_min_quantity=price.tier_min_quantity,
                     price_tier_id=price.tier_id,
-                    line_total=price.unit_price * item.quantity,
+                    line_total=price.unit_price * quantity,
                     is_negotiated=price.source == PriceSource.NEGOTIATED,
                 )
             )
-            line_weights.append((item.quantity, product.weight_kg))
+            line_weights.append((quantity, product.weight_kg))
 
         subtotal = sum((i.line_total for i in resolved), Decimal("0.00"))
         shipping_base = compute_shipping(total_weight_kg=compute_total_weight(line_weights))
@@ -222,6 +235,22 @@ class CreateOrder:
         )
         effective_shipping = Decimal("0.00") if recovery.free_shipping else shipping_total
         return recovery.discount, effective_shipping, offer.id
+
+
+def _aggregate_quantities(items: list[OrderItemInput]) -> dict[uuid.UUID, int]:
+    """Soma quantidades por produto (a faixa e por produto, nao por linha).
+
+    Tambem rejeita quantidade nao positiva mesmo quando o caso de uso e
+    chamado fora da camada HTTP (o schema ja valida ``ge=1``).
+    """
+    quantities: dict[uuid.UUID, int] = {}
+    for item in items:
+        if isinstance(item.quantity, bool) or not isinstance(item.quantity, int):
+            raise QuantityBelowMinimumError()
+        if item.quantity < 1:
+            raise QuantityBelowMinimumError()
+        quantities[item.product_id] = quantities.get(item.product_id, 0) + item.quantity
+    return quantities
 
 
 class GetOrder:

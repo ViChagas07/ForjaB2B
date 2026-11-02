@@ -12,8 +12,10 @@ import { apiClient } from "./client";
 /**
  * Adapter HTTP para os endpoints de catálogo (`/api/v1/catalog`).
  *
- * Somente leitura e global (sem autenticação). Filtros/ordenação/paginação são
- * traduzidos para query string; o backend valida por whitelist e resolve preços.
+ * Somente leitura. Categorias/marcas são públicas; produtos e detalhe aceitam
+ * `Authorization` opcional para o backend devolver o preço da empresa/CNPJ.
+ * Filtros/ordenação/paginação viram query string; o backend valida por
+ * whitelist e resolve preços (o frontend nunca calcula).
  */
 export const catalogApi = {
   async listCategories(locale: string, signal?: AbortSignal): Promise<Category[]> {
@@ -60,10 +62,12 @@ export const catalogApi = {
     query: ProductListQuery = {},
     locale: string,
     signal?: AbortSignal,
+    token?: string | null,
   ): Promise<ProductListResponse> {
     const response = await apiClient.request<ProductListResponse>({
       method: "GET",
       path: "/catalog/products",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       query: {
         category_id: query.category_id,
         brand_id: query.brand_id,
@@ -85,10 +89,12 @@ export const catalogApi = {
     productId: string,
     locale: string,
     signal?: AbortSignal,
+    token?: string | null,
   ): Promise<ProductDetail> {
     const response = await apiClient.request<ProductDetail>({
       method: "GET",
       path: `/catalog/products/${productId}`,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       locale,
       signal,
     });

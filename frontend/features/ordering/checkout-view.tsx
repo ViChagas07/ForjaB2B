@@ -11,6 +11,7 @@ import type { PaymentMethod } from "@/core/domain/ordering";
 import { PAYMENT_METHODS } from "@/core/domain/ordering";
 import { Link } from "@/i18n/navigation";
 import { problemCode } from "@/infrastructure/http";
+import { CnpjPrice, CnpjVolumeNotice } from "@/shared/components/cnpj-price";
 import { PaymentMethodIcon } from "@/shared/components/payment-method-icon";
 import { ProductImage } from "@/shared/components/product-image";
 import { PriceDisplay } from "@/shared/components/price-display";
@@ -117,6 +118,9 @@ export function CheckoutView({
   const preview = coupon.preview;
   const isBoleto = paymentMethod === "BOLETO";
   const subtotal = preview?.subtotal ?? cart.subtotal;
+  const listSubtotal = preview?.list_subtotal ?? cart.list_subtotal ?? null;
+  const cnpjDiscountTotal = preview?.cnpj_discount_total ?? cart.cnpj_discount_total ?? "0.00";
+  const hasCnpjDiscount = Number(cnpjDiscountTotal) > 0;
   const shippingTotal = preview?.shipping_total ?? null;
   const shippingDiscount = preview?.shipping_discount ?? "0.00";
   const couponDiscount = preview?.coupon_discount ?? "0.00";
@@ -201,10 +205,32 @@ export function CheckoutView({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-sm font-semibold">{item.name}</p>
-                      <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                        {t("catalog.sku")}: {item.sku} · {item.quantity} ×{" "}
-                        {formatBrl(item.unit_price, locale)}
-                      </p>
+                      {Number(item.discount_percent ?? 0) > 0 ? (
+                        <>
+                          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                            {t("catalog.sku")}: {item.sku} · {item.quantity}
+                          </p>
+                          <div className="mt-1.5">
+                            <CnpjPrice
+                              listAmount={item.list_unit_price}
+                              finalAmount={item.unit_price}
+                              percent={item.discount_percent}
+                              primary="brl"
+                              showBrl
+                              priceClassName="text-sm font-bold"
+                            />
+                            <CnpjVolumeNotice
+                              unitsToVolume={item.units_to_volume_discount}
+                              band={item.discount_band}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                          {t("catalog.sku")}: {item.sku} · {item.quantity} ×{" "}
+                          {formatBrl(item.unit_price, locale)}
+                        </p>
+                      )}
                     </div>
                     <span className="shrink-0 text-sm font-bold">
                       {formatBrl(item.line_total, locale)}
@@ -305,6 +331,25 @@ export function CheckoutView({
                 />
 
                 <dl className="space-y-3 text-sm">
+                  {hasCnpjDiscount ? (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">{t("ordering.listSubtotal")}</dt>
+                      <dd className="font-semibold text-muted-foreground">
+                        {formatBrl(listSubtotal ?? "0.00", locale)}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {hasCnpjDiscount ? (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted-foreground">{t("ordering.cnpjDiscountLine")}</dt>
+                      <dd
+                        className="font-semibold text-success"
+                        data-testid="checkout-cnpj-discount"
+                      >
+                        {formatBrl(`-${cnpjDiscountTotal}`, locale)}
+                      </dd>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between">
                     <dt className="text-muted-foreground">{t("ordering.subtotal")}</dt>
                     <dd className="font-semibold" data-testid="checkout-subtotal">
@@ -376,6 +421,15 @@ export function CheckoutView({
                     </dd>
                   </div>
                 </dl>
+
+                {hasCnpjDiscount ? (
+                  <div className="flex items-center justify-between rounded-xl bg-success/10 px-3.5 py-3 text-success">
+                    <span className="text-xs font-semibold">{t("ordering.cnpjSavings")}</span>
+                    <span className="text-sm font-bold">
+                      {formatBrl(cnpjDiscountTotal, locale)}
+                    </span>
+                  </div>
+                ) : null}
 
                 <RateDisclosure className="mt-4" />
 

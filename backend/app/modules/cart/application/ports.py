@@ -38,8 +38,18 @@ class CartItemView:
     description: str | None
     attributes: dict[str, object] | None
     quantity: int
+    # unit_price/line_total ja incluem o desconto automatico CNPJ.
     unit_price: Decimal
     line_total: Decimal
+    # Valores de exibicao calculados no servidor (nunca no frontend).
+    list_line_total: Decimal
+    discount_amount: Decimal
+    # Snapshot do calculo: preco de tabela (pre-CNPJ), percentual/faixa
+    # aplicados e quantas unidades faltam para a faixa de 30%.
+    list_unit_price: Decimal
+    discount_percent: Decimal
+    discount_band: int | None
+    units_to_volume_discount: int | None
     tier_min_quantity: int | None
     image_url: str
     image_alt: str
@@ -59,6 +69,9 @@ class CartView:
     company_id: uuid.UUID
     user_id: uuid.UUID
     items: list[CartItemView]
+    # ``subtotal`` ja e o valor final (com CNPJ); os demais sao para exibicao.
+    list_subtotal: Decimal
+    cnpj_discount_total: Decimal
     subtotal: Decimal
 
 

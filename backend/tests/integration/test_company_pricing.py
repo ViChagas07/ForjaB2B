@@ -69,15 +69,16 @@ def _seed(pg: PostgresInstance, migrated_domain_schema: None) -> None:
             "ON CONFLICT (id) DO NOTHING",
             (_PRODUCT, _CAT, _SKU, _SKU.lower(), _BASE_PRICE),
         )
-        for company_id, user_id, member_id, email, cnpj in (
+        for company_id, user_id, member_id, email, _cnpj in (
             (_COMPANY_A, _USER_A, _MEMBER_A, _EMAIL_A, "19999999000180"),
             (_COMPANY_B, _USER_B, _MEMBER_B, _EMAIL_B, "19999999000181"),
         ):
             conn.execute("SELECT app.set_tenant_context(%s, NULL)", (company_id,))
             conn.execute(
-                "INSERT INTO companies (id, cnpj, legal_name, status) "
-                "VALUES (%s, %s, 'Pricing Empresa', 'ACTIVE') ON CONFLICT (id) DO NOTHING",
-                (company_id, cnpj),
+                "INSERT INTO companies (id, legal_name, status, account_type) "
+                "VALUES (%s, 'Pricing Empresa', 'ACTIVE', 'PERSON') "
+                "ON CONFLICT (id) DO NOTHING",
+                (company_id,),
             )
             conn.execute(
                 "INSERT INTO users (id, company_id, email, full_name, cpf_hash, "

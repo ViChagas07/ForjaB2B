@@ -46,7 +46,14 @@ export interface ProductSummary {
   ca_status: CaStatus;
   category: CategoryRef;
   brand: BrandRef | null;
+  /** Preco final (com desconto CNPJ, quando aplicavel). */
   base_unit_price: string | null;
+  /** Preco antes do desconto CNPJ (preco de tabela/empresa). */
+  list_unit_price?: string | null;
+  /** Preco final do usuario; igual a base para nao-CNPJ. */
+  unit_price?: string | null;
+  discount_percent?: string;
+  discount_band?: number | null;
   currency: string;
   min_order_qty: number;
   stock_quantity: number;

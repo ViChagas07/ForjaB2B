@@ -77,6 +77,10 @@ def _to_summary(view: ProductView, language_fallback: bool = False) -> ProductSu
             else None
         ),
         base_unit_price=view.base_unit_price,
+        list_unit_price=view.list_unit_price,
+        unit_price=view.unit_price,
+        discount_percent=view.discount_percent,
+        discount_band=view.discount_band,
         currency=view.currency,
         min_order_qty=view.min_order_qty,
         stock_quantity=view.stock_quantity,
@@ -138,6 +142,7 @@ async def list_products(
             page_size=query.page_size,
         ),
         company_id=auth.company_id if auth is not None else None,
+        account_type=auth.account_type if auth is not None else "PERSON",
         locale=locale_info.content_locale,
     )
     return ProductListResponse(
@@ -159,6 +164,7 @@ async def get_product(
     view = await use_case.get(
         product_id,
         company_id=auth.company_id if auth is not None else None,
+        account_type=auth.account_type if auth is not None else "PERSON",
         locale=locale_info.content_locale,
     )
     summary = _to_summary(view, locale_info.content_fallback)

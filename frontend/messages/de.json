@@ -270,7 +270,10 @@
     "buyNow": "Jetzt kaufen",
     "stockAvailable": "{count} Einheiten verfügbar",
     "inStock": "{count} auf Lager",
-    "outOfStock": "Nicht auf Lager"
+    "outOfStock": "Nicht auf Lager",
+    "listPrice": "Listenpreis",
+    "cnpjBadge": "CNPJ {percent} % Rabatt",
+    "cnpjVolumeHint": "Kaufen Sie 30 oder mehr Einheiten und zahlen Sie 30 % weniger"
   },
   "cart": {
     "title": "Warenkorb",
@@ -304,7 +307,9 @@
     "benefit2Description": "Gesunder Cashflow mit B2B-Rechnungsstellung.",
     "benefit3Title": "Landesweite Lieferung",
     "benefit3Description": "Geplante Logistik für Ihren Betrieb.",
-    "itemCountOne": "1 Artikel"
+    "itemCountOne": "1 Artikel",
+    "cnpjVolumeRemaining": "Noch {count} Einheiten bis 30 % Rabatt auf dieses Produkt",
+    "cnpjVolumeReached": "30 % Rabatt auf dieses Produkt angewendet"
   },
   "ordering": {
     "reviewTitle": "Bestellübersicht",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "Gutschein ({code})",
       "orderShippingDiscount": "Versandrabatt ({code})"
-    }
+    },
+    "listSubtotal": "Zwischensumme vor Rabatt",
+    "cnpjDiscountLine": "CNPJ-Rabatt",
+    "cnpjSavings": "Ersparnis durch CNPJ-Rabatt"
   },
   "credit": {
     "title": "Kredit",

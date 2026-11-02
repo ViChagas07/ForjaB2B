@@ -68,11 +68,13 @@ class FakeRepository:
         offer: RecoveryOfferView | None = None,
         total_uses: int = 0,
         company_uses: int = 0,
+        account_type: str = "PERSON",
     ) -> None:
         self.coupon = coupon
         self.offer = offer
         self.total_uses = total_uses
         self.company_uses = company_uses
+        self.account_type = account_type
         self.offer_lookups = 0
         self.created: dict[str, object] | None = None
 
@@ -80,6 +82,9 @@ class FakeRepository:
         self, company_id: uuid.UUID, product_id: uuid.UUID, locale: str
     ) -> ProductForOrder | None:
         return _product() if product_id == _PRODUCT else None
+
+    async def get_company_account_type(self, company_id: uuid.UUID) -> str:
+        return self.account_type
 
     async def get_coupon_for_checkout(
         self, code: str, company_id: uuid.UUID
@@ -122,6 +127,9 @@ class FakeRepository:
                     quantity=item.quantity,
                     unit_price=item.unit_price,
                     base_unit_price=item.base_unit_price,
+                    list_unit_price=item.list_unit_price,
+                    cnpj_discount_percent=item.cnpj_discount_percent,
+                    cnpj_discount_band=item.cnpj_discount_band,
                     tier_min_quantity=item.tier_min_quantity,
                     line_total=item.line_total,
                     content_locale="pt-BR",

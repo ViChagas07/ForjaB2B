@@ -735,6 +735,41 @@
             "title": "Content Locale",
             "type": "string"
           },
+          "discount_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Discount Amount"
+          },
+          "discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Band"
+          },
+          "discount_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Discount Percent"
+          },
           "image_alt": {
             "title": "Image Alt",
             "type": "string"
@@ -754,6 +789,30 @@
               }
             ],
             "title": "Line Total"
+          },
+          "list_line_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "List Line Total"
+          },
+          "list_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "List Unit Price"
           },
           "name": {
             "title": "Name",
@@ -794,6 +853,17 @@
               }
             ],
             "title": "Unit Price"
+          },
+          "units_to_volume_discount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Units To Volume Discount"
           }
         },
         "required": [
@@ -803,6 +873,10 @@
           "quantity",
           "unit_price",
           "line_total",
+          "list_line_total",
+          "discount_amount",
+          "list_unit_price",
+          "discount_percent",
           "tier_min_quantity",
           "image_url",
           "image_alt",
@@ -818,6 +892,27 @@
             "title": "Content Locale",
             "type": "string"
           },
+          "discount_amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Amount",
+            "type": "string"
+          },
+          "discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Band"
+          },
+          "discount_percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Percent",
+            "type": "string"
+          },
           "image_alt": {
             "title": "Image Alt",
             "type": "string"
@@ -829,6 +924,16 @@
           "line_total": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Line Total",
+            "type": "string"
+          },
+          "list_line_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "List Line Total",
+            "type": "string"
+          },
+          "list_unit_price": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "List Unit Price",
             "type": "string"
           },
           "name": {
@@ -863,6 +968,17 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Unit Price",
             "type": "string"
+          },
+          "units_to_volume_discount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Units To Volume Discount"
           }
         },
         "required": [
@@ -872,6 +988,10 @@
           "quantity",
           "unit_price",
           "line_total",
+          "list_line_total",
+          "discount_amount",
+          "list_unit_price",
+          "discount_percent",
           "tier_min_quantity",
           "image_url",
           "image_alt",
@@ -888,6 +1008,11 @@
             "title": "Cart Id",
             "type": "string"
           },
+          "cnpj_discount_total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cnpj Discount Total",
+            "type": "string"
+          },
           "company_id": {
             "format": "uuid",
             "title": "Company Id",
@@ -899,6 +1024,11 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "list_subtotal": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "List Subtotal",
+            "type": "string"
           },
           "subtotal": {
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -916,6 +1046,8 @@
           "company_id",
           "user_id",
           "items",
+          "list_subtotal",
+          "cnpj_discount_total",
           "subtotal"
         ],
         "title": "CartResponse",
@@ -1743,6 +1875,18 @@
             "title": "Applied Discounts",
             "type": "array"
           },
+          "cnpj_discount_total": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Total"
+          },
           "coupon_discount": {
             "anyOf": [
               {
@@ -1759,6 +1903,18 @@
             "default": "BRL",
             "title": "Currency",
             "type": "string"
+          },
+          "list_subtotal": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Subtotal"
           },
           "missing_amount": {
             "anyOf": [
@@ -3049,6 +3205,47 @@
             ],
             "title": "Base Unit Price"
           },
+          "cnpj_discount_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Amount"
+          },
+          "cnpj_discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Band"
+          },
+          "cnpj_discount_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Percent"
+          },
           "content_locale": {
             "title": "Content Locale",
             "type": "string"
@@ -3064,6 +3261,36 @@
               }
             ],
             "title": "Line Total"
+          },
+          "list_line_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Line Total"
+          },
+          "list_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Unit Price"
           },
           "product_name": {
             "title": "Product Name",
@@ -3129,6 +3356,41 @@
             ],
             "title": "Base Unit Price"
           },
+          "cnpj_discount_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Amount"
+          },
+          "cnpj_discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Band"
+          },
+          "cnpj_discount_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cnpj Discount Percent"
+          },
           "content_locale": {
             "title": "Content Locale",
             "type": "string"
@@ -3137,6 +3399,30 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Line Total",
             "type": "string"
+          },
+          "list_line_total": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Line Total"
+          },
+          "list_unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Unit Price"
           },
           "product_name": {
             "title": "Product Name",
@@ -3183,6 +3469,12 @@
       "OrderResponse": {
         "additionalProperties": false,
         "properties": {
+          "cnpj_discount_total": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cnpj Discount Total",
+            "type": "string"
+          },
           "company_id": {
             "format": "uuid",
             "title": "Company Id",
@@ -3256,6 +3548,12 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "list_subtotal": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "List Subtotal",
+            "type": "string"
           },
           "shipping_discount_amount": {
             "default": "0.00",
@@ -4455,6 +4753,23 @@
             ],
             "title": "Description"
           },
+          "discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Band"
+          },
+          "discount_percent": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Percent",
+            "type": "string"
+          },
           "fallback": {
             "title": "Fallback",
             "type": "boolean"
@@ -4475,6 +4790,18 @@
           "is_epi": {
             "title": "Is Epi",
             "type": "boolean"
+          },
+          "list_unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Unit Price"
           },
           "min_order_qty": {
             "title": "Min Order Qty",
@@ -4525,6 +4852,18 @@
               }
             ],
             "title": "Unit Of Measure"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
           },
           "weight_kg": {
             "anyOf": [
@@ -4607,6 +4946,17 @@
               }
             ],
             "title": "Is Epi"
+          },
+          "lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lang"
           },
           "order": {
             "default": "asc",
@@ -4774,6 +5124,30 @@
             "title": "Currency",
             "type": "string"
           },
+          "discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Band"
+          },
+          "discount_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0.00",
+            "title": "Discount Percent"
+          },
           "fallback": {
             "title": "Fallback",
             "type": "boolean"
@@ -4794,6 +5168,21 @@
           "is_epi": {
             "title": "Is Epi",
             "type": "boolean"
+          },
+          "list_unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Unit Price"
           },
           "min_order_qty": {
             "title": "Min Order Qty",
@@ -4822,6 +5211,21 @@
           "stock_quantity": {
             "title": "Stock Quantity",
             "type": "integer"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
           }
         },
         "required": [
@@ -4887,6 +5291,23 @@
             "title": "Currency",
             "type": "string"
           },
+          "discount_band": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Band"
+          },
+          "discount_percent": {
+            "default": "0.00",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Discount Percent",
+            "type": "string"
+          },
           "fallback": {
             "title": "Fallback",
             "type": "boolean"
@@ -4907,6 +5328,18 @@
           "is_epi": {
             "title": "Is Epi",
             "type": "boolean"
+          },
+          "list_unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Unit Price"
           },
           "min_order_qty": {
             "title": "Min Order Qty",
@@ -4935,6 +5368,18 @@
           "stock_quantity": {
             "title": "Stock Quantity",
             "type": "integer"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
           }
         },
         "required": [

@@ -18,7 +18,14 @@ from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.application.ports.tenant import TenantContext
 from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
 from app.domain.i18n import DEFAULT_LOCALE
-from app.domain.pricing import CompanyPriceRule, PriceSource, PriceTier, resolve_company_price
+from app.domain.pricing import (
+    CnpjDiscountBand,
+    CompanyPriceRule,
+    PriceSource,
+    PriceTier,
+    resolve_customer_price,
+)
+from app.infrastructure.db.company_account import load_company_account_type
 from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.translations import load_product_translations
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
@@ -64,6 +71,11 @@ _CLEAR = text("DELETE FROM cart_items WHERE cart_id = :cart_id")
 # Toda operacao de item toca a ultima atividade do carrinho NA MESMA transacao
 # (base do agente de recuperacao de carrinho abandonado — Fase 12).
 _TOUCH_CART = text("UPDATE carts SET last_activity_at = now() WHERE id = :cart_id")
+
+
+def _band_value(band: CnpjDiscountBand) -> int | None:
+    """Converte a faixa do dominio para o valor exposto na API (None = sem CNPJ)."""
+    return None if band is CnpjDiscountBand.NONE else int(band)
 
 
 class SqlAlchemyCartRepository:
@@ -160,20 +172,31 @@ class SqlAlchemyCartRepository:
             cart_id = cart_row[0]
 
             item_rows = (await uow.session.execute(_SELECT_ITEMS, {"cart_id": cart_id})).all()
+            account_type = await load_company_account_type(uow.session, company_id)
             await uow.commit()
 
-        items = await self._resolve_items_standalone(item_rows, company_id, locale)
+        items = await self._resolve_items_standalone(
+            item_rows, company_id, locale, account_type=account_type
+        )
         subtotal = sum((item.line_total for item in items), Decimal("0.00"))
+        list_subtotal = sum((item.list_line_total for item in items), Decimal("0.00"))
         return CartView(
             cart_id=cart_id,
             company_id=company_id,
             user_id=user_id,
             items=items,
+            list_subtotal=list_subtotal,
+            cnpj_discount_total=list_subtotal - subtotal,
             subtotal=subtotal,
         )
 
     async def _resolve_items_standalone(
-        self, item_rows: Sequence[Any], company_id: uuid.UUID, locale: str
+        self,
+        item_rows: Sequence[Any],
+        company_id: uuid.UUID,
+        locale: str,
+        *,
+        account_type: str,
     ) -> list[CartItemView]:
         product_ids = [r.product_id for r in item_rows]
         tiers_by_product = await self._tiers_by_products(product_ids)
@@ -183,7 +206,8 @@ class SqlAlchemyCartRepository:
             translations = await self._translations_by_products(product_ids, locale)
         items: list[CartItemView] = []
         for r in item_rows:
-            resolved = resolve_company_price(
+            price = resolve_customer_price(
+                account_type=account_type,
                 base_unit_price=r.base_unit_price,
                 tiers=tiers_by_product.get(r.product_id, []),
                 quantity=r.quantity,
@@ -206,16 +230,22 @@ class SqlAlchemyCartRepository:
                     description=text.description.value,
                     attributes=text.attributes,
                     quantity=r.quantity,
-                    unit_price=resolved.unit_price,
-                    line_total=resolved.unit_price * r.quantity,
-                    tier_min_quantity=resolved.tier_min_quantity,
+                    unit_price=price.unit_price,
+                    line_total=price.unit_price * r.quantity,
+                    list_line_total=price.list_unit_price * r.quantity,
+                    discount_amount=(price.list_unit_price - price.unit_price) * r.quantity,
+                    list_unit_price=price.list_unit_price,
+                    discount_percent=price.discount_percent,
+                    discount_band=_band_value(price.discount_band),
+                    units_to_volume_discount=price.units_to_volume_discount,
+                    tier_min_quantity=price.tier_min_quantity,
                     image_url=resolve_product_image_path(
                         product_image_url=r.image_url, category_slug=r.category_slug
                     ),
                     image_alt=resolve_image_alt(text.name.value or r.name),
                     content_locale=text.content_locale,
                     weight_kg=r.weight_kg,
-                    is_negotiated=resolved.source == PriceSource.NEGOTIATED,
+                    is_negotiated=price.source == PriceSource.NEGOTIATED,
                 )
             )
         return items

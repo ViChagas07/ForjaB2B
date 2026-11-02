@@ -74,19 +74,33 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 class PostgresInstance:
     """Parametros de conexao do container descartavel."""
 
-    def __init__(self, host: str, port: int) -> None:
+    def __init__(self, host: str, port: int, container: DockerContainer) -> None:
         self.host = host
         self.port = port
+        self.container = container
 
-    def connect(self, user: str, password: str, *, autocommit: bool = True) -> psycopg.Connection:
+    def connect(
+        self,
+        user: str,
+        password: str,
+        *,
+        dbname: str = DB_NAME,
+        autocommit: bool = True,
+    ) -> psycopg.Connection:
         return psycopg.connect(
             host=self.host,
             port=self.port,
-            dbname=DB_NAME,
+            dbname=dbname,
             user=user,
             password=password,
             autocommit=autocommit,
         )
+
+    def exec_in_container(self, command: list[str]) -> tuple[int, str]:
+        """Executa um comando no container (ex.: psql em um database novo)."""
+        result = self.container.exec(command)
+        exit_code = int(result.exit_code) if result.exit_code is not None else -1
+        return exit_code, result.output.decode("utf-8", errors="replace")
 
     def connect_app(self, *, autocommit: bool = True) -> psycopg.Connection:
         """Conexao com a role de runtime (sujeita a RLS)."""
@@ -135,6 +149,7 @@ def pg() -> Iterator[PostgresInstance]:
         yield PostgresInstance(
             host=container.get_container_host_ip(),
             port=int(container.get_exposed_port(5432)),
+            container=container,
         )
     finally:
         container.stop()

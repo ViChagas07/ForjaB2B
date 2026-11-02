@@ -22,6 +22,7 @@ from app.application.ports.tenant import TenantContext
 from app.domain.i18n import DEFAULT_LOCALE
 from app.domain.ledger import LedgerEntry, exposure
 from app.domain.pricing import PriceTier
+from app.infrastructure.db.company_account import load_company_account_type
 from app.infrastructure.db.company_pricing import load_company_price_rules
 from app.infrastructure.db.coupon_redemptions import release_coupon_redemption
 from app.infrastructure.db.outbox import enqueue_notification
@@ -113,10 +114,12 @@ _INSERT_COUPON_REDEMPTION = text(
 )
 _INSERT_ITEM = text(
     "INSERT INTO order_items (order_id, company_id, product_id, price_tier_id, sku, "
-    "product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
+    "product_name, quantity, unit_price, base_unit_price, list_unit_price, "
+    "cnpj_discount_percent, cnpj_discount_band, tier_min_quantity, "
     "line_total, content_locale) VALUES (:order_id, :company_id, :product_id, "
     ":price_tier_id, :sku, :product_name, :quantity, :unit_price, "
-    ":base_unit_price, :tier_min_quantity, :line_total, :content_locale)"
+    ":base_unit_price, :list_unit_price, :cnpj_discount_percent, "
+    ":cnpj_discount_band, :tier_min_quantity, :line_total, :content_locale)"
 )
 _INSERT_CREDIT = text(
     "INSERT INTO credit_entries (credit_account_id, company_id, entry_type, amount, "
@@ -130,11 +133,14 @@ _SELECT_ORDER = text(
     "FROM orders WHERE id = :order_id AND company_id = :company_id"
 )
 _SELECT_ORDER_ITEMS = text(
-    "SELECT sku, product_name, quantity, unit_price, base_unit_price, tier_min_quantity, "
-    "line_total, content_locale FROM order_items WHERE order_id = :order_id ORDER BY created_at, id"
+    "SELECT sku, product_name, quantity, unit_price, base_unit_price, list_unit_price, "
+    "cnpj_discount_percent, cnpj_discount_band, tier_min_quantity, "
+    "line_total, content_locale FROM order_items WHERE order_id = :order_id "
+    "ORDER BY created_at, id"
 )
 _SELECT_ORDER_ITEMS_BY_IDS = text(
     "SELECT order_id, sku, product_name, quantity, unit_price, base_unit_price, "
+    "list_unit_price, cnpj_discount_percent, cnpj_discount_band, "
     "tier_min_quantity, line_total, content_locale FROM order_items "
     "WHERE order_id IN :order_ids ORDER BY created_at, id"
 ).bindparams(bindparam("order_ids", expanding=True))
@@ -243,6 +249,13 @@ class SqlAlchemyOrderingRepository:
                 ],
                 company_rules=rules.get(product_id, []),
             )
+
+    async def get_company_account_type(self, company_id: uuid.UUID) -> str:
+        tenant = TenantContext(company_id=company_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            account_type = await load_company_account_type(uow.session, company_id)
+            await uow.commit()
+            return account_type
 
     async def find_active_offer(
         self, company_id: uuid.UUID, buyer_user_id: uuid.UUID
@@ -493,6 +506,9 @@ class SqlAlchemyOrderingRepository:
                     "quantity": item.quantity,
                     "unit_price": item.unit_price,
                     "base_unit_price": item.base_unit_price,
+                    "list_unit_price": item.list_unit_price,
+                    "cnpj_discount_percent": item.cnpj_discount_percent,
+                    "cnpj_discount_band": item.cnpj_discount_band,
                     "tier_min_quantity": item.tier_min_quantity,
                     "line_total": item.line_total,
                     "content_locale": content_locale,
@@ -756,7 +772,31 @@ class SqlAlchemyOrderingRepository:
         return result
 
 
+def _order_item_view(item: Any) -> OrderItemView:
+    list_price = item.list_unit_price if item.list_unit_price is not None else item.unit_price
+    list_line_total = list_price * item.quantity
+    return OrderItemView(
+        sku=item.sku,
+        product_name=item.product_name,
+        quantity=item.quantity,
+        unit_price=item.unit_price,
+        base_unit_price=item.base_unit_price,
+        list_unit_price=item.list_unit_price,
+        cnpj_discount_percent=item.cnpj_discount_percent,
+        cnpj_discount_band=item.cnpj_discount_band,
+        tier_min_quantity=item.tier_min_quantity,
+        line_total=item.line_total,
+        content_locale=item.content_locale or DEFAULT_LOCALE,
+        list_line_total=list_line_total,
+        cnpj_discount_amount=list_line_total - item.line_total,
+    )
+
+
 def _order_view(row: Any, items_rows: Any) -> OrderView:
+    items = [_order_item_view(item) for item in items_rows]
+    list_subtotal = sum(
+        (item.list_line_total or item.line_total for item in items), Decimal("0.00")
+    )
     return OrderView(
         id=row.id,
         company_id=row.company_id,
@@ -774,19 +814,9 @@ def _order_view(row: Any, items_rows: Any) -> OrderView:
         coupon_percent=row.coupon_percent,
         coupon_discount_amount=row.coupon_discount_amount,
         shipping_discount_amount=row.shipping_discount_amount,
-        items=[
-            OrderItemView(
-                sku=item.sku,
-                product_name=item.product_name,
-                quantity=item.quantity,
-                unit_price=item.unit_price,
-                base_unit_price=item.base_unit_price,
-                tier_min_quantity=item.tier_min_quantity,
-                line_total=item.line_total,
-                content_locale=item.content_locale or DEFAULT_LOCALE,
-            )
-            for item in items_rows
-        ],
+        list_subtotal=list_subtotal,
+        cnpj_discount_total=list_subtotal - row.subtotal,
+        items=items,
     )
 
 

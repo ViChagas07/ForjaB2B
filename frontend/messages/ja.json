@@ -270,7 +270,10 @@
     "buyNow": "今すぐ購入",
     "stockAvailable": "{count}点在庫あり",
     "inStock": "在庫{count}点",
-    "outOfStock": "在庫切れ"
+    "outOfStock": "在庫切れ",
+    "listPrice": "定価",
+    "cnpjBadge": "CNPJ {percent}%割引",
+    "cnpjVolumeHint": "30個以上購入で30%お得"
   },
   "cart": {
     "title": "カート",
@@ -304,7 +307,9 @@
     "benefit2Description": "B2B請求で健全なキャッシュフローを。",
     "benefit3Title": "全国配送",
     "benefit3Description": "運用に合わせた物流計画。",
-    "itemCountOne": "1 点"
+    "itemCountOne": "1 点",
+    "cnpjVolumeRemaining": "この商品の30%割引まであと{count}個",
+    "cnpjVolumeReached": "この商品に30%割引を適用済み"
   },
   "ordering": {
     "reviewTitle": "注文の確認",
@@ -389,7 +394,10 @@
       },
       "orderCoupon": "クーポン ({code})",
       "orderShippingDiscount": "配送割引 ({code})"
-    }
+    },
+    "listSubtotal": "割引前の小計",
+    "cnpjDiscountLine": "CNPJ割引",
+    "cnpjSavings": "CNPJ割引による節約額"
   },
   "credit": {
     "title": "クレジット",

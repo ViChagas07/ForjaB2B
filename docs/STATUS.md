@@ -16,8 +16,8 @@
 | Identidade, JWT, refresh, RBAC, OAuth Google opcional | Implementado | `backend/app/modules/identity`, `backend/app/application/security.py` |
 | Empresas/CNPJ, aprovação, membros por papel | Implementado | `backend/app/modules/companies` |
 | Catálogo global, categorias, marcas, imagens, atributos JSONB | Implementado | `backend/app/modules/catalog`, migration `0017` |
-| Preço por empresa (negociado/desconto/lista) e consultivo | Implementado | `backend/app/domain/pricing.py`, migration `0014` |
-| Carrinho, pedido, crédito, faturamento, frete, impostos | Implementado | `backend/app/modules/{cart,ordering,credit,invoicing,shipping,tax}` |
+| Preço por empresa (negociado/desconto/lista), desconto automático CNPJ (15%/30%) e consultivo; UI de tabela riscada/economia no catálogo, carrinho e pedido | Implementado | `docs/PRICING.md`, `backend/app/domain/pricing.py`, `frontend/shared/components/cnpj-price.tsx`, migrations `0014` e `0042` |
+| Carrinho, pedido (snapshot do desconto CNPJ por item), crédito, faturamento, frete, impostos | Implementado | `backend/app/modules/{cart,ordering,credit,invoicing,shipping,tax}` |
 | Pagamento fake (PIX/cartão/boleto) + webhook HMAC | Implementado (fake) | `backend/app/modules/payment/infrastructure/gateway.py` |
 | Notificações outbox + Celery/RabbitMQ + Mailpit | Implementado | `backend/app/modules/notification`, `app/tasks` |
 | LGPD (exportação, retificação, anonimização, consentimento) | Implementado | `backend/app/modules/privacy`, `docs/LGPD.md` |

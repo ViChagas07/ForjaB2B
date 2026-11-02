@@ -9,11 +9,17 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import replace
+from decimal import Decimal
 
 from app.application.i18n import ProductTextTranslation, resolve_product_text
 from app.domain.catalog_image import resolve_image_alt, resolve_product_image_path
 from app.domain.i18n import DEFAULT_LOCALE
-from app.domain.pricing import CompanyPriceRule, resolve_company_price
+from app.domain.pricing import (
+    CnpjDiscountBand,
+    CompanyPriceRule,
+    resolve_cnpj_price,
+    resolve_company_price,
+)
 from app.modules.catalog.application.errors import (
     BrandNotFoundError,
     CategoryNotFoundError,
@@ -82,25 +88,78 @@ def _mask_price(view: ProductView) -> ProductView:
     consultivos: o valor persistido nao vaza em endpoints publicos.
     """
     if not _is_sellable_view(view):
-        return replace(view, base_unit_price=None, price_on_request=True)
-    return replace(view, price_on_request=view.base_unit_price is None)
+        return replace(
+            view,
+            base_unit_price=None,
+            list_unit_price=None,
+            unit_price=None,
+            discount_percent=Decimal("0.00"),
+            discount_band=None,
+            price_on_request=True,
+        )
+    return replace(
+        view,
+        list_unit_price=view.base_unit_price,
+        unit_price=view.base_unit_price,
+        discount_percent=Decimal("0.00"),
+        discount_band=None,
+        price_on_request=view.base_unit_price is None,
+    )
 
 
-def _resolve_price(view: ProductView, rules: list[CompanyPriceRule]) -> ProductView:
-    """Autenticado: preco da empresa; bloqueados permanecem consultivos."""
+def _resolve_price(
+    view: ProductView, rules: list[CompanyPriceRule], *, account_type: str
+) -> ProductView:
+    """Autenticado: preco da empresa e, se CNPJ, desconto automatico na faixa.
+
+    O catalogo consulta a quantidade 1 (15%); a faixa de 30% e aplicada no
+    carrinho/pedido, onde a quantidade real e conhecida. O preco final tambem
+    vai em ``base_unit_price`` para consumidores antigos que ainda leem esse
+    campo.
+    """
     if not _is_sellable_view(view):
-        return replace(view, base_unit_price=None, price_on_request=True)
+        return replace(
+            view,
+            base_unit_price=None,
+            list_unit_price=None,
+            unit_price=None,
+            discount_percent=Decimal("0.00"),
+            discount_band=None,
+            price_on_request=True,
+        )
     base = view.base_unit_price
     if base is None:
-        return view
-    resolved = resolve_company_price(
+        return replace(
+            view,
+            list_unit_price=None,
+            unit_price=None,
+            discount_percent=Decimal("0.00"),
+            discount_band=None,
+            price_on_request=True,
+        )
+    company = resolve_company_price(
         base_unit_price=base,
         tiers=[],
         quantity=1,
         category_id=view.category_id,
         rules=rules,
     )
-    return replace(view, base_unit_price=resolved.unit_price, price_on_request=False)
+    cnpj = resolve_cnpj_price(
+        account_type=account_type,
+        quantity=1,
+        list_unit_price=company.unit_price,
+    )
+    return replace(
+        view,
+        base_unit_price=cnpj.unit_price,
+        list_unit_price=cnpj.list_unit_price,
+        unit_price=cnpj.unit_price,
+        discount_percent=cnpj.discount_percent,
+        discount_band=(
+            None if cnpj.discount_band is CnpjDiscountBand.NONE else int(cnpj.discount_band)
+        ),
+        price_on_request=False,
+    )
 
 
 class ListCategories:
@@ -152,6 +211,7 @@ class ListProducts:
         filters: ProductFilters,
         *,
         company_id: uuid.UUID | None = None,
+        account_type: str = "PERSON",
         locale: str = DEFAULT_LOCALE,
     ) -> PublicProductPage:
         page = await self._repository.list_products(filters)
@@ -161,7 +221,8 @@ class ListProducts:
         else:
             rules = await self._repository.get_company_price_rules(company_id, product_ids)
             items = [
-                _with_image(_resolve_price(view, rules.get(view.id, []))) for view in page.items
+                _with_image(_resolve_price(view, rules.get(view.id, []), account_type=account_type))
+                for view in page.items
             ]
         if locale != DEFAULT_LOCALE:
             translations = await self._repository.get_product_translations(product_ids, locale)
@@ -189,6 +250,7 @@ class GetProduct:
         product_id: uuid.UUID,
         *,
         company_id: uuid.UUID | None = None,
+        account_type: str = "PERSON",
         locale: str = DEFAULT_LOCALE,
     ) -> ProductView:
         product = await self._repository.get_product(product_id)
@@ -198,7 +260,9 @@ class GetProduct:
             view = _with_image(_mask_price(product))
         else:
             rules = await self._repository.get_company_price_rules(company_id, [product_id])
-            view = _with_image(_resolve_price(product, rules.get(product_id, [])))
+            view = _with_image(
+                _resolve_price(product, rules.get(product_id, []), account_type=account_type)
+            )
         if locale == DEFAULT_LOCALE:
             return view
         translations = await self._repository.get_product_translations([product_id], locale)
