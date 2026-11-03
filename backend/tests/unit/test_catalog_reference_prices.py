@@ -76,14 +76,14 @@ def test_mapa_de_referencia_tem_exatamente_41_precos_positivos() -> None:
 
 def test_seed_aplica_os_precos_de_referencia_por_sku() -> None:
     products = _products_by_sku()
-    assert len(products) == 50
+    assert len(products) == 49
     for sku, expected in CATALOG_REFERENCE_PRICES.items():
         assert sku in products
         assert products[sku]["base_unit_price"] == expected
 
 
 def test_produtos_bloqueados_ficam_fora_do_mapa_e_preservados() -> None:
-    assert len(BLOCKED_CATALOG_SKUS) == 9
+    assert len(BLOCKED_CATALOG_SKUS) == 8
     assert BLOCKED_CATALOG_SKUS.isdisjoint(CATALOG_REFERENCE_PRICES)
     products = _products_by_sku()
     assert set(products) >= BLOCKED_CATALOG_SKUS

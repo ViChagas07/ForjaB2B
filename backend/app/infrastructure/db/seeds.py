@@ -827,16 +827,6 @@ _DEMO_PRODUCT_SPECS: list[tuple[str, str, str, str, str, str, str, str]] = [
         "UN",
     ),
     (
-        "OCV-006",
-        "Óculos Infantil Descontinuado",
-        "protecao-visual",
-        "aegis",
-        "15.00",
-        "na",
-        "INACTIVE",
-        "UN",
-    ),
-    (
         "LUV-003",
         "Luva de Raspa de Couro",
         "protecao-maos",
@@ -1254,7 +1244,6 @@ BLOCKED_CATALOG_SKUS: frozenset[str] = frozenset(
         "CAP-005",
         "LUV-008",
         "LUV-009",
-        "OCV-006",
         "MAQ-010",
         "QUE-002",
         "RES-008",
@@ -1398,8 +1387,6 @@ _PRODUCT_IMAGES: dict[str, str] = {
     "RES-004": "/catalog/photos/res-004.webp",
     "AUD-004": "/catalog/photos/aud-004.webp",
     "LUV-009": "/catalog/photos/luv-009.webp",
-    # --- Ilustracoes SVG especificas (fallback do proprio produto; sem foto) ---
-    "OCV-006": "/catalog/illustrations/oculos-de-protecao.svg",
 }
 
 # Listas efetivamente usadas pelo seed (base + demonstracao).

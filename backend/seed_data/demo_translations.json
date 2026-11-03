@@ -254,23 +254,6 @@
         "attributes": null
       }
     },
-    "OCV-006": {
-      "en": {
-        "name": "Discontinued Kids Glasses",
-        "description": "Discontinued Kids Glasses (demo item).",
-        "attributes": null
-      },
-      "es": {
-        "name": "Gafas Infantiles Descontinuadas",
-        "description": "Gafas Infantiles Descontinuadas (artículo de demostración).",
-        "attributes": null
-      },
-      "ar": {
-        "name": "نظارات أطفال منسوحة",
-        "description": "نظارات أطفال منسوحة (عنصر تجريبي).",
-        "attributes": null
-      }
-    },
     "LUV-003": {
       "en": {
         "name": "Leather Split Glove",

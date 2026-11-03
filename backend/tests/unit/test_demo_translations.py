@@ -43,7 +43,7 @@ def _product_tokens(product: dict[str, object]) -> set[str]:
 def test_todas_as_traducoes_estao_presentes(locale: str) -> None:
     by_sku = {p["sku"]: p for p in _ALL_PRODUCTS}
     products = _DEMO_TRANSLATIONS["products"]
-    assert len(products) == len(by_sku) == 50
+    assert len(products) == len(by_sku) == 49
     for sku, product in by_sku.items():
         entry = products[sku][locale]
         assert isinstance(entry["name"], str) and entry["name"], f"nome vazio {sku}/{locale}"

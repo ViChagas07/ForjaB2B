@@ -104,9 +104,9 @@ def test_cobertura_todos_os_vendaveis_com_imagem_especifica() -> None:
     sellable = [sku for sku, product in catalog.items() if cast_str(product["status"]) == "ACTIVE"]
     sem_imagem = [sku for sku in sellable if sku not in _PRODUCT_IMAGES]
     assert sem_imagem == []
-    # Fora de linha mapeados (CAP-005 e MAQ-010 com foto; OCV-006/LUV-009 com
-    # ilustracao) nao afetam a vitrine.
+    # Fora de linha mapeados (CAP-005, LUV-009 e MAQ-010, todos com foto)
+    # nao afetam a vitrine.
     inactive_mapeados = [
         sku for sku in _PRODUCT_IMAGES if cast_str(catalog[sku]["status"]) != "ACTIVE"
     ]
-    assert set(inactive_mapeados) <= {"CAP-005", "OCV-006", "LUV-009", "MAQ-010"}
+    assert set(inactive_mapeados) <= {"CAP-005", "LUV-009", "MAQ-010"}

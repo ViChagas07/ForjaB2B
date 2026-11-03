@@ -33,8 +33,8 @@ visibilidade e a autorização são resolvidos por empresa no PostgreSQL.
   e o preço não pode vazar entre empresas nem ser servido por um índice de busca.
 - **Solução:** PostgreSQL como fonte de verdade, RLS por `company_id`, preço resolvido no
   servidor, índice de busca apenas com IDs e conteúdo público.
-- **Demonstração:** 50 produtos, 11 categorias, 8 marcas fictícias, 4 empresas e 13 usuários
-  de demonstração (dados do seed; contagens conferidas no banco em 2026-10-22).
+- **Demonstração:** 49 produtos, 11 categorias, 8 marcas fictícias, 4 empresas e 13 usuários
+  de demonstração (dados do seed; contagens conferidas no banco em 2026-11-03).
 
 ## Funcionalidades
 
