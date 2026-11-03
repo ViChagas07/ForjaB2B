@@ -300,7 +300,7 @@
     "itemTotal": "Total de l'article",
     "minQuantity": "Minimum de {qty}",
     "checkout": "Passer la commande",
-    "addedToCart": "Produit ajouté au panier.",
+    "addedToCart": "Commande ajoutée au panier !",
     "updated": "Quantité mise à jour.",
     "removed": "Article supprimé.",
     "cleared": "Panier vidé.",

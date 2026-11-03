@@ -154,6 +154,21 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.55" },
         },
+        "cart-pop": {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(1.06)" },
+          "70%": { transform: "scale(0.98)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "cart-check-in": {
+          "0%": { opacity: "0", transform: "scale(0.3) rotate(-30deg)" },
+          "60%": { opacity: "1", transform: "scale(1.15) rotate(4deg)" },
+          "100%": { opacity: "1", transform: "scale(1) rotate(0)" },
+        },
+        "cart-label-in": {
+          "0%": { opacity: "0", transform: "translateY(4px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -161,6 +176,9 @@ const config: Config = {
         rise: "rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both",
         "fade-in": "fade-in 0.5s ease-out both",
         "pulse-soft": "pulse-soft 2.6s ease-in-out infinite",
+        "cart-pop": "cart-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "cart-check-in": "cart-check-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "cart-label-in": "cart-label-in 0.3s ease-out",
       },
     },
   },

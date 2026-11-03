@@ -300,7 +300,7 @@
     "itemTotal": "항목 합계",
     "minQuantity": "최소 {qty}",
     "checkout": "주문하기",
-    "addedToCart": "상품이 장바구니에 추가되었습니다.",
+    "addedToCart": "주문이 장바구니에 추가되었습니다!",
     "updated": "수량이 업데이트되었습니다.",
     "removed": "항목이 삭제되었습니다.",
     "cleared": "장바구니를 비웠습니다.",

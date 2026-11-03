@@ -300,7 +300,7 @@
     "itemTotal": "商品合計",
     "minQuantity": "最小 {qty}",
     "checkout": "注文する",
-    "addedToCart": "商品をカートに追加しました。",
+    "addedToCart": "注文をカートに追加しました！",
     "updated": "数量を更新しました。",
     "removed": "商品を削除しました。",
     "cleared": "カートを空にしました。",

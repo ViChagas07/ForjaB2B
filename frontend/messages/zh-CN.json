@@ -300,7 +300,7 @@
     "itemTotal": "商品小计",
     "minQuantity": "最少 {qty}",
     "checkout": "提交订单",
-    "addedToCart": "产品已加入购物车。",
+    "addedToCart": "订单已加入购物车！",
     "updated": "数量已更新。",
     "removed": "商品已移除。",
     "cleared": "购物车已清空。",

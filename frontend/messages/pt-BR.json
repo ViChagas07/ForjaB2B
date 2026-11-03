@@ -255,7 +255,7 @@
     "itemTotal": "Total do item",
     "minQuantity": "Mínimo de {qty}",
     "checkout": "Finalizar pedido",
-    "addedToCart": "Produto adicionado ao carrinho.",
+    "addedToCart": "Pedido adicionado ao carrinho!",
     "updated": "Quantidade atualizada.",
     "removed": "Item removido.",
     "cleared": "Carrinho limpo.",
