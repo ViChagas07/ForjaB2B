@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.core.errors import ConfigurationError
 
 
 def test_defaults_de_desenvolvimento() -> None:
@@ -111,3 +114,121 @@ def test_api_key_preenchida_desliga_basic_auth() -> None:
         elasticsearch_password=_ES_SECRET,
     )
     assert _basic_auth(settings) is None
+
+
+_RECOVERY_ENV = {
+    "TURNSTILE_SECRET_KEY": "test-turnstile-secret",
+    "TWILIO_ACCOUNT_SID": "test-twilio-account-sid",
+    "TWILIO_AUTH_TOKEN": "test-twilio-auth-token",
+    "TWILIO_VERIFY_SERVICE_SID": "test-twilio-verify-service-sid",
+    "RESEND_API_KEY": "test-resend-api-key",
+}
+
+
+def _recovery_settings(**overrides: object) -> Settings:
+    values: dict[str, Any] = {
+        "otel_enabled": False,
+        "environment": "production",
+        "password_recovery_enabled": True,
+    }
+    values.update(overrides)
+    return Settings(_env_file=None, **values)
+
+
+def test_recuperacao_de_conta_desligada_por_padrao() -> None:
+    settings = Settings(otel_enabled=False, _env_file=None)
+    assert settings.password_recovery_enabled is False
+    assert settings.recovery_code_ttl_seconds == 600
+    assert settings.recovery_code_max_attempts == 5
+    assert settings.recovery_reset_token_ttl_seconds == 600
+
+
+def test_recuperacao_em_producao_exige_todas_as_credenciais() -> None:
+    with pytest.raises(ConfigurationError) as excinfo:
+        _recovery_settings(
+            turnstile_secret_key=None,
+            twilio_account_sid=None,
+            twilio_auth_token=None,
+            twilio_verify_service_sid=None,
+            resend_api_key=None,
+        )
+
+    message = str(excinfo.value)
+    assert "TURNSTILE_SECRET_KEY" in message
+    assert "TWILIO_ACCOUNT_SID" in message
+    assert "TWILIO_AUTH_TOKEN" in message
+    assert "TWILIO_VERIFY_SERVICE_SID" in message
+    assert "RESEND_API_KEY" in message
+
+
+def test_recuperacao_em_producao_lista_apenas_variaveis_ausentes() -> None:
+    with pytest.raises(ConfigurationError) as excinfo:
+        _recovery_settings(
+            turnstile_secret_key=_RECOVERY_ENV["TURNSTILE_SECRET_KEY"],
+            twilio_account_sid=_RECOVERY_ENV["TWILIO_ACCOUNT_SID"],
+            twilio_auth_token=None,
+            twilio_verify_service_sid=_RECOVERY_ENV["TWILIO_VERIFY_SERVICE_SID"],
+            resend_api_key=_RECOVERY_ENV["RESEND_API_KEY"],
+        )
+
+    message = str(excinfo.value)
+    assert "TWILIO_AUTH_TOKEN" in message
+    assert "TWILIO_ACCOUNT_SID" not in message
+    assert _RECOVERY_ENV["TWILIO_ACCOUNT_SID"] not in message
+
+
+def test_recuperacao_em_producao_nao_expoe_segredos_em_repr() -> None:
+    settings = _recovery_settings(**{key.lower(): value for key, value in _RECOVERY_ENV.items()})
+
+    rendered = repr(settings)
+    for value in (
+        _RECOVERY_ENV["TURNSTILE_SECRET_KEY"],
+        _RECOVERY_ENV["TWILIO_ACCOUNT_SID"],
+        _RECOVERY_ENV["TWILIO_AUTH_TOKEN"],
+        _RECOVERY_ENV["TWILIO_VERIFY_SERVICE_SID"],
+    ):
+        assert value not in rendered
+    assert settings.twilio_auth_token is not None
+    assert settings.twilio_auth_token.get_secret_value() == _RECOVERY_ENV["TWILIO_AUTH_TOKEN"]
+
+
+def test_recuperacao_em_desenvolvimento_permite_credenciais_ausentes() -> None:
+    settings = _recovery_settings(
+        environment="development",
+        turnstile_secret_key=None,
+        twilio_account_sid=None,
+        twilio_auth_token=None,
+        twilio_verify_service_sid=None,
+        resend_api_key=None,
+    )
+    assert settings.password_recovery_enabled is True
+    assert settings.turnstile_secret_key is None
+
+
+def test_credenciais_de_recuperacao_vazias_viram_none() -> None:
+    settings = _recovery_settings(
+        environment="development",
+        turnstile_secret_key="   ",
+        twilio_account_sid="",
+        twilio_auth_token="",
+        twilio_verify_service_sid="",
+    )
+    assert settings.turnstile_secret_key is None
+    assert settings.twilio_account_sid is None
+    assert settings.twilio_auth_token is None
+    assert settings.twilio_verify_service_sid is None
+
+
+def test_twilio_client_sid_nao_faz_parte_das_settings() -> None:
+    assert "twilio_client_sid" not in Settings.model_fields
+
+
+def test_phone_verification_dry_run_proibido_em_producao() -> None:
+    with pytest.raises(ConfigurationError) as excinfo:
+        Settings(
+            _env_file=None,
+            environment="production",
+            otel_enabled=False,
+            phone_verification_dry_run=True,
+        )
+    assert "PHONE_VERIFICATION_DRY_RUN" in str(excinfo.value)

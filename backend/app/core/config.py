@@ -19,8 +19,18 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import AliasChoices, Field, PostgresDsn, RedisDsn, field_validator
+from pydantic import (
+    AliasChoices,
+    Field,
+    PostgresDsn,
+    RedisDsn,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.core.errors import ConfigurationError
 
 Environment = Literal["development", "test", "staging", "production"]
 LogFormat = Literal["json", "console"]
@@ -270,6 +280,35 @@ class Settings(BaseSettings):
     # Segundo balde por IP: impede criar varias contas e continuar tentando.
     rate_limit_coupon_preview_ip_capacity: int = Field(default=30, ge=1)
     rate_limit_coupon_preview_ip_refill_per_minute: float = Field(default=60.0, gt=0)
+    # Recuperacao de conta: baldes proprios (nao compartilham AUTH). O limite
+    # por identificador e pseudonimo (HMAC) e o teto diario protege custo de SMS.
+    rate_limit_password_recovery_ip_capacity: int = Field(default=10, ge=1)
+    rate_limit_password_recovery_ip_refill_per_minute: float = Field(default=10.0, gt=0)
+    rate_limit_password_recovery_identifier_capacity: int = Field(default=3, ge=1)
+    rate_limit_password_recovery_identifier_refill_per_minute: float = Field(default=3.0, gt=0)
+    rate_limit_password_recovery_verify_ip_capacity: int = Field(default=20, ge=1)
+    rate_limit_password_recovery_verify_ip_refill_per_minute: float = Field(default=20.0, gt=0)
+    rate_limit_password_recovery_verify_identifier_capacity: int = Field(default=10, ge=1)
+    rate_limit_password_recovery_verify_identifier_refill_per_minute: float = Field(
+        default=10.0, gt=0
+    )
+    password_recovery_daily_limit: int = Field(default=5, ge=1, le=100)
+    password_recovery_resend_cooldown_seconds: int = Field(default=60, ge=1, le=3600)
+    # Verificacao do proprio telefone (start/check): limites proprios e teto
+    # diario de SMS por usuario/IP. O dry-run usa fake deterministico somente
+    # fora de producao.
+    phone_verification_dry_run: bool = False
+    rate_limit_phone_verification_ip_capacity: int = Field(default=10, ge=1)
+    rate_limit_phone_verification_ip_refill_per_minute: float = Field(default=10.0, gt=0)
+    rate_limit_phone_verification_user_capacity: int = Field(default=5, ge=1)
+    rate_limit_phone_verification_user_refill_per_minute: float = Field(default=5.0, gt=0)
+    rate_limit_phone_verification_check_ip_capacity: int = Field(default=20, ge=1)
+    rate_limit_phone_verification_check_ip_refill_per_minute: float = Field(default=20.0, gt=0)
+    rate_limit_phone_verification_check_user_capacity: int = Field(default=10, ge=1)
+    rate_limit_phone_verification_check_user_refill_per_minute: float = Field(default=10.0, gt=0)
+    phone_verification_daily_user_limit: int = Field(default=5, ge=1, le=100)
+    phone_verification_daily_ip_limit: int = Field(default=20, ge=1, le=500)
+    phone_verification_resend_cooldown_seconds: int = Field(default=60, ge=1, le=3600)
     # Quantidade de proxies confiaveis entre a internet e a aplicacao. Render
     # usa 1. Com 0 (default local), X-Forwarded-For e ignorado.
     trusted_proxy_count: int = Field(default=0, ge=0, le=10)
@@ -310,6 +349,19 @@ class Settings(BaseSettings):
     zapi_client_token: str | None = Field(
         default=None, validation_alias=AliasChoices("zapi_client_token", "zapi_client_key")
     )
+
+    # Recuperacao de conta ("Esqueci minha senha") - Fase 1. Desligada por
+    # padrao; em producao, habilitar sem Turnstile/Twilio/Resend preenchidos
+    # impede o startup (ver validacao abaixo). Os segredos usam SecretStr para
+    # nunca aparecerem em repr/logs. TTLs em segundos.
+    password_recovery_enabled: bool = False
+    recovery_code_ttl_seconds: int = Field(default=600, ge=60, le=3600)
+    recovery_code_max_attempts: int = Field(default=5, ge=1, le=10)
+    recovery_reset_token_ttl_seconds: int = Field(default=600, ge=60, le=3600)
+    turnstile_secret_key: SecretStr | None = None
+    twilio_account_sid: SecretStr | None = None
+    twilio_auth_token: SecretStr | None = None
+    twilio_verify_service_sid: SecretStr | None = None
 
     # Admin de plataforma (aprovacao de empresas e administracao de traducoes).
     # Em producao deve ser uma chave forte injetada via secrets. Ausente, 401.
@@ -470,6 +522,10 @@ class Settings(BaseSettings):
         "zapi_instance_id",
         "zapi_token",
         "zapi_client_token",
+        "turnstile_secret_key",
+        "twilio_account_sid",
+        "twilio_auth_token",
+        "twilio_verify_service_sid",
         mode="before",
     )
     @classmethod
@@ -540,6 +596,48 @@ class Settings(BaseSettings):
         Em desenvolvimento/testes, pode ser True para permitir desenvolvimento local.
         """
         return self.environment != "production"
+
+    @model_validator(mode="after")
+    def _validate_password_recovery_production(self) -> Settings:
+        """Em producao, recuperacao habilitada exige todas as credenciais.
+
+        Falha no startup com os NOMES das variaveis ausentes; nunca inclui
+        valores. Em desenvolvimento/testes a recuperacao pode ser testada sem
+        os provedores externos.
+        """
+        if not (self.is_production and self.password_recovery_enabled):
+            return self
+
+        required = (
+            ("TURNSTILE_SECRET_KEY", self.turnstile_secret_key),
+            ("TWILIO_ACCOUNT_SID", self.twilio_account_sid),
+            ("TWILIO_AUTH_TOKEN", self.twilio_auth_token),
+            ("TWILIO_VERIFY_SERVICE_SID", self.twilio_verify_service_sid),
+            ("RESEND_API_KEY", self.resend_api_key),
+        )
+        missing = [
+            name
+            for name, value in required
+            if value is None
+            or (
+                value.get_secret_value().strip() == ""
+                if isinstance(value, SecretStr)
+                else value.strip() == ""
+            )
+        ]
+        if missing:
+            raise ConfigurationError(
+                "PASSWORD_RECOVERY_ENABLED=true em producao exige as variaveis: "
+                + ", ".join(missing)
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_phone_verification_dry_run(self) -> Settings:
+        """Dry-run de SMS so pode existir fora de producao."""
+        if self.is_production and self.phone_verification_dry_run:
+            raise ConfigurationError("PHONE_VERIFICATION_DRY_RUN nao pode ser true em producao.")
+        return self
 
 
 @lru_cache

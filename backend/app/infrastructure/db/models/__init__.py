@@ -9,6 +9,10 @@ dos outros (contrato import-linter).
 
 from __future__ import annotations
 
+from app.infrastructure.db.models.account_recovery import (
+    UserCredentialState,
+    UserVerifiedPhone,
+)
 from app.infrastructure.db.models.ai_agent_audit import AgentAuditLog
 from app.infrastructure.db.models.audit import AuditLog
 from app.infrastructure.db.models.cart import Cart, CartItem, CartRecoveryAttempt, CartRecoveryOffer
@@ -70,7 +74,9 @@ __all__ = [
     "ProductTranslation",
     "SearchOutbox",
     "User",
+    "UserCredentialState",
     "UserExternalIdentity",
     "UserPreferences",
+    "UserVerifiedPhone",
     "Vector",
 ]

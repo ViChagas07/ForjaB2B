@@ -46,6 +46,8 @@ _OAUTH_REDIRECT_PATHS = frozenset(
     }
 )
 
+_PASSWORD_RECOVERY_PREFIX = "/api/v1/auth/password-recovery"  # noqa: S105 - path
+
 
 def _classify_auth(path: str) -> RateLimitClass | None:
     if path in _OAUTH_PATHS:
@@ -109,6 +111,10 @@ def _classify_data(path: str, method: str) -> RateLimitClass | None:
 def classify_request(path: str, method: str) -> RateLimitClass | None:
     """Mapeia path/metodo para uma classe de limite (None = isento)."""
     if method == "OPTIONS" or any(path.startswith(prefix) for prefix in _EXCLUDED_PREFIXES):
+        return None
+    # Recuperacao tem baldes proprios e fail-closed dentro da rota. O balde
+    # AUTH global e fail-open e nao deve ser aplicado em paralelo.
+    if path == _PASSWORD_RECOVERY_PREFIX or path.startswith(f"{_PASSWORD_RECOVERY_PREFIX}/"):
         return None
     rate_class = _classify_auth(path)
     if rate_class is None:

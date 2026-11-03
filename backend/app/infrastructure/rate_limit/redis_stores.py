@@ -11,7 +11,7 @@ from typing import Any, Protocol, cast
 
 import redis.asyncio as redis
 
-from app.application.rate_limit import RateLimitBackendError
+from app.application.rate_limit import DailyQuotaDecision, RateLimitBackendError
 
 
 class _EvalCapable(Protocol):
@@ -79,6 +79,18 @@ if count >= threshold then
   redis.call('HSET', key, 'blocked_until', blocked_until)
 end
 return {blocked_until, count}
+"""
+
+_DAILY_QUOTA_SCRIPT = """
+local key = KEYS[1]
+local ttl = tonumber(ARGV[1])
+local count = redis.call('INCR', key)
+local remaining_ttl = redis.call('TTL', key)
+if remaining_ttl < 0 then
+  redis.call('EXPIRE', key, ttl)
+  remaining_ttl = ttl
+end
+return {count, remaining_ttl}
 """
 
 
@@ -162,6 +174,54 @@ class RedisFailureStore:
         return max(0.0, blocked_until - now)
 
     async def clear(self, *, key: str) -> None:
+        try:
+            await self._client.delete(key)
+        except Exception as exc:
+            raise RateLimitBackendError(str(exc)) from exc
+
+
+class RedisDailyQuotaStore:
+    """Contador diario atomico (janela movel de 24h) no Redis."""
+
+    def __init__(self, client: redis.Redis) -> None:
+        self._client = client
+
+    async def consume(self, *, key: str, limit: int, ttl_seconds: int) -> DailyQuotaDecision:
+        try:
+            result = await cast(_EvalCapable, self._client).eval(
+                _DAILY_QUOTA_SCRIPT,
+                1,
+                key,
+                ttl_seconds,
+            )
+            count, remaining_ttl = _numbers(result)
+        except Exception as exc:
+            raise RateLimitBackendError(str(exc)) from exc
+
+        consumed = int(count)
+        allowed = consumed <= limit
+        return DailyQuotaDecision(
+            allowed=allowed,
+            limit=limit,
+            remaining=max(0, limit - consumed),
+            retry_after_seconds=max(1, int(remaining_ttl)) if not allowed else 0,
+        )
+
+
+class RedisCooldownStore:
+    """Reserva de cooldown atomica no Redis (SET NX EX)."""
+
+    def __init__(self, client: redis.Redis) -> None:
+        self._client = client
+
+    async def reserve(self, *, key: str, ttl_seconds: int) -> bool:
+        try:
+            result = await self._client.set(key, "1", nx=True, ex=ttl_seconds)
+        except Exception as exc:
+            raise RateLimitBackendError(str(exc)) from exc
+        return bool(result)
+
+    async def release(self, *, key: str) -> None:
         try:
             await self._client.delete(key)
         except Exception as exc:

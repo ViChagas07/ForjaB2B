@@ -31,6 +31,14 @@ class RateLimitClass(StrEnum):
     AUTH = "auth"
     OAUTH = "oauth"
     REGISTRATION = "registration"
+    PASSWORD_RECOVERY = "password_recovery"  # noqa: S105 - nome de classe
+    PASSWORD_RECOVERY_IDENTIFIER = "password_recovery_identifier"  # noqa: S105
+    PASSWORD_RECOVERY_VERIFY_IP = "password_recovery_verify_ip"  # noqa: S105
+    PASSWORD_RECOVERY_VERIFY_IDENTIFIER = "password_recovery_verify_identifier"  # noqa: S105 - nome de classe
+    PHONE_VERIFICATION_IP = "phone_verification_ip"
+    PHONE_VERIFICATION_USER = "phone_verification_user"
+    PHONE_VERIFICATION_CHECK_IP = "phone_verification_check_ip"
+    PHONE_VERIFICATION_CHECK_USER = "phone_verification_check_user"
     SEARCH = "search"
     SUGGEST = "suggest"
     ADMIN_WRITE = "admin_write"
@@ -73,7 +81,80 @@ class RateLimitDecision:
 
 
 class RateLimitBackendError(RuntimeError):
-    """Falha do backend distribuido (Redis); o chamador faz fail-open."""
+    """Falha do backend distribuido (Redis).
+
+    O chamador decide entre fail-open (fallback local) e fail-closed (erro
+    generico de indisponibilidade), conforme a sensibilidade da rota.
+    """
+
+
+@dataclass(frozen=True, kw_only=True)
+class DailyQuotaDecision:
+    """Resultado de um consumo de cota diaria fixa."""
+
+    allowed: bool
+    limit: int
+    remaining: int
+    retry_after_seconds: int
+
+
+class DailyQuotaStore(Protocol):
+    """Contador atomico de janela movel de 24h (teto diario)."""
+
+    async def consume(self, *, key: str, limit: int, ttl_seconds: int) -> DailyQuotaDecision:
+        """Incrementa o contador e devolve a decisao; deve ser atomico."""
+
+
+class InMemoryDailyQuotaStore:
+    """Cota diaria local (testes); mesma semantica do store Redis."""
+
+    def __init__(self, *, clock: Callable[[], float] | None = None) -> None:
+        self._state: dict[str, tuple[int, float]] = {}
+        self._clock = clock or time.time
+
+    async def consume(self, *, key: str, limit: int, ttl_seconds: int) -> DailyQuotaDecision:
+        now = self._clock()
+        count, expires_at = self._state.get(key, (0, now + ttl_seconds))
+        if expires_at <= now:
+            count, expires_at = 0, now + ttl_seconds
+        count += 1
+        self._state[key] = (count, expires_at)
+        allowed = count <= limit
+        return DailyQuotaDecision(
+            allowed=allowed,
+            limit=limit,
+            remaining=max(0, limit - count),
+            retry_after_seconds=max(1, math.ceil(expires_at - now)) if not allowed else 0,
+        )
+
+
+class CooldownStore(Protocol):
+    """Reserva/expiracao de cooldown por chave (ex.: reenvio de SMS)."""
+
+    async def reserve(self, *, key: str, ttl_seconds: int) -> bool:
+        """True se a chave estava livre e foi reservada."""
+
+    async def release(self, *, key: str) -> None:
+        """Libera a chave (ex.: falha antes do envio)."""
+
+
+class InMemoryCooldownStore:
+    """Cooldown local (testes); mesma semantica do Redis SET NX EX."""
+
+    def __init__(self, *, clock: Callable[[], float] | None = None) -> None:
+        self._expires: dict[str, float] = {}
+        self._clock = clock or time.time
+
+    async def reserve(self, *, key: str, ttl_seconds: int) -> bool:
+        now = self._clock()
+        expires_at = self._expires.get(key)
+        if expires_at is not None and expires_at > now:
+            return False
+        self._expires[key] = now + ttl_seconds
+        return True
+
+    async def release(self, *, key: str) -> None:
+        self._expires.pop(key, None)
 
 
 class BucketStore(Protocol):
@@ -228,11 +309,25 @@ class RateLimiter:
         self._redis_failed = False
         self._backend_retry_at = 0.0
 
-    async def check(self, *, rate_class: RateLimitClass, identity: str) -> RateLimitDecision:
+    async def check(
+        self,
+        *,
+        rate_class: RateLimitClass,
+        identity: str,
+        fail_closed: bool = False,
+    ) -> RateLimitDecision:
+        """Consome 1 token para a identidade.
+
+        ``fail_closed=True`` transforma indisponibilidade do Redis em
+        ``RateLimitBackendError`` (sem fallback local), para fluxos em que
+        seguir sem o limitador seria inseguro (ex.: recuperacao de conta).
+        """
         policy = self._policies[rate_class]
         key = f"rl:{rate_class.value}:{identity}"
         now = self._clock()
         if now < self._backend_retry_at:
+            if fail_closed:
+                raise RateLimitBackendError("backend em circuito aberto")
             # Circuit breaker curto: nao paga o timeout do Redis a cada request
             # enquanto ele esta fora; o fallback local assume o controle.
             allowed, remaining, retry = await self._fallback.consume(
@@ -252,12 +347,14 @@ class RateLimiter:
                 if self._redis_failed:
                     self._redis_failed = False
                     _logger.info("rate_limit_backend_recovered")
-            except Exception as exc:  # noqa: BLE001 - fail-open deliberado
+            except Exception as exc:
                 if not self._redis_failed:
-                    _logger.warning("rate_limit_backend_unavailable", error=str(exc))
+                    _logger.warning("rate_limit_backend_unavailable", error_type=type(exc).__name__)
                 self._redis_failed = True
                 self._backend_retry_at = now + 30
                 increment_rate_limit_backend_failure(rate_class=rate_class.value)
+                if fail_closed:
+                    raise RateLimitBackendError("backend indisponivel") from exc
                 allowed, remaining, retry = await self._fallback.consume(
                     key=key,
                     capacity=policy.capacity,
@@ -312,7 +409,7 @@ class LoginThrottle:
         try:
             return math.ceil(await self._store.blocked_for(key=key, now=self._clock()))
         except Exception as exc:  # noqa: BLE001 - fail-open deliberado
-            _logger.warning("login_throttle_backend_unavailable", error=str(exc))
+            _logger.warning("login_throttle_backend_unavailable", error_type=type(exc).__name__)
             increment_rate_limit_backend_failure(rate_class="login_account")
             blocked = await self._fallback.blocked_for(key=key, now=self._clock())
             return math.ceil(blocked)
@@ -329,7 +426,7 @@ class LoginThrottle:
                 max_backoff_seconds=self._max_backoff,
             )
         except Exception as exc:  # noqa: BLE001 - fail-open deliberado
-            _logger.warning("login_throttle_backend_unavailable", error=str(exc))
+            _logger.warning("login_throttle_backend_unavailable", error_type=type(exc).__name__)
             increment_rate_limit_backend_failure(rate_class="login_account")
             blocked = await self._fallback.record_failure(
                 key=key,
