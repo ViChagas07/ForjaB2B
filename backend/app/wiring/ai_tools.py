@@ -35,6 +35,9 @@ from app.modules.search.application.search import SearchProducts
 
 _CATEGORY_ID_BY_SLUG = text("SELECT id FROM categories WHERE slug = :slug AND is_active = true")
 _logger = get_logger(__name__)
+_GENERIC_QUERIES = frozenset(
+    {"produto", "produtos", "item", "itens", "coisa", "loja", "catalogo", "catalog"}
+)
 
 _SELECT_BUYER_ORDER_STATUS = text(
     "SELECT o.id, o.status, o.created_at, count(oi.id) AS item_count "
@@ -95,7 +98,7 @@ class SearchProductsToolAdapter:
             candidate_limit = max(offset + limit, 50) if (brand or attributes) else offset + limit
             page = await self._search_products.run(
                 query=SearchQuery(
-                    q=query[:100],
+                    q=_search_text(query),
                     category_id=category_id,
                     brand_id=None,
                     is_epi=None,
@@ -115,6 +118,7 @@ class SearchProductsToolAdapter:
             attributes=attributes,
             price_min=price_min,
             price_max=price_max,
+            require_price=price_filtering,
         )
         if price_sort in ("asc", "desc"):
             selected.sort(key=lambda pair: _price_sort_key(pair[0], ascending=price_sort == "asc"))
@@ -140,7 +144,7 @@ class SearchProductsToolAdapter:
             page_size = min(100, self._price_scan_limit - len(items))
             page = await self._search_products.run(
                 query=SearchQuery(
-                    q=query[:100],
+                    q=_search_text(query),
                     category_id=category_id,
                     brand_id=None,
                     is_epi=None,
@@ -424,6 +428,7 @@ def _select_candidates(
     attributes: Mapping[str, str] | None,
     price_min: float | None,
     price_max: float | None,
+    require_price: bool = False,
 ) -> list[tuple[Any, Any]]:
     selected: list[tuple[Any, Any]] = []
     for item in items:
@@ -435,6 +440,8 @@ def _select_candidates(
         if attributes and not _attributes_match(row.attributes, attributes):
             continue
         price = getattr(item, "base_unit_price", None)
+        if require_price and (price is None or bool(getattr(item, "price_on_request", False))):
+            continue
         if price_min is not None and (price is None or price < Decimal(str(price_min))):
             continue
         if price_max is not None and (price is None or price > Decimal(str(price_max))):
@@ -465,3 +472,10 @@ def _to_tool_product(item: Any, row: Any) -> ToolProduct:
         price=getattr(item, "base_unit_price", None),
         price_on_request=bool(getattr(item, "price_on_request", False)),
     )
+
+
+def _search_text(query: str) -> str | None:
+    cleaned = query.strip()
+    if cleaned.casefold() in _GENERIC_QUERIES:
+        return None
+    return cleaned[:100]

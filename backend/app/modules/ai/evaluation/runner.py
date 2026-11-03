@@ -186,7 +186,14 @@ def _compare(case: EvalCase, decision: IntentDecision) -> list[str]:
 
 def _compare_fields(case: EvalCase, decision: IntentDecision) -> list[str]:
     failures: list[str] = []
-    for field in ("price_min", "price_max", "task", "offset", "category"):
+    for field in (
+        "price_min",
+        "price_max",
+        "task",
+        "offset",
+        "category",
+        "quantity",
+    ):
         if field in case.expected and getattr(decision, field) != case.expected[field]:
             failures.append(f"{field}={getattr(decision, field)}")
     return failures

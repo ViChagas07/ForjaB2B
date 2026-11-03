@@ -69,6 +69,7 @@ def _decision_for(case: object) -> IntentDecision:
         attributes=dict(expected.get("attributes", {})),
         product_refs=[expected["refs_contains"]] if expected.get("refs_contains") else [],
         offset=int(expected.get("offset", 0)),
+        quantity=expected.get("quantity"),
         language=case.locale,
     )
 

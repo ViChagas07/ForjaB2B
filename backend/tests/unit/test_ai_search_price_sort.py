@@ -30,7 +30,9 @@ class FakeReader:
         return {product_id: self.rows[product_id] for product_id in ids if product_id in self.rows}
 
 
-def item(product_id: UUID, name: str, price: Decimal | None) -> object:
+def item(
+    product_id: UUID, name: str, price: Decimal | None, *, on_request: bool | None = None
+) -> object:
     return SimpleNamespace(
         id=product_id,
         name=name,
@@ -38,7 +40,7 @@ def item(product_id: UUID, name: str, price: Decimal | None) -> object:
         brand_name="Marca X",
         category_slug="epi",
         base_unit_price=price,
-        price_on_request=price is None,
+        price_on_request=(price is None if on_request is None else on_request),
     )
 
 
@@ -141,7 +143,7 @@ async def test_brand_e_atributos_filtram_no_codigo() -> None:
     assert [product.name for product in result.products] == ["Luva X"]
 
 
-async def test_sem_preco_vai_para_o_fim_na_ordenacao() -> None:
+async def test_sem_preco_sob_consulta_e_excluido_da_ordenacao() -> None:
     items = [
         item(IDS[0], "Luva Sob Consulta", None),
         item(IDS[1], "Luva A", Decimal("10")),
@@ -155,7 +157,7 @@ async def test_sem_preco_vai_para_o_fim_na_ordenacao() -> None:
         auth=None,
         price_sort="asc",
     )
-    assert [product.name for product in result.products] == ["Luva A", "Luva Sob Consulta"]
+    assert [product.name for product in result.products] == ["Luva A"]
 
 
 async def test_mais_barato_fora_dos_50_primeiros_aparece_com_asc() -> None:
@@ -218,3 +220,40 @@ async def test_offset_avanca_resultados_sem_ordenacao() -> None:
         offset=2,
     )
     assert [product.name for product in result.products] == ["Luva 2", "Luva 3"]
+
+
+async def test_produto_sob_consulta_com_preco_interno_e_excluido() -> None:
+    items = [
+        item(IDS[0], "Luva Sob Consulta", Decimal("5"), on_request=True),
+        item(IDS[1], "Luva Com Preco", Decimal("10")),
+    ]
+    adapter = make_adapter(items, {pid: row() for pid in IDS})
+    result = await adapter.search(
+        query="luvas",
+        category=None,
+        limit=2,
+        locale="pt-BR",
+        auth=None,
+        price_sort="asc",
+    )
+    assert [product.name for product in result.products] == ["Luva Com Preco"]
+
+
+async def test_consulta_generica_de_produto_usa_busca_ampla() -> None:
+    items = [item(IDS[0], "Luva A", Decimal("10"))]
+    search = FakeSearchProducts(items)
+    adapter = SearchProductsToolAdapter(
+        search_products=search,  # type: ignore[arg-type]
+        product_reader=FakeReader({IDS[0]: row()}),  # type: ignore[arg-type]
+        uow_factory=None,  # type: ignore[arg-type]
+    )
+    result = await adapter.search(
+        query="produto",
+        category=None,
+        limit=1,
+        locale="pt-BR",
+        auth=None,
+        price_sort="asc",
+    )
+    assert result.products[0].name == "Luva A"
+    assert getattr(search.last_query, "q", "missing") is None

@@ -333,7 +333,7 @@ _QUERY_NOISE = re.compile(
     r"highest\s+price|que\s+voc[êe]\s+tem|que\s+voces\s+tem|envie\s+aqui|envie|"
     r"me\s+mostre|mostre|quero\s+ver|por\s+favor|please|show\s+me|send\s+me|"
     r"gostaria\s+de\s+ver|procuro|busco|tem\s+dispon[ií]vel|dispon[ií]vel|"
-    r"agente|quero|envie-me\s+elas|envie-me|me\s+elas|elas|aqui)\b"
+    r"agente|quero|envie-me\s+elas|envie-me|me\s+elas|elas|aqui|que\s+tem\s+na\s+loja|que\s+tem|na\s+loja|loja)\b"
 )
 _PRICE_QUESTION = re.compile(
     r"(?i)\b(?:quanto\s+custa|qual\s+o\s+pre[cç]o|pre[cç]o|"
@@ -374,6 +374,7 @@ def deterministic_decision(message: str, *, locale: str) -> IntentDecision | Non
             price_sort=price_sort,
             price_min=price_min,
             price_max=price_max,
+            quantity=extract_quantity(message),
             language=locale,
         )
     return None
@@ -403,7 +404,11 @@ def _keyword_decision(
     task = _extract_task(message)
     if task is not None:
         return IntentDecision(
-            intent=IntentName.PRODUCT_SEARCH, query=query, task=task, language=locale
+            intent=IntentName.PRODUCT_SEARCH,
+            query=query,
+            task=task,
+            quantity=extract_quantity(message),
+            language=locale,
         )
     for terms, intent in _FIXED_INTENTS:
         if _matches(message, terms):
@@ -432,6 +437,7 @@ def fallback_decision(message: str, *, locale: str) -> IntentDecision:
         price_sort=price_sort,
         price_min=price_min,
         price_max=price_max,
+        quantity=extract_quantity(message),
         language=locale,
     )
 
@@ -441,6 +447,7 @@ def normalize_decision(decision: IntentDecision, *, message: str, locale: str) -
     deterministic = deterministic_decision(message, locale=locale)
     price_sort = decision.price_sort or (deterministic.price_sort if deterministic else None)
     task = decision.task or (deterministic.task if deterministic else None)
+    quantity = decision.quantity or (deterministic.quantity if deterministic else None)
     price_min = decision.price_min
     price_max = decision.price_max
     if deterministic is not None:
@@ -462,6 +469,7 @@ def normalize_decision(decision: IntentDecision, *, message: str, locale: str) -
             "price_min": price_min,
             "price_max": price_max,
             "task": task,
+            "quantity": quantity,
             "language": locale,
         }
     )
@@ -505,7 +513,9 @@ def build_router_messages(
                 "listar nomes/SKUs/IDs de produtos citados (2 a 4 em product_compare); "
                 "para order_status, inclua o ID do pedido em product_refs. Para "
                 "consultoria de atividade (soldagem, pintura, altura, eletrica etc.), "
-                "preencha task com a atividade e use product_search. Se nao for "
+                "preencha task com a atividade e use product_search. quantity = "
+                "quantidade de produtos pedida pelo usuario (1 a 5; 'a luva mais "
+                "barata' = 1). Se nao for "
                 "assunto Forja, use out_of_scope. Responda somente o JSON do schema."
             ),
         },
@@ -559,12 +569,57 @@ def _clean_query(message: str, *, locale: str) -> str:
         " ",
         cleaned,
     )
+    cleaned = re.sub(r"^\d{1,2}\s+", "", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .,!?;:-")
     cleaned = re.sub(r"^(?:as|os|a|o|the|las|los|les|le|la)\s+", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"^\d{1,2}\s+", "", cleaned)
     if len(cleaned) < 2:
         product = next((term for term in _PRODUCT_TERMS if _matches(message, (term,))), "")
-        cleaned = product or message.strip()[:MAX_QUERY_CHARS]
+        cleaned = product or "produto"
     return cleaned[:MAX_QUERY_CHARS] or message.strip()[:MAX_QUERY_CHARS]
+
+
+_QUANTITY_WORDS = {
+    "uma": 1,
+    "um": 1,
+    "duas": 2,
+    "dois": 2,
+    "três": 3,
+    "tres": 3,
+    "quatro": 4,
+    "cinco": 5,
+}
+_QUANTITY_DIGITS = re.compile(
+    r"(?i)\b(?:me\s+mostre|me\s+mostra|quero|top)\s+(\d{1,2})\b|"
+    r"\b(\d{1,2})\s+(?:mais\s+barat[ao]s?|mais\s+car[ao]s?|op[cç][oõ]es|itens|"
+    r"produtos|luvas?|capacetes?|ferramentas?)\b"
+)
+_SINGULAR_PRICE = re.compile(
+    r"(?i)\b(?:a|o)\s+(?:luva|capacete|produto|ferramenta)\s+mais\s+"
+    r"(?:barat[ao]|car[ao])\b|\b(?:a|o)\s+mais\s+(?:barat[ao]|car[ao])\b|"
+    r"\b(?:produto|luva|capacete|ferramenta)\s+mais\s+(?:barat[ao]|car[ao])\b"
+)
+_QUANTITY_CONTEXT = re.compile(
+    r"(?i)mais\s+barat|mais\s+car|op[cç][oõ]es|itens|produtos|luvas?|"
+    r"capacetes?|ferramentas?"
+)
+
+
+def extract_quantity(message: str) -> int | None:
+    """Quantidade pedida (1..5) para limitar produtos/cartoes."""
+    match = _QUANTITY_DIGITS.search(message)
+    if match is not None:
+        value = int(match.group(1) or match.group(2))
+        return value if 1 <= value <= 5 else None
+    if _SINGULAR_PRICE.search(message):
+        return 1
+    if not _QUANTITY_CONTEXT.search(message):
+        return None
+    folded = message.casefold()
+    for word, value in _QUANTITY_WORDS.items():
+        if re.search(rf"\b{re.escape(word)}\b", folded):
+            return value
+    return None
 
 
 def first_product_term(message: str) -> str | None:

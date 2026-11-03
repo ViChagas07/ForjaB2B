@@ -357,3 +357,34 @@ _GROUNDING_FALLBACK: dict[str, str] = {
 
 def grounding_fallback_response(locale: Locale) -> str:
     return _GROUNDING_FALLBACK.get(locale.value, _GROUNDING_FALLBACK["pt-BR"])
+
+
+_PRICE_ACCESS: dict[str, str] = {
+    "pt-BR": "Para comparar preços e ver a opção mais barata, entre na sua conta com CNPJ.",
+    "en": "To compare prices and see the cheapest option, sign in with your company account.",
+    "es": (
+        "Para comparar precios y ver la opción más barata, inicia sesión con "
+        "tu cuenta de empresa."
+    ),
+    "ar": "لمقارنة الأسعار ورؤية الخيار الأرخص، سجّل الدخول بحساب شركتك.",
+    "de": (
+        "Um Preise zu vergleichen und die günstigste Option zu sehen, melden "
+        "Sie sich mit Ihrem Firmenkonto an."
+    ),
+    "fr": (
+        "Pour comparer les prix et voir l'option la moins chère, connectez-vous "
+        "avec votre compte entreprise."
+    ),
+    "it": (
+        "Per confrontare i prezzi e vedere l'opzione più economica, accedi con "
+        "il tuo account aziendale."
+    ),
+    "ja": "価格を比較して最も安いオプションを確認するには、企業アカウントでログインしてください。",
+    "ko": "가격을 비교하고 가장 저렴한 옵션을 확인하려면 회사 계정으로 로그인하세요.",
+    "ru": "Чтобы сравнить цены и увидеть самый доступный вариант, войдите в корпоративный аккаунт.",
+    "zh-CN": "要比较价格并查看最便宜的选项，请使用企业账户登录。",  # noqa: RUF001
+}
+
+
+def price_access_response(locale: Locale) -> str:
+    return _PRICE_ACCESS.get(locale.value, _PRICE_ACCESS["pt-BR"])

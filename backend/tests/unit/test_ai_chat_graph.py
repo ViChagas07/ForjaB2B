@@ -499,7 +499,7 @@ async def test_luvas_mais_baratas_responde_sem_llm_e_devolve_cartao() -> None:
     assert llm.structured_calls == []
 
 
-async def test_visitante_que_pede_mais_barato_recebe_aviso_de_preco_consultivo() -> None:
+async def test_visitante_que_pede_mais_barato_e_orientado_a_entrar_na_conta() -> None:
     llm = FakeLLM()
     graph, _c, _a, _h = build(llm=llm)
     result = await graph.run(
@@ -509,9 +509,8 @@ async def test_visitante_que_pede_mais_barato_recebe_aviso_de_preco_consultivo()
         history=[],
         auth=None,
     )
-    assert "consultivos" in result.reply
-    assert result.cards[0].price is None
-    assert result.cards[0].price_on_request is True
+    assert "entre na sua conta" in result.reply
+    assert result.cards == []
 
 
 async def test_pergunta_de_preco_logado_nao_diz_consultivo() -> None:
@@ -900,3 +899,30 @@ async def test_reparo_com_id_forjado_e_aceito_quando_corrige() -> None:
     )
     assert result.reply == "Veja esta opção."
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]
+
+
+async def test_quantidade_singular_limita_a_um_produto() -> None:
+    search = FakeSearch([product()])
+    graph, _c, _a, _h = build(llm=FakeLLM(), search_port=search)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="quero a luva mais barata",
+        history=[],
+        auth=auth_like(),
+    )
+    assert search.last_kwargs["limit"] == 1
+    assert len(result.cards) == 1
+
+
+async def test_quantidade_explicita_limita_a_tres_produtos() -> None:
+    search = FakeSearch([product()])
+    graph, _c, _a, _h = build(llm=FakeLLM(), search_port=search)
+    await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="as 3 luvas mais baratas",
+        history=[],
+        auth=auth_like(),
+    )
+    assert search.last_kwargs["limit"] == 3

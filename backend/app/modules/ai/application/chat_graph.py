@@ -80,6 +80,7 @@ from app.modules.ai.domain.degradation import (
     info_response,
     login_required_response,
     not_found_response,
+    price_access_response,
     price_question_response,
     price_sort_response,
     price_unverified_response,
@@ -439,9 +440,10 @@ class ChatGraph:
     async def _search_retrieve(
         self, decision: IntentDecision, *, query: str, state: ChatState, auth: Any
     ) -> dict[str, Any]:
+        limit = _requested_limit(decision)
         args: dict[str, Any] = {
             "query": query[:200],
-            "limit": 5,
+            "limit": limit,
             "price_sort": decision.price_sort.value if decision.price_sort else None,
             "price_min": float(decision.price_min) if decision.price_min is not None else None,
             "price_max": float(decision.price_max) if decision.price_max is not None else None,
@@ -578,6 +580,7 @@ class ChatGraph:
             else ()
         )
         attempts = _consultation_attempts(sections, decision, query)
+        max_products = _requested_limit(decision)
         outputs: list[ToolOutput] = []
         for term, category in attempts:
             output = await self._search_with_optional_category(
@@ -585,13 +588,13 @@ class ChatGraph:
                 query=term,
                 category=category,
                 state=state,
-                limit=2,
+                limit=min(2, max_products),
             )
             if output.product_ids:
                 outputs.append(output)
-            if sum(len(item.grounded) for item in outputs) >= 5:
+            if sum(len(item.grounded) for item in outputs) >= max_products:
                 break
-        merged = _merge_tool_outputs(outputs)
+        merged = _merge_tool_outputs(outputs, limit=max_products)
         if not merged.product_ids:
             # Alternativa mais proxima: busca simples pela tarefa, sem categoria.
             merged = await self._search_with_optional_category(
@@ -618,8 +621,9 @@ class ChatGraph:
         query: str,
         category: str | None,
         state: ChatState,
-        limit: int = 5,
+        limit: int | None = None,
     ) -> ToolOutput:
+        limit = limit or _requested_limit(decision)
         args: dict[str, Any] = {
             "query": query[:200],
             "limit": limit,
@@ -723,6 +727,9 @@ class ChatGraph:
         if not name:
             return None
         visitor = state.get("_auth") is None
+        if decision.price_sort is not None and visitor:
+            # Visitante nao tem preco informado: nao devolve cartoes "sob consulta".
+            return {"reply": price_access_response(locale), "product_ids": []}
         if decision.intent == IntentName.PRICE_QUESTION:
             return {
                 "reply": price_question_response(locale, name=name, visitor=visitor),
@@ -1044,6 +1051,12 @@ _DIRECT_TEXT = {
 }
 
 
+def _requested_limit(decision: IntentDecision | None) -> int:
+    if decision is None or decision.quantity is None:
+        return 5
+    return max(1, min(int(decision.quantity), 5))
+
+
 def _query_for(decision: IntentDecision, message: str) -> str:
     query = (decision.query or message).strip()
     return query if len(query) >= 2 else message.strip()
@@ -1138,7 +1151,7 @@ def _consultation_attempts(
     return pairs[:4]
 
 
-def _merge_tool_outputs(outputs: Sequence[ToolOutput]) -> ToolOutput:
+def _merge_tool_outputs(outputs: Sequence[ToolOutput], *, limit: int = 5) -> ToolOutput:
     grounded: list[Any] = []
     ids: list[str] = []
     quarantined: list[Any] = []
@@ -1159,10 +1172,10 @@ def _merge_tool_outputs(outputs: Sequence[ToolOutput]) -> ToolOutput:
         capped = capped or output.price_scan_capped
     return ToolOutput(
         context_text="\n".join(texts),
-        product_ids=tuple(ids[:5]),
+        product_ids=tuple(ids[:limit]),
         quarantined=tuple(quarantined),
         price_scan_capped=capped,
-        grounded=tuple(grounded[:5]),
+        grounded=tuple(grounded[:limit]),
         allowed_prices=frozenset(prices),
     )
 
@@ -1218,6 +1231,11 @@ def _answer_instruction(decision: IntentDecision | None, *, visitor: bool) -> st
                 " O CONTEXTO tem o preco da empresa; use SOMENTE esses valores "
                 "se responder sobre preco."
             )
+    if decision is not None and decision.quantity is not None:
+        instruction += (
+            f" O usuario pediu {decision.quantity} produto(s); retorne no maximo "
+            "essa quantidade e respeite os cartoes."
+        )
     if decision is not None and decision.price_sort is not None:
         direction = (
             "menor para o maior" if decision.price_sort == PriceSort.ASC else "maior para o menor"
