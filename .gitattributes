@@ -1,0 +1,3 @@
+# Scripts de entrada sao executados por /bin/sh (Docker/Linux):
+# CRLF em um clone Windows quebra com "set: Illegal option -".
+*.sh text eol=lf
