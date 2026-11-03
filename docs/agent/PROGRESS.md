@@ -6,6 +6,43 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## Recuperacao de conta - Fase 8: seguranca, docs e deploy - 2026-11-03
+
+- **Entregue:** suite de seguranca em `tests/security` (enumeracao/erros identicos, brute force e-mail/SMS, replay/adulteracao/corrida de reset, Turnstile e Redis fail-closed, XOR, rate limits, headers no-store); `Cache-Control: no-store`/`Pragma: no-cache` tambem para `/api/v1/account/phone/verification`.
+- **Celery/telemetria:** worker sem `-E`, `worker_send_task_events=False` e `task_send_sent_event=False`; tasks com `ignore_result`; OTel/Prometheus nao recebem args e nao ha Sentry no projeto. Codigo continua apenas no broker.
+- **Docs:** `docs/PASSWORD_RECOVERY.md` com arquitetura, fluxos, chaves Redis, tabelas, ameacas, limitacoes, checklist Render/Vercel/Cloudflare/Resend/Twilio e roteiro manual; README e DEPLOY_RENDER atualizados (rate limiting e numeros de teste).
+- **Checagens:** backend `pytest tests` **1797 passed, 2 skipped, 5 failed + 1 error antigos**; unit+arch+security **1357 passed, 3 falhas antigas**; migrations da feature + role restrita **6 passed**; import-linter **5 kept**; Ruff/format e mypy dos arquivos da feature **passed**. Frontend: 332 passed, typecheck/lint/build OK. Segredos: 99 arquivos varridos, 0 hits; `.env` ignorado e nao versionado.
+- **NAO VALIDADO:** Twilio/Resend/Turnstile reais, E2E Playwright, deploy Render/Vercel. Sem commit/push.
+
+## Recuperacao de conta - Fase 7: frontend - 2026-11-03
+
+- **Entregue:** link condicional no login, pagina `/[locale]/forgot-password` em 4 etapas (request/verify/reset/success) com XOR e-mail/telefone, Turnstile oficial com nonce, CSP ajustada, cooldown/Retry-After, regras de senha 8-128 e estado apenas em memoria. Dialog de verificacao de telefone na conta com status mascarado, start/check, cooldown e erros genericos.
+- **API/i18n:** tipos e funcoes de request/verify/reset/telefone em `auth-api.ts`/`auth.ts`; chaves novas nos 11 locales; RTL com classes logicas; `NEXT_PUBLIC_PASSWORD_RECOVERY_ENABLED` e `NEXT_PUBLIC_TURNSTILE_SITE_KEY` documentadas.
+- **Checagens:** Vitest **332 passed** (62 files), incluindo schemas XOR, fluxo, cooldown, erros, i18n, RTL e account dialog; `tsc --noEmit` e `next lint` passaram; `next build` passou com env de recuperacao. Playwright spec criada, mas nao executada (requer backend/Turnstile de teste e env dedicada).
+- **NAO VALIDADO:** E2E real com backend/RabbitMQ/Twilio/Resend, Turnstile real e deploy Vercel/Render. Sem commit/push.
+
+## Recuperacao de conta - Fase 6: reset por SMS - 2026-11-03
+
+- **Entregue:** `/request` com phone resolve o dono por telefone verificado (funcao SECURITY DEFINER), aplica cooldown/teto diario e enfileira `PhoneVerificationService.start` via Celery (`send_password_reset_sms`); sem conta/inativo faz probe e responde 202 generico. `/verify` agora aceita XOR email/phone, chama Twilio Verify tambem no caminho sem conta, aplica contador proprio de tentativas SMS e emite reset_token com `channel=sms` no Redis; `/reset` e agnostico e usa o channel na auditoria.
+- **Consistencia:** reset por SMS revoga sessoes pela epoca (Fase 4) e mantem o aviso de senha alterada por e-mail; auditoria `auth.password_reset_requested/verified/completed/failed` com channel email|sms, sem PII; logs sem telefone/codigo.
+- **Checagens:** unit **1281 passed**; integracoes de recuperacao/SMS/revogacao/migrations **19 passed** com Docker real; suite completa **1788 passed, 2 skipped, 1 deselected, 5 failed + 1 flaky pre-existentes** (boundaries antigos, 0039, drift, ResourceWarning); import-linter **5 kept**; Ruff/format/mypy dos arquivos novos **passed**.
+- **NAO VALIDADO:** Twilio real, broker Celery/RabbitMQ, Resend, Render/Vercel. Sem commit/push.
+
+## Recuperacao de conta - Fase 5: Twilio Verify e telefone da conta - 2026-11-03
+
+- **Entregue:** `TwilioVerifyService` (httpx, Basic auth, timeout 5 s, sem retry) e fake deterministico; `POST /api/v1/account/phone/verification/start`, `/check` e `GET /phone/verification` com mascara; rate limits por IP/usuario, teto diario de SMS e cooldown de 60 s; migration `0044` com `public.claim_verified_phone` (advisory locks, SECURITY DEFINER) e politica "quem provou controle por ultimo vence", removendo o vinculo anterior.
+- **Aviso/consistencia:** template `auth.phone_unlinked` nos 11 locales e envio Celery sem PII; auditoria `auth.phone_verification_started`, `auth.phone_verified`, `auth.phone_unlinked`; `PATCH /account` remove o vinculo quando `users.phone` muda e o numero verificado nao coincide. `PHONE_VERIFICATION_DRY_RUN` e proibido em producao; sem Twilio configurado as rotas respondem 503.
+- **Checagens:** unit **1263 passed**; suite completa **1767 passed, 2 skipped, 1 deselected, 5 failed + 1 error pre-existentes** (boundaries antigos, 0039, drift de `users`/`user_preferences`, ResourceWarning flutuante); integracoes de telefone, claim/race, recuperacao e revogacao com Docker real passaram; import-linter **5 kept**; Ruff/format/mypy dos arquivos novos **passed**.
+- **NAO VALIDADO:** Twilio real, worker Celery/RabbitMQ, Resend, Render/Vercel. Sem commit/push.
+
+## Recuperacao de conta - Fases 1 a 4 - 2026-11-03
+
+- **Fase 1:** migration `0043` com `user_verified_phones` e `user_credential_state` (FORCE RLS, grants) e `public.resolve_user_by_verified_phone`; settings Twilio/Turnstile/Resend e fail-fast de producao.
+- **Fase 2:** `POST /api/v1/auth/password-recovery/request` com Turnstile httpx fail-closed, XOR e-mail/telefone e rate limits dedicados (`PASSWORD_RECOVERY`, `PASSWORD_RECOVERY_IDENTIFIER`, teto diario).
+- **Fase 3:** request por e-mail com codigo de 6 digitos apenas em HMAC(PEPPER) no Redis, envio Celery (`ignore_result`, sem outbox), `POST /verify` com `hmac.compare_digest` e reset_token SHA-256, `POST /reset` com Argon2id, RLS/UoW, auditoria e aviso de senha alterada.
+- **Fase 4:** claim `cep` no access token, cache Redis `credential_epoch:{user_id}` (TTL 60 s) com fallback DB e fail-closed 503, refresh token com `credential_epoch` (legado = 0), upsert atomico da epoca no reset e `CredentialEpochSessionRevoker`; frontend limpa a sessao em `invalid_refresh_token` (sem redirect automatico).
+- **Checagens:** unit **1220 passed**; suite completa **1719 passed, 2 skipped, 1 deselected, 5 failed + 1 error pre-existentes** (3 boundaries antigos, 0039, drift de `users`/`user_preferences`, ResourceWarning flutuante); integracoes de recuperacao/revogacao com Docker real passaram; import-linter **5 kept**. Sem commit/push.
+
 ## Fix final da 0042: snapshot CNPJ sem FK/ownership/REFERENCES - 2026-11-02
 
 - **Causa:** o preflight do Render reportou que a role `forja` (mesma de `DATABASE_URL` e `DATABASE_ADMIN_URL`) nao tem `REFERENCES` em `order_items`; ela tambem nao e owner de `order_items`/`products`. Nao vamos depender de GRANT nem ownership.

@@ -55,7 +55,7 @@ as roles dedicadas `forja_recovery`/`forja_chat` (revisões 0025/0026).
 | Worker/beat | Background Worker (Docker, `backend/Dockerfile.worker`) | Beat separado ou scheduler; ver falha local do beat |
 | Frontend | Web Service (Docker, `frontend/Dockerfile`) | `BACKEND_URL` (somente servidor) alimenta o rewrite same-origin para `/api/v1` |
 | PostgreSQL | Render PostgreSQL | **Verificar suporte a `vector`/pgvector** na versão oferecida; se não houver, desabilitar embeddings |
-| Redis | Render Key Value | Refresh, cache, OAuth state/exchange; não há rate limiting |
+| Redis | Render Key Value | Refresh, cache, OAuth state/exchange, rate limiting (fail-open geral e fail-closed na recuperacao) |
 | Elasticsearch | Elastic Cloud ou VPS | Render não oferece Elasticsearch gerenciado; usar HTTPS + API key |
 | Objetos estáticos | Disco persistente ou storage | O projeto serve SVGs versionados; não gravar em disco efêmero |
 
@@ -79,6 +79,42 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 - `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`, `ELASTICSEARCH_CA_CERTS`,
   `ELASTICSEARCH_VERIFY_CERTS=true`, `ELASTICSEARCH_INDEX_VERSION`
 - `SECRET_KEY`, `PEPPER`, `ENCRYPTION_KEY`, `PAYMENT_WEBHOOK_SECRET`
+- `PASSWORD_RECOVERY_ENABLED` (padrão `false`). Quando `true` em produção, o startup exige
+  `TURNSTILE_SECRET_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+  `TWILIO_VERIFY_SERVICE_SID` e `RESEND_API_KEY`; ausência de qualquer uma impede o boot
+  (a mensagem lista somente os nomes, nunca os valores).
+- `TURNSTILE_SECRET_KEY` (backend; Cloudflare Turnstile, fail-closed).
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` (Twilio Verify por
+  SMS). O backend chama a API HTTP com `httpx`, sem SDK síncrono do Twilio.
+- `RECOVERY_CODE_TTL_SECONDS` (padrão `600`), `RECOVERY_CODE_MAX_ATTEMPTS` (padrão `5`) e
+  `RECOVERY_RESET_TOKEN_TTL_SECONDS` (padrão `600`) ajustam o fluxo sem novo deploy de código.
+- Para o envio da recuperação em produção, configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`
+  e `RESEND_FROM`; o worker Celery usa a factory existente, que seleciona o
+  `ResendEmailSender`. Com `EMAIL_DRY_RUN=true` nenhum e-mail é enviado.
+- `RATE_LIMIT_PASSWORD_RECOVERY_IP_CAPACITY` (padrão `10`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_IP_REFILL_PER_MINUTE` (padrão `10`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_IDENTIFIER_CAPACITY` (padrão `3`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_IDENTIFIER_REFILL_PER_MINUTE` (padrão `3`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_VERIFY_IP_CAPACITY` (padrão `20`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_VERIFY_IP_REFILL_PER_MINUTE` (padrão `20`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_VERIFY_IDENTIFIER_CAPACITY` (padrão `10`),
+  `RATE_LIMIT_PASSWORD_RECOVERY_VERIFY_IDENTIFIER_REFILL_PER_MINUTE` (padrão `10`),
+  `PASSWORD_RECOVERY_DAILY_LIMIT` (padrão `5`) e
+  `PASSWORD_RECOVERY_RESEND_COOLDOWN_SECONDS` (padrão `60`) controlam os baldes
+  dedicados; Redis indisponível nesse fluxo resulta em 503 genérico (fail-closed).
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Vercel/frontend; chave PÚBLICA do widget). O secret
+  correspondente existe apenas no Render.
+- A revogação de sessões pós-reset usa `user_credential_state` (migration `0043`) e o cache
+  Redis `credential_epoch:{user_id}` com TTL de 60 s. Aplique a migration antes de subir este
+  código; sem a tabela, a checagem de época falha fechada (503).
+- Verificação do próprio telefone usa `TWILIO_*` e as migrations `0043`/`0044`. Sem as
+  credenciais Twilio, as rotas respondem 503 genérico. `PHONE_VERIFICATION_DRY_RUN` é proibido
+  em produção; os limites `RATE_LIMIT_PHONE_VERIFICATION_*`,
+  `PHONE_VERIFICATION_DAILY_USER_LIMIT`, `PHONE_VERIFICATION_DAILY_IP_LIMIT` e
+  `PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS` são ajustáveis.
+- O reset por SMS usa o mesmo `TWILIO_VERIFY_SERVICE_SID`: o envio é enfileirado na task
+  `app.tasks.password_recovery.send_password_reset_sms` e o código é gerado/checado pelo
+  Twilio Verify (nunca armazenado em claro).
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`,
   `GOOGLE_OAUTH_FRONTEND_REDIRECT` (se OAuth for usado). O
   `GOOGLE_OAUTH_FRONTEND_REDIRECT` deve ser a página do frontend
@@ -132,3 +168,9 @@ versionar valores. O `.env.example` é apenas desenvolvimento.
 - Migrations/seed/index aplicados e verificados.
 - Evidência de login, busca, preço por empresa e admin em produção.
 - Capturas e relatório de validação.
+
+## Recuperacao de conta
+
+Checklist completo, ordem segura de ativacao, Cloudflare Hostnames, verificacao de
+dominio no Resend, Twilio trial, custo de SMS e roteiro manual estao em
+[PASSWORD_RECOVERY.md](PASSWORD_RECOVERY.md).

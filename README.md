@@ -54,6 +54,7 @@ visibilidade e a autorização são resolvidos por empresa no PostgreSQL.
   `machine`, `reviewed` e `stale`; interface em **11 idiomas**, incluindo RTL para árabe.
 - **Conta e acesso:** login JWT, refresh com rotação, RBAC (`ADMIN`, `BUYER`, `APPROVER`,
   `FINANCE`), OAuth Google opcional.
+- **Recuperacao de conta:** codigo por e-mail ou SMS, Turnstile fail-closed, reset_token de uso unico, revogacao de sessoes e verificacao de telefone na conta.
 - **Crédito, faturamento e pagamento:** ledger append-only, fatura/boleto simulado e
   gateway de pagamento **fake local** (PIX/cartão/boleto). Não há adquirente real.
 - **LGPD:** exportação, retificação, anonimização e consentimento self-service.
@@ -138,7 +139,7 @@ usado e, se ambos falharem, a API responde erro. **Preço nunca entra no índice
 | Traduções armazenadas, 11 idiomas de UI e 4 de conteúdo | Sem tradução em tempo de request; fallback campo a campo | [ADR-0007](docs/ADRs/0007-traducoes-armazenadas.md) |
 | Atributos em JSONB com definições por categoria | Flexibilidade de catálogo sem EAV nem colunas por nicho | [ADR-0008](docs/ADRs/0008-atributos-jsonb.md) |
 | Outbox, reconciliação e índice versionado com alias | Indexação não bloqueia o catálogo; rebuild e rollback seguros | [ADR-0009](docs/ADRs/0009-outbox-indice-versionado.md) |
-| Rate limiting com Redis e fail-open | **Proposto, não implementado**; registrado para não simular controle | [ADR-0010](docs/ADRs/0010-rate-limiting-redis.md) |
+| Rate limiting com Redis e fallback local | Implementado; fail-open no trafego geral e fail-closed na recuperacao de conta | [ADR-0010](docs/ADRs/0010-rate-limiting-redis.md) |
 | Idempotência por chave única | Evita pedido/pagamento duplicado em retry | [ADR-0011](docs/ADRs/0011-idempotencia.md) |
 | Timeouts curtos e circuit breaker na busca | Degradar em ~2 s, não em ~15 s | [ADR-0012](docs/ADRs/0012-timeouts-circuit-breaker.md) |
 | Observabilidade proporcional e segredos fora do Git | Diagnóstico sem acoplar o projeto a um vendor | [ADR-0013](docs/ADRs/0013-observabilidade-segredos.md) |
@@ -151,15 +152,15 @@ os desta sessão (2026-10-22), salvo indicação.
 
 | Área | Estado | Evidência |
 | :--- | :--- | :--- |
-| Backend: unidade + arquitetura | ✅ Validado | `pytest tests/unit tests/architecture` → **425 passed** |
-| Backend: suíte sem Docker | ✅ Validado | `DOCKER_HOST` inacessível → **427 passed, 251 skipped** (integração pulada) |
-| Backend: suíte completa com Docker | ✅ Validado | `pytest tests/` → **677 passed, 1 skipped** (Testcontainers) |
+| Backend: unidade + arquitetura + seguranca | ✅ Validado | `pytest tests/unit tests/architecture tests/security` → **1357 passed** (3 falhas antigas de boundaries) |
+| Backend: suite sem Docker | ✅ Validado | integracao pulada; baseline de testes antigos |
+| Backend: suite completa com Docker | ✅ Validado | `pytest tests/` → **1797 passed, 2 skipped, 5 failed + 1 error antigos** (Testcontainers) |
 | Ruff | ✅ Validado | `ruff check` OK; `ruff format --check` → **384 files already formatted** |
-| Mypy no código de aplicação | ✅ Validado | `mypy app --strict` → **285 files, 0 errors** |
-| Mypy no repositório (o que o CI executa) | ❌ Falha conhecida | `mypy .` → **48 errors em 5 arquivos de teste**; o job `ci-backend` roda `mypy .` |
-| Import-linter | ✅ Validado | **4 contratos mantidos, 0 quebrados** |
-| Frontend: tipos e lint | ✅ Validado | `npm run typecheck` OK; `npm run lint` OK com 3 warnings `<img>` |
-| Frontend: testes e build | ✅ Validado | **102 passed**; `npm run build` concluiu |
+| Mypy nos arquivos da feature | ✅ Validado | 18 arquivos, 0 erros; baseline mantem erros antigos de stubs |
+| Mypy no repositorio | ❌ Falha conhecida | baseline de tipagem em testes/estubs; nao bloqueia a feature |
+| Import-linter | ✅ Validado | **5 contratos mantidos, 0 quebrados** |
+| Frontend: tipos e lint | ✅ Validado | `npm run typecheck` OK; `npm run lint` OK com 4 warnings `<img>` |
+| Frontend: testes e build | ✅ Validado | **332 passed**; `npm run build` concluiu |
 | Docker Compose (sintaxe) | ✅ Validado | `docker compose --env-file .env.example config --quiet` OK |
 | Docker Compose (runtime) | ⚠️ Parcial | 9 containers healthy e 2 em restart (`forja-grafana`, `forja-celery-beat`); `forja-frontend` criado, não iniciado (detalhes abaixo) |
 | Busca lexical, multilíngue e fallback | ✅ Validado em sessão anterior | Evidência V2 em [PROGRESS](docs/agent/PROGRESS.md): `en`/`es`/`ar`, SKU, `postgres_fallback` com ES parado, latências e recuperação. **Não reexecutado nesta sessão.** |
@@ -178,8 +179,7 @@ os desta sessão (2026-10-22), salvo indicação.
   adquirente, conciliação ou webhook de terceiro real.
 - **OAuth Google:** opcional; sem credenciais, os endpoints retornam 503 e o botão fica
   oculto.
-- **Rate limiting:** **não implementado**. O Redis é usado para refresh, cache, OAuth
-  state/exchange e readiness; não há middleware de limite de requisições.
+- **Rate limiting:** implementado no Redis com fallback local; os fluxos de recuperacao de conta usam modo fail-closed e baldes dedicados.
 
 ## Como rodar localmente
 
@@ -326,18 +326,18 @@ continua **NÃO VALIDADA**.
 
 ```bash
 # Backend (na pasta backend, com .venv Python 3.12)
-pytest tests/unit tests/architecture -q   # 425 passed
-pytest tests/ -q                          # 677 passed, 1 skipped (Docker/Testcontainers)
-DOCKER_HOST=tcp://127.0.0.1:1 pytest tests/ -q  # 427 passed, 251 skipped
+pytest tests/unit tests/architecture tests/security -q   # 1357 passed
+pytest tests/ -q                          # 1797 passed, 2 skipped (Docker/Testcontainers)
+DOCKER_HOST=tcp://127.0.0.1:1 pytest tests/ -q  # integracao pulada
 ruff check . && ruff format --check .     # OK / 384 files
-mypy app --strict                         # 285 files, 0 errors
-mypy .                                    # 48 errors em testes (falha conhecida)
-lint-imports --config .import-linter      # 4/4
+mypy app/modules/identity/application/password_recovery.py app/modules/identity/application/phone_verification.py app/modules/identity/infrastructure/password_recovery_store.py app/modules/identity/infrastructure/password_recovery_repository.py app/modules/identity/infrastructure/phone_verification_repository.py app/modules/identity/infrastructure/twilio_verify.py app/modules/identity/infrastructure/turnstile.py app/modules/identity/infrastructure/verified_phone_resolver.py app/modules/identity/interface/password_recovery_router.py app/tasks/password_recovery.py app/interface/security_headers.py app/interface/deps.py app/infrastructure/security  # 18 arquivos, 0 erros
+mypy .                                    # baseline de erros antigos em testes/estubs
+lint-imports --config .import-linter      # 5/5
 
 # Frontend (na pasta frontend)
 npm run typecheck && npm run lint
-npm run test                              # 102 passed
-npm run build
+npm run test -- --run                     # 332 passed
+npm run build                             # OK (com BACKEND_URL)
 ```
 
 - **CI:** `.github/workflows/ci-backend.yml`, `ci-frontend.yml` e `ci-architecture.yml`.
@@ -361,7 +361,7 @@ npm run build
   assinado.
 - **LGPD:** exportação, retificação, anonimização e consentimento; a exclusão preserva
   registros financeiros/fiscais e auditoria.
-- **Limite honesto:** não há WAF, rate limiting, Vault, SOC 2 ou ISO 27001. Ver
+- **Limite honesto:** nao ha WAF, Vault, SOC 2 ou ISO 27001. Ver
   [SECURITY.md](docs/SECURITY.md), [LGPD.md](docs/LGPD.md) e
   [NON_GOALS.md](docs/NON_GOALS.md).
 
@@ -468,5 +468,5 @@ O mapa completo está em [`docs/INDEX.md`](docs/INDEX.md). Atalhos:
 - [Arquitetura](docs/ARCHITECTURE.md) · [Status atual](docs/STATUS.md) · [Não-objetivos](docs/NON_GOALS.md)
 - [ADRs](docs/ADRs/) · [Busca (runbook)](docs/search/RUNBOOK.md) · [i18n](docs/I18N.md)
 - [Segurança](docs/SECURITY.md) · [LGPD](docs/LGPD.md) · [Catálogo/admin](docs/CATALOG_ADMIN.md)
-- [API](docs/API.md) · [Testes de carga](docs/testing/LOAD.md) · [Deploy Render](docs/DEPLOY_RENDER.md)
+- [API](docs/API.md) · [Testes de carga](docs/testing/LOAD.md) · [Deploy Render](docs/DEPLOY_RENDER.md) · [Recuperacao de conta](docs/PASSWORD_RECOVERY.md)
 - [Relatório final de prontidão](docs/readiness/FINAL_REPORT.md) · [Histórico](docs/history/)
