@@ -16,6 +16,8 @@ export interface CspOptions {
   isSecure?: boolean;
 }
 
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
 function apiOrigin(apiUrl: string | null | undefined): string {
   if (!apiUrl) {
     return "";
@@ -34,9 +36,9 @@ export function buildContentSecurityPolicy({
   isSecure = false,
 }: CspOptions): string {
   const api = apiOrigin(apiUrl);
-  const connectSources = ["'self'", api].filter(Boolean);
-  // Avatares do Google OIDC vem de lh3.googleusercontent.com. Nenhum outro
-  // host externo e permitido; se a imagem falhar, o UserAvatar usa iniciais.
+  const connectSources = ["'self'", api, TURNSTILE_ORIGIN].filter(Boolean);
+  // Avatares do Google OIDC vem de lh3.googleusercontent.com. Turnstile usa
+  // iframe e chamadas para o proprio challenges.cloudflare.com.
   const imageSources = [
     "'self'",
     "data:",
@@ -44,7 +46,7 @@ export function buildContentSecurityPolicy({
     api,
     "https://lh3.googleusercontent.com",
   ].filter(Boolean);
-  const scriptSources = [`'nonce-${nonce}'`, "'strict-dynamic'"];
+  const scriptSources = [`'nonce-${nonce}'`, "'strict-dynamic'", TURNSTILE_ORIGIN];
   if (!isProduction) {
     // Next dev compila com eval e usa WebSocket para HMR. Nao vale em producao.
     scriptSources.push("'unsafe-eval'");
@@ -62,6 +64,7 @@ export function buildContentSecurityPolicy({
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    `frame-src ${TURNSTILE_ORIGIN}`,
     "frame-ancestors 'none'",
     "manifest-src 'self'",
     "worker-src 'self' blob:",

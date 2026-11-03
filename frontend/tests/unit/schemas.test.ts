@@ -148,3 +148,83 @@ describe("registerConsumerFormSchema", () => {
     }
   });
 });
+
+
+describe("password recovery schemas", () => {
+  it("aceita exatamente um identificador e normaliza o email", async () => {
+    const { passwordRecoveryRequestSchema } = await import("@/features/auth/schemas");
+    const result = passwordRecoveryRequestSchema.safeParse({
+      email: "  User@Example.COM ",
+      turnstile_token: "token",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe("user@example.com");
+      expect(result.data.phone).toBeUndefined();
+    }
+  });
+
+  it("normaliza telefone brasileiro e rejeita os dois identificadores", async () => {
+    const { passwordRecoveryRequestSchema } = await import("@/features/auth/schemas");
+    const ok = passwordRecoveryRequestSchema.safeParse({
+      phone: "+55 (11) 99999-1234",
+      turnstile_token: "token",
+    });
+    expect(ok.success).toBe(true);
+    if (ok.success) expect(ok.data.phone).toBe("+5511999991234");
+
+    const both = passwordRecoveryRequestSchema.safeParse({
+      email: "user@example.com",
+      phone: "+5511999991234",
+      turnstile_token: "token",
+    });
+    const neither = passwordRecoveryRequestSchema.safeParse({ turnstile_token: "token" });
+    expect(both.success).toBe(false);
+    expect(neither.success).toBe(false);
+  });
+
+  it("verify exige XOR e codigo de 6 digitos", async () => {
+    const { passwordRecoveryVerifySchema } = await import("@/features/auth/schemas");
+    expect(
+      passwordRecoveryVerifySchema.safeParse({ phone: "+5511999991234", code: "123456" }).success,
+    ).toBe(true);
+    expect(
+      passwordRecoveryVerifySchema.safeParse({
+        email: "user@example.com",
+        phone: "+5511999991234",
+        code: "123456",
+      }).success,
+    ).toBe(false);
+    expect(
+      passwordRecoveryVerifySchema.safeParse({ email: "user@example.com", code: "12345" }).success,
+    ).toBe(false);
+  });
+
+  it("reset aplica 8 a 128 caracteres e confirma a senha", async () => {
+    const { passwordRecoveryResetSchema } = await import("@/features/auth/schemas");
+    expect(
+      passwordRecoveryResetSchema.safeParse({
+        new_password: "SenhaNova123",
+        confirm_password: "SenhaNova123",
+      }).success,
+    ).toBe(true);
+    expect(
+      passwordRecoveryResetSchema.safeParse({
+        new_password: "curta",
+        confirm_password: "curta",
+      }).success,
+    ).toBe(false);
+    expect(
+      passwordRecoveryResetSchema.safeParse({
+        new_password: "SenhaNova123",
+        confirm_password: "OutraSenha123",
+      }).success,
+    ).toBe(false);
+    expect(
+      passwordRecoveryResetSchema.safeParse({
+        new_password: "a".repeat(129),
+        confirm_password: "a".repeat(129),
+      }).success,
+    ).toBe(false);
+  });
+});

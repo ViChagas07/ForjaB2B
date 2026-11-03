@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { AccountAvatar, AccountProfile, UpdateAccountInput } from "@/core/domain/account";
-import { accountApi } from "@/infrastructure/http";
+import { accountApi, authApi } from "@/infrastructure/http";
 import { withAuth } from "@/shared/lib/with-auth";
 import { useAuthStore } from "@/shared/stores/auth-store";
 
@@ -90,6 +90,37 @@ export function useRemoveAvatar() {
     mutationFn: () => withAuth((token) => accountApi.removeAvatar(token)),
     onSuccess: (avatar: AccountAvatar) => {
       applyAvatar(queryClient, session, setSession, avatar);
+    },
+  });
+}
+
+
+const PHONE_VERIFICATION_KEY = ["account", "phone-verification"] as const;
+
+export function usePhoneVerificationStatus() {
+  const status = useAuthStore((state) => state.status);
+  return useQuery({
+    queryKey: PHONE_VERIFICATION_KEY,
+    queryFn: () => withAuth((token) => authApi.getPhoneVerificationStatus(token)),
+    enabled: status === "authenticated",
+  });
+}
+
+export function useStartPhoneVerification() {
+  return useMutation({
+    mutationFn: ({ phone, locale }: { phone: string; locale: string }) =>
+      withAuth((token) => authApi.startPhoneVerification(token, phone, locale)),
+  });
+}
+
+export function useCheckPhoneVerification() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ phone, code }: { phone: string; code: string }) =>
+      withAuth((token) => authApi.checkPhoneVerification(token, phone, code)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PHONE_VERIFICATION_KEY });
+      void queryClient.invalidateQueries({ queryKey: ACCOUNT_KEY });
     },
   });
 }

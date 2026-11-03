@@ -54,3 +54,34 @@ export interface AuthTokens {
 export type OAuthExchangeResult =
   | { status: "authenticated"; session: AuthSession }
   | { status: "registration_required"; email: string | null; full_name: string | null };
+
+
+/** Recuperacao de conta por e-mail ou SMS (exatamente um identificador). */
+export interface PasswordRecoveryRequestInput {
+  email?: string;
+  phone?: string;
+  turnstile_token: string;
+  locale?: string;
+}
+
+export interface PasswordRecoveryVerifyInput {
+  email?: string;
+  phone?: string;
+  code: string;
+}
+
+export interface PasswordRecoveryResetInput {
+  reset_token: string;
+  new_password: string;
+}
+
+export interface PasswordRecoveryVerified {
+  reset_token: string;
+  expires_in: number;
+}
+
+/** Status do telefone verificado na conta (numero mascarado pelo backend). */
+export interface PhoneVerificationStatus {
+  verified: boolean;
+  phone_masked: string | null;
+}

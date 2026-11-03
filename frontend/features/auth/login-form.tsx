@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 
 import type { AccountType } from "@/core/domain/auth";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { errorMessageKey } from "@/shared/lib/api-error";
 import { login } from "@/shared/stores/auth-actions";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
@@ -116,6 +116,17 @@ export function LoginForm({ accountType }: LoginFormProps) {
           </p>
         ) : null}
       </div>
+
+      {process.env.NEXT_PUBLIC_PASSWORD_RECOVERY_ENABLED === "true" ? (
+        <div className="text-end">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            {t("auth.forgotPassword")}
+          </Link>
+        </div>
+      ) : null}
 
       {formError ? (
         <Alert variant="destructive">

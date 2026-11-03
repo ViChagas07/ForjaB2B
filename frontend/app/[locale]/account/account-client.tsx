@@ -1,17 +1,35 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Loader2, Save } from "lucide-react";
 
 import { GENDERS, type Gender } from "@/core/domain/account";
 import { AccountAvatarCard } from "@/features/account/avatar-card";
-import { useAccount, useUpdateAccount } from "@/features/account/hooks";
+import {
+  phoneVerificationCheckSchema,
+  phoneVerificationStartSchema,
+} from "@/features/auth/schemas";
+import {
+  useAccount,
+  useCheckPhoneVerification,
+  usePhoneVerificationStatus,
+  useStartPhoneVerification,
+  useUpdateAccount,
+} from "@/features/account/hooks";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/infrastructure/http";
+import { ApiError, problemCode } from "@/infrastructure/http";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -40,14 +58,35 @@ function normalizePostalCode(value: string): string {
 
 export function AccountClient() {
   const t = useTranslations("account");
+  const tRoot = useTranslations();
+  const locale = useLocale();
   const session = useAuthStore((state) => state.session);
   const authStatus = useAuthStore((state) => state.status);
   const accountQuery = useAccount();
   const updateMutation = useUpdateAccount();
+  const phoneStatusQuery = usePhoneVerificationStatus();
+  const startPhoneVerification = useStartPhoneVerification();
+  const checkPhoneVerification = useCheckPhoneVerification();
   const [form, setForm] = useState<AccountForm>(EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successKey, setSuccessKey] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
+  const [phoneStep, setPhoneStep] = useState<"start" | "check">("start");
+  const [verificationPhone, setVerificationPhone] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [phoneErrors, setPhoneErrors] = useState<Record<string, string>>({});
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [phoneNotice, setPhoneNotice] = useState<string | null>(null);
+  const [phoneCountdown, setPhoneCountdown] = useState(0);
+
+  useEffect(() => {
+    if (phoneCountdown <= 0) return;
+    const timer = window.setInterval(() => {
+      setPhoneCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [phoneCountdown]);
 
   useEffect(() => {
     const profile = accountQuery.data;
@@ -158,6 +197,123 @@ export function AccountClient() {
     );
   }
 
+  function openPhoneDialog() {
+    setVerificationPhone(form.phone ?? "");
+    setVerificationCode("");
+    setPhoneStep("start");
+    setPhoneErrors({});
+    setPhoneError(null);
+    setPhoneNotice(null);
+    setPhoneCountdown(0);
+    setPhoneDialogOpen(true);
+  }
+
+  function closePhoneDialog() {
+    setPhoneDialogOpen(false);
+    setPhoneErrors({});
+    setPhoneError(null);
+    setPhoneNotice(null);
+  }
+
+  function handlePhoneError(error: unknown) {
+    if (error instanceof ApiError && error.status === 429) {
+      const retry = error.retryAfterSeconds ?? 60;
+      setPhoneCountdown(retry);
+      setPhoneError(t("phoneRateLimited", { seconds: retry }));
+      return;
+    }
+    if (error instanceof ApiError && error.status === 503) {
+      setPhoneError(t("phoneUnavailable"));
+      return;
+    }
+    if (problemCode(error) === "phone_verification_failed") {
+      setPhoneError(t("phoneGenericError"));
+      return;
+    }
+    if (error instanceof ApiError && error.status === 422) {
+      setPhoneError(t("phoneGenericError"));
+      return;
+    }
+    setPhoneError(t("phoneGenericError"));
+  }
+
+  function submitPhoneStart() {
+    setPhoneErrors({});
+    setPhoneError(null);
+    const parsed = phoneVerificationStartSchema.safeParse({ phone: verificationPhone });
+    if (!parsed.success) {
+      const next: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0];
+        if (typeof key === "string") next[key] ??= issue.message;
+      }
+      setPhoneErrors(next);
+      return;
+    }
+    startPhoneVerification.mutate(
+      { phone: parsed.data.phone, locale },
+      {
+        onSuccess: () => {
+          setPhoneStep("check");
+          setPhoneNotice(t("phoneStartSuccess"));
+          setPhoneCountdown(60);
+        },
+        onError: handlePhoneError,
+      },
+    );
+  }
+
+  function submitPhoneCheck() {
+    setPhoneErrors({});
+    setPhoneError(null);
+    const parsed = phoneVerificationCheckSchema.safeParse({
+      phone: verificationPhone,
+      code: verificationCode,
+    });
+    if (!parsed.success) {
+      const next: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0];
+        if (typeof key === "string") next[key] ??= issue.message;
+      }
+      setPhoneErrors(next);
+      return;
+    }
+    checkPhoneVerification.mutate(
+      { phone: parsed.data.phone, code: parsed.data.code },
+      {
+        onSuccess: () => {
+          setPhoneDialogOpen(false);
+          setPhoneNotice(t("phoneVerifiedSuccess"));
+        },
+        onError: handlePhoneError,
+      },
+    );
+  }
+
+  function resendPhoneCode() {
+    if (phoneCountdown > 0 || startPhoneVerification.isPending) return;
+    setPhoneError(null);
+    const parsed = phoneVerificationStartSchema.safeParse({ phone: verificationPhone });
+    if (!parsed.success) {
+      setPhoneError(t("phoneInvalid"));
+      return;
+    }
+    startPhoneVerification.mutate(
+      { phone: parsed.data.phone, locale },
+      {
+        onSuccess: () => {
+          setPhoneNotice(t("phoneStartSuccess"));
+          setPhoneCountdown(60);
+        },
+        onError: handlePhoneError,
+      },
+    );
+  }
+
+  const phoneStatus = phoneStatusQuery.data;
+  const phoneVerified = phoneStatus?.verified === true;
+
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <AccountAvatarCard profile={profile} fallbackAvatarUrl={session?.user.avatar_url ?? null} />
@@ -208,15 +364,39 @@ export function AccountClient() {
                 <p className="text-xs text-muted-foreground">{t("emailHint")}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="account-phone">{t("phone")}</Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="account-phone">{t("phone")}</Label>
+                  {phoneStatusQuery.isLoading ? null : phoneVerified ? (
+                    <span className="text-xs font-medium text-success">
+                      {t("phoneVerified", { phone: phoneStatus?.phone_masked ?? "" })}
+                    </span>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0 text-xs"
+                      onClick={openPhoneDialog}
+                    >
+                      {t("phoneVerification")}
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="account-phone"
                   value={form.phone}
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="+55 11 99999-9999"
+                  placeholder={t("phonePlaceholder")}
                   onChange={(event) => change({ phone: event.target.value })}
                 />
+                {phoneVerified ? (
+                  <p className="text-xs text-muted-foreground">{t("phoneChangeHint")}</p>
+                ) : null}
+                {phoneNotice ? (
+                  <p role="status" className="text-xs text-success">
+                    {phoneNotice}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="account-birth">{t("birthDate")}</Label>
@@ -288,6 +468,124 @@ export function AccountClient() {
           </form>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={phoneDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closePhoneDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("phoneDialogTitle")}</DialogTitle>
+            <DialogDescription>{t("phoneDialogDescription")}</DialogDescription>
+          </DialogHeader>
+
+          <div aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
+            {phoneNotice}
+          </div>
+
+          {phoneStep === "start" ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone-verification-input">{t("phoneInputLabel")}</Label>
+                <Input
+                  id="phone-verification-input"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={verificationPhone}
+                  placeholder={t("phoneInputPlaceholder")}
+                  aria-invalid={Boolean(phoneErrors.phone)}
+                  onChange={(event) => {
+                    setVerificationPhone(event.target.value);
+                    setPhoneErrors({});
+                    setPhoneError(null);
+                  }}
+                />
+                {phoneErrors.phone ? (
+                  <p role="alert" className="text-xs text-destructive">
+                    {tRoot(phoneErrors.phone)}
+                  </p>
+                ) : null}
+              </div>
+              {phoneError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{phoneError}</AlertDescription>
+                </Alert>
+              ) : null}
+              <Button
+                type="button"
+                className="w-full"
+                disabled={startPhoneVerification.isPending}
+                onClick={submitPhoneStart}
+              >
+                {startPhoneVerification.isPending ? (
+                  <Loader2 aria-hidden="true" className="animate-spin" />
+                ) : null}
+                {startPhoneVerification.isPending ? t("phoneStarting") : t("phoneStart")}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone-verification-code">{t("phoneCodeLabel")}</Label>
+                <Input
+                  id="phone-verification-code"
+                  value={verificationCode}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  aria-invalid={Boolean(phoneErrors.code)}
+                  onChange={(event) => {
+                    setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                    setPhoneErrors({});
+                    setPhoneError(null);
+                  }}
+                />
+                {phoneErrors.code ? (
+                  <p role="alert" className="text-xs text-destructive">
+                    {tRoot(phoneErrors.code)}
+                  </p>
+                ) : null}
+              </div>
+              {phoneError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{phoneError}</AlertDescription>
+                </Alert>
+              ) : null}
+              <Button
+                type="button"
+                className="w-full"
+                disabled={checkPhoneVerification.isPending}
+                onClick={submitPhoneCheck}
+              >
+                {checkPhoneVerification.isPending ? (
+                  <Loader2 aria-hidden="true" className="animate-spin" />
+                ) : null}
+                {checkPhoneVerification.isPending ? t("phoneChecking") : t("phoneCheck")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                disabled={phoneCountdown > 0 || startPhoneVerification.isPending}
+                onClick={resendPhoneCode}
+              >
+                {phoneCountdown > 0
+                  ? t("phoneResendIn", { seconds: phoneCountdown })
+                  : t("phoneResend")}
+              </Button>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closePhoneDialog}>
+              {t("phoneDialogCancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

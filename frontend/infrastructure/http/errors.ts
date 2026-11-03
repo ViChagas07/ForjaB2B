@@ -53,8 +53,9 @@ export class ApiError extends DomainError {
   readonly requestId?: string;
   readonly traceId?: string;
   readonly extensions: Record<string, unknown>;
+  readonly headers: Record<string, string>;
 
-  constructor(problem: ProblemDetails) {
+  constructor(problem: ProblemDetails, headers: Record<string, string> = {}) {
     super(problem.type, problem.detail ?? problem.title, problem.detail);
     this.status = problem.status;
     this.type = problem.type;
@@ -62,6 +63,7 @@ export class ApiError extends DomainError {
     this.instance = problem.instance;
     this.requestId = problem.request_id ?? problem.trace_id;
     this.traceId = problem.trace_id ?? problem.request_id;
+    this.headers = headers;
     // Captura propriedades extras (extensions) do Problem Details
     const {
       type,
@@ -78,11 +80,22 @@ export class ApiError extends DomainError {
     // Se o backend enviar `extensions` como propriedade (RFC 7807), usa ela; senÃ£o usa o resto
     this.extensions = (extensions as Record<string, unknown>) ?? { ...rest, errors };
   }
+
+  /** Segundos de Retry-After (429), quando o backend informa. */
+  get retryAfterSeconds(): number | null {
+    const raw = this.headers["retry-after"];
+    if (!raw) return null;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
 }
 
 /** Converte um ProblemDetails (RFC 7807) em um `ApiError` tipado. */
-export function toApiError(problem: ProblemDetails): ApiError {
-  return new ApiError(problem);
+export function toApiError(
+  problem: ProblemDetails,
+  headers: Record<string, string> = {},
+): ApiError {
+  return new ApiError(problem, headers);
 }
 
 const PROBLEM_TYPE_PREFIX = "urn:forja:problem:";

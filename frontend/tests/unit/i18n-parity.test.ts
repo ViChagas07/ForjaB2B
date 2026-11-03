@@ -102,6 +102,8 @@ const ALLOWED_IDENTICAL_KEYS = new Set([
   "ordering.statusCancelled",
   "ordering.subtotal",
   "ordering.total",
+  // Placeholder numerico do codigo de verificacao (nao se traduz)
+  "forgotPassword.codePlaceholder",
 ]);
 
 /** Valores legítimos que coincidem com o pt-BR em um idioma específico. */

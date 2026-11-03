@@ -27,7 +27,9 @@ describe("CSP do frontend", () => {
       isProduction: true,
     });
 
-    expect(csp).toContain("connect-src 'self' https://api.forja.example");
+    expect(csp).toContain("connect-src 'self' https://api.forja.example https://challenges.cloudflare.com");
+    expect(csp).toContain("frame-src https://challenges.cloudflare.com");
+    expect(csp).toContain("script-src 'nonce-" + nonce + "' 'strict-dynamic' https://challenges.cloudflare.com");
     expect(csp).toContain(
       "img-src 'self' data: blob: https://api.forja.example https://lh3.googleusercontent.com",
     );
@@ -37,7 +39,7 @@ describe("CSP do frontend", () => {
   it("sem URL de API (same-origin) limita connect-src e img-src a 'self'", () => {
     const csp = buildContentSecurityPolicy({ nonce, isProduction: true });
 
-    expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain("connect-src 'self' https://challenges.cloudflare.com");
     expect(csp).toContain("img-src 'self' data: blob: https://lh3.googleusercontent.com");
     expect(csp).not.toContain("localhost");
   });

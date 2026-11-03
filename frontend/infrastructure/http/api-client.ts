@@ -55,24 +55,28 @@ function toNetworkError(cause: unknown): ApiError {
 
 async function toApiError(response: Response, contentType: string): Promise<ApiError> {
   const text = await response.text();
+  const headers = toHeaderRecord(response.headers);
 
   if (contentType.includes("application/problem+json")) {
     try {
       const json = JSON.parse(text) as unknown;
       if (isProblemDetails(json)) {
-        return new ApiError(json);
+        return new ApiError(json, headers);
       }
     } catch {
       // Resposta problem+json inválida: cai no fallback abaixo.
     }
   }
 
-  return new ApiError({
-    type: `urn:forja:problem:http_${response.status}`,
-    title: response.statusText || "HTTP Error",
-    status: response.status,
-    detail: text || undefined,
-  });
+  return new ApiError(
+    {
+      type: `urn:forja:problem:http_${response.status}`,
+      title: response.statusText || "HTTP Error",
+      status: response.status,
+      detail: text || undefined,
+    },
+    headers,
+  );
 }
 
 /**

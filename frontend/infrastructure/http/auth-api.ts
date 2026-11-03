@@ -1,4 +1,14 @@
-import type { AccountType, AuthSession, AuthTokens, OAuthExchangeResult } from "@/core/domain/auth";
+import type {
+  AccountType,
+  AuthSession,
+  AuthTokens,
+  OAuthExchangeResult,
+  PasswordRecoveryRequestInput,
+  PasswordRecoveryResetInput,
+  PasswordRecoveryVerified,
+  PasswordRecoveryVerifyInput,
+  PhoneVerificationStatus,
+} from "@/core/domain/auth";
 
 import { apiClient } from "./client";
 
@@ -45,6 +55,68 @@ export const authApi = {
       path: "/auth/logout",
       body: { refresh_token: refreshToken },
     });
+  },
+
+  async requestPasswordRecovery(input: PasswordRecoveryRequestInput): Promise<void> {
+    await apiClient.request<{ status: string }>({
+      method: "POST",
+      path: "/auth/password-recovery/request",
+      body: input,
+    });
+  },
+
+  async verifyPasswordRecovery(
+    input: PasswordRecoveryVerifyInput,
+  ): Promise<PasswordRecoveryVerified> {
+    const response = await apiClient.request<PasswordRecoveryVerified>({
+      method: "POST",
+      path: "/auth/password-recovery/verify",
+      body: input,
+    });
+    return response.body;
+  },
+
+  async resetPassword(input: PasswordRecoveryResetInput): Promise<void> {
+    await apiClient.request<void>({
+      method: "POST",
+      path: "/auth/password-recovery/reset",
+      body: input,
+    });
+  },
+
+  async startPhoneVerification(
+    accessToken: string,
+    phone: string,
+    locale: string,
+  ): Promise<void> {
+    await apiClient.request<{ status: string }>({
+      method: "POST",
+      path: "/account/phone/verification/start",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: { phone, locale },
+    });
+  },
+
+  async checkPhoneVerification(
+    accessToken: string,
+    phone: string,
+    code: string,
+  ): Promise<void> {
+    await apiClient.request<{ verified: boolean }>({
+      method: "POST",
+      path: "/account/phone/verification/check",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: { phone, code },
+    });
+  },
+
+  async getPhoneVerificationStatus(accessToken: string): Promise<PhoneVerificationStatus> {
+    const response = await apiClient.request<PhoneVerificationStatus>({
+      method: "GET",
+      path: "/account/phone/verification",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.body;
   },
 
   async exchangeOAuthCode(code: string): Promise<OAuthExchangeResult> {
