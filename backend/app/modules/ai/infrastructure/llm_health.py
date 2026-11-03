@@ -64,15 +64,56 @@ class LLMHealthProbe:
         return result
 
     async def _default_fetch(self) -> set[str]:
+        """IDs REALMENTE carregados (LM Studio) ou listados (OpenAI-like).
+
+        No LM Studio, `/v1/models` lista modelos que ainda estao carregando ou
+        descarregados. Consultamos primeiro `/api/v0/models` e exigimos
+        `state == "loaded"`; se o provedor nao tiver a API nativa (404),
+        caimos para o comportamento OpenAI-like de `/v1/models`.
+        """
         async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+            native = await self._fetch_native_loaded(client)
+            if native is not None:
+                return native
             response = await client.get(f"{self._base_url}/models")
             response.raise_for_status()
             payload = response.json()
-        data = payload.get("data") if isinstance(payload, dict) else None
-        if not isinstance(data, list):
-            return set()
-        ids: set[str] = set()
-        for item in data:
-            if isinstance(item, dict) and isinstance(item.get("id"), str):
-                ids.add(item["id"])
-        return ids
+        return listed_model_ids(payload)
+
+    async def _fetch_native_loaded(self, client: httpx.AsyncClient) -> set[str] | None:
+        base = self._base_url.removesuffix("/v1")
+        try:
+            response = await client.get(f"{base}/api/v0/models")
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return None
+            raise
+        return loaded_model_ids(response.json())
+
+
+def listed_model_ids(payload: object) -> set[str]:
+    """IDs de `/v1/models` (provedor OpenAI-like)."""
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, list):
+        return set()
+    return {
+        item["id"] for item in data if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+
+
+def loaded_model_ids(payload: object) -> set[str]:
+    """IDs de `/api/v0/models` com `state == "loaded"` (LM Studio)."""
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, list):
+        return set()
+    ids: set[str] = set()
+    for item in data:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+            continue
+        state = item.get("state")
+        if state is None or state == "loaded":
+            ids.add(item["id"])
+    return ids

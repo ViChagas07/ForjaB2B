@@ -24,8 +24,6 @@ from app.modules.ai.application.chat import ChatService
 from app.modules.ai.application.chat_graph import (
     AnswerDecision,
     ChatGraph,
-    ChatIntent,
-    RouterDecision,
 )
 from app.modules.ai.application.conversation_service import ConversationService
 from app.modules.ai.application.security.input_gate import InputGate
@@ -174,11 +172,8 @@ def install_fake_llm(app: object, llm: FakeLLM) -> None:
 
 
 def scripted_llm(*decisions: AnswerDecision) -> FakeLLM:
-    structured: list[object] = []
-    for decision in decisions:
-        structured.append(RouterDecision(intent=ChatIntent.PRODUCT_SEARCH))
-        structured.append(decision)
-    return FakeLLM(structured=structured)  # type: ignore[arg-type]
+    # Consultas de produto usam rota deterministica: nao ha RouterDecision.
+    return FakeLLM(structured=list(decisions))  # type: ignore[arg-type]
 
 
 @asynccontextmanager

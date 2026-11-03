@@ -6,7 +6,11 @@ import httpx
 from fastapi import FastAPI
 
 from app.interface.health import router
-from app.modules.ai.infrastructure.llm_health import LLMHealthProbe
+from app.modules.ai.infrastructure.llm_health import (
+    LLMHealthProbe,
+    listed_model_ids,
+    loaded_model_ids,
+)
 
 MODEL = "qwen/qwen3.5-9b"
 
@@ -109,3 +113,24 @@ async def test_health_llm_nao_afeta_health_principal() -> None:
     assert health.json() == {"status": "ok"}
     assert llm.status_code == 200
     assert llm.json()["available"] is False
+
+
+def test_loaded_model_ids_exige_estado_loaded() -> None:
+    payload = {
+        "data": [
+            {"id": MODEL, "state": "loaded"},
+            {"id": "outro/modelo", "state": "loading"},
+            {"id": "outro/not-loaded", "state": "not-loaded"},
+        ]
+    }
+    assert loaded_model_ids(payload) == {MODEL}
+
+
+def test_loaded_model_ids_tolera_payload_sem_estado() -> None:
+    assert loaded_model_ids({"data": [{"id": MODEL}]}) == {MODEL}
+    assert loaded_model_ids({}) == set()
+
+
+def test_listed_model_ids_para_provedor_openai_like() -> None:
+    assert listed_model_ids({"data": [{"id": MODEL}]}) == {MODEL}
+    assert listed_model_ids({"data": [{"foo": "bar"}]}) == set()

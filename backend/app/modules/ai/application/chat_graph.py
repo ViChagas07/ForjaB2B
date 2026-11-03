@@ -109,6 +109,78 @@ _SENSITIVE_TERMS = (
 _CART_TERMS = ("carrinho", "cart", "carrito")
 _SHIPPING_TERMS = ("frete", "shipping", "envio", "delivery")
 _CATALOG_TERMS = ("categoria", "categories", "categorias", "catalogo", "catalog")
+# Consultas claras de produto NAO passam pelo roteador LLM: o 9B oscila entre
+# PRODUCT_SEARCH e CATALOG_HELP (e ai os cartoes nao aparecem). O backend faz
+# a busca deterministica; o LLM so redige.
+_PRODUCT_TERMS = (
+    "capacete",
+    "capacetes",
+    "luva",
+    "luvas",
+    "bota",
+    "botas",
+    "respirador",
+    "respiradores",
+    "oculos",
+    "óculos",
+    "protetor",
+    "protetores",
+    "abafador",
+    "abafadores",
+    "cinto",
+    "cintos",
+    "furadeira",
+    "furadeiras",
+    "serra",
+    "serras",
+    "martelo",
+    "martelos",
+    "alicate",
+    "alicates",
+    "trena",
+    "trenas",
+    "epi",
+    "epis",
+    "equipamento",
+    "equipamentos",
+    "produto",
+    "produtos",
+    "helmet",
+    "helmets",
+    "glove",
+    "gloves",
+    "boot",
+    "boots",
+    "respirator",
+    "respirators",
+    "goggles",
+    "earmuff",
+    "earmuffs",
+    "drill",
+    "drills",
+    "saw",
+    "saws",
+    "hammer",
+    "hammers",
+    "tool",
+    "tools",
+    "product",
+    "products",
+    "casco",
+    "cascos",
+    "guante",
+    "guantes",
+    "gafas",
+    "orejeras",
+    "taladro",
+    "sierra",
+    "martillo",
+    "werkzeug",
+    "handschuhe",
+    "gants",
+    "guanti",
+    "strumento",
+)
 
 
 class CartSummaryPort(Protocol):
@@ -365,6 +437,12 @@ class ChatGraph:
         locale = resolve_locale(state["locale"])
         if state["intent"] == ChatIntent.OFF_TOPIC:
             return {"reply": neutral_response(locale), "product_ids": []}
+        if state["intent"] == ChatIntent.SHIPPING_POLICY:
+            # Regra fixa e publica: respondida pelo CODIGO, no locale, sem
+            # gastar LLM. O guard libera valores monetarios apenas aqui.
+            policy = (state.get("context_text") or "").strip()
+            if policy:
+                return {"reply": policy, "product_ids": []}
         allowed = set(state.get("allowed_ids", set()))
         fallback = demo_mode_response(locale)
         if not self._ai_enabled or self._llm is None:
@@ -452,6 +530,9 @@ class ChatGraph:
             max_chars=ANSWER_MAX_CHARS,
             canary=canary or None,
             system_prompt=system_prompt,
+            # Frete e uma regra publica do codigo (valores fixos); nos demais
+            # intents o preco continua removido do texto do modelo.
+            allow_money=state["intent"] == ChatIntent.SHIPPING_POLICY,
         )
         if guarded.blocked:
             metrics.increment_ai_guard_block(agent="chat")
@@ -519,6 +600,8 @@ def _keyword_intent(state: ChatState) -> ChatIntent | None:
         return ChatIntent.SHIPPING_POLICY
     if _matches(message, _CART_TERMS):
         return ChatIntent.CART_HELP if state.get("company_id") else ChatIntent.OFF_TOPIC
+    if _matches(message, _PRODUCT_TERMS):
+        return ChatIntent.PRODUCT_SEARCH
     if _matches(message, _CATALOG_TERMS):
         return ChatIntent.CATALOG_HELP
     return None

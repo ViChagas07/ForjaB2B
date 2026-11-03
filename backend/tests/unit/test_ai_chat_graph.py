@@ -157,7 +157,6 @@ def build(
 async def test_product_search_devolve_reply_e_cartoes_reais() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(reply="Temos opcoes de capacete.", product_ids=[PRODUCT_ID]),
         ]
     )
@@ -180,7 +179,6 @@ async def test_product_search_devolve_reply_e_cartoes_reais() -> None:
 async def test_id_forjado_do_llm_e_descartado() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(reply="Veja.", product_ids=[FORGED_ID, PRODUCT_ID]),
         ]
     )
@@ -225,7 +223,6 @@ async def test_intents_sem_cartoes(intent: ChatIntent, expected_cards: int) -> N
 async def test_visitante_nunca_recebe_preco() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(reply="Veja.", product_ids=[PRODUCT_ID]),
         ]
     )
@@ -244,7 +241,6 @@ async def test_visitante_nunca_recebe_preco() -> None:
 async def test_instrucao_em_produto_nao_vira_cartao_nem_contexto() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(reply="Veja.", product_ids=[PRODUCT_ID]),
         ]
     )
@@ -351,7 +347,6 @@ async def test_resposta_neutra_nos_11_locales() -> None:
 async def test_historico_entra_como_dado_nao_confiavel_no_prompt() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(reply="ok", product_ids=[]),
         ]
     )
@@ -371,7 +366,7 @@ async def test_historico_entra_como_dado_nao_confiavel_no_prompt() -> None:
         history=history,
         auth=auth_like(),
     )
-    answer_prompt = llm.structured_calls[1][1]
+    answer_prompt = llm.structured_calls[0][1]
     joined = " ".join(str(message["content"]) for message in answer_prompt)
     # Historico vai SEMPRE dentro do bloco de dado nao confiavel e limitado as
     # ultimas 6 mensagens (contexto curto do modelo local).
@@ -384,7 +379,6 @@ async def test_historico_entra_como_dado_nao_confiavel_no_prompt() -> None:
 async def test_uuid_forjado_citado_no_texto_e_removido() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(
                 reply=f"Veja {FORGED_ID} e {PRODUCT_ID}.",
                 product_ids=[PRODUCT_ID],
@@ -404,8 +398,8 @@ async def test_uuid_forjado_citado_no_texto_e_removido() -> None:
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]
 
 
-async def test_rota_por_palavra_chave_nao_chama_roteador_llm() -> None:
-    llm = FakeLLM(structured=[AnswerDecision(reply="Frete simulado.", product_ids=[])])
+async def test_frete_e_respondido_pelo_codigo_sem_llm_e_preserva_valores() -> None:
+    llm = FakeLLM()
     graph, _c, _a, _h = build(llm=llm)
     result = await graph.run(
         conversation=CONVERSATION,
@@ -414,15 +408,16 @@ async def test_rota_por_palavra_chave_nao_chama_roteador_llm() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == "Frete simulado."
-    assert len(llm.structured_calls) == 1
-    assert llm.structured_calls[0][0] is AnswerDecision
+    assert "Frete simulado no checkout" in result.reply
+    assert "R$ 15.00" in result.reply
+    assert "R$ 5.00" in result.reply
+    assert result.degraded is False
+    assert llm.structured_calls == []
 
 
 async def test_prompt_de_resposta_tem_um_unico_system_no_inicio() -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
             AnswerDecision(reply="Veja o capacete.", product_ids=[PRODUCT_ID]),
         ]
     )
@@ -434,7 +429,7 @@ async def test_prompt_de_resposta_tem_um_unico_system_no_inicio() -> None:
         history=[],
         auth=auth_like(),
     )
-    roles = [message["role"] for message in llm.structured_calls[1][1]]
+    roles = [message["role"] for message in llm.structured_calls[0][1]]
     # Template do Qwen no LM Studio exige UM system no INICIO; inserir outro
     # system no meio retorna HTTP 400 ("System message must be at the beginning").
     assert roles[0] == "system"

@@ -126,6 +126,16 @@ export function AiChatWidget() {
       });
       setConversationId(response.conversation_id);
       setDegraded(Boolean(response.degraded));
+      if (!response.degraded) {
+        // Se o health estava em cache como indisponivel (backend/modelo
+        // acabou de subir), uma resposta real bem-sucedida limpa o aviso.
+        setLlmHealth((previous) => ({
+          available: true,
+          enabled: true,
+          model: previous?.model ?? "",
+        }));
+        void getLlmHealth(true).then(setLlmHealth);
+      }
       addMessage({
         id: `${Date.now()}-assistant`,
         role: "assistant",

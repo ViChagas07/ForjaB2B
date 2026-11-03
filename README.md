@@ -272,6 +272,8 @@ O compromisso é explícito: **a IA é um extra, não uma dependência**. Em pro
    LLM_TIMEOUT_SECONDS=60
    LLM_MAX_TOKENS=512
    LLM_REASONING_EFFORT=none
+   # GPU pequena: 1 worker (o semáforo do cliente é por processo)
+   WEB_CONCURRENCY=1
    ```
    `LLM_REASONING_EFFORT=none` desliga o bloco de raciocínio do Qwen no LM Studio
    (respostas rápidas). O cliente também remove qualquer `<think>...</think>` que

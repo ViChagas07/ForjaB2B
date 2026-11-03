@@ -329,6 +329,8 @@ services:
       SECURITY_HSTS_MAX_AGE_SECONDS: ${SECURITY_HSTS_MAX_AGE_SECONDS:-31536000}
       SECURITY_HSTS_INCLUDE_SUBDOMAINS: ${SECURITY_HSTS_INCLUDE_SUBDOMAINS:-true}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-dev_admin_api_key_change_in_production}
+      # Com LLM local, use 1 worker: o semaforo do cliente e por processo.
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
       # IA local (LM Studio no host) e kill switches. LLM_BASE_URL_DOCKER e
       # separado de LLM_BASE_URL para o backend via Docker usar o gateway do
       # host sem quebrar quem roda o backend direto (localhost).
