@@ -48,6 +48,7 @@ export default function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Ignora: api, arquivos internos do Next e estáticos (com ponto no nome).
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  // Ignora: api, health (LLM local), arquivos internos do Next e estáticos.
+  // `/health/llm` e um rewrite same-origin e NAO pode ganhar prefixo de locale.
+  matcher: ["/((?!api|health|_next|_vercel|.*\\..*).*)"],
 };

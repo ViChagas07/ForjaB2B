@@ -29,5 +29,9 @@ describe("rewrites do proxy same-origin", () => {
       source: "/static/:path*",
       destination: "https://forjab2b.onrender.com/static/:path*",
     });
+    expect(rewrites).toContainEqual({
+      source: "/health/llm",
+      destination: "https://forjab2b.onrender.com/health/llm",
+    });
   });
 });
