@@ -135,7 +135,8 @@ _SELECT_ORDER = text(
     "SELECT id, company_id, status, currency, subtotal, discount_total, "
     "shipping_total, tax_total, total, created_at, content_locale, coupon_code, "
     "coupon_type, coupon_percent, coupon_discount_amount, shipping_discount_amount "
-    "FROM orders WHERE id = :order_id AND company_id = :company_id"
+    "FROM orders WHERE id = :order_id AND company_id = :company_id "
+    "AND deleted_at IS NULL"
 )
 _SELECT_ORDER_ITEMS = text(
     "SELECT oi.sku, oi.product_name, oi.quantity, oi.unit_price, oi.base_unit_price, "
@@ -156,6 +157,7 @@ _SELECT_ORDER_ITEMS_BY_IDS = text(
 _SELECT_CUSTOMER_SPEND = text(
     "SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS orders_count "
     "FROM orders WHERE company_id = :company_id AND buyer_user_id = :buyer_user_id "
+    "AND deleted_at IS NULL "
     "AND status NOT IN ('CANCELLED', 'CREDIT_REJECTED')"
 )
 _SELECT_CUSTOMER_ORDERS = text(
@@ -163,11 +165,13 @@ _SELECT_CUSTOMER_ORDERS = text(
     "shipping_total, tax_total, total, created_at, content_locale, coupon_code, "
     "coupon_type, coupon_percent, coupon_discount_amount, shipping_discount_amount "
     "FROM orders WHERE company_id = :company_id AND buyer_user_id = :buyer_user_id "
+    "AND deleted_at IS NULL "
     "ORDER BY created_at DESC, id DESC LIMIT :limit"
 )
 _SELECT_AVAILABLE_COUPONS = text(
     "SELECT c.code, c.type, c.percent, c.max_discount_amount, c.min_order_amount, "
-    "c.valid_until FROM coupons c "
+    "c.valid_until, c.usage_limit_total, c.usage_limit_per_company, "
+    "u.total_uses, u.company_uses FROM coupons c "
     "CROSS JOIN LATERAL app.coupon_usage_counts(c.id, :company_id) AS u "
     "WHERE c.is_active "
     "AND (c.restricted_company_id IS NULL OR c.restricted_company_id = :company_id) "
@@ -176,6 +180,21 @@ _SELECT_AVAILABLE_COUPONS = text(
     "AND (c.usage_limit_total IS NULL OR u.total_uses < c.usage_limit_total) "
     "AND (c.usage_limit_per_company IS NULL OR u.company_uses < c.usage_limit_per_company) "
     "ORDER BY c.valid_until NULLS LAST, c.code LIMIT :limit"
+)
+_UPDATE_ORDER_DELETED = text(
+    "UPDATE orders SET deleted_at = now(), updated_at = now() "
+    "WHERE id = :order_id AND company_id = :company_id "
+    "AND buyer_user_id = :buyer_user_id AND deleted_at IS NULL"
+)
+_DELETE_ORDERED_CART_ITEMS = text(
+    "DELETE FROM cart_items WHERE company_id = :company_id "
+    "AND product_id IN :product_ids "
+    "AND cart_id IN (SELECT id FROM carts WHERE company_id = :company_id "
+    "AND user_id = :buyer_user_id)"
+).bindparams(bindparam("product_ids", expanding=True))
+_TOUCH_ORDERED_CART = text(
+    "UPDATE carts SET last_activity_at = now() "
+    "WHERE company_id = :company_id AND user_id = :buyer_user_id"
 )
 _SELECT_RESERVE = text(
     "SELECT COALESCE(SUM(amount), 0) FROM credit_entries "
@@ -451,6 +470,19 @@ class SqlAlchemyOrderingRepository:
                 company_id=company_id,
                 items=items,
                 content_locale=content_locale,
+            )
+
+            await uow.session.execute(
+                _DELETE_ORDERED_CART_ITEMS,
+                {
+                    "company_id": company_id,
+                    "buyer_user_id": buyer_user_id,
+                    "product_ids": [item.product_id for item in items],
+                },
+            )
+            await uow.session.execute(
+                _TOUCH_ORDERED_CART,
+                {"company_id": company_id, "buyer_user_id": buyer_user_id},
             )
 
             # Reserva de credito com reference_id = order_id (se boleto).
@@ -742,9 +774,31 @@ class SqlAlchemyOrderingRepository:
                 max_discount_amount=row.max_discount_amount,
                 min_order_amount=row.min_order_amount,
                 valid_until=row.valid_until,
+                remaining_uses=_remaining_coupon_uses(
+                    total_uses=int(row.total_uses),
+                    company_uses=int(row.company_uses),
+                    usage_limit_total=row.usage_limit_total,
+                    usage_limit_per_company=row.usage_limit_per_company,
+                ),
             )
             for row in rows
         ]
+
+    async def delete_customer_order(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID, order_id: uuid.UUID
+    ) -> bool:
+        tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
+        async with self._uow_factory.begin(tenant) as uow:
+            result = await uow.session.execute(
+                _UPDATE_ORDER_DELETED,
+                {
+                    "order_id": order_id,
+                    "company_id": company_id,
+                    "buyer_user_id": buyer_user_id,
+                },
+            )
+            await uow.commit()
+        return getattr(result, "rowcount", 0) > 0
 
     async def cancel_order(self, company_id: uuid.UUID, order_id: uuid.UUID) -> OrderView:
         tenant = TenantContext(company_id=company_id)
@@ -845,6 +899,22 @@ def _order_view(row: Any, items_rows: Any) -> OrderView:
         cnpj_discount_total=list_subtotal - row.subtotal,
         items=items,
     )
+
+
+def _remaining_coupon_uses(
+    *,
+    total_uses: int,
+    company_uses: int,
+    usage_limit_total: int | None,
+    usage_limit_per_company: int | None,
+) -> int | None:
+    remaining: int | None = None
+    if usage_limit_per_company is not None:
+        remaining = max(usage_limit_per_company - company_uses, 0)
+    if usage_limit_total is not None:
+        total_remaining = max(usage_limit_total - total_uses, 0)
+        remaining = total_remaining if remaining is None else min(remaining, total_remaining)
+    return remaining
 
 
 def _coupon_from_row(row: Any) -> Coupon:

@@ -118,6 +118,19 @@ describe("orderingApi.cancel", () => {
   });
 });
 
+describe("orderingApi.remove", () => {
+  it("remove pedido do historico via DELETE /orders/{id}", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await orderingApi.remove(TOKEN, "o-1", "pt-BR");
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [null, {}];
+    expect(String(url)).toContain("/api/v1/orders/o-1");
+    expect((init?.method ?? "get").toUpperCase()).toBe("DELETE");
+  });
+});
+
 describe("orderingApi.overview", () => {
   it("consulta o painel via GET /orders/overview com limite", async () => {
     const overview = {

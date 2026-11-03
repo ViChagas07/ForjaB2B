@@ -11,7 +11,11 @@ import { useCreditAccount } from "@/features/credit";
 import { useCreateOrder } from "@/features/ordering";
 import { useInitiatePayment, usePaymentMethods } from "@/features/payment";
 
-export function CheckoutClient() {
+interface CheckoutClientProps {
+  selectedProductIds: string[] | null;
+}
+
+export function CheckoutClient({ selectedProductIds }: CheckoutClientProps) {
   const router = useRouter();
   const cartQuery = useCart();
   const creditQuery = useCreditAccount();
@@ -36,9 +40,16 @@ export function CheckoutClient() {
     if (!cart) {
       return;
     }
+    const selected = selectedProductIds ? new Set(selectedProductIds) : null;
+    const items = selected
+      ? cart.items.filter((item) => selected.has(item.product_id))
+      : cart.items;
+    if (items.length === 0) {
+      return;
+    }
     createOrderMutation.mutate(
       {
-        items: cart.items.map((item) => ({
+        items: items.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
         })),
@@ -78,13 +89,32 @@ export function CheckoutClient() {
   }
 
   // Enquanto carrega, mostra um fallback neutro (o componente trata erro/vazio).
-  const cart = cartQuery.data ?? {
-    cart_id: "",
-    company_id: "",
-    user_id: "",
-    items: [],
-    subtotal: "0.00",
-  };
+  const cart = React.useMemo(() => {
+    const base = cartQuery.data ?? {
+      cart_id: "",
+      company_id: "",
+      user_id: "",
+      items: [],
+      subtotal: "0.00",
+    };
+    if (!selectedProductIds || !cartQuery.data) {
+      return base;
+    }
+    const selected = new Set(selectedProductIds);
+    const items = base.items.filter((item) => selected.has(item.product_id));
+    const subtotal = items.reduce((sum, item) => sum + Number(item.line_total), 0);
+    const listSubtotal = items.reduce(
+      (sum, item) => sum + Number(item.list_line_total ?? item.line_total),
+      0,
+    );
+    return {
+      ...base,
+      items,
+      subtotal: subtotal.toFixed(2),
+      list_subtotal: listSubtotal.toFixed(2),
+      cnpj_discount_total: (listSubtotal - subtotal).toFixed(2),
+    };
+  }, [cartQuery.data, selectedProductIds]);
 
   return (
     <CheckoutView
@@ -94,6 +124,7 @@ export function CheckoutClient() {
       stripeEnabled={stripeEnabled}
       isPlacingOrder={isPlacingOrder}
       orderError={orderError}
+      selectedProductIds={selectedProductIds}
       onPlaceOrder={handlePlaceOrder}
     />
   );

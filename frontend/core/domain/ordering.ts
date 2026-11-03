@@ -49,6 +49,7 @@ export type CouponDiscountKind = (typeof COUPON_DISCOUNT_KINDS)[number];
 export interface CouponPreviewInput {
   code?: string | null;
   payment_method: PaymentMethod;
+  product_ids?: string[] | null;
 }
 
 export interface CouponPreview {
@@ -103,6 +104,7 @@ export interface AvailableCoupon {
   max_discount_amount: string | null;
   min_order_amount: string | null;
   valid_until: string | null;
+  remaining_uses: number | null;
 }
 
 export interface CustomerOverview {

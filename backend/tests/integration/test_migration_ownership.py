@@ -79,6 +79,7 @@ DDL_OPERATIONS = {
 
 def _get_alembic_config() -> AlembicConfig:
     from alembic.config import Config as AlembicConfig
+
     # Config file is in backend directory
     config_path = os.path.join(os.path.dirname(__file__), "..", "..", "alembic.ini")
     return AlembicConfig(config_path)
@@ -120,12 +121,14 @@ def _simulate_migrations_with_restricted_role() -> list[dict]:
                 if hasattr(op, "table_name") and op.table_name in PRE_EXISTING_TABLES:
                     op_type = type(op).__name__.lower()
                     if any(ddl in op_type for ddl in DDL_OPERATIONS):
-                        problematic_ops.append({
-                            "revision": revision.revision,
-                            "table": op.table_name,
-                            "operation": op_type,
-                            "description": getattr(op, "description", str(op)),
-                        })
+                        problematic_ops.append(
+                            {
+                                "revision": revision.revision,
+                                "table": op.table_name,
+                                "operation": op_type,
+                                "description": getattr(op, "description", str(op)),
+                            }
+                        )
 
     return problematic_ops
 
@@ -136,10 +139,41 @@ def test_no_ddl_on_pre_existing_tables():
 
     # Filtrar apenas migrations recentes (após a 0030 que introduziu consumer_profiles)
     recent_problematic = [
-        op for op in problematic
-        if op["revision"] not in {"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010",
-                                  "0011", "0012", "0013", "0014", "0015", "0016", "0017", "0018", "0019", "0020",
-                                  "0021", "0022", "0023", "0024", "0025", "0026", "0027", "0028", "0029", "0030"}
+        op
+        for op in problematic
+        if op["revision"]
+        not in {
+            "0001",
+            "0002",
+            "0003",
+            "0004",
+            "0005",
+            "0006",
+            "0007",
+            "0008",
+            "0009",
+            "0010",
+            "0011",
+            "0012",
+            "0013",
+            "0014",
+            "0015",
+            "0016",
+            "0017",
+            "0018",
+            "0019",
+            "0020",
+            "0021",
+            "0022",
+            "0023",
+            "0024",
+            "0025",
+            "0026",
+            "0027",
+            "0028",
+            "0029",
+            "0030",
+        }
     ]
 
     # As migrations 0037-0040 agora usam helpers que so executam se o usuario for owner,
@@ -154,8 +188,8 @@ def test_no_ddl_on_pre_existing_tables():
 def test_alembic_head_matches_current():
     """Verifica se a revisao head do alembic e a esperada."""
     head = _get_head_revision()
-    # A revisao head deve ser 0044 (claim atomico de telefone verificado)
-    assert head == "0044", f"Head revision esperada 0044, mas encontrada: {head}"
+    # A revisao head deve ser 0045 (exclusao de pedidos e padroes dos cupons)
+    assert head == "0045", f"Head revision esperada 0045, mas encontrada: {head}"
 
 
 if __name__ == "__main__":

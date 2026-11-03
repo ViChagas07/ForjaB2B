@@ -34,9 +34,9 @@ export const EMPTY_COUPON_FORM: CouponFormValues = {
   max_discount_amount: "",
   min_order_amount: "",
   valid_from: "",
-  valid_until: "",
+  valid_until: "2029-12-31T23:59",
   usage_limit_total: "",
-  usage_limit_per_company: "",
+  usage_limit_per_company: "20",
   restricted_company_id: "",
   is_active: true,
 };

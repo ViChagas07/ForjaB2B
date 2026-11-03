@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from app.modules.ordering.application.errors import OrderNotFoundError
 from app.modules.ordering.application.ports import (
     AvailableCouponView,
     CustomerOverviewRepository,
@@ -59,3 +60,21 @@ class GetCustomerOverview:
             orders=orders,
             coupons=coupons,
         )
+
+
+class DeleteCustomerOrder:
+    """Remove um pedido do historico do comprador sem apagar o snapshot."""
+
+    def __init__(self, *, repository: CustomerOverviewRepository) -> None:
+        self._repository = repository
+
+    async def execute(
+        self,
+        *,
+        company_id: uuid.UUID,
+        buyer_user_id: uuid.UUID,
+        order_id: uuid.UUID,
+    ) -> None:
+        deleted = await self._repository.delete_customer_order(company_id, buyer_user_id, order_id)
+        if not deleted:
+            raise OrderNotFoundError()

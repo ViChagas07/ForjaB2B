@@ -172,7 +172,16 @@
     "stageInTransit": "Unterwegs",
     "stageDelivered": "Angekommen!",
     "loadError": "Ihr Dashboard konnte nicht geladen werden.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "couponRemaining": "{count}x übrig",
+    "deliverySubtitleAll": "Verfolgen Sie die Lieferrouten aller Ihrer Einkäufe.",
+    "deleteOrder": "Bestellung löschen",
+    "deleteDelivery": "Lieferdatensatz löschen",
+    "deleteConfirmTitle": "Einkauf löschen?",
+    "deleteConfirmDescription": "Bestellung #{code} und ihre Lieferroute werden aus Ihrem Verlauf entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteCancel": "Abbrechen",
+    "deleteConfirm": "Löschen",
+    "deleting": "Wird gelöscht…"
   },
   "error": {
     "invalidCredentials": "E-Mail oder Passwort ist falsch.",
@@ -310,7 +319,11 @@
     "benefit3Description": "Geplante Logistik für Ihren Betrieb.",
     "itemCountOne": "1 Artikel",
     "cnpjVolumeRemaining": "Noch {count} Einheiten bis 30 % Rabatt auf dieses Produkt",
-    "cnpjVolumeReached": "30 % Rabatt auf dieses Produkt angewendet"
+    "cnpjVolumeReached": "30 % Rabatt auf dieses Produkt angewendet",
+    "selectAll": "Alle auswählen",
+    "selectItem": "{name} für die Kasse auswählen",
+    "selectedCount": "{selected} von {total} ausgewählt",
+    "noneSelected": "Wählen Sie mindestens ein Produkt für die Kasse aus."
   },
   "ordering": {
     "reviewTitle": "Bestellübersicht",

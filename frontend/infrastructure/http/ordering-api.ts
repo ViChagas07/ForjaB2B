@@ -48,6 +48,7 @@ export const orderingApi = {
       body: {
         code: input.code ?? null,
         payment_method: input.payment_method,
+        ...(input.product_ids ? { product_ids: input.product_ids } : {}),
       },
       locale,
     });
@@ -83,6 +84,15 @@ export const orderingApi = {
     });
     return response.body;
   },
+
+  async remove(accessToken: string, orderId: string, locale: string): Promise<void> {
+    await apiClient.request<void>({
+      method: "DELETE",
+      path: `/orders/${orderId}`,
+      headers: { Authorization: `Bearer ${accessToken}` },
+      locale,
+    });
+  },
 };
 
 /** Hook para obter as funções da API com o locale atual automaticamente. */
@@ -95,5 +105,6 @@ export function useOrderingApi() {
     overview: (token: string, limit?: number) => orderingApi.overview(token, locale, limit),
     get: (token: string, orderId: string) => orderingApi.get(token, orderId, locale),
     cancel: (token: string, orderId: string) => orderingApi.cancel(token, orderId, locale),
+    remove: (token: string, orderId: string) => orderingApi.remove(token, orderId, locale),
   };
 }

@@ -172,7 +172,16 @@
     "stageInTransit": "配送中",
     "stageDelivered": "到着しました！",
     "loadError": "パネルを読み込めませんでした。",
-    "retry": "再試行"
+    "retry": "再試行",
+    "couponRemaining": "残り{count}回",
+    "deliverySubtitleAll": "すべての購入の配送ルートを確認できます。",
+    "deleteOrder": "注文を削除",
+    "deleteDelivery": "配送記録を削除",
+    "deleteConfirmTitle": "購入を削除しますか？",
+    "deleteConfirmDescription": "注文 #{code} とその配送ルートは履歴から削除されます。この操作は元に戻せません。",
+    "deleteCancel": "キャンセル",
+    "deleteConfirm": "削除",
+    "deleting": "削除中…"
   },
   "error": {
     "invalidCredentials": "メールアドレスまたはパスワードが正しくありません。",
@@ -310,7 +319,11 @@
     "benefit3Description": "運用に合わせた物流計画。",
     "itemCountOne": "1 点",
     "cnpjVolumeRemaining": "この商品の30%割引まであと{count}個",
-    "cnpjVolumeReached": "この商品に30%割引を適用済み"
+    "cnpjVolumeReached": "この商品に30%割引を適用済み",
+    "selectAll": "すべて選択",
+    "selectItem": "{name} を購入手続きに追加",
+    "selectedCount": "{total} 件中 {selected} 件選択中",
+    "noneSelected": "購入手続きには少なくとも1つの商品を選択してください。"
   },
   "ordering": {
     "reviewTitle": "注文の確認",

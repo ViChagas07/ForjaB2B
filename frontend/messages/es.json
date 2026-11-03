@@ -172,7 +172,16 @@
     "stageInTransit": "En camino",
     "stageDelivered": "¡Llegó!",
     "loadError": "No se pudo cargar tu panel.",
-    "retry": "Intentar de nuevo"
+    "retry": "Intentar de nuevo",
+    "couponRemaining": "Quedan {count}x usos",
+    "deliverySubtitleAll": "Sigue las rutas de entrega de todas tus compras.",
+    "deleteOrder": "Eliminar pedido",
+    "deleteDelivery": "Eliminar registro de ruta",
+    "deleteConfirmTitle": "¿Eliminar compra?",
+    "deleteConfirmDescription": "El pedido #{code} y su ruta de entrega se eliminarán de tu historial. Esta acción no se puede deshacer.",
+    "deleteCancel": "Anular",
+    "deleteConfirm": "Eliminar",
+    "deleting": "Eliminando…"
   },
   "error": {
     "invalidCredentials": "Correo o contraseña incorrectos.",
@@ -310,7 +319,11 @@
     "benefit3Description": "Logística planificada para tu operación.",
     "itemCountOne": "1 artículo",
     "cnpjVolumeRemaining": "Faltan {count} unidades para 30% de descuento en este producto",
-    "cnpjVolumeReached": "30% de descuento aplicado en este producto"
+    "cnpjVolumeReached": "30% de descuento aplicado en este producto",
+    "selectAll": "Seleccionar todos",
+    "selectItem": "Seleccionar {name} para el pago",
+    "selectedCount": "{selected} de {total} seleccionados",
+    "noneSelected": "Selecciona al menos un producto para finalizar."
   },
   "ordering": {
     "reviewTitle": "Revisión del pedido",

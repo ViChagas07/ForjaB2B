@@ -172,7 +172,16 @@
     "stageInTransit": "En route",
     "stageDelivered": "Arrivée !",
     "loadError": "Impossible de charger votre tableau de bord.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "couponRemaining": "{count}x restants",
+    "deliverySubtitleAll": "Suivez les itinéraires de livraison de tous vos achats.",
+    "deleteOrder": "Supprimer la commande",
+    "deleteDelivery": "Supprimer le suivi de livraison",
+    "deleteConfirmTitle": "Supprimer l'achat ?",
+    "deleteConfirmDescription": "La commande #{code} et son suivi de livraison seront supprimés de votre historique. Cette action est irréversible.",
+    "deleteCancel": "Annuler",
+    "deleteConfirm": "Supprimer",
+    "deleting": "Suppression…"
   },
   "error": {
     "invalidCredentials": "E-mail ou mot de passe incorrect.",
@@ -310,7 +319,11 @@
     "benefit3Description": "Une logistique planifiée pour votre opération.",
     "itemCountOne": "1 article",
     "cnpjVolumeRemaining": "Encore {count} unités pour 30 % de réduction sur ce produit",
-    "cnpjVolumeReached": "30 % de réduction appliqués à ce produit"
+    "cnpjVolumeReached": "30 % de réduction appliqués à ce produit",
+    "selectAll": "Tout sélectionner",
+    "selectItem": "Sélectionner {name} pour le paiement",
+    "selectedCount": "{selected} sur {total} sélectionnés",
+    "noneSelected": "Sélectionnez au moins un produit pour commander."
   },
   "ordering": {
     "reviewTitle": "Récapitulatif de la commande",

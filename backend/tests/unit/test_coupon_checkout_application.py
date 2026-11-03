@@ -47,7 +47,11 @@ class FakeCart:
         self.subtotal = Decimal(subtotal)
 
     async def get_checkout_cart(
-        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+        self,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        locale: str = "pt-BR",
+        product_ids: list[uuid.UUID] | None = None,
     ) -> CheckoutCartSnapshot:
         return CheckoutCartSnapshot(items=self.items, subtotal=self.subtotal)
 
@@ -89,6 +93,7 @@ def _item(*, is_negotiated: bool = False, line_total: str = "100.00") -> Checkou
         quantity=1,
         unit_price=Decimal(line_total),
         line_total=Decimal(line_total),
+        list_line_total=Decimal(line_total),
         weight_kg=Decimal("2.0"),
         is_negotiated=is_negotiated,
     )

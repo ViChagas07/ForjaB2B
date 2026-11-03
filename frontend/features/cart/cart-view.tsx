@@ -24,6 +24,7 @@ import { formatBrl, formatMoney } from "@/shared/lib/money";
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
+import { Checkbox } from "@/shared/ui/checkbox";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { CnpjPrice, CnpjVolumeNotice } from "@/shared/components/cnpj-price";
@@ -51,6 +52,7 @@ export function CartView() {
   const clearMutation = useClearCart();
 
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [unselectedIds, setUnselectedIds] = React.useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     const error = updateMutation.error ?? removeMutation.error ?? clearMutation.error;
@@ -63,6 +65,18 @@ export function CartView() {
       return;
     }
     updateMutation.mutate({ productId: item.product_id, input: { quantity: next } });
+  }
+
+  function toggleItem(productId: string) {
+    setUnselectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(productId)) {
+        next.delete(productId);
+      } else {
+        next.add(productId);
+      }
+      return next;
+    });
   }
 
   const steps = (
@@ -156,10 +170,40 @@ export function CartView() {
   const cart = cartQuery.data;
   const items = cart?.items ?? [];
   const availableCredit = creditQuery.data?.available;
-  const cnpjDiscountTotal = cart?.cnpj_discount_total ?? "0.00";
+  const selectedItems = items.filter((item) => !unselectedIds.has(item.product_id));
+  const selectedCount = selectedItems.length;
+  const allSelected = items.length > 0 && selectedCount === items.length;
+  const selectedSubtotal = selectedItems.reduce((sum, item) => sum + Number(item.line_total), 0);
+  const selectedListSubtotal = selectedItems.reduce(
+    (sum, item) => sum + Number(item.list_line_total ?? item.line_total),
+    0,
+  );
+  const subtotal = selectedSubtotal.toFixed(2);
+  const listSubtotal = selectedListSubtotal.toFixed(2);
+  const cnpjDiscountTotal = (selectedListSubtotal - selectedSubtotal).toFixed(2);
   const hasCnpjDiscount = Number(cnpjDiscountTotal) > 0;
   const itemCountLabel =
     items.length === 1 ? t("cart.itemCountOne") : t("cart.itemsCount", { count: items.length });
+  const selectedCountLabel = t("cart.selectedCount", {
+    selected: selectedCount,
+    total: items.length,
+  });
+
+  function toggleAll() {
+    if (allSelected) {
+      setUnselectedIds(new Set(items.map((item) => item.product_id)));
+      return;
+    }
+    setUnselectedIds(new Set());
+  }
+
+  function goToCheckout() {
+    if (selectedCount === 0) {
+      return;
+    }
+    const ids = selectedItems.map((item) => item.product_id).join(",");
+    router.push(`/checkout?items=${encodeURIComponent(ids)}`);
+  }
 
   if (!cart || items.length === 0) {
     return (
@@ -253,10 +297,20 @@ export function CartView() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
-            <h2 className="text-sm font-semibold">{t("ordering.items")}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs font-medium">
+                <Checkbox
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label={t("cart.selectAll")}
+                />
+                <span>{t("cart.selectAll")}</span>
+              </label>
+              <h2 className="text-sm font-semibold">{t("ordering.items")}</h2>
+            </div>
             <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground">
-              {itemCountLabel}
+              {selectedCountLabel}
             </span>
           </div>
 
@@ -264,18 +318,28 @@ export function CartView() {
             {items.map((item) => (
               <li
                 key={item.product_id}
-                className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center"
+                className={cn(
+                  "flex flex-col gap-4 p-4 transition-opacity sm:p-5 lg:flex-row lg:items-center",
+                  !unselectedIds.has(item.product_id) ? undefined : "opacity-60",
+                )}
               >
-                <Link
-                  href={`/catalog/${item.product_id}`}
-                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-border bg-secondary/60"
-                >
-                  <ProductImage
-                    src={item.image_url}
-                    alt={item.image_alt}
-                    className="h-full w-full object-contain p-2"
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={!unselectedIds.has(item.product_id)}
+                    onChange={() => toggleItem(item.product_id)}
+                    aria-label={t("cart.selectItem", { name: item.name })}
                   />
-                </Link>
+                  <Link
+                    href={`/catalog/${item.product_id}`}
+                    className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-border bg-secondary/60"
+                  >
+                    <ProductImage
+                      src={item.image_url}
+                      alt={item.image_alt}
+                      className="h-full w-full object-contain p-2"
+                    />
+                  </Link>
+                </div>
 
                 <div className="min-w-0 flex-1">
                   <Link
@@ -386,13 +450,14 @@ export function CartView() {
         <aside className="space-y-4 lg:sticky lg:top-24">
           <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <h2 className="text-base font-bold tracking-tight">{t("ordering.summaryTitle")}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">{selectedCountLabel}</p>
 
             <dl className="mt-5 space-y-3 text-sm">
               {hasCnpjDiscount ? (
                 <div className="flex items-center justify-between">
                   <dt className="text-muted-foreground">{t("ordering.listSubtotal")}</dt>
                   <dd className="font-semibold text-muted-foreground">
-                    <PriceDisplay amount={cart.list_subtotal ?? null} primary="converted" />
+                    <PriceDisplay amount={listSubtotal} primary="converted" />
                   </dd>
                 </div>
               ) : null}
@@ -407,7 +472,7 @@ export function CartView() {
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">{t("cart.subtotal")}</dt>
                 <dd className="font-semibold">
-                  <PriceDisplay amount={cart.subtotal} primary="converted" showSecondary />
+                  <PriceDisplay amount={subtotal} primary="converted" showSecondary />
                 </dd>
               </div>
               <div className="flex items-center justify-between">
@@ -419,7 +484,7 @@ export function CartView() {
               <div className="flex items-center justify-between border-t border-border pt-3">
                 <dt className="text-base font-bold">{t("ordering.total")}</dt>
                 <dd className="text-xl font-black tracking-tight">
-                  <PriceDisplay amount={cart.subtotal} primary="converted" showSecondary />
+                  <PriceDisplay amount={subtotal} primary="converted" showSecondary />
                 </dd>
               </div>
             </dl>
@@ -448,11 +513,15 @@ export function CartView() {
             <Button
               size="lg"
               className="mt-5 h-12 w-full rounded-xl text-sm font-semibold"
-              onClick={() => router.push("/checkout")}
+              disabled={selectedCount === 0}
+              onClick={goToCheckout}
             >
               {t("cart.checkout")}
               <ChevronRight aria-hidden="true" className="rtl:-scale-x-100" />
             </Button>
+            {selectedCount === 0 ? (
+              <p className="mt-2 text-xs text-destructive">{t("cart.noneSelected")}</p>
+            ) : null}
 
             <p className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
               <ShieldCheck

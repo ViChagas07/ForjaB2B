@@ -18,6 +18,7 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -85,8 +86,8 @@ from app.modules.ai.application.security.budget import InMemoryDailyTokenBudget
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
 from app.modules.ai.infrastructure.chat_audit import SqlAlchemyChatAudit
-from app.modules.ai.infrastructure.chat_session import RedisChatSessionStore
 from app.modules.ai.infrastructure.chat_repository import SqlAlchemyConversationRepository
+from app.modules.ai.infrastructure.chat_session import RedisChatSessionStore
 from app.modules.ai.infrastructure.llm_health import LLMHealthProbe
 from app.modules.ai.infrastructure.llm_openai import build_resilient_llm
 from app.modules.cart.application.cart import CartService
@@ -219,7 +220,10 @@ from app.modules.ordering.application.coupon_admin import (
     UpdateCoupon,
 )
 from app.modules.ordering.application.coupon_checkout import PreviewCoupon
-from app.modules.ordering.application.customer_overview import GetCustomerOverview
+from app.modules.ordering.application.customer_overview import (
+    DeleteCustomerOrder,
+    GetCustomerOverview,
+)
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
 from app.modules.ordering.application.ports import (
     CheckoutCartItem,
@@ -656,25 +660,36 @@ class _CheckoutCartAdapter:
         self._cart_service = cart_service
 
     async def get_checkout_cart(
-        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+        self,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        locale: str = "pt-BR",
+        product_ids: list[uuid.UUID] | None = None,
     ) -> CheckoutCartSnapshot | None:
         view = await self._cart_service.get_cart(company_id, user_id, locale)
         if view is None:
             return None
+        items = view.items
+        if product_ids is not None:
+            selected = set(product_ids)
+            items = [item for item in items if item.product_id in selected]
+        subtotal = sum((item.line_total for item in items), Decimal("0.00"))
+        list_subtotal = sum((item.list_line_total for item in items), Decimal("0.00"))
         return CheckoutCartSnapshot(
-            subtotal=view.subtotal,
-            list_subtotal=view.list_subtotal,
-            cnpj_discount_total=view.cnpj_discount_total,
+            subtotal=subtotal,
+            list_subtotal=list_subtotal,
+            cnpj_discount_total=list_subtotal - subtotal,
             items=[
                 CheckoutCartItem(
                     product_id=item.product_id,
                     quantity=item.quantity,
                     unit_price=item.unit_price,
                     line_total=item.line_total,
+                    list_line_total=item.list_line_total,
                     weight_kg=item.weight_kg,
                     is_negotiated=item.is_negotiated,
                 )
-                for item in view.items
+                for item in items
             ],
         )
 
@@ -1108,6 +1123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         pix_discount_rate=settings.pix_discount_rate,
     )
     app.state.ordering_overview = GetCustomerOverview(repository=ordering_repository)
+    app.state.ordering_delete = DeleteCustomerOrder(repository=ordering_repository)
 
     # Composicao do contexto de faturamento (boleto + captura de credito).
     invoicing_repository = SqlAlchemyInvoicingRepository(app.state.uow_factory)

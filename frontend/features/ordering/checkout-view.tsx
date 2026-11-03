@@ -33,6 +33,7 @@ interface CheckoutViewProps {
   stripeEnabled: boolean;
   isPlacingOrder: boolean;
   orderError: unknown;
+  selectedProductIds: string[] | null;
   onPlaceOrder: (
     paymentMethod: PaymentMethod,
     notes: string,
@@ -53,6 +54,7 @@ export function CheckoutView({
   stripeEnabled,
   isPlacingOrder,
   orderError,
+  selectedProductIds,
   onPlaceOrder,
 }: CheckoutViewProps) {
   const t = useTranslations();
@@ -78,6 +80,7 @@ export function CheckoutView({
     cartSignature,
     hasItems: status === "authenticated" && items.length > 0,
     orderError,
+    selectedProductIds,
   });
 
   if (status !== "authenticated") {

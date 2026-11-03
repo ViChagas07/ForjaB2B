@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
@@ -37,6 +38,9 @@ from app.modules.ordering.interface.coupon_admin_schemas import (
 
 router = APIRouter(prefix="/admin/coupons", tags=["coupons-admin"])
 
+_DEFAULT_COUPON_VALID_UNTIL = datetime(2029, 12, 31, 23, 59, 59, tzinfo=UTC)
+_DEFAULT_COUPON_USES_PER_COMPANY = 20
+
 
 def _create_coupon(request: Request) -> CreateCoupon:
     return cast(CreateCoupon, request.app.state.coupon_admin_create)
@@ -69,6 +73,7 @@ async def create_coupon(
     use_case: Annotated[CreateCoupon, Depends(_create_coupon)],
     auth: Annotated[AuthContext, Depends(get_current_auth)],
 ) -> CouponAdminOut:
+    provided = payload.model_fields_set
     data = CouponCreateData(
         code=payload.code,
         type=payload.type,
@@ -76,9 +81,15 @@ async def create_coupon(
         max_discount_amount=payload.max_discount_amount,
         min_order_amount=payload.min_order_amount,
         valid_from=payload.valid_from,
-        valid_until=payload.valid_until,
+        valid_until=(
+            payload.valid_until if "valid_until" in provided else _DEFAULT_COUPON_VALID_UNTIL
+        ),
         usage_limit_total=payload.usage_limit_total,
-        usage_limit_per_company=payload.usage_limit_per_company,
+        usage_limit_per_company=(
+            payload.usage_limit_per_company
+            if "usage_limit_per_company" in provided
+            else _DEFAULT_COUPON_USES_PER_COMPANY
+        ),
         restricted_company_id=payload.restricted_company_id,
         is_active=payload.is_active,
     )

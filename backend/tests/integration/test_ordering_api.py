@@ -736,3 +736,58 @@ async def test_overview_ignora_cancelados_no_total_mas_preserva_historico(
     assert len(body["orders"]) == 2
     statuses = {order["id"]: order["status"] for order in body["orders"]}
     assert statuses[cancelled.json()["id"]] == "CANCELLED"
+
+
+async def test_criar_pedido_remove_do_carrinho_apenas_itens_comprados(
+    order_client: httpx.AsyncClient,
+) -> None:
+    for product_id in (_P_NORMAL, _P_SECOND):
+        added = await order_client.post(
+            "/api/v1/cart/items",
+            json={"product_id": str(product_id), "quantity": 1},
+        )
+        assert added.status_code == 200
+
+    created = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 1)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-cart-clear-1",
+        },
+    )
+    assert created.status_code == 201
+
+    cart = await order_client.get("/api/v1/cart")
+    assert cart.status_code == 200
+    assert [item["product_id"] for item in cart.json()["items"]] == [str(_P_SECOND)]
+
+
+async def test_apagar_pedido_remove_do_historico(
+    order_client: httpx.AsyncClient,
+) -> None:
+    created = await order_client.post(
+        "/api/v1/orders",
+        json={
+            "items": [_order(_P_NORMAL, 1)],
+            "payment_method": "PIX",
+            "idempotency_key": "ord-delete-1",
+        },
+    )
+    assert created.status_code == 201
+    order_id = created.json()["id"]
+
+    deleted = await order_client.delete(f"/api/v1/orders/{order_id}")
+    assert deleted.status_code == 204
+
+    detail = await order_client.get(f"/api/v1/orders/{order_id}")
+    assert detail.status_code == 404
+
+    overview = await order_client.get("/api/v1/orders/overview")
+    assert overview.status_code == 200
+    body = overview.json()
+    assert body["orders_count"] == 0
+    assert all(order["id"] != order_id for order in body["orders"])
+
+    again = await order_client.delete(f"/api/v1/orders/{order_id}")
+    assert again.status_code == 404

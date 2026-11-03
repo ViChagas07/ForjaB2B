@@ -172,7 +172,16 @@
     "stageInTransit": "À caminho",
     "stageDelivered": "Chegou!",
     "loadError": "Não foi possível carregar seu painel.",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "couponRemaining": "Restam {count}x de uso",
+    "deliverySubtitleAll": "Acompanhe as rotas de entrega de todas as suas compras.",
+    "deleteOrder": "Excluir pedido",
+    "deleteDelivery": "Excluir registro de rota",
+    "deleteConfirmTitle": "Excluir compra?",
+    "deleteConfirmDescription": "O pedido #{code} e sua rota de entrega serão removidos do seu histórico. Esta ação não pode ser desfeita.",
+    "deleteCancel": "Cancelar",
+    "deleteConfirm": "Excluir",
+    "deleting": "Excluindo…"
   },
   "catalog": {
     "title": "Catálogo",
@@ -265,7 +274,11 @@
     "benefit2Description": "Fluxo de caixa saudável com faturamento B2B.",
     "benefit3Title": "Entrega nacional",
     "benefit3Description": "Logística planejada para a sua operação.",
-    "itemCountOne": "1 item"
+    "itemCountOne": "1 item",
+    "selectAll": "Selecionar todos",
+    "selectItem": "Selecionar {name} para o checkout",
+    "selectedCount": "{selected} de {total} selecionados",
+    "noneSelected": "Selecione pelo menos um produto para finalizar."
   },
   "ordering": {
     "reviewTitle": "Revisão do pedido",

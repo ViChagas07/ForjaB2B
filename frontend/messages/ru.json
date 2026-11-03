@@ -172,7 +172,16 @@
     "stageInTransit": "В пути",
     "stageDelivered": "Прибыл!",
     "loadError": "Не удалось загрузить панель.",
-    "retry": "Повторить"
+    "retry": "Повторить",
+    "couponRemaining": "Осталось {count} раз",
+    "deliverySubtitleAll": "Отслеживайте маршруты доставки всех ваших покупок.",
+    "deleteOrder": "Удалить заказ",
+    "deleteDelivery": "Удалить запись доставки",
+    "deleteConfirmTitle": "Удалить покупку?",
+    "deleteConfirmDescription": "Заказ #{code} и его маршрут доставки будут удалены из истории. Это действие нельзя отменить.",
+    "deleteCancel": "Отмена",
+    "deleteConfirm": "Удалить",
+    "deleting": "Удаление…"
   },
   "error": {
     "invalidCredentials": "Неверный адрес электронной почты или пароль.",
@@ -310,7 +319,11 @@
     "benefit3Description": "Планируемая логистика для вашей компании.",
     "itemCountOne": "1 товар",
     "cnpjVolumeRemaining": "До скидки 30% на этот товар осталось {count} шт.",
-    "cnpjVolumeReached": "На этот товар применена скидка 30%"
+    "cnpjVolumeReached": "На этот товар применена скидка 30%",
+    "selectAll": "Выбрать все",
+    "selectItem": "Выбрать {name} для оформления",
+    "selectedCount": "Выбрано {selected} из {total}",
+    "noneSelected": "Выберите хотя бы один товар для оформления."
   },
   "ordering": {
     "reviewTitle": "Проверка заказа",

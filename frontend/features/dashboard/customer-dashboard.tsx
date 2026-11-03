@@ -9,25 +9,35 @@ import {
   Package,
   ReceiptText,
   TicketPercent,
+  Trash2,
   Truck,
   Warehouse,
   Wallet,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
-import type { AvailableCoupon, CustomerOverview, Order } from "@/core/domain/ordering";
+import type { AvailableCoupon, Order } from "@/core/domain/ordering";
 import { useAccount, useUpdateSpendingVisibility } from "@/features/account/hooks";
-import { useCustomerOverview } from "@/features/ordering";
+import { useCustomerOverview, useDeleteOrder } from "@/features/ordering";
 import { deliveryStage, isCancelledStatus, orderStatusLabelKey } from "@/features/ordering/status";
 import { Link } from "@/i18n/navigation";
 import { PriceDisplay } from "@/shared/components/price-display";
+import { errorMessageKey } from "@/shared/lib/api-error";
 import { cn } from "@/shared/lib/utils";
 import { formatBrl, formatDate, formatDateOnly, formatNumber } from "@/shared/lib/money";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 const DELIVERY_STEPS = [
@@ -59,40 +69,21 @@ function HiddenAmount({ label }: { label: string }) {
   );
 }
 
-interface DeliveryRouteProps {
-  order: Order | undefined;
+interface DeliveryRouteItemProps {
+  order: Order;
+  onDelete: (order: Order) => void;
+  isDeleting: boolean;
 }
 
-function DeliveryRoute({ order }: DeliveryRouteProps) {
+function DeliveryRouteItem({ order, onDelete, isDeleting }: DeliveryRouteItemProps) {
   const t = useTranslations();
   const locale = useLocale();
-
-  if (!order) {
-    return (
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-lg">{t("dashboard.deliveryTitle")}</CardTitle>
-          <p className="text-sm text-muted-foreground">{t("dashboard.deliveryEmpty")}</p>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   const stage = order.status === "RECEIVED" ? 3 : deliveryStage(order.status);
   const stopped = isCancelledStatus(order.status);
 
   return (
-    <Card className="rounded-2xl">
-      <CardHeader className="gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg">{t("dashboard.deliveryTitle")}</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.deliverySubtitle")}</p>
-          </div>
-          <Badge variant={statusVariant(order.status)}>
-            {t(orderStatusLabelKey(order.status))}
-          </Badge>
-        </div>
+    <li className="py-5 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <Link
             href={`/orders/${order.id}`}
@@ -102,8 +93,25 @@ function DeliveryRoute({ order }: DeliveryRouteProps) {
           </Link>
           <span className="text-muted-foreground">{formatDate(order.created_at, locale)}</span>
         </div>
-      </CardHeader>
-      <CardContent>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusVariant(order.status)}>
+            {t(orderStatusLabelKey(order.status))}
+          </Badge>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            aria-label={t("dashboard.deleteDelivery")}
+            title={t("dashboard.deleteDelivery")}
+            disabled={isDeleting}
+            onClick={() => onDelete(order)}
+          >
+            <Trash2 aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+      <div className="mt-4">
         {stopped || stage === null ? (
           <Alert variant="destructive">
             <AlertDescription>{t("dashboard.deliveryStopped")}</AlertDescription>
@@ -163,6 +171,43 @@ function DeliveryRoute({ order }: DeliveryRouteProps) {
             })}
           </ol>
         )}
+      </div>
+    </li>
+  );
+}
+
+interface DeliveryRoutesProps {
+  orders: Order[];
+  onDelete: (order: Order) => void;
+  isDeleting: boolean;
+}
+
+function DeliveryRoutes({ orders, onDelete, isDeleting }: DeliveryRoutesProps) {
+  const t = useTranslations();
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader>
+        <CardTitle className="text-lg">{t("dashboard.deliveryTitle")}</CardTitle>
+        <p className="text-sm text-muted-foreground">{t("dashboard.deliverySubtitleAll")}</p>
+      </CardHeader>
+      <CardContent>
+        {orders.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-6 text-center">
+            <p className="text-sm font-semibold">{t("dashboard.deliveryEmpty")}</p>
+          </div>
+        ) : (
+          <ul className="divide-y">
+            {orders.map((order) => (
+              <DeliveryRouteItem
+                key={order.id}
+                order={order}
+                onDelete={onDelete}
+                isDeleting={isDeleting}
+              />
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );
@@ -186,6 +231,13 @@ function CouponCard({ coupon }: { coupon: AvailableCoupon }) {
         <TicketPercent aria-hidden="true" className="h-4 w-4 text-primary" />
       </div>
       <p className="mt-3 text-sm font-semibold">{label}</p>
+      {typeof coupon.remaining_uses === "number" ? (
+        <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+          {t("dashboard.couponRemaining", {
+            count: formatNumber(coupon.remaining_uses, locale),
+          })}
+        </p>
+      ) : null}
       <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
         {coupon.min_order_amount ? (
           <p>
@@ -236,7 +288,14 @@ function CouponsBoard({ coupons }: { coupons: AvailableCoupon[] }) {
   );
 }
 
-function OrderHistory({ orders, hideSpending }: { orders: Order[]; hideSpending: boolean }) {
+interface OrderHistoryProps {
+  orders: Order[];
+  hideSpending: boolean;
+  onDelete: (order: Order) => void;
+  isDeleting: boolean;
+}
+
+function OrderHistory({ orders, hideSpending, onDelete, isDeleting }: OrderHistoryProps) {
   const t = useTranslations();
   const locale = useLocale();
 
@@ -297,6 +356,18 @@ function OrderHistory({ orders, hideSpending }: { orders: Order[]; hideSpending:
                           <PriceDisplay amount={order.total} primary="brl" />
                         )}
                       </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        aria-label={t("dashboard.deleteOrder")}
+                        title={t("dashboard.deleteOrder")}
+                        disabled={isDeleting}
+                        onClick={() => onDelete(order)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
                     </div>
                   </div>
                   {order.items.length > 0 ? (
@@ -349,20 +420,43 @@ function StatCard({
   );
 }
 
-function pickRouteOrder(overview: CustomerOverview): Order | undefined {
-  return (
-    overview.orders.find(
-      (order) => !isCancelledStatus(order.status) && deliveryStage(order.status) !== 3,
-    ) ?? overview.orders[0]
-  );
-}
-
 export function CustomerDashboard() {
   const t = useTranslations();
   const locale = useLocale();
   const accountQuery = useAccount();
-  const overviewQuery = useCustomerOverview();
+  const overviewQuery = useCustomerOverview(200);
   const updateVisibility = useUpdateSpendingVisibility();
+  const deleteOrder = useDeleteOrder();
+  const [pendingDelete, setPendingDelete] = useState<Order | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function requestDelete(order: Order) {
+    setDeleteError(null);
+    setPendingDelete(order);
+  }
+
+  function closeDeleteDialog() {
+    if (deleteOrder.isPending) {
+      return;
+    }
+    setPendingDelete(null);
+    setDeleteError(null);
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) {
+      return;
+    }
+    deleteOrder.mutate(pendingDelete.id, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        setDeleteError(null);
+      },
+      onError: (error) => {
+        setDeleteError(t(errorMessageKey(error)));
+      },
+    });
+  }
 
   if (overviewQuery.isLoading || accountQuery.isLoading) {
     return (
@@ -401,7 +495,6 @@ export function CustomerDashboard() {
 
   const overview = overviewQuery.data;
   const hideSpending = accountQuery.data?.hide_spending ?? false;
-  const routeOrder = pickRouteOrder(overview);
 
   return (
     <div className="space-y-6">
@@ -449,11 +542,65 @@ export function CustomerDashboard() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <DeliveryRoute order={routeOrder} />
+        <DeliveryRoutes
+          orders={overview.orders}
+          onDelete={requestDelete}
+          isDeleting={deleteOrder.isPending}
+        />
         <CouponsBoard coupons={overview.coupons} />
       </div>
 
-      <OrderHistory orders={overview.orders} hideSpending={hideSpending} />
+      <OrderHistory
+        orders={overview.orders}
+        hideSpending={hideSpending}
+        onDelete={requestDelete}
+        isDeleting={deleteOrder.isPending}
+      />
+
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDeleteDialog();
+          }
+        }}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("dashboard.deleteConfirmTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("dashboard.deleteConfirmDescription", {
+                code: pendingDelete ? orderCode(pendingDelete.id) : "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={deleteOrder.isPending}
+              onClick={closeDeleteDialog}
+            >
+              {t("dashboard.deleteCancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="rounded-xl"
+              disabled={deleteOrder.isPending}
+              onClick={confirmDelete}
+            >
+              {deleteOrder.isPending ? t("dashboard.deleting") : t("dashboard.deleteConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -172,7 +172,16 @@
     "stageInTransit": "运输中",
     "stageDelivered": "已到达！",
     "loadError": "无法加载你的面板。",
-    "retry": "重试"
+    "retry": "重试",
+    "couponRemaining": "剩余 {count} 次",
+    "deliverySubtitleAll": "查看您所有购买的配送路线。",
+    "deleteOrder": "删除订单",
+    "deleteDelivery": "删除配送记录",
+    "deleteConfirmTitle": "删除购买记录？",
+    "deleteConfirmDescription": "订单 #{code} 及其配送路线将从您的历史记录中移除。此操作无法撤销。",
+    "deleteCancel": "取消",
+    "deleteConfirm": "删除",
+    "deleting": "正在删除…"
   },
   "error": {
     "invalidCredentials": "邮箱或密码错误。",
@@ -310,7 +319,11 @@
     "benefit3Description": "为您的运营规划物流。",
     "itemCountOne": "1 件商品",
     "cnpjVolumeRemaining": "再买 {count} 件即可享受此商品 30% 折扣",
-    "cnpjVolumeReached": "此商品已应用 30% 折扣"
+    "cnpjVolumeReached": "此商品已应用 30% 折扣",
+    "selectAll": "全选",
+    "selectItem": "选择 {name} 进行结算",
+    "selectedCount": "已选择 {selected}/{total}",
+    "noneSelected": "请至少选择一个商品进行结算。"
   },
   "ordering": {
     "reviewTitle": "订单审核",

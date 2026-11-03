@@ -76,6 +76,7 @@ class CheckoutCartItem:
     quantity: int
     unit_price: Decimal
     line_total: Decimal
+    list_line_total: Decimal
     weight_kg: Decimal | None
     is_negotiated: bool
 
@@ -110,6 +111,7 @@ class AvailableCouponView:
     max_discount_amount: Decimal | None
     min_order_amount: Decimal | None
     valid_until: datetime | None
+    remaining_uses: int | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -227,11 +229,20 @@ class CustomerOverviewRepository(Protocol):
     ) -> list[AvailableCouponView]:
         """Cupons ativos, vigentes e com uso disponivel para a empresa."""
 
+    async def delete_customer_order(
+        self, company_id: uuid.UUID, buyer_user_id: uuid.UUID, order_id: uuid.UUID
+    ) -> bool:
+        """Remove o pedido do historico do comprador (exclusao logica)."""
+
 
 class CheckoutCartReader(Protocol):
     """Leitura do carrinho do comprador para a previa do checkout."""
 
     async def get_checkout_cart(
-        self, company_id: uuid.UUID, user_id: uuid.UUID, locale: str = "pt-BR"
+        self,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        locale: str = "pt-BR",
+        product_ids: list[uuid.UUID] | None = None,
     ) -> CheckoutCartSnapshot | None:
         """Carrinho ativo com itens precificados; None quando nao existir."""

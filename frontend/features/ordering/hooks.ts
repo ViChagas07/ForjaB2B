@@ -72,3 +72,16 @@ export function useCancelOrder() {
     },
   });
 }
+
+export function useDeleteOrder() {
+  const queryClient = useQueryClient();
+  const locale = useLocale();
+  const { remove } = useOrderingApi();
+  return useMutation({
+    mutationFn: (orderId: string) => withAuth((token) => remove(token, orderId)),
+    onSuccess: (_result, orderId) => {
+      queryClient.removeQueries({ queryKey: orderKey(orderId, locale) });
+      queryClient.invalidateQueries({ queryKey: customerOverviewKey(locale) });
+    },
+  });
+}

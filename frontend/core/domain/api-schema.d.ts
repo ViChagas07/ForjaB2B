@@ -57,6 +57,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/phone/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status do telefone verificado */
+        get: operations["get_phone_verification_status_api_v1_account_phone_verification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/phone/verification/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirmar o codigo SMS do telefone */
+        post: operations["check_phone_verification_api_v1_account_phone_verification_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/phone/verification/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enviar codigo SMS para verificar o telefone */
+        post: operations["start_phone_verification_api_v1_account_phone_verification_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/preferences": {
         parameters: {
             query?: never;
@@ -888,7 +939,8 @@ export interface paths {
         get: operations["get_order_api_v1_orders__order_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Customer Order */
+        delete: operations["delete_customer_order_api_v1_orders__order_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1447,6 +1499,8 @@ export interface components {
             min_order_amount?: number | string | null;
             /** Percent */
             percent: number | string;
+            /** Remaining Uses */
+            remaining_uses?: number | null;
             type: components["schemas"]["CouponType"];
             /** Valid Until */
             valid_until?: string | null;
@@ -1461,6 +1515,8 @@ export interface components {
             min_order_amount?: string | null;
             /** Percent */
             percent: string;
+            /** Remaining Uses */
+            remaining_uses?: number | null;
             type: components["schemas"]["CouponType"];
             /** Valid Until */
             valid_until?: string | null;
@@ -1878,6 +1934,8 @@ export interface components {
             code?: string | null;
             /** @default PIX */
             payment_method: components["schemas"]["app__modules__ordering__domain__payment__PaymentMethod"];
+            /** Product Ids */
+            product_ids?: string[] | null;
         };
         /**
          * CouponPreviewResponse
@@ -2579,6 +2637,60 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /**
+         * PhoneVerificationAcceptedResponse
+         * @description Resposta generica do inicio da verificacao.
+         */
+        PhoneVerificationAcceptedResponse: {
+            /**
+             * Status
+             * @default accepted
+             * @constant
+             */
+            status: "accepted";
+        };
+        /**
+         * PhoneVerificationCheckRequest
+         * @description Codigo recebido por SMS para confirmar o telefone.
+         */
+        PhoneVerificationCheckRequest: {
+            /** Code */
+            code: string;
+            /** Phone */
+            phone: string;
+        };
+        /**
+         * PhoneVerificationCheckResponse
+         * @description Confirmacao do telefone.
+         */
+        PhoneVerificationCheckResponse: {
+            /**
+             * Verified
+             * @default true
+             * @constant
+             */
+            verified: true;
+        };
+        /**
+         * PhoneVerificationStartRequest
+         * @description Inicio da verificacao do proprio telefone por SMS.
+         */
+        PhoneVerificationStartRequest: {
+            /** Locale */
+            locale?: ("pt-BR" | "en" | "zh-CN" | "ja" | "ko" | "ru" | "es" | "de" | "fr" | "it" | "ar") | null;
+            /** Phone */
+            phone: string;
+        };
+        /**
+         * PhoneVerificationStatusResponse
+         * @description Status mascarado para a tela de conta.
+         */
+        PhoneVerificationStatusResponse: {
+            /** Phone Masked */
+            phone_masked?: string | null;
+            /** Verified */
+            verified: boolean;
         };
         /**
          * ProblemDetails
@@ -4219,6 +4331,373 @@ export interface operations {
                      *       "title": "Not Found",
                      *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
                      *       "type": "urn:forja:problem:http_404"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_phone_verification_status_api_v1_account_phone_verification_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneVerificationStatusResponse"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    check_phone_verification_api_v1_account_phone_verification_check_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneVerificationCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneVerificationCheckResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    start_phone_verification_api_v1_account_phone_verification_start_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhoneVerificationStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneVerificationAcceptedResponse"];
+                };
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
                      *     }
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];
@@ -11009,6 +11488,159 @@ export interface operations {
                      *       "title": "Not Found",
                      *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
                      *       "type": "urn:forja:problem:http_404"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_customer_order_api_v1_orders__order_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requisicao invalida ou corpo recusado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Requisicao invalida ou corpo recusado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 400,
+                     *       "title": "Bad Request",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_400"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Credencial ausente/invalida ou assinatura de webhook invalida. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Credencial ausente/invalida ou assinatura de webhook invalida.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 401,
+                     *       "title": "Unauthorized",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_401"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Recurso inexistente no tenant autenticado. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Recurso inexistente no tenant autenticado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 404,
+                     *       "title": "Not Found",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_404"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflito de estado, concorrencia ou idempotencia. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Conflito de estado, concorrencia ou idempotencia.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_409"
                      *     }
                      */
                     "application/problem+json": components["schemas"]["ProblemDetails"];

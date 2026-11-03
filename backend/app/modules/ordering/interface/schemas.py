@@ -90,6 +90,7 @@ class AvailableCouponResponse(BaseModel):
     max_discount_amount: Decimal | None = None
     min_order_amount: Decimal | None = None
     valid_until: datetime | None = None
+    remaining_uses: int | None = None
 
 
 class CustomerOverviewResponse(BaseModel):
@@ -110,6 +111,7 @@ class CouponPreviewRequest(BaseModel):
 
     code: str | None = Field(default=None, max_length=32)
     payment_method: PaymentMethod = PaymentMethod.PIX
+    product_ids: list[uuid.UUID] | None = Field(default=None, max_length=100)
 
 
 class CouponPreviewResponse(BaseModel):

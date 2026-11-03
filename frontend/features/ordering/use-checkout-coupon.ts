@@ -25,6 +25,7 @@ interface UseCheckoutCouponArgs {
   cartSignature: string;
   hasItems: boolean;
   orderError: unknown;
+  selectedProductIds?: string[] | null;
 }
 
 function isRejectionReason(value: string): value is CouponRejectionReason {
@@ -43,6 +44,7 @@ export function useCheckoutCoupon({
   cartSignature,
   hasItems,
   orderError,
+  selectedProductIds = null,
 }: UseCheckoutCouponArgs) {
   const { previewCoupon } = useOrderingApi();
   const locale = useLocale();
@@ -53,10 +55,17 @@ export function useCheckoutCoupon({
   const [appliedPreview, setAppliedPreview] = React.useState<CouponPreview | null>(null);
   const [error, setError] = React.useState<CouponUiError | null>(null);
 
+  const selectedKey = selectedProductIds?.join(",") ?? "all";
   const baseQuery = useQuery<CouponPreview>({
-    queryKey: ["checkout-coupon", "base", paymentMethod, cartSignature, locale],
+    queryKey: ["checkout-coupon", "base", paymentMethod, cartSignature, selectedKey, locale],
     queryFn: () =>
-      withAuth((token) => previewCoupon(token, { code: null, payment_method: paymentMethod })),
+      withAuth((token) =>
+        previewCoupon(token, {
+          code: null,
+          payment_method: paymentMethod,
+          product_ids: selectedProductIds,
+        }),
+      ),
     enabled: hasItems,
     retry: false,
     staleTime: 0,
@@ -65,12 +74,13 @@ export function useCheckoutCoupon({
   });
 
   const candidateQuery = useQuery<CouponPreview>({
-    queryKey: ["checkout-coupon", candidateCode, paymentMethod, cartSignature, locale],
+    queryKey: ["checkout-coupon", candidateCode, paymentMethod, cartSignature, selectedKey, locale],
     queryFn: () =>
       withAuth((token) =>
         previewCoupon(token, {
           code: candidateCode,
           payment_method: paymentMethod,
+          product_ids: selectedProductIds,
         }),
       ),
     enabled: hasItems && candidateCode !== null,

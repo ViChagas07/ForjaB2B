@@ -78,8 +78,9 @@ class PreviewCoupon:
         code: str | None = None,
         payment_method: PaymentMethod = PaymentMethod.PIX,
         locale: str = "pt-BR",
+        product_ids: list[uuid.UUID] | None = None,
     ) -> CouponPreviewResult:
-        cart = await self._cart_reader.get_checkout_cart(company_id, user_id, locale)
+        cart = await self._cart_reader.get_checkout_cart(company_id, user_id, locale, product_ids)
         if cart is None or not cart.items:
             raise EmptyOrderError("O carrinho precisa ter ao menos um item.")
 

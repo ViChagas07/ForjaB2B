@@ -172,7 +172,16 @@
     "stageInTransit": "In viaggio",
     "stageDelivered": "Arrivato!",
     "loadError": "Impossibile caricare il pannello.",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "couponRemaining": "{count}x rimasti",
+    "deliverySubtitleAll": "Segui le rotte di consegna di tutti i tuoi acquisti.",
+    "deleteOrder": "Elimina ordine",
+    "deleteDelivery": "Elimina registro di consegna",
+    "deleteConfirmTitle": "Eliminare l'acquisto?",
+    "deleteConfirmDescription": "L'ordine #{code} e la sua rotta di consegna verranno rimossi dalla cronologia. Questa azione non può essere annullata.",
+    "deleteCancel": "Annulla",
+    "deleteConfirm": "Elimina",
+    "deleting": "Eliminazione…"
   },
   "error": {
     "invalidCredentials": "E-mail o password errati.",
@@ -310,7 +319,11 @@
     "benefit3Description": "Logistica pianificata per la tua operazione.",
     "itemCountOne": "1 articolo",
     "cnpjVolumeRemaining": "Mancano {count} unità per il 30% di sconto su questo prodotto",
-    "cnpjVolumeReached": "30% di sconto applicato a questo prodotto"
+    "cnpjVolumeReached": "30% di sconto applicato a questo prodotto",
+    "selectAll": "Seleziona tutti",
+    "selectItem": "Seleziona {name} per il pagamento",
+    "selectedCount": "{selected} di {total} selezionati",
+    "noneSelected": "Seleziona almeno un prodotto per procedere."
   },
   "ordering": {
     "reviewTitle": "Riepilogo ordine",

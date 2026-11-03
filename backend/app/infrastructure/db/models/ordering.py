@@ -9,11 +9,13 @@ historico nao depende de consultar o preco atual do produto.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     Enum,
     ForeignKey,
     Index,
@@ -79,6 +81,12 @@ class Order(TimestampMixin, Base):
         Index("ix_orders_status", "status"),
         Index("ix_orders_created_at", "created_at"),
         Index(
+            "ix_orders_company_buyer_deleted",
+            "company_id",
+            "buyer_user_id",
+            "deleted_at",
+        ),
+        Index(
             "uq_orders_idempotency_key",
             "company_id",
             "idempotency_key",
@@ -136,6 +144,7 @@ class Order(TimestampMixin, Base):
     content_locale: Mapped[str] = mapped_column(
         String(10), nullable=False, server_default=text("'pt-BR'")
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     company: Mapped[Company] = relationship(back_populates="orders")
     buyer: Mapped[User] = relationship(back_populates="orders")

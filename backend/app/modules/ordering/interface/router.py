@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Header, Query, Request, status
+from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
 
 from app.application.idempotency import IdempotencyKeyRequiredError
 from app.application.security import AuthContext
@@ -21,6 +21,7 @@ from app.modules.ordering.application.coupon_checkout import (
 )
 from app.modules.ordering.application.customer_overview import (
     CustomerOverview,
+    DeleteCustomerOrder,
     GetCustomerOverview,
 )
 from app.modules.ordering.application.order import CancelOrder, CreateOrder, GetOrder
@@ -60,6 +61,10 @@ def _preview_coupon(request: Request) -> PreviewCoupon:
 
 def _customer_overview(request: Request) -> GetCustomerOverview:
     return cast(GetCustomerOverview, request.app.state.ordering_overview)
+
+
+def _delete_customer_order(request: Request) -> DeleteCustomerOrder:
+    return cast(DeleteCustomerOrder, request.app.state.ordering_delete)
 
 
 def _to_response(view: OrderView) -> OrderResponse:
@@ -111,6 +116,7 @@ def _to_coupon_response(view: AvailableCouponView) -> AvailableCouponResponse:
         max_discount_amount=view.max_discount_amount,
         min_order_amount=view.min_order_amount,
         valid_until=view.valid_until,
+        remaining_uses=view.remaining_uses,
     )
 
 
@@ -210,6 +216,7 @@ async def preview_coupon(
         code=payload.code,
         payment_method=payload.payment_method,
         locale=locale,
+        product_ids=payload.product_ids,
     )
     return _to_preview_response(result)
 
@@ -223,7 +230,7 @@ async def preview_coupon(
 async def get_customer_overview(
     auth: Annotated[AuthContext, Depends(get_current_auth)],
     use_case: Annotated[GetCustomerOverview, Depends(_customer_overview)],
-    limit: Annotated[int, Query(ge=1, le=20)] = 10,
+    limit: Annotated[int, Query(ge=1, le=200)] = 10,
 ) -> CustomerOverviewResponse:
     return _to_overview_response(
         await use_case.execute(
@@ -232,6 +239,20 @@ async def get_customer_overview(
             limit=limit,
         )
     )
+
+
+@router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_customer_order(
+    order_id: uuid.UUID,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[DeleteCustomerOrder, Depends(_delete_customer_order)],
+) -> Response:
+    await use_case.execute(
+        company_id=auth.company_id,
+        buyer_user_id=auth.user_id,
+        order_id=order_id,
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{order_id}", response_model=OrderResponse, status_code=status.HTTP_200_OK)

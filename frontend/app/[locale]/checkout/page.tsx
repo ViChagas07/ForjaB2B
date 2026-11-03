@@ -10,12 +10,25 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("ordering.reviewTitle") };
 }
 
-export default function CheckoutPage() {
+interface CheckoutPageProps {
+  searchParams: { items?: string | string[] };
+}
+
+export default function CheckoutPage({ searchParams }: CheckoutPageProps) {
+  const rawItems = Array.isArray(searchParams.items) ? searchParams.items[0] : searchParams.items;
+  const parsedItems = rawItems
+    ? rawItems
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : null;
+  const selectedProductIds = parsedItems && parsedItems.length > 0 ? parsedItems : null;
+
   return (
     <>
       <SiteHeader />
       <main id="main" className="container flex-1 py-12">
-        <CheckoutClient />
+        <CheckoutClient selectedProductIds={selectedProductIds} />
       </main>
       <SiteFooter />
     </>

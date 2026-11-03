@@ -172,7 +172,16 @@
     "stageInTransit": "On the way",
     "stageDelivered": "Arrived!",
     "loadError": "Could not load your dashboard.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "couponRemaining": "{count}x remaining",
+    "deliverySubtitleAll": "Track the delivery routes of all your purchases.",
+    "deleteOrder": "Delete order",
+    "deleteDelivery": "Delete delivery record",
+    "deleteConfirmTitle": "Delete purchase?",
+    "deleteConfirmDescription": "Order #{code} and its delivery route will be removed from your history. This action cannot be undone.",
+    "deleteCancel": "Cancel",
+    "deleteConfirm": "Delete",
+    "deleting": "Deleting…"
   },
   "error": {
     "invalidCredentials": "Incorrect email or password.",
@@ -310,7 +319,11 @@
     "benefit3Description": "Logistics planned for your operation.",
     "itemCountOne": "One item",
     "cnpjVolumeRemaining": "{count} more units for 30% off this product",
-    "cnpjVolumeReached": "30% off applied to this product"
+    "cnpjVolumeReached": "30% off applied to this product",
+    "selectAll": "Select all",
+    "selectItem": "Select {name} for checkout",
+    "selectedCount": "{selected} of {total} selected",
+    "noneSelected": "Select at least one product to check out."
   },
   "ordering": {
     "reviewTitle": "Order review",

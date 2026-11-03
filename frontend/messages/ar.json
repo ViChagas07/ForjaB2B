@@ -172,7 +172,16 @@
     "stageInTransit": "في الطريق",
     "stageDelivered": "وصل!",
     "loadError": "تعذر تحميل اللوحة.",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "couponRemaining": "متبقي {count} مرة",
+    "deliverySubtitleAll": "تابع مسارات التوصيل لجميع مشترياتك.",
+    "deleteOrder": "حذف الطلب",
+    "deleteDelivery": "حذف سجل التوصيل",
+    "deleteConfirmTitle": "حذف الشراء؟",
+    "deleteConfirmDescription": "سيتم حذف الطلب #{code} ومسار التوصيل الخاص به من سجلك. لا يمكن التراجع عن هذا الإجراء.",
+    "deleteCancel": "إلغاء",
+    "deleteConfirm": "حذف",
+    "deleting": "جارٍ الحذف…"
   },
   "error": {
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -310,7 +319,11 @@
     "benefit3Description": "لوجستيات مخططة لعملياتك.",
     "itemCountOne": "عنصر واحد",
     "cnpjVolumeRemaining": "تبقّى {count} وحدات للحصول على خصم 30% على هذا المنتج",
-    "cnpjVolumeReached": "تم تطبيق خصم 30% على هذا المنتج"
+    "cnpjVolumeReached": "تم تطبيق خصم 30% على هذا المنتج",
+    "selectAll": "تحديد الكل",
+    "selectItem": "تحديد {name} للدفع",
+    "selectedCount": "تم تحديد {selected} من {total}",
+    "noneSelected": "حدد منتجًا واحدًا على الأقل لإتمام الطلب."
   },
   "ordering": {
     "reviewTitle": "مراجعة الطلب",
