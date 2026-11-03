@@ -3296,3 +3296,21 @@ com o LLM real fica PENDENTE ate o LM Studio subir. README ganhou a arquitetura
 (entender -> buscar -> redigir -> validar) e a secao de avaliacao. Suite final:
 1362 unitarios; ruff/mypy strict limpos nos arquivos alterados (restam 2 erros
 antigos em deps.py). Commit/push desta entrega ficam para o fechamento.
+
+### Prompt 17 - Assistente para visitante, CPF e CNPJ (2026-11-03)
+
+Removida a restricao de login para perguntas de produto. O assistente agora
+responde catalogo, preco, estoque, comparacao, frete, carrinho e pedidos para
+visitante, CPF e CNPJ. O preco resolvido pela hidratacao e exposto no cartao e
+no CONTEXTO para todos os papeis: visitante/CPF recebem a tabela publica;
+CNPJ recebe o preco da empresa; produto sem preco continua `price_on_request`.
+O guard de saida valida os valores contra o CONTEXTO para todos os papeis.
+
+Perguntas de "mais barato/mais caro" e faixas excluem produtos sem preco real
+(inclusive `price_on_request`). Consultas genericas ("produto mais barato da
+loja") usam busca ampla; a quantidade pedida limita busca e cartoes (1 para
+singular, N explicito, maximo 5). O painel do chat segue o tema claro/escuro
+via tokens semanticos. Teste real (visitante): "a luva mais barata" -> 1 cartao
+Luva Nitrilica 3.90; "as 3 mais baratas" -> 2.50/2.90/2.90; "o produto mais
+barato" -> Mascara PFF1 2.50. Suite: 1366 unitarios; ruff/mypy limpos nos
+arquivos alterados (2 erros antigos em deps.py). Nada commitado ainda.

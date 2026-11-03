@@ -535,7 +535,7 @@ def _grounded_products(
     for product in products[:5]:
         price: float | None = None
         price_on_request = True
-        if auth is not None and product.price is not None:
+        if product.price is not None and not product.price_on_request:
             value = Decimal(str(product.price)).quantize(Decimal("0.01"))
             price = float(value)
             price_on_request = False

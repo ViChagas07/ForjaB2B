@@ -80,7 +80,6 @@ from app.modules.ai.domain.degradation import (
     info_response,
     login_required_response,
     not_found_response,
-    price_access_response,
     price_question_response,
     price_sort_response,
     price_unverified_response,
@@ -726,20 +725,16 @@ class ChatGraph:
         name = _first_product_name(state.get("context_text", ""))
         if not name:
             return None
-        visitor = state.get("_auth") is None
-        if decision.price_sort is not None and visitor:
-            # Visitante nao tem preco informado: nao devolve cartoes "sob consulta".
-            return {"reply": price_access_response(locale), "product_ids": []}
         if decision.intent == IntentName.PRICE_QUESTION:
             return {
-                "reply": price_question_response(locale, name=name, visitor=visitor),
+                "reply": price_question_response(locale, name=name, visitor=False),
                 "product_ids": ordered_ids[:5],
             }
         if decision.price_sort == PriceSort.ASC:
             output = state.get("tool_output")
             capped = bool(output.price_scan_capped) if output is not None else False
             return {
-                "reply": price_sort_response(locale, name=name, visitor=visitor, capped=capped),
+                "reply": price_sort_response(locale, name=name, visitor=False, capped=capped),
                 "product_ids": ordered_ids[:5],
             }
         return None
@@ -777,7 +772,7 @@ class ChatGraph:
         )
         # Qwen (template do LM Studio) exige UM system message no INICIO:
         # concatenar a instrucao extra no system existente, nunca inserir outro.
-        extra_system = _answer_instruction(decision, visitor=state.get("_auth") is None)
+        extra_system = _answer_instruction(decision)
         messages[0] = {
             "role": "system",
             "content": f"{messages[0]['content']}\n\n{extra_system}",
@@ -920,11 +915,10 @@ class ChatGraph:
             # existe no CONTEXTO quando o usuario esta logado; a resposta e
             # validada contra os precos do banco abaixo.
             allow_money=state["intent"] == ChatIntent.SHIPPING_POLICY
-            or (state.get("_auth") is not None and bool(state.get("grounded_context"))),
+            or bool(state.get("grounded_context")),
         )
         if (
             not guarded.blocked
-            and state.get("_auth") is not None
             and state.get("grounded_context")
             and not prices_are_grounded(
                 guarded.text or "", state.get("allowed_prices", frozenset())
@@ -1204,7 +1198,7 @@ def _grounded_problem(
     return None
 
 
-def _answer_instruction(decision: IntentDecision | None, *, visitor: bool) -> str:
+def _answer_instruction(decision: IntentDecision | None) -> str:
     """Instrucao extra do redator (preco/ordenacao/visitante) em um so lugar."""
     instruction = (
         "Responda so com base no CONTEXTO em JSON, no idioma do sistema, em 1 a 3 "
@@ -1221,16 +1215,10 @@ def _answer_instruction(decision: IntentDecision | None, *, visitor: bool) -> st
         )
         or decision.price_sort is not None
     ):
-        if visitor:
-            instruction += (
-                " O usuario e visitante: o CONTEXTO nao tem preco; diga que o "
-                "preco e sob consulta e convide a entrar na conta."
-            )
-        else:
-            instruction += (
-                " O CONTEXTO tem o preco da empresa; use SOMENTE esses valores "
-                "se responder sobre preco."
-            )
+        instruction += (
+            " O CONTEXTO tem o preco aplicavel ao usuario; use SOMENTE esses "
+            "valores se responder sobre preco."
+        )
     if decision is not None and decision.quantity is not None:
         instruction += (
             f" O usuario pediu {decision.quantity} produto(s); retorne no maximo "

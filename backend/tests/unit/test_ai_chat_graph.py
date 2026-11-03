@@ -262,7 +262,7 @@ async def test_intents_sem_cartoes(intent: IntentName, expected_cards: int) -> N
     assert len(result.cards) == expected_cards
 
 
-async def test_visitante_nunca_recebe_preco() -> None:
+async def test_visitante_recebe_preco_publico_no_cartao() -> None:
     llm = FakeLLM(
         structured=[
             AnswerDecision(reply="Veja.", product_ids=[PRODUCT_ID]),
@@ -276,8 +276,8 @@ async def test_visitante_nunca_recebe_preco() -> None:
         history=[],
         auth=None,
     )
-    assert result.cards[0].price is None
-    assert result.cards[0].price_on_request is True
+    assert result.cards[0].price == "777.00"
+    assert result.cards[0].price_on_request is False
 
 
 async def test_instrucao_em_produto_nao_vira_cartao_nem_contexto() -> None:
@@ -499,7 +499,7 @@ async def test_luvas_mais_baratas_responde_sem_llm_e_devolve_cartao() -> None:
     assert llm.structured_calls == []
 
 
-async def test_visitante_que_pede_mais_barato_e_orientado_a_entrar_na_conta() -> None:
+async def test_visitante_que_pede_mais_barato_recebe_cartao_com_preco() -> None:
     llm = FakeLLM()
     graph, _c, _a, _h = build(llm=llm)
     result = await graph.run(
@@ -509,8 +509,9 @@ async def test_visitante_que_pede_mais_barato_e_orientado_a_entrar_na_conta() ->
         history=[],
         auth=None,
     )
-    assert "entre na sua conta" in result.reply
-    assert result.cards == []
+    assert "mais econômica" in result.reply
+    assert result.cards[0].price == "777.00"
+    assert result.cards[0].price_on_request is False
 
 
 async def test_pergunta_de_preco_logado_nao_diz_consultivo() -> None:
@@ -809,7 +810,7 @@ async def test_sem_base_de_conhecimento_cai_em_info() -> None:
     assert result.reply == info_response(Locale.PT_BR)
 
 
-async def test_visitante_nunca_recebe_preco_do_llm() -> None:
+async def test_visitante_recebe_preco_do_contexto_no_texto() -> None:
     llm = FakeLLM(
         structured=[AnswerDecision(reply="A Luva custa R$ 3,90.", product_ids=[PRODUCT_ID])]
     )
@@ -821,8 +822,8 @@ async def test_visitante_nunca_recebe_preco_do_llm() -> None:
         history=[],
         auth=None,
     )
-    assert "3,90" not in result.reply
-    assert "R$" not in result.reply
+    assert result.reply == "A Luva custa R$ 3,90."
+    assert result.cards[0].price == "777.00"
 
 
 async def test_followup_reutiliza_estado_da_sessao() -> None:

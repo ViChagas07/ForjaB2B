@@ -1,8 +1,9 @@
 # Forja B2B
 
 Plataforma de e-commerce B2B para **EPIs e máquinas industriais**, feita para empresas
-(CNPJ) que compram em volume. Visitantes veem **preço sob consulta**; empresas
-autenticadas veem o **preço negociado** da própria empresa. Catálogo, carrinho,
+(CNPJ) que compram em volume. Visitantes e CPF veem o **preço público de
+tabela** quando disponível; empresas autenticadas veem o **preço negociado**
+da própria empresa. Catálogo, carrinho,
 pedido, administração de catálogo, busca e conteúdo em vários idiomas.
 
 > **Projeto de portfólio.** Todos os dados, marcas, CNPJs, preços, certificados (CA) e
@@ -268,7 +269,7 @@ Usuário
   │         IDs, preço da empresa, estoque, CA e atributos vêm do banco
   ▼
 [redigir]   LLM recebe CONTEXTO JSON (máx. 5 produtos) + GUIA quando houver
-  │         preço só entra para logado; visitante recebe "sob consulta"
+  │         preço aplicável ao papel: visitante/CPF usam a tabela pública; CNPJ usa o preço da empresa
   ▼
 [validar]   IDs citados e valores conferem com a rodada; 1 regeneração
   │         se falhar, template + cartões; cards são montados pelo backend
@@ -367,7 +368,7 @@ valor fictício). A senha é a mesma para todos; nunca versione uma senha real.
 
 As três empresas demo têm condições diferentes: Alfa sem desconto; Beta 10% em proteção da
 cabeça; Gama 5% global + preço negociado em `CAP-002` e `BOT-001`. Visitante sempre recebe
-preço consultivo.
+preço público de tabela (ou consultivo quando o produto não tem preço público); empresas veem as condições próprias.
 
 ### O que foi (e não foi) testado em ambiente limpo
 

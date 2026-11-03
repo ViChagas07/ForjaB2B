@@ -236,7 +236,7 @@ async def test_id_forjado_e_descartado() -> None:
     assert [card.product_id for card in cards] == [PRODUCT_ID]
 
 
-async def test_visitante_nunca_recebe_preco() -> None:
+async def test_visitante_recebe_preco_publico() -> None:
     service = ProductCardService(
         hydrator=FakeHydrator([hydrated(PRODUCT_ID, price=Decimal("99.90"))])
     )
@@ -246,8 +246,8 @@ async def test_visitante_nunca_recebe_preco() -> None:
         locale="pt-BR",
         auth=None,
     )
-    assert cards[0].price is None
-    assert cards[0].price_on_request is True
+    assert cards[0].price == "99.90"
+    assert cards[0].price_on_request is False
     assert cards[0].link == f"/catalog/{PRODUCT_ID}"
 
 

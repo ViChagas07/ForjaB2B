@@ -95,18 +95,18 @@ def adapter(uow_factory: object) -> SearchProductsToolAdapter:
     )
 
 
-async def test_visitante_hidrata_sem_preco_uow(uow_factory: object) -> None:
+async def test_visitante_recebe_preco_publico_uow(uow_factory: object) -> None:
     hydrated = await adapter(uow_factory).hydrate(
         product_ids=[str(PRODUCT)], locale="pt-BR", auth=None
     )
     assert hydrated and hydrated[0].price == Decimal("999.00")
-    # Cartao de visitante nunca expoe preco (regra aplicada em ProductCardService).
+    # Visitante/CPF recebem o preco publico de tabela; CNPJ recebe o da empresa.
     service = ProductCardService(hydrator=adapter(uow_factory))
     cards = await service.build(
         requested_ids=[str(PRODUCT)], allowed_product_ids={str(PRODUCT)}, locale="pt-BR", auth=None
     )
-    assert cards[0].price is None
-    assert cards[0].price_on_request is True
+    assert cards[0].price == "999.00"
+    assert cards[0].price_on_request is False
     assert cards[0].link == f"/catalog/{PRODUCT}"
 
 

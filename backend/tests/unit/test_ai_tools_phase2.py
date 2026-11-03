@@ -199,7 +199,7 @@ def test_sanitize_cart_text_remove_html_url_e_injecao() -> None:
     assert hostile.context_text is None
 
 
-async def test_grounded_json_mostra_preco_so_para_logado() -> None:
+async def test_grounded_json_mostra_preco_para_todos_os_papeis() -> None:
     auth = SimpleNamespace(
         company_id="11111111-1111-4111-8111-111111111111",
         user_id="22222222-2222-4222-8222-222222222222",
@@ -208,6 +208,5 @@ async def test_grounded_json_mostra_preco_so_para_logado() -> None:
     logged = await tools().search_products(args, locale="pt-BR", auth=auth)
     visitor = await tools().search_products(args, locale="pt-BR", auth=None)
     assert '"preco":3.9' in logged.grounded_json()
-    assert '"preco":null' in visitor.grounded_json()
+    assert '"preco":3.9' in visitor.grounded_json()
     assert len(logged.grounded) <= 5
-    assert "3,90" not in visitor.grounded_json()

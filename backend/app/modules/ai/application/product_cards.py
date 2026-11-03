@@ -3,8 +3,9 @@
 Recebe os ids que o LLM quer mostrar e o conjunto de ids devolvidos pelas
 ferramentas NESTE turno: qualquer id fora do conjunto e DESCARTADO (anti-id
 forjado). A hidratacao (preco/imagem/selo) vem de um adaptador que reusa a
-logica do SearchProducts (mesma resolucao de preco da empresa); visitante
-NUNCA recebe preco (price_on_request). Link e URL de imagem sao montados AQUI,
+logica do SearchProducts (preco publico de tabela para visitante/CPF e preco
+da empresa para CNPJ). `price_on_request` cobre os casos sem preco. Link e URL
+de imagem sao montados AQUI,
 no servidor. Maximo de 6 cartoes, sem duplicatas, preservando a ordem pedida.
 """
 
@@ -79,15 +80,14 @@ class ProductCardService:
             return []
         hydrated = await self._hydrator.hydrate(product_ids=safe_ids, locale=locale, auth=auth)
         by_id = {product.product_id: product for product in hydrated}
-        visitor = auth is None
         cards: list[ProductCard] = []
         for product_id in safe_ids:
             product = by_id.get(product_id)
             if product is None:
                 continue  # inexistente/nao vendavel: nunca inventa cartao
-            # Visitante: NUNCA preco. Logado: preco da PROPRIA empresa ja resolvido
-            # na hidratacao (inclui FIXED_PRICE); price_on_request quando aplicavel.
-            price = None if visitor else _format_price(product)
+            # O preco ja foi resolvido na hidratacao para o papel atual:
+            # visitante/CPF recebem tabela publica; CNPJ recebe o preco da empresa.
+            price = _format_price(product)
             cards.append(
                 ProductCard(
                     product_id=product.product_id,
@@ -98,7 +98,7 @@ class ProductCardService:
                     link=f"/catalog/{product.product_id}",  # montado no servidor
                     price=price,
                     currency=product.currency,
-                    price_on_request=True if visitor else product.price_on_request,
+                    price_on_request=product.price_on_request,
                     min_order_qty=product.min_order_qty,
                     ca_status=product.ca_status,
                 )
