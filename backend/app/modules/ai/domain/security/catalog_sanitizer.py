@@ -22,9 +22,31 @@ from dataclasses import dataclass
 from app.modules.ai.domain.security.injection import scan_injection
 from app.modules.ai.domain.security.normalize import normalize_user_text
 
-DEFAULT_CONTEXT_FIELDS = ("id", "name", "sku", "brand", "category", "attributes")
+DEFAULT_CONTEXT_FIELDS = (
+    "id",
+    "name",
+    "sku",
+    "brand",
+    "category",
+    "attributes",
+    "stock",
+    "ca_status",
+    "ca_number",
+    "min_order_qty",
+)
 
-_FIELD_LIMITS = {"id": 64, "name": 120, "sku": 40, "brand": 80, "category": 80, "description": 300}
+_FIELD_LIMITS = {
+    "id": 64,
+    "name": 120,
+    "sku": 40,
+    "brand": 80,
+    "category": 80,
+    "description": 300,
+    "stock": 12,
+    "ca_status": 20,
+    "ca_number": 40,
+    "min_order_qty": 12,
+}
 _ATTRIBUTE_LIMITS = {"count": 8, "key": 40, "value": 60}
 
 _HTML_TAG = re.compile(r"<[^<>\n]{0,200}>")
@@ -94,3 +116,23 @@ def _attribute_lines(attributes: object) -> list[str]:
         if key and value:
             lines.append(f"attr {key}={value}")
     return lines
+
+
+def sanitize_tool_text(text: str, *, label: str, max_chars: int = 600) -> CatalogSanitizeResult:
+    """Sanitiza texto de ferramenta que nao e produto (carrinho/pedido).
+
+    Whitelist de UM campo de texto: remove HTML/URL/largura-zero, colapsa e
+    trunca; injecao vira quarentena (o chamador responde com fallback amigavel).
+    """
+    safe_label = _clean(label, 40).replace(" ", "_") or "texto"
+    context = f"{safe_label}={_clean(text, max_chars)}"
+    content_hash = hashlib.sha256(context.encode("utf-8")).hexdigest()
+    verdict = scan_injection(context)
+    if verdict.level.value == "BLOCK":
+        return CatalogSanitizeResult(
+            context_text=None,
+            content_hash=content_hash,
+            quarantined=True,
+            reason_code=verdict.reason_code,
+        )
+    return CatalogSanitizeResult(context_text=context, content_hash=content_hash, quarantined=False)

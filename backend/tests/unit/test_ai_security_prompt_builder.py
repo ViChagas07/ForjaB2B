@@ -21,11 +21,13 @@ def builder(tag: str = "TAG123") -> PromptBuilder:
 
 
 def test_system_prompt_versionado_tem_hierarquia_e_canary() -> None:
-    assert system_prompt_version().endswith(".v1.txt")
+    assert system_prompt_version().endswith(".v2.txt")
     template = load_system_prompt_template()
     assert "{canary}" in template
     assert "{locale}" in template
     assert "HIERARQUIA" in template
+    assert "EXEMPLOS" in template
+    assert "Luva Nitrílica" in template
 
 
 def test_mensagens_tem_sistema_primeiro_e_usuario_por_ultimo() -> None:

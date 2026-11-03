@@ -25,7 +25,7 @@ from functools import lru_cache
 from app.modules.ai.application.ports import LLMMessage
 from app.modules.ai.domain.types import Locale
 
-_SYSTEM_PROMPT_FILE = "system_prompt.chat.v1.txt"
+_SYSTEM_PROMPT_FILE = "system_prompt.chat.v2.txt"
 
 # Variacoes possiveis do delimitador (tentativa de fuga), com e sem acento:
 # remove qualquer ocorrencia de tags parecidas com <dados_nao_confiaveis ...>.
@@ -81,8 +81,8 @@ class PromptBuilder:
         messages: list[LLMMessage] = [
             LLMMessage(
                 role="system",
-                content=self._system_template.format(
-                    locale=locale.value, canary=self._canary_token
+                content=self._system_template.replace("{locale}", locale.value).replace(
+                    "{canary}", self._canary_token
                 ),
             )
         ]

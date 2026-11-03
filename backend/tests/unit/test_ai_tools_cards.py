@@ -15,6 +15,7 @@ from app.modules.ai.application.tools import (
     CatalogTools,
     GetProductArgs,
     ListCategoriesArgs,
+    ProductSearchResult,
     SearchProductsArgs,
     ShippingPolicyArgs,
     ToolProduct,
@@ -31,12 +32,12 @@ class FakeSearchPort:
         self.products = products
         self.last_kwargs: dict[str, object] = {}
 
-    async def search(self, *, query, category, limit, locale, auth):
-        self.last_kwargs = {"query": query, "category": category, "limit": limit}
-        return self.products[:limit]
+    async def search(self, *, query, category, limit, locale, auth, **kwargs):
+        self.last_kwargs = {"query": query, "category": category, "limit": limit, **kwargs}
+        return ProductSearchResult(products=tuple(self.products[:limit]), capped=False)
 
-    async def get(self, *, product_id, locale, auth):
-        return next((p for p in self.products if p.product_id == str(product_id)), None)
+    async def get(self, *, product_ref, locale, auth):
+        return next((p for p in self.products if p.product_id == str(product_ref)), None)
 
 
 class FakeCategoriesPort:
@@ -92,7 +93,17 @@ def test_guard_remove_identidade_do_modelo_e_aplica_allowlist_por_no() -> None:
     )
     assert decision.accepted is True
     assert "identidade_removida" in decision.actions
-    assert set(decision.args.model_dump()) == {"query", "category", "limit"}
+    assert set(decision.args.model_dump()) == {
+        "query",
+        "category",
+        "limit",
+        "price_sort",
+        "price_min",
+        "price_max",
+        "brand",
+        "attributes",
+        "offset",
+    }
     denied = guard.inspect(node="outro_no", name="search_products", raw_args={"query": "capacete"})
     assert denied.accepted is False and denied.reason_code == "tool_fora_do_no"
 
@@ -100,7 +111,14 @@ def test_guard_remove_identidade_do_modelo_e_aplica_allowlist_por_no() -> None:
 def test_registro_tem_exatamente_as_quatro_ferramentas_do_chat() -> None:
     registry = build_tool_registry()
     names = {spec.name for spec in registry.tools_for_node("chat")}
-    assert names == {"search_products", "get_product", "list_categories", "get_shipping_policy"}
+    assert names == {
+        "search_products",
+        "get_product",
+        "compare_products",
+        "list_categories",
+        "get_shipping_policy",
+        "get_order_status",
+    }
     for spec in registry.tools_for_node("chat"):
         assert spec.schema.model_config.get("extra") == "forbid"
 
@@ -149,7 +167,7 @@ async def test_instrucao_embutida_na_descricao_vai_para_quarentena() -> None:
 async def test_get_product_inexistente_nao_quebra() -> None:
     tools, _port = make_tools([product()])
     output = await tools.get_product(
-        GetProductArgs.model_validate({"product_id": OTHER_ID}), locale="pt-BR", auth=None
+        GetProductArgs.model_validate({"product_ref": OTHER_ID}), locale="pt-BR", auth=None
     )
     assert output.product_ids == ()
 
@@ -271,3 +289,14 @@ async def test_quarentena_do_sanitizador_nao_quebra_e_nao_expoe() -> None:
         }
     )
     assert result.quarantined is True and result.context_text is None
+
+
+async def test_busca_repassa_ordenacao_e_filtros_de_preco() -> None:
+    tools, port = make_tools([product()])
+    args = SearchProductsArgs.model_validate(
+        {"query": "luvas", "price_sort": "asc", "price_max": 50, "brand": "Marca X"}
+    )
+    await tools.search_products(args, locale="pt-BR", auth=None)
+    assert port.last_kwargs["price_sort"] == "asc"
+    assert port.last_kwargs["price_max"] == 50
+    assert port.last_kwargs["brand"] == "Marca X"

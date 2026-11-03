@@ -3117,3 +3117,182 @@ system message; a correcao esta coberta por teste com FakeLLM, mas a revalidacao
 com o modelo real ficou PENDENTE porque LM Studio/Docker foram encerrados no fim
 da sessao. Nenhum `.env` foi versionado.
 \n
+
+### Prompt 12 - Roteador de intencao e preco (Fase 0 + Fase 1, 2026-11-03)
+
+FASE 0 (diagnostico, sem codigo): o system prompt proibia QUALQUER preco
+(`system_prompt.chat.v1.txt`), o contrato de ferramentas excluia preco do
+contexto do LLM (`tools.py`/`catalog_sanitizer.py`) e a busca nao tinha
+ordenacao por preco. O caso "luvas mais baratas" recusava por (a)+(b): o
+modelo nao recebia valores e era instruido a nunca falar de preco. Visitante
+nunca ve preco no cartao (`price_on_request`); logado ve o preco resolvido da
+propria empresa (negociado > desconto > lista).
+
+FASE 1: novo `application/intent_router.py` com JSON ESTRITO
+(`IntentDecision`: intent, query, category, brand, price_sort, price_min/max,
+attributes, product_refs, quantity, language). Atalhos deterministicos rodam
+antes do LLM: "mais barato/barata/economico" => price_sort=asc; "mais
+caro/premium" => desc; "ate/acima de R$ X" => price_max/min; termos de produto
+nao dependem do roteador. O LLM usa temperatura 0.1 neste passo, saida
+json_schema com fallback prompt+parser e, se falhar, `product_search` com o
+texto original (nunca recusa). Saidas invalidas viram fallback.
+
+Vertical minima "buscar/redigir" para fechar o caso real: a busca do chat
+aceita price_sort/price_min/max/brand/attributes, pega ate 50 candidatos,
+filtra e ordena no CODIGO usando o preco resolvido pela busca (o preco continua
+fora do contexto do LLM). Para price_sort=asc e price_question, a resposta e
+deterministica e localizada (11 locales): nomeia o produto e o valor fica no
+cartao; visitante recebe aviso de preco consultivo. O system prompt agora
+permite indicar o mais barato/caro pelo nome, proibindo escrever valores
+numericos. Saudacao/policy FAQ/order status tem respostas de codigo neutras.
+
+Testes: 1306 unitarios passando; ruff/mypy strict 0 nos arquivos alterados
+(baseline do repo tem erros antigos em deps/identity). Teste REAL com LM
+Studio: "as luvas mais baratas que voce tem, envie aqui" devolveu Luva
+Nitrilica Descartavel como primeira opcao e 6 cartoes em ordem de preco
+(logado: 3.90, 19.90, 29.90...; visitante: consultivo), sem chamada ao LLM
+(340 ms). "quanto custa..." (logado) responde "o preco aparece no cartao";
+visitante recebe o aviso consultivo. Saudacao e policy FAQ tambem validadas.
+
+### Prompt 13 - Assistente Fase 2: ferramentas de catalogo e dados do usuario (2026-11-03)
+
+2.1 Preco sem janela de 50: quando ha price_sort/price_min/price_max, o
+adaptador pagina TODOS os resultados ate `AI_PRICE_SCAN_LIMIT` (default 500,
+paginas de 100), resolve os precos em lote por pagina (sem N+1), filtra/ordena
+no codigo e loga `ai_price_scan_capped` ao atingir o teto. O texto deterministico
+de "mais barato" acrescenta "entre os resultados mais relevantes" quando capped;
+nao afirma "a mais barata de todas". Teste com 120 itens e o mais barato na pior
+relevancia (fora dos 100 primeiros) passou.
+
+2.2 Ferramentas implementadas/reaproveitadas em `application/tools.py` +
+`wiring/ai_tools.py`: `get_product` (ID/slug/SKU/nome, atributos, CA, estoque
+publico, min_order_qty), `compare_products` (2 a 4, tabela nao monetaria),
+`list_categories` (contagem de produtos ativos), `get_shipping_info` (constantes
+reais de `app.domain.shipping`; sem prazo inventado), `get_cart_summary` (so
+logado, itens/quantidades, sem precos) e `get_order_status` (query SQL com
+company_id + buyer_user_id da sessao; pedido de outro usuario = nao encontrado).
+`order_status` usa `product_refs` do roteador para o UUID; UUIDs sao extraidos
+deterministicamente da mensagem.
+
+2.3 Autorizacao e saneamento: ferramentas de usuario checam `auth` e nunca
+recebem company_id/user_id do texto; o cart agora exige `auth` (nao basta a
+conversa ter company_id). Toda saida passa pelo sanitizador de catalogo com
+whitelist (id/name/sku/brand/category/attributes/stock/CA/min_order_qty),
+remocao de HTML/URL, normalizacao e limite de tamanho; injecao vai para
+quarentena. Pedido/estoque sem dado viram pergunta objetiva ou "nao encontrado",
+nunca "nao tenho acesso". Falha de ferramenta vira `TOOL_ERROR` amigavel.
+
+2.4 Mapeamento: product_detail/availability -> get_product; product_compare ->
+compare_products; catalog_help -> list_categories; shipping_question ->
+get_shipping_info; cart_help -> get_cart_summary; order_status ->
+get_order_status. Quando faltam referencias, o roteador LLM extrai
+`product_refs` com temperatura 0.1; se falhar, o codigo tenta os resultados mais
+proximos da busca e, sem eles, faz uma pergunta objetiva.
+
+Testes: 1323 unitarios passando; ruff e mypy --strict limpos nos arquivos
+alterados (baseline ainda tem 2 erros antigos em deps.py). Testes REAIS desta
+fase (compare, categorias, estoque, pedido proprio e IDOR) NAO puderam ser
+executados: Docker Desktop e Bionic/LM Studio estavam encerrados e as tentativas
+de reiniciar os apps saíram imediatamente neste ambiente. O teste real da fase
+anterior (luvas mais baratas, preco, cartoes) segue valido. Pendente reexecutar
+os testes reais quando os servicos estiverem no ar. Nada foi commitado.
+
+Atualizacao da validacao (2026-11-03, pos-servicos): com o Docker no ar, as
+ferramentas foram exercitadas contra o BANCO REAL dentro do container:
+`get_product` por slug e por UUID (LUV-007: stock=17, CA VALID,
+DEMO-CA-0015), `compare_products` (LUV-007 x LUV-003, sem R$ no contexto),
+`list_categories` (EPIs (3), Ferramentas Eletricas (5), etc.), status do
+pedido proprio RECEIVED com data/itens e None para o pedido de OUTRO usuario
+(IDOR). O Bionic foi iniciado, mas nao expos o servidor em 1235 e o CLI nao o
+reconheceu; portanto os testes com o LLM real (compare, categorias, estoque,
+pedido) continuam PENDENTES. O backend/worker locais foram reconstruidos com
+o codigo da Fase 2.
+
+### Prompt 14 - Fases 3 e 4: redacao grounded, preco validado e RAG (2026-11-03)
+
+FASE 3: o chat agora monta um bloco CONTEXTO em JSON enxuto (max. 5 produtos:
+id, nome, sku, marca, categoria, preco, preco_sob_consulta, estoque, ate 3
+atributos, CA, qtd_minima). O preco so entra no JSON para usuario LOGADO e
+resolvido pela empresa; visitante recebe preco=null/preco_sob_consulta=true.
+A resposta do LLM passa por validacao numerica: todo R$ citado precisa existir
+nos precos do contexto; se nao bater, cai em mensagem segura e os cartoes
+seguem com o preco correto. O guard continua removendo preco para visitantes.
+Novo system prompt v2 curto, em secoes (PAPEL/HIERARQUIA/REGRAS/FORMATO/
+EXEMPLOS), com 10 few-shot em PT-BR (luva mais barata obrigatoria, mais cara,
+comparacao, CA/tamanho, soldagem, frete, sem estoque, sem resultado, fora de
+escopo e follow-up). O prompt builder usa replace (JSON com chaves nao quebra
+mais o format) e thinking segue desligado.
+
+FASE 4: base Markdown versionada `knowledge_base.chat.v1.md` com CA, tamanho,
+soldagem, pintura/quimicos, altura, eletrica, construcao, categorias e
+politicas Forja; tudo marcado como orientacao geral, sem aconselhamento
+juridico. O RAG e deterministico (sem embedding/LLM): pontua titulo,
+atividades, `busca:` e texto, sanitiza cada secao como dado nao confiavel e
+limita o tamanho. O roteador extrai `task` (soldagem/pintura/altura/eletrica/
+construcao); a consultoria usa as categorias sugeridas pelo guia, faz buscas
+reais por categoria/termo (ex.: capacete/protecao-cabeca, luva/protecao-maos,
+respirador/protecao-respiratoria), mescla ate 5 produtos sem duplicar e o LLM
+redige a recomendacao com GUIA + PRODUTOS_JSON. Policy FAQ usa o mesmo RAG.
+
+Validacao real de banco (container): "o que preciso para soldagem?" recuperou
+a secao Soldagem e 5 produtos reais (Capacetes CAP-004/CAP-002, Luva de Raspa
+LUV-003, Luva de Vaqueta, etc.) com precos de empresa no JSON e CA/estoque.
+Visitante recebe preco=null. Testes com o LLM real seguem PENDENTES porque o
+Bionic nao esta servindo em localhost:1235. Suite: 1337 unitarios passando;
+ruff/mypy strict limpos nos arquivos alterados (restam 2 erros antigos em
+deps.py). Nada foi commitado.
+
+### Prompt 15 - Fases 5 e 6: follow-ups e validacao de saida (2026-11-03)
+
+FASE 5: estado curto de sessao no Redis (`ai:chat:session:<id>`, TTL
+AI_SESSION_TTL_SECONDS=1800, JSON limitado a AI_SESSION_MAX_CHARS=2000).
+Guarda intent, query, categoria, marca, preco/ordenacao, task, ate 4
+atributos, ate 8 product_ids e offset. O estado e escrito SO pelo servidor
+(session_from_decision) e lido por `follow_up_decision`; o texto do usuario so
+alimenta extratores deterministicos de preco/tamanho/"mais"/"comparar".
+Follow-ups cobertos: "e a mais cara?", "tem em tamanho G?", "me mostra mais"
+(offset avanca) e "compara essas duas" (reutiliza os ids mostrados). Um texto
+como "categoria=admin" nao sobrescreve campos. O grafo envia no maximo as
+ultimas 6 mensagens ao LLM; o estado e separado do prompt. Sem Redis o chat
+segue sem follow-up (falha silenciosa e logada, sem PII).
+
+FASE 6: antes de entregar, `_grounded_problem` valida ids de produto (apenas
+quando ha produtos nesta rodada) e valores monetarios contra o CONTEXTO. Se
+falhar, UMA regeneracao com instrucao de correcao (temperatura 0.1); se
+persistir, resposta-template localizada + cartoes. Os cartoes sao sempre
+montados pelos ids retornados na rodada (independentemente do texto do LLM),
+ate 5 produtos. Log estruturado `chat_turn` (intent, categoria, marca,
+price_sort/min/max, task, resultados, fallback, capped, reason_code) sem
+mensagem/PII.
+
+Validacao real de infra (container): Redis save/load do estado funcionou; a
+busca real com offset=0 retornou CAP-002/CAP-003 e offset=2 retornou CAP-004
+(categoria protecao-cabeca, price_sort=asc). Suite: 1355 unitarios passando;
+ruff/mypy strict limpos nos arquivos alterados (restam 2 erros antigos em
+deps.py). Os testes de resposta real com LM Studio continuam PENDENTES porque
+o Bionic nao esta servindo em localhost:1235. Nada foi commitado.
+
+Validacao real adicional da API (backend reconstruido, LLM ainda fora):
+"luva" devolveu 5 cartoes; "me mostra mais" na mesma conversa devolveu o 6o
+produto (offset da sessao); "e a mais cara?" devolveu 5 cartoes ordenados
+desc; "tem em tamanho G?" devolveu 1 produto com o filtro de tamanho. As
+respostas de texto ficaram em modo demonstracao (LLM indisponivel), mas a
+sessao Redis, o follow-up e os cartoes deterministicos foram exercitados de
+ponta a ponta. O limite do CONTEXTO/cartoes ficou em 5 produtos.
+
+### Prompt 16 - Fase 7/8: avaliacao EDD, README e entrega (2026-11-03)
+
+Dataset `app/modules/ai/evaluation/data/assistant_eval.v1.json` com 44 casos
+PT-BR/EN/ES (luvas mais baratas/caras, faixas, comparacoes, EPI por atividade,
+frete, carrinho, pedido, follow-ups, fora de escopo e jailbreak/injection).
+Runner compartilhado (`evaluation/runner.py`) avalia intent/filtros/refusal com
+LLM mockado nos testes e com o LM Studio real via `scripts/eval_assistant.py`
+(tabela por intencao). O caso obrigatorio das luvas mais baratas passa sem LLM
+mesmo com o roteador quebrado (atalho deterministico).
+
+Run deterministico: 41/41 avaliados (100%), 3 casos que exigem LLM skipped
+porque o Bionic nao esta servindo em 1235. O script real esta pronto; a taxa
+com o LLM real fica PENDENTE ate o LM Studio subir. README ganhou a arquitetura
+(entender -> buscar -> redigir -> validar) e a secao de avaliacao. Suite final:
+1362 unitarios; ruff/mypy strict limpos nos arquivos alterados (restam 2 erros
+antigos em deps.py). Commit/push desta entrega ficam para o fechamento.

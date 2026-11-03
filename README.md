@@ -252,6 +252,59 @@ O compromisso é explícito: **a IA é um extra, não uma dependência**. Em pro
   traduzido é usado. Desconto (máx. 3%, só para quem já comprou) e frete grátis são
   decididos exclusivamente pelo código.
 
+### Arquitetura do assistente
+
+```text
+Usuário
+  │
+  ▼
+[input guard]  injection/jailbreak, tamanho, janela, rate limit
+  │
+  ▼
+[entender]  atalhos determinísticos (preço/tamanho/produto/frete) + LLM JSON
+  │         IntentDecision: intent, query, filtros, task, refs, offset
+  ▼
+[buscar]    ferramentas de catálogo/carrinho/pedido + RAG Markdown
+  │         IDs, preço da empresa, estoque, CA e atributos vêm do banco
+  ▼
+[redigir]   LLM recebe CONTEXTO JSON (máx. 5 produtos) + GUIA quando houver
+  │         preço só entra para logado; visitante recebe "sob consulta"
+  ▼
+[validar]   IDs citados e valores conferem com a rodada; 1 regeneração
+  │         se falhar, template + cartões; cards são montados pelo backend
+  ▼
+Resposta + cartões (imagem, nome, preço, link)
+```
+
+O estado de follow-up (última intenção, filtros, produtos e offset) fica no
+Redis por conversa, com TTL curto e limite de tamanho. O texto do usuário não
+sobrescreve esse estado. O histórico enviado ao modelo é limitado às últimas
+6 mensagens.
+
+### Avaliação (EDD)
+
+O dataset versionado `backend/app/modules/ai/evaluation/data/assistant_eval.v1.json`
+tem 44 casos em PT-BR/EN/ES: luvas mais baratas/caras, faixas de preço,
+comparações, EPI por atividade, frete, carrinho, pedido, follow-ups, fora de
+escopo e jailbreak/injection. Cada caso define a intenção, filtros e/ou
+recusa esperados de forma verificável.
+
+Os testes automatizados usam o mesmo runner com LLM mockado. Para avaliar o
+roteador com o LM Studio real:
+
+```bash
+# backend/.venv/Scripts/python.exe no Windows
+backend/.venv/Scripts/python.exe scripts/eval_assistant.py
+# sem LLM (atalhos determinísticos; casos que exigem modelo ficam skipped)
+backend/.venv/Scripts/python.exe scripts/eval_assistant.py --deterministic-only
+```
+
+O script imprime a taxa de acerto por intenção e o resultado geral. No último
+run determinístico: **41/41 casos avaliados (100%)**, com 3 casos que exigem
+LLM corretamente marcados como skipped quando o LM Studio não está no ar. O
+caso obrigatório das luvas mais baratas passa **sem chamar o LLM** mesmo se o
+roteador falhar, pois o atalho de preço é determinístico.
+
 ### Rodando a IA localmente com LM Studio
 
 1. Instale o [LM Studio](https://lmstudio.ai/) e baixe o modelo **Qwen 3.5 9B**

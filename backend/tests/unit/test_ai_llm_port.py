@@ -30,11 +30,17 @@ class _ScriptedLLM:
         self.calls = 0
 
     async def complete_structured(
-        self, *, schema: type[_EchoSchema], messages: list[LLMMessage]
+        self,
+        *,
+        schema: type[_EchoSchema],
+        messages: list[LLMMessage],
+        temperature: float | None = None,
     ) -> _EchoSchema:
         return cast("_EchoSchema", await self._next(schema=schema))
 
-    async def complete_text(self, *, messages: list[LLMMessage]) -> str:
+    async def complete_text(
+        self, *, messages: list[LLMMessage], temperature: float | None = None
+    ) -> str:
         return cast("str", await self._next(schema=str))
 
     async def _next(self, *, schema: object) -> object:
@@ -108,7 +114,9 @@ class _BlockingLLM:
         self.active = 0
         self.max_active = 0
 
-    async def complete_text(self, *, messages: list[LLMMessage]) -> str:
+    async def complete_text(
+        self, *, messages: list[LLMMessage], temperature: float | None = None
+    ) -> str:
         self.started += 1
         self.active += 1
         self.max_active = max(self.max_active, self.active)

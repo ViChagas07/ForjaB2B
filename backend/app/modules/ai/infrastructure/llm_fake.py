@@ -31,7 +31,11 @@ class FakeLLM:
         self.text_calls: list[list[LLMMessage]] = []
 
     async def complete_structured(
-        self, *, schema: type[TModel], messages: list[LLMMessage]
+        self,
+        *,
+        schema: type[TModel],
+        messages: list[LLMMessage],
+        temperature: float | None = None,
     ) -> TModel:
         self.structured_calls.append((schema, list(messages)))
         item = self._next(self._structured, schema=schema)
@@ -39,7 +43,9 @@ class FakeLLM:
             raise AssertionError(f"FakeLLM: roteiro nao e {schema.__name__}")
         return item
 
-    async def complete_text(self, *, messages: list[LLMMessage]) -> str:
+    async def complete_text(
+        self, *, messages: list[LLMMessage], temperature: float | None = None
+    ) -> str:
         self.text_calls.append(list(messages))
         item = self._next(self._texts, schema=str)
         if not isinstance(item, str):

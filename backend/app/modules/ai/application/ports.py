@@ -47,10 +47,16 @@ class LLMPort(Protocol):
     """Porta de acesso a um LLM compativel com API OpenAI (ou fake de teste)."""
 
     async def complete_structured(
-        self, *, schema: type[TModel], messages: Sequence[LLMMessage]
+        self,
+        *,
+        schema: type[TModel],
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
     ) -> TModel: ...
 
-    async def complete_text(self, *, messages: Sequence[LLMMessage]) -> str: ...
+    async def complete_text(
+        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+    ) -> str: ...
 
 
 class ResilientLLM:
@@ -75,15 +81,23 @@ class ResilientLLM:
         self._sleep = sleep
 
     async def complete_structured(
-        self, *, schema: type[TModel], messages: Sequence[LLMMessage]
+        self,
+        *,
+        schema: type[TModel],
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
     ) -> TModel:
         return await self._call_with_resilience(
-            lambda: self._inner.complete_structured(schema=schema, messages=messages)
+            lambda: self._inner.complete_structured(
+                schema=schema, messages=messages, temperature=temperature
+            )
         )
 
-    async def complete_text(self, *, messages: Sequence[LLMMessage]) -> str:
+    async def complete_text(
+        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+    ) -> str:
         return await self._call_with_resilience(
-            lambda: self._inner.complete_text(messages=messages)
+            lambda: self._inner.complete_text(messages=messages, temperature=temperature)
         )
 
     async def _call_with_resilience(self, call: Callable[[], Awaitable[TReturn]]) -> TReturn:
@@ -132,14 +146,24 @@ class ConcurrencyLimitedLLM:
         self._condition = asyncio.Condition()
 
     async def complete_structured(
-        self, *, schema: type[TModel], messages: Sequence[LLMMessage]
+        self,
+        *,
+        schema: type[TModel],
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
     ) -> TModel:
         async with self._slot():
-            return await self._inner.complete_structured(schema=schema, messages=messages)
+            return await self._inner.complete_structured(
+                schema=schema, messages=messages, temperature=temperature
+            )
 
-    async def complete_text(self, *, messages: Sequence[LLMMessage]) -> str:
+    async def complete_text(
+        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+    ) -> str:
         async with self._slot():
-            return await self._inner.complete_text(messages=messages)
+            return await self._inner.complete_text(
+                messages=messages, temperature=temperature
+            )
 
     @asynccontextmanager
     async def _slot(self) -> AsyncIterator[None]:

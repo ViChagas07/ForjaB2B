@@ -302,12 +302,18 @@ def test_produto_malicioso_nunca_chega_ao_fakellm_fora_do_bloco_delimitado() -> 
 
     class SpyLLM:
         async def complete_structured(
-            self, *, schema: object, messages: list[dict[str, str]]
+            self,
+            *,
+            schema: object,
+            messages: list[dict[str, str]],
+            temperature: float | None = None,
         ) -> object:
             captured.append(list(messages))
             raise AssertionError("nao deveria ser chamado neste teste")
 
-        async def complete_text(self, *, messages: list[dict[str, str]]) -> str:
+        async def complete_text(
+            self, *, messages: list[dict[str, str]], temperature: float | None = None
+        ) -> str:
             captured.append(list(messages))
             return "ok"
 

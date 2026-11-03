@@ -423,6 +423,11 @@ class Settings(BaseSettings):
     # NUNCA inclui precos, CNPJ, e-mail, telefone ou dados de contrato.
     ai_chat_max_message_chars: int = Field(default=500, ge=1)
     ai_chat_history_turns: int = Field(default=6, ge=1, le=40)
+    # Teto de candidatos varridos quando o chat ordena/filtra por preco.
+    ai_price_scan_limit: int = Field(default=500, ge=50, le=2000)
+    # Estado curto de follow-up (ultima intencao/filtros/produtos) no Redis.
+    ai_session_ttl_seconds: int = Field(default=1800, ge=60, le=86400)
+    ai_session_max_chars: int = Field(default=2000, ge=500, le=10000)
     # Retencao da conversa do chat (agent_conversations) para auditoria/TTL.
     ai_conversation_ttl_days: int = Field(default=30, ge=1)
     # Limpeza diaria de conversas de chat expiradas (lote por execucao).

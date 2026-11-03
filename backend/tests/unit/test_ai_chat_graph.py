@@ -8,10 +8,12 @@ import pytest
 from app.modules.ai.application.chat_graph import (
     AnswerDecision,
     ChatGraph,
-    ChatIntent,
-    RouterDecision,
+    IntentDecision,
+    IntentName,
 )
+from app.modules.ai.application.chat_session import InMemoryChatSessionStore
 from app.modules.ai.application.conversation_service import ConversationService  # noqa: F401
+from app.modules.ai.application.knowledge import KnowledgeSection
 from app.modules.ai.application.ports import ChatTurn, ConversationView
 from app.modules.ai.application.product_cards import (
     HydratedProduct,
@@ -19,8 +21,20 @@ from app.modules.ai.application.product_cards import (
 )
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
-from app.modules.ai.application.tools import CatalogTools, ToolProduct
-from app.modules.ai.domain.degradation import demo_mode_response
+from app.modules.ai.application.tools import (
+    CatalogTools,
+    ProductSearchResult,
+    ToolOrderStatus,
+    ToolProduct,
+)
+from app.modules.ai.domain.degradation import (
+    demo_mode_response,
+    grounding_fallback_response,
+    info_response,
+    login_required_response,
+    not_found_response,
+    tool_error_response,
+)
 from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.types import Locale
 from app.modules.ai.infrastructure.llm_fake import FakeLLM
@@ -42,16 +56,34 @@ class FakeSearch:
     def __init__(self, products: list[ToolProduct]) -> None:
         self.products = products
 
-    async def search(self, *, query, category, limit, locale, auth):
-        return self.products[:limit]
+    async def search(self, *, query, category, limit, locale, auth, **kwargs):
+        self.last_kwargs = {
+            "query": query,
+            "category": category,
+            "limit": limit,
+            **kwargs,
+        }
+        return ProductSearchResult(products=tuple(self.products[:limit]), capped=False)
 
-    async def get(self, *, product_id, locale, auth):
-        return None
+    async def get(self, *, product_ref, locale, auth):
+        wanted = str(product_ref)
+        for item in self.products:
+            if item.product_id == wanted or item.sku == wanted:
+                return item
+        return self.products[0] if self.products else None
 
 
 class FakeCategories:
     async def list_categories(self, *, locale):
-        return ["EPI"]
+        return ["EPI (3)"]
+
+
+class FakeOrderStatus:
+    def __init__(self, orders: dict[str, ToolOrderStatus] | None = None) -> None:
+        self.orders = orders or {}
+
+    async def get_order_status(self, *, order_id, company_id, user_id):
+        return self.orders.get(str(order_id))
 
 
 class FakeHydrator:
@@ -98,6 +130,8 @@ def product(
         category="epi",
         attributes={"tamanho": "M"},
         description=description,
+        price=Decimal("3.90"),
+        price_on_request=False,
     )
 
 
@@ -128,13 +162,19 @@ def build(
     *,
     llm: object | None,
     products: list[ToolProduct] | None = None,
+    search_port: object | None = None,
+    order_status: FakeOrderStatus | None = None,
+    knowledge: object | None = None,
+    session_store: object | None = None,
     ai_enabled: bool = True,
     history: list[ChatTurn] | None = None,
 ):
     conversations = FakeConversations()
     audit = FakeAudit()
     tools = CatalogTools(
-        search_port=FakeSearch(products or [product()]), categories_port=FakeCategories()
+        search_port=search_port or FakeSearch(products or [product()]),
+        categories_port=FakeCategories(),
+        order_status_port=order_status or FakeOrderStatus(),
     )
     graph = ChatGraph(
         llm=llm,  # type: ignore[arg-type]
@@ -147,6 +187,8 @@ def build(
         ),
         conversations=conversations,  # type: ignore[arg-type]
         cart_summary=FakeCartSummary(),
+        knowledge=knowledge,
+        session_store=session_store,
         audit=audit,
         ai_enabled=ai_enabled,
         tag_factory=lambda: "TAG",
@@ -196,16 +238,16 @@ async def test_id_forjado_do_llm_e_descartado() -> None:
 @pytest.mark.parametrize(
     ("intent", "expected_cards"),
     [
-        (ChatIntent.SHIPPING_POLICY, 0),
-        (ChatIntent.CATALOG_HELP, 0),
-        (ChatIntent.CART_HELP, 0),
-        (ChatIntent.OFF_TOPIC, 0),
+        (IntentName.SHIPPING_QUESTION, 0),
+        (IntentName.CATALOG_HELP, 0),
+        (IntentName.CART_HELP, 0),
+        (IntentName.OUT_OF_SCOPE, 0),
     ],
 )
-async def test_intents_sem_cartoes(intent: ChatIntent, expected_cards: int) -> None:
+async def test_intents_sem_cartoes(intent: IntentName, expected_cards: int) -> None:
     llm = FakeLLM(
         structured=[
-            RouterDecision(intent=intent),
+            IntentDecision(intent=intent, language="pt-BR"),
             AnswerDecision(reply="Resposta curta.", product_ids=[PRODUCT_ID]),
         ]
     )
@@ -383,6 +425,10 @@ async def test_uuid_forjado_citado_no_texto_e_removido() -> None:
                 reply=f"Veja {FORGED_ID} e {PRODUCT_ID}.",
                 product_ids=[PRODUCT_ID],
             ),
+            AnswerDecision(
+                reply=f"Veja {PRODUCT_ID}.",
+                product_ids=[PRODUCT_ID],
+            ),
         ]
     )
     graph, _c, _a, _h = build(llm=llm)
@@ -434,3 +480,423 @@ async def test_prompt_de_resposta_tem_um_unico_system_no_inicio() -> None:
     # system no meio retorna HTTP 400 ("System message must be at the beginning").
     assert roles[0] == "system"
     assert roles.count("system") == 1
+
+
+async def test_luvas_mais_baratas_responde_sem_llm_e_devolve_cartao() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="as luvas mais baratas que você tem, envie aqui",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.degraded is False
+    assert "mais econômica" in result.reply
+    assert "Capacete para Soldador" in result.reply
+    assert [card.product_id for card in result.cards] == [PRODUCT_ID]
+    assert llm.structured_calls == []
+
+
+async def test_visitante_que_pede_mais_barato_recebe_aviso_de_preco_consultivo() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="quais as luvas mais baratas?",
+        history=[],
+        auth=None,
+    )
+    assert "consultivos" in result.reply
+    assert result.cards[0].price is None
+    assert result.cards[0].price_on_request is True
+
+
+async def test_pergunta_de_preco_logado_nao_diz_consultivo() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="quanto custa a luva nitrílica?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.degraded is False
+    assert "aparece no cartão" in result.reply
+    assert "consultivo" not in result.reply
+    assert result.cards[0].price == "777.00"
+    assert llm.structured_calls == []
+
+
+PRODUCT2_ID = "aaaaaaaa-bbbb-4ccc-8ddd-000000000002"
+ORDER_ID = "99999999-9999-4999-8999-999999999999"
+
+
+def product2() -> ToolProduct:
+    return ToolProduct(
+        product_id=PRODUCT2_ID,
+        name="Luva de Raspa",
+        sku="LUV-RASPA",
+        brand="ForjaSafe",
+        category="epi",
+        attributes={"material": "raspa"},
+        description="Luva resistente.",
+        price=Decimal("19.90"),
+        price_on_request=False,
+    )
+
+
+class BrokenSearch:
+    async def search(self, **_kwargs):
+        raise RuntimeError("catalogo fora")
+
+    async def get(self, **_kwargs):
+        raise RuntimeError("catalogo fora")
+
+
+async def test_compare_usa_ferramenta_e_responde_com_contexto() -> None:
+    llm = FakeLLM(
+        structured=[
+            IntentDecision(
+                intent=IntentName.PRODUCT_COMPARE,
+                query="luva",
+                product_refs=[PRODUCT_ID, PRODUCT2_ID],
+                language="pt-BR",
+            ),
+            AnswerDecision(
+                reply="A luva nitrílica é mais leve; a de raspa é mais resistente.",
+                product_ids=[PRODUCT_ID, PRODUCT2_ID],
+            ),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm, products=[product(), product2()])
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="compare a luva nitrílica com a luva de raspa",
+        history=[],
+        auth=auth_like(),
+    )
+    assert "nitrílica" in result.reply.lower()
+    assert result.degraded is False
+    assert result.cards
+
+
+async def test_disponibilidade_usa_get_product() -> None:
+    llm = FakeLLM(
+        structured=[
+            IntentDecision(
+                intent=IntentName.AVAILABILITY,
+                query="luva",
+                product_refs=[PRODUCT_ID],
+                language="pt-BR",
+            ),
+            AnswerDecision(reply="Tem 12 unidades.", product_ids=[PRODUCT_ID]),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="tem a luva em estoque?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == "Tem 12 unidades."
+    assert [card.product_id for card in result.cards] == [PRODUCT_ID]
+
+
+async def test_pedido_do_proprio_usuario_responde_status() -> None:
+    orders = FakeOrderStatus(
+        {
+            ORDER_ID: ToolOrderStatus(
+                order_id=ORDER_ID,
+                status="PAID",
+                created_at="2026-11-01T12:00:00+00:00",
+                item_count=3,
+            )
+        }
+    )
+    llm = FakeLLM(
+        structured=[AnswerDecision(reply=f"Seu pedido {ORDER_ID} está pago.", product_ids=[])]
+    )
+    graph, _c, _a, _h = build(llm=llm, order_status=orders)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message=f"como está meu pedido {ORDER_ID}?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == f"Seu pedido {ORDER_ID} está pago."
+    assert result.cards == []
+    assert result.degraded is False
+
+
+async def test_pedido_de_outro_usuario_nao_vaza() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm, order_status=FakeOrderStatus())
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message=f"como está meu pedido {ORDER_ID}?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == not_found_response(Locale.PT_BR)
+    assert result.cards == []
+    assert llm.structured_calls == []
+
+
+async def test_carrinho_sem_login_pede_entrada_na_conta() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="o que tem no meu carrinho?",
+        history=[],
+        auth=None,
+    )
+    assert result.reply == login_required_response(Locale.PT_BR)
+    assert result.cards == []
+
+
+async def test_falha_de_ferramenta_vira_mensagem_amigavel() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm, search_port=BrokenSearch())
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="capacete",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == tool_error_response(Locale.PT_BR)
+    assert result.cards == []
+
+
+class CappedSearch(FakeSearch):
+    async def search(self, **_kwargs: object) -> ProductSearchResult:
+        return ProductSearchResult(products=tuple(self.products), capped=True)
+
+
+async def test_preco_asc_quando_teto_atingido_nao_promete_o_mais_barato_de_todos() -> None:
+    graph, _c, _a, _h = build(llm=FakeLLM(), search_port=CappedSearch([product()]))
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="quais as luvas mais baratas?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert "resultados mais relevantes" in result.reply
+    assert "mais barata de todas" not in result.reply.lower()
+
+
+async def test_resposta_com_preco_do_contexto_e_aceita() -> None:
+    llm = FakeLLM(
+        structured=[AnswerDecision(reply="A Luva custa R$ 3,90.", product_ids=[PRODUCT_ID])]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="me mostre a luva nitrílica",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == "A Luva custa R$ 3,90."
+    assert result.degraded is False
+
+
+async def test_preco_inventado_reprova_e_usa_cartoes() -> None:
+    llm = FakeLLM(
+        structured=[AnswerDecision(reply="A Luva custa R$ 99,00.", product_ids=[PRODUCT_ID])]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="me mostre a luva nitrílica",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == grounding_fallback_response(Locale.PT_BR)
+    assert [card.product_id for card in result.cards] == [PRODUCT_ID]
+
+
+class FakeKnowledge:
+    def __init__(self, section: KnowledgeSection) -> None:
+        self.section = section
+
+    def search(self, query: str, *, limit: int = 2) -> tuple[KnowledgeSection, ...]:
+        return (self.section,)
+
+
+async def test_consultoria_de_soldagem_usa_guia_e_produtos_reais() -> None:
+    knowledge = FakeKnowledge(
+        KnowledgeSection(
+            title="Soldagem",
+            text="Para soldagem, priorize capacete com viseira e luva de raspa.",
+            categories=("epi",),
+            activities=("soldagem",),
+        )
+    )
+    llm = FakeLLM(
+        structured=[
+            AnswerDecision(
+                reply="Para soldagem, use capacete com viseira e luva de raspa.",
+                product_ids=[PRODUCT_ID],
+            )
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm, knowledge=knowledge)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="o que preciso para soldagem?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == "Para soldagem, use capacete com viseira e luva de raspa."
+    assert [card.product_id for card in result.cards] == [PRODUCT_ID]
+    sent = " ".join(str(m["content"]) for m in llm.structured_calls[0][1])
+    assert "GUIA" in sent
+    assert "PRODUTOS_JSON" in sent
+
+
+async def test_policy_faq_usa_base_de_conhecimento() -> None:
+    knowledge = FakeKnowledge(
+        KnowledgeSection(
+            title="Políticas Forja",
+            text="Trocas seguem a política do pedido; confirme com o time Forja.",
+            categories=(),
+            activities=("troca",),
+        )
+    )
+    llm = FakeLLM(
+        structured=[
+            AnswerDecision(
+                reply="Trocas seguem a política do pedido; confirme com o time Forja.",
+                product_ids=[],
+            )
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm, knowledge=knowledge)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="qual o prazo de troca?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert "política do pedido" in result.reply
+    assert result.cards == []
+
+
+async def test_sem_base_de_conhecimento_cai_em_info() -> None:
+    graph, _c, _a, _h = build(llm=FakeLLM(), knowledge=None)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="qual o prazo de troca?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == info_response(Locale.PT_BR)
+
+
+async def test_visitante_nunca_recebe_preco_do_llm() -> None:
+    llm = FakeLLM(
+        structured=[AnswerDecision(reply="A Luva custa R$ 3,90.", product_ids=[PRODUCT_ID])]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="me mostre a luva nitrílica",
+        history=[],
+        auth=None,
+    )
+    assert "3,90" not in result.reply
+    assert "R$" not in result.reply
+
+
+async def test_followup_reutiliza_estado_da_sessao() -> None:
+    store = InMemoryChatSessionStore(ttl_seconds=300)
+    search = FakeSearch([product()])
+    llm = FakeLLM(
+        structured=[
+            AnswerDecision(reply="Temos luvas.", product_ids=[PRODUCT_ID]),
+            AnswerDecision(reply="A mais cara é a Luva.", product_ids=[PRODUCT_ID]),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm, search_port=search, session_store=store)
+    first = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="luvas",
+        history=[],
+        auth=auth_like(),
+    )
+    assert first.reply == "Temos luvas."
+    saved = await store.load(CONVERSATION.id)
+    assert saved is not None
+    assert saved.query == "luvas"
+
+    second = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="e a mais cara?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert second.reply == "A mais cara é a Luva."
+    assert search.last_kwargs["price_sort"] == "desc"
+    assert search.last_kwargs["query"] == "luvas"
+    updated = await store.load(CONVERSATION.id)
+    assert updated is not None
+    assert updated.price_sort == "desc"
+
+
+async def test_reparo_uma_vez_corrige_preco_inventado() -> None:
+    llm = FakeLLM(
+        structured=[
+            AnswerDecision(reply="A Luva custa R$ 99,00.", product_ids=[PRODUCT_ID]),
+            AnswerDecision(reply="A Luva custa R$ 3,90.", product_ids=[PRODUCT_ID]),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="me mostre a luva nitrílica",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == "A Luva custa R$ 3,90."
+    assert len(llm.structured_calls) == 2
+
+
+async def test_reparo_com_id_forjado_e_aceito_quando_corrige() -> None:
+    forged = "aaaaaaaa-bbbb-4ccc-8ddd-0000000000ff"
+    llm = FakeLLM(
+        structured=[
+            AnswerDecision(reply=f"Veja {forged}.", product_ids=[forged]),
+            AnswerDecision(reply="Veja esta opção.", product_ids=[PRODUCT_ID]),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="me mostre a luva nitrílica",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == "Veja esta opção."
+    assert [card.product_id for card in result.cards] == [PRODUCT_ID]

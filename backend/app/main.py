@@ -80,10 +80,12 @@ from app.interface.v1.router import api_v1_router
 from app.modules.ai.application.chat import ChatService
 from app.modules.ai.application.chat_graph import ChatGraph
 from app.modules.ai.application.conversation_service import ConversationService
+from app.modules.ai.application.knowledge import default_knowledge_base
 from app.modules.ai.application.security.budget import InMemoryDailyTokenBudget
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
 from app.modules.ai.infrastructure.chat_audit import SqlAlchemyChatAudit
+from app.modules.ai.infrastructure.chat_session import RedisChatSessionStore
 from app.modules.ai.infrastructure.chat_repository import SqlAlchemyConversationRepository
 from app.modules.ai.infrastructure.llm_health import LLMHealthProbe
 from app.modules.ai.infrastructure.llm_openai import build_resilient_llm
@@ -643,8 +645,8 @@ class _CartSummaryAdapter:
         if view is None or not view.items:
             return "carrinho vazio"
         total_qty = sum(item.quantity for item in view.items)
-        names = ", ".join(item.name for item in view.items[:5])
-        return f"{len(view.items)} itens, {total_qty} unidades: {names}"
+        items = "; ".join(f"{item.quantity}x {item.name}" for item in view.items[:5])
+        return f"{len(view.items)} itens, {total_qty} unidades: {items}"
 
 
 class _CheckoutCartAdapter:
@@ -695,6 +697,7 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
         search_products=app.state.search_products,
         product_reader=app.state.search_product_reader,
         uow_factory=app.state.uow_factory,
+        price_scan_limit=settings.ai_price_scan_limit,
     )
     ai_conversations = ConversationService(
         repository=SqlAlchemyConversationRepository(app.state.uow_factory),
@@ -715,6 +718,8 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
             ),
             conversations=ai_conversations,
             cart_summary=_CartSummaryAdapter(app.state.cart_service),
+            knowledge=default_knowledge_base(),
+            session_store=app.state.ai_session_store,
             audit=SqlAlchemyChatAudit(app.state.uow_factory),
             ai_enabled=settings.ai_agents_enabled,
             history_turns=settings.ai_chat_history_turns,
@@ -824,6 +829,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.db_engine = engine
     app.state.redis_client = redis_client
     app.state.rate_limiter = _build_rate_limiter(settings, redis_client)
+    app.state.ai_session_store = RedisChatSessionStore(
+        redis_client=redis_client,
+        ttl_seconds=settings.ai_session_ttl_seconds,
+        max_chars=settings.ai_session_max_chars,
+    )
     app.state.login_throttle = _build_login_throttle(settings, redis_client)
     app.state.search_suggest_cache = SuggestCache(
         redis_client=redis_client,

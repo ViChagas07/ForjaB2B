@@ -58,3 +58,302 @@ _DEMO_MODE: dict[str, str] = {
 def demo_mode_response(locale: Locale) -> str:
     """Aviso traduzido de modo demonstracao (fallback pt-BR)."""
     return _DEMO_MODE.get(locale.value, _DEMO_MODE["pt-BR"])
+
+
+_GREETING: dict[str, str] = {
+    "pt-BR": "Olá! Como posso ajudar com o catálogo Forja?",
+    "en": "Hello! How can I help you with the Forja catalog?",
+    "es": "¡Hola! ¿Cómo puedo ayudarte con el catálogo Forja?",
+    "ar": "مرحبًا! كيف يمكنني مساعدتك في كتالوج Forja؟",
+    "de": "Hallo! Wie kann ich Ihnen mit dem Forja-Katalog helfen?",
+    "fr": "Bonjour ! Comment puis-je vous aider avec le catalogue Forja ?",
+    "it": "Ciao! Come posso aiutarti con il catalogo Forja?",
+    "ja": "こんにちは！Forjaカタログについてお手伝いできますか？",  # noqa: RUF001
+    "ko": "안녕하세요! Forja 카탈로그에서 무엇을 도와드릴까요?",
+    "ru": "Здравствуйте! Чем я могу помочь по каталогу Forja?",
+    "zh-CN": "您好！我能帮您了解 Forja 目录吗？",  # noqa: RUF001
+}
+
+_INFO: dict[str, str] = {
+    "pt-BR": (
+        "Para condições comerciais, pedidos ou políticas, acesse sua conta ou fale "
+        "com o time Forja."
+    ),
+    "en": (
+        "For commercial terms, orders or policies, access your account or contact the Forja team."
+    ),
+    "es": (
+        "Para condiciones comerciales, pedidos o políticas, accede a tu cuenta o "
+        "contacta al equipo Forja."
+    ),
+    "ar": ("للشروط التجارية أو الطلبات أو السياسات، ادخل إلى حسابك أو تواصل مع فريق Forja."),
+    "de": (
+        "Für Geschäftsbedingungen, Bestellungen oder Richtlinien greifen Sie auf Ihr "
+        "Konto zu oder kontaktieren Sie das Forja-Team."
+    ),
+    "fr": (
+        "Pour les conditions commerciales, les commandes ou les politiques, accédez "
+        "à votre compte ou contactez l'équipe Forja."
+    ),
+    "it": (
+        "Per condizioni commerciali, ordini o politiche, accedi al tuo account o "
+        "contatta il team Forja."
+    ),
+    "ja": (
+        "商取引条件、ご注文、ポリシーについては、アカウントにアクセスするか"
+        "Forjaチームまでお問い合わせください。"
+    ),
+    "ko": ("상업 조건, 주문 또는 정책은 계정에 로그인하거나 Forja 팀에 문의하세요."),
+    "ru": (
+        "По коммерческим условиям, заказам или правилам войдите в аккаунт или "
+        "свяжитесь с командой Forja."  # noqa: RUF001
+    ),
+    "zh-CN": "有关商业条款、订单或政策，请登录账户或联系 Forja 团队。",  # noqa: RUF001
+}
+
+_PRICE_ASC: dict[str, str] = {
+    "pt-BR": "A opção mais econômica que encontrei é {name}. Veja o cartão abaixo.",
+    "en": "The most affordable option I found is {name}. See the card below.",
+    "es": "La opción más económica que encontré es {name}. Consulta la tarjeta de abajo.",
+    "ar": "الخيار الأكثر اقتصاديًا الذي وجدته هو {name}. راجع البطاقة أدناه.",
+    "de": "Die günstigste Option, die ich gefunden habe, ist {name}. Siehe Karte unten.",
+    "fr": "L'option la plus économique que j'ai trouvée est {name}. Voir la fiche ci-dessous.",
+    "it": "L'opzione più economica che ho trovato è {name}. Vedi la scheda qui sotto.",
+    "ja": "見つけた中で最もお手頃なのは {name} です。下のカードをご覧ください。",
+    "ko": "가장 경제적인 옵션은 {name}입니다. 아래 카드를 확인하세요.",
+    "ru": "Самый доступный вариант, который я нашёл: {name}. См. карточку ниже.",
+    "zh-CN": "我找到的最经济选项是 {name}。请查看下方卡片。",
+}
+
+_PRICE_VISITOR_NOTE: dict[str, str] = {
+    "pt-BR": (
+        "Os preços são consultivos para visitantes; entre na conta para ver o valor da sua empresa."
+    ),
+    "en": "Prices are consultive for visitors; sign in to see your company price.",
+    "es": (
+        "Los precios son consultivos para visitantes; inicia sesión para ver el precio "
+        "de tu empresa."
+    ),
+    "ar": "الأسعار للزوار عند الطلب؛ سجّل الدخول لرؤية سعر شركتك.",
+    "de": (
+        "Preise sind für Besucher auf Anfrage; melden Sie sich an, um Ihren Firmenpreis zu sehen."
+    ),
+    "fr": (
+        "Les prix sont consultatifs pour les visiteurs ; connectez-vous pour voir le "
+        "prix de votre entreprise."
+    ),
+    "it": (
+        "I prezzi sono consultivi per i visitatori; accedi per vedere il prezzo della tua azienda."
+    ),
+    "ja": "価格は訪問者にはお問い合わせください。ログインすると貴社価格を確認できます。",
+    "ko": "가격은 방문자에게 문의 사항입니다. 로그인하면 회사 가격을 확인할 수 있습니다.",
+    "ru": (
+        "Цены для посетителей предоставляются по запросу; войдите, чтобы увидеть "
+        "цену вашей компании."
+    ),
+    "zh-CN": "访客价格需咨询；登录后可查看贵司价格。",  # noqa: RUF001
+}
+
+
+def greeting_response(locale: Locale) -> str:
+    return _GREETING.get(locale.value, _GREETING["pt-BR"])
+
+
+def info_response(locale: Locale) -> str:
+    return _INFO.get(locale.value, _INFO["pt-BR"])
+
+
+_PRICE_QUESTION_KNOWN: dict[str, str] = {
+    "pt-BR": "O preço de {name} aparece no cartão abaixo.",
+    "en": "The price of {name} is shown in the card below.",
+    "es": "El precio de {name} aparece en la tarjeta de abajo.",
+    "ar": "سعر {name} يظهر في البطاقة أدناه.",
+    "de": "Der Preis von {name} steht in der Karte unten.",
+    "fr": "Le prix de {name} apparaît dans la fiche ci-dessous.",
+    "it": "Il prezzo di {name} è nella scheda qui sotto.",
+    "ja": "{name} の価格は下のカードに表示されています。",
+    "ko": "{name}의 가격은 아래 카드에 표시되어 있습니다.",
+    "ru": "Цена {name} указана в карточке ниже.",
+    "zh-CN": "{name} 的价格显示在下方卡片中。",
+}
+
+_PRICE_QUESTION_VISITOR: dict[str, str] = {
+    "pt-BR": "O preço de {name} é consultivo para visitantes.",
+    "en": "The price of {name} is consultive for visitors.",
+    "es": "El precio de {name} es consultivo para visitantes.",
+    "ar": "سعر {name} للزوار عند الطلب.",
+    "de": "Der Preis von {name} ist für Besucher auf Anfrage.",
+    "fr": "Le prix de {name} est consultatif pour les visiteurs.",
+    "it": "Il prezzo di {name} è consultivo per i visitatori.",
+    "ja": "{name} の価格は訪問者にはお問い合わせください。",
+    "ko": "{name}의 가격은 방문자에게 문의 사항입니다.",
+    "ru": "Цена {name} для посетителей предоставляется по запросу.",
+    "zh-CN": "{name} 的价格对访客需咨询。",
+}
+
+
+def price_question_response(locale: Locale, *, name: str, visitor: bool) -> str:
+    """Resposta deterministica de preco (o VALOR fica no cartao, nunca no texto)."""
+    if visitor:
+        template = _PRICE_QUESTION_VISITOR.get(locale.value, _PRICE_QUESTION_VISITOR["pt-BR"])
+        note = _PRICE_VISITOR_NOTE.get(locale.value, _PRICE_VISITOR_NOTE["pt-BR"])
+        return f"{template.format(name=name)} {note}"
+    template = _PRICE_QUESTION_KNOWN.get(locale.value, _PRICE_QUESTION_KNOWN["pt-BR"])
+    return template.format(name=name)
+
+
+_LOGIN_REQUIRED: dict[str, str] = {
+    "pt-BR": "Entre na sua conta para consultar o carrinho ou os pedidos da sua empresa.",
+    "en": "Sign in to view your cart or your company's orders.",
+    "es": "Inicia sesión para consultar el carrito o los pedidos de tu empresa.",
+    "ar": "سجّل الدخول لعرض سلة التسوق أو طلبات شركتك.",
+    "de": (
+        "Melden Sie sich an, um Ihren Warenkorb oder die Bestellungen Ihres Unternehmens zu sehen."
+    ),
+    "fr": "Connectez-vous pour consulter votre panier ou les commandes de votre entreprise.",
+    "it": "Accedi per consultare il carrello o gli ordini della tua azienda.",
+    "ja": "カートや貴社の注文を確認するにはログインしてください。",
+    "ko": "장바구니나 회사 주문을 확인하려면 로그인하세요.",
+    "ru": "Войдите, чтобы посмотреть корзину или заказы вашей компании.",
+    "zh-CN": "请登录后查看购物车或贵司订单。",
+}
+
+_NOT_FOUND: dict[str, str] = {
+    "pt-BR": "Não encontrei esse pedido na sua conta.",
+    "en": "I could not find that order in your account.",
+    "es": "No encontré ese pedido en tu cuenta.",
+    "ar": "لم أجد هذا الطلب في حسابك.",
+    "de": "Ich konnte diese Bestellung in Ihrem Konto nicht finden.",
+    "fr": "Je n'ai pas trouvé cette commande dans votre compte.",
+    "it": "Non ho trovato quell'ordine nel tuo account.",
+    "ja": "その注文はアカウント内に見つかりませんでした。",
+    "ko": "해당 주문을 계정에서 찾을 수 없습니다.",
+    "ru": "Не удалось найти этот заказ в вашем аккаунте.",  # noqa: RUF001
+    "zh-CN": "未在您的账户中找到该订单。",
+}
+
+_CLARIFY: dict[str, str] = {
+    "pt-BR": "Pode enviar o nome/SKU do produto ou o número do pedido?",
+    "en": "Could you send the product name/SKU or the order number?",
+    "es": "¿Puedes enviar el nombre/SKU del producto o el número del pedido?",
+    "ar": "هل يمكنك إرسال اسم/رمز المنتج أو رقم الطلب؟",
+    "de": "Können Sie den Produktnamen/SKU oder die Bestellnummer senden?",
+    "fr": "Pouvez-vous envoyer le nom/SKU du produit ou le numéro de commande ?",
+    "it": "Puoi inviare il nome/SKU del prodotto o il numero dell'ordine?",
+    "ja": "商品名/SKUまたは注文番号を送ってください。",
+    "ko": "제품명/SKU 또는 주문 번호를 보내주세요.",
+    "ru": "Пришлите название/SKU товара или номер заказа.",
+    "zh-CN": "请发送产品名称/SKU 或订单号。",
+}
+
+_TOOL_ERROR: dict[str, str] = {
+    "pt-BR": "Não consegui consultar agora. Tente de novo em instantes.",
+    "en": "I could not check that right now. Please try again shortly.",
+    "es": "No pude consultar ahora. Inténtalo de nuevo en unos instantes.",
+    "ar": "لم أتمكن من التحقق الآن. حاول مرة أخرى بعد قليل.",
+    "de": "Ich konnte das gerade nicht prüfen. Bitte versuchen Sie es gleich noch einmal.",
+    "fr": "Je n'ai pas pu vérifier maintenant. Réessayez dans un instant.",
+    "it": "Non sono riuscito a verificare ora. Riprova tra poco.",
+    "ja": "今は確認できませんでした。しばらくしてからもう一度お試しください。",
+    "ko": "지금은 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+    "ru": "Не удалось проверить сейчас. Повторите попытку чуть позже.",  # noqa: RUF001
+    "zh-CN": "现在无法查询，请稍后重试。",  # noqa: RUF001
+}
+
+
+def login_required_response(locale: Locale) -> str:
+    return _LOGIN_REQUIRED.get(locale.value, _LOGIN_REQUIRED["pt-BR"])
+
+
+def not_found_response(locale: Locale) -> str:
+    return _NOT_FOUND.get(locale.value, _NOT_FOUND["pt-BR"])
+
+
+def clarify_response(locale: Locale) -> str:
+    return _CLARIFY.get(locale.value, _CLARIFY["pt-BR"])
+
+
+def tool_error_response(locale: Locale) -> str:
+    return _TOOL_ERROR.get(locale.value, _TOOL_ERROR["pt-BR"])
+
+
+_PRICE_CAPPED_NOTE: dict[str, str] = {
+    "pt-BR": "A busca considerou os resultados mais relevantes do catálogo.",
+    "en": "The search considered the most relevant catalog results.",
+    "es": "La búsqueda consideró los resultados más relevantes del catálogo.",
+    "ar": "اعتبرها البحث من بين نتائج الكتالوج الأكثر صلة.",
+    "de": "Die Suche berücksichtigte die relevantesten Katalogergebnisse.",
+    "fr": "La recherche a pris en compte les résultats les plus pertinents du catalogue.",
+    "it": "La ricerca ha considerato i risultati più pertinenti del catalogo.",
+    "ja": "検索はカタログの関連性の高い結果を対象にしています。",
+    "ko": "검색은 카탈로그의 가장 관련성 높은 결과를 대상으로 했습니다.",
+    "ru": "Поиск учитывал наиболее релевантные результаты каталога.",
+    "zh-CN": "搜索已考虑目录中最相关的结果。",
+}
+
+
+def price_sort_response(locale: Locale, *, name: str, visitor: bool, capped: bool = False) -> str:
+    """Resposta deterministica para "mais barato" (nunca inventa valor)."""
+    template = _PRICE_ASC.get(locale.value, _PRICE_ASC["pt-BR"])
+    text = template.format(name=name)
+    if capped:
+        text = f"{text} {_PRICE_CAPPED_NOTE.get(locale.value, _PRICE_CAPPED_NOTE['pt-BR'])}"
+    if visitor:
+        text = f"{text} {_PRICE_VISITOR_NOTE.get(locale.value, _PRICE_VISITOR_NOTE['pt-BR'])}"
+    return text
+
+
+_PRICE_UNVERIFIED: dict[str, str] = {
+    "pt-BR": (
+        "Não consegui validar os valores desta resposta. Veja os cartões abaixo "
+        "para os preços corretos."
+    ),
+    "en": (
+        "I could not validate the values in this answer. See the cards below for "
+        "the correct prices."
+    ),
+    "es": (
+        "No pude validar los valores de esta respuesta. Consulta las tarjetas de "
+        "abajo para los precios correctos."
+    ),
+    "ar": "لم أتمكن من التحقق من القيم في هذه الإجابة. راجع البطاقات أدناه للأسعار الصحيحة.",
+    "de": (
+        "Ich konnte die Werte in dieser Antwort nicht prüfen. Die korrekten Preise "
+        "stehen in den Karten unten."
+    ),
+    "fr": (
+        "Je n'ai pas pu valider les valeurs de cette réponse. Les prix corrects "
+        "figurent dans les fiches ci-dessous."
+    ),
+    "it": (
+        "Non ho potuto validare i valori di questa risposta. I prezzi corretti sono "
+        "nelle schede qui sotto."
+    ),
+    "ja": "この回答の値を確認できませんでした。正しい価格は下のカードをご覧ください。",
+    "ko": "이 답변의 값을 확인할 수 없습니다. 올바른 가격은 아래 카드를 확인하세요.",
+    "ru": "Не удалось проверить значения в этом ответе. Правильные цены указаны в карточках ниже.",  # noqa: RUF001
+    "zh-CN": "无法验证此回答中的数值。正确价格请查看下方卡片。",
+}
+
+
+def price_unverified_response(locale: Locale) -> str:
+    return _PRICE_UNVERIFIED.get(locale.value, _PRICE_UNVERIFIED["pt-BR"])
+
+
+_GROUNDING_FALLBACK: dict[str, str] = {
+    "pt-BR": "Não consegui validar os detalhes desta resposta. Veja os cartões abaixo.",
+    "en": "I could not validate the details in this answer. See the cards below.",
+    "es": "No pude validar los detalles de esta respuesta. Consulta las tarjetas de abajo.",
+    "ar": "لم أتمكن من التحقق من تفاصيل هذه الإجابة. راجع البطاقات أدناه.",
+    "de": "Ich konnte die Details dieser Antwort nicht prüfen. Siehe Karten unten.",
+    "fr": "Je n'ai pas pu valider les détails de cette réponse. Voir les fiches ci-dessous.",
+    "it": "Non ho potuto validare i dettagli di questa risposta. Vedi le schede qui sotto.",
+    "ja": "この回答の詳細を確認できませんでした。下のカードをご覧ください。",
+    "ko": "이 답변의 세부 정보를 확인할 수 없습니다. 아래 카드를 확인하세요.",
+    "ru": "Не удалось проверить детали этого ответа. См. карточки ниже.",  # noqa: RUF001
+    "zh-CN": "无法验证此回答的详细信息。请查看下方卡片。",
+}
+
+
+def grounding_fallback_response(locale: Locale) -> str:
+    return _GROUNDING_FALLBACK.get(locale.value, _GROUNDING_FALLBACK["pt-BR"])

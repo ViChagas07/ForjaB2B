@@ -97,42 +97,68 @@ class LangChainOpenAILLM:
         temperature: float = 0.3,
         reasoning_effort: str | None = "none",
     ) -> None:
-        self._chat = ChatOpenAI(
-            model=model,
-            base_url=base_url,
-            api_key=api_key,  # so na memoria do processo; nunca logado
-            timeout=timeout_seconds,
-            max_tokens=max_tokens,
+        self._base_url = base_url
+        self._api_key = api_key
+        self._model = model
+        self._timeout_seconds = timeout_seconds
+        self._max_tokens = max_tokens
+        self._default_temperature = temperature
+        self._reasoning_effort = reasoning_effort
+        self._chat = self._build_chat(temperature)
+        self._chats: dict[float, ChatOpenAI] = {temperature: self._chat}
+
+    def _build_chat(self, temperature: float) -> ChatOpenAI:
+        return ChatOpenAI(
+            model=self._model,
+            base_url=self._base_url,
+            api_key=self._api_key,  # so na memoria do processo; nunca logado
+            timeout=self._timeout_seconds,
+            max_tokens=self._max_tokens,
             temperature=temperature,
-            reasoning_effort=reasoning_effort,
+            reasoning_effort=self._reasoning_effort,
         )
 
+    def _chat_for(self, temperature: float | None) -> ChatOpenAI:
+        if temperature is None or temperature == self._default_temperature:
+            return self._chat
+        if temperature not in self._chats:
+            self._chats[temperature] = self._build_chat(temperature)
+        return self._chats[temperature]
+
     async def complete_structured(
-        self, *, schema: type[TModel], messages: Sequence[LLMMessage]
+        self,
+        *,
+        schema: type[TModel],
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
     ) -> TModel:
         try:
-            result = await self._structured_json_schema(schema, messages)
+            result = await self._structured_json_schema(schema, messages, temperature)
         except (APITimeoutError, APIConnectionError) as exc:
             raise LLMUnavailableError("llm_transport_failed") from exc
         except APIStatusError as exc:
             if exc.status_code not in _UNSUPPORTED_FORMAT_STATUS:
                 raise LLMUnavailableError("llm_transport_failed") from exc
             # Provedor sem response_format: prompt rigido + parser tolerante.
-            return await self._prompt_structured_with_repair(schema, messages)
+            return await self._prompt_structured_with_repair(schema, messages, temperature)
         except LLMUnavailableError:
             raise
         except (ValidationError, ValueError):
             # Saida fora do schema: tenta UMA reparacao com prompt rigido.
-            return await self._prompt_structured_with_repair(schema, messages)
+            return await self._prompt_structured_with_repair(schema, messages, temperature)
         except Exception as exc:
             raise LLMUnavailableError("llm_transport_failed") from exc
         if not isinstance(result, schema):
             raise LLMUnavailableError("llm_schema_mismatch")
         return _clean_model_strings(result)
 
-    async def complete_text(self, *, messages: Sequence[LLMMessage]) -> str:
+    async def complete_text(
+        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+    ) -> str:
         try:
-            response = await self._chat.ainvoke(self._as_langchain_messages(messages))
+            response = await self._chat_for(temperature).ainvoke(
+                self._as_langchain_messages(messages)
+            )
         except (APITimeoutError, APIConnectionError) as exc:
             raise LLMUnavailableError("llm_transport_failed") from exc
         except APIStatusError as exc:
@@ -150,9 +176,14 @@ class LangChainOpenAILLM:
         return cleaned
 
     async def _structured_json_schema(
-        self, schema: type[TModel], messages: Sequence[LLMMessage]
+        self,
+        schema: type[TModel],
+        messages: Sequence[LLMMessage],
+        temperature: float | None,
     ) -> TModel:
-        structured = self._chat.with_structured_output(schema, method="json_schema")
+        structured = self._chat_for(temperature).with_structured_output(
+            schema, method="json_schema"
+        )
         result = await structured.ainvoke(self._as_langchain_messages(messages))
         if result is None:
             raise ValueError("saida estruturada vazia")
@@ -161,14 +192,17 @@ class LangChainOpenAILLM:
         return schema.model_validate(result)
 
     async def _prompt_structured_with_repair(
-        self, schema: type[TModel], messages: Sequence[LLMMessage]
+        self,
+        schema: type[TModel],
+        messages: Sequence[LLMMessage],
+        temperature: float | None,
     ) -> TModel:
         instruction = _json_instruction(schema)
         prompt: list[dict[str, Any]] = [
             *self._as_langchain_messages(messages),
             {"role": "user", "content": instruction},
         ]
-        raw = await self._invoke_text(prompt)
+        raw = await self._invoke_text(prompt, temperature)
         try:
             return schema.model_validate(extract_json_object(raw))
         except (ValueError, ValidationError):
@@ -183,15 +217,19 @@ class LangChainOpenAILLM:
                     ),
                 },
             ]
-            repaired = await self._invoke_text(repair)
+            repaired = await self._invoke_text(repair, temperature)
             try:
                 return schema.model_validate(extract_json_object(repaired))
             except (ValueError, ValidationError) as exc:
                 raise LLMUnavailableError("llm_schema_mismatch") from exc
 
-    async def _invoke_text(self, messages: Sequence[dict[str, Any]]) -> str:
+    async def _invoke_text(
+        self, messages: Sequence[dict[str, Any]], temperature: float | None = None
+    ) -> str:
         try:
-            response = await self._chat.ainvoke(self._as_langchain_messages(messages))
+            response = await self._chat_for(temperature).ainvoke(
+                self._as_langchain_messages(messages)
+            )
         except (APITimeoutError, APIConnectionError, APIStatusError) as exc:
             raise LLMUnavailableError("llm_transport_failed") from exc
         except LLMUnavailableError:
