@@ -136,7 +136,7 @@ _SELECT_ORDER = text(
     "shipping_total, tax_total, total, created_at, content_locale, coupon_code, "
     "coupon_type, coupon_percent, coupon_discount_amount, shipping_discount_amount "
     "FROM orders WHERE id = :order_id AND company_id = :company_id "
-    "AND deleted_at IS NULL"
+    "AND NOT EXISTS (SELECT 1 FROM customer_hidden_orders h WHERE h.order_id = orders.id)"
 )
 _SELECT_ORDER_ITEMS = text(
     "SELECT oi.sku, oi.product_name, oi.quantity, oi.unit_price, oi.base_unit_price, "
@@ -157,7 +157,7 @@ _SELECT_ORDER_ITEMS_BY_IDS = text(
 _SELECT_CUSTOMER_SPEND = text(
     "SELECT COALESCE(SUM(total), 0) AS total_spent, COUNT(*) AS orders_count "
     "FROM orders WHERE company_id = :company_id AND buyer_user_id = :buyer_user_id "
-    "AND deleted_at IS NULL "
+    "AND NOT EXISTS (SELECT 1 FROM customer_hidden_orders h WHERE h.order_id = orders.id) "
     "AND status NOT IN ('CANCELLED', 'CREDIT_REJECTED')"
 )
 _SELECT_CUSTOMER_ORDERS = text(
@@ -165,7 +165,7 @@ _SELECT_CUSTOMER_ORDERS = text(
     "shipping_total, tax_total, total, created_at, content_locale, coupon_code, "
     "coupon_type, coupon_percent, coupon_discount_amount, shipping_discount_amount "
     "FROM orders WHERE company_id = :company_id AND buyer_user_id = :buyer_user_id "
-    "AND deleted_at IS NULL "
+    "AND NOT EXISTS (SELECT 1 FROM customer_hidden_orders h WHERE h.order_id = orders.id) "
     "ORDER BY created_at DESC, id DESC LIMIT :limit"
 )
 _SELECT_AVAILABLE_COUPONS = text(
@@ -181,10 +181,13 @@ _SELECT_AVAILABLE_COUPONS = text(
     "AND (c.usage_limit_per_company IS NULL OR u.company_uses < c.usage_limit_per_company) "
     "ORDER BY c.valid_until NULLS LAST, c.code LIMIT :limit"
 )
-_UPDATE_ORDER_DELETED = text(
-    "UPDATE orders SET deleted_at = now(), updated_at = now() "
-    "WHERE id = :order_id AND company_id = :company_id "
-    "AND buyer_user_id = :buyer_user_id AND deleted_at IS NULL"
+_HIDE_CUSTOMER_ORDER = text(
+    "INSERT INTO customer_hidden_orders (order_id, company_id, buyer_user_id) "
+    "SELECT o.id, o.company_id, o.buyer_user_id FROM orders o "
+    "WHERE o.id = :order_id AND o.company_id = :company_id "
+    "AND o.buyer_user_id = :buyer_user_id "
+    "AND NOT EXISTS (SELECT 1 FROM customer_hidden_orders h WHERE h.order_id = o.id) "
+    "ON CONFLICT (order_id) DO NOTHING"
 )
 _DELETE_ORDERED_CART_ITEMS = text(
     "DELETE FROM cart_items WHERE company_id = :company_id "
@@ -790,7 +793,7 @@ class SqlAlchemyOrderingRepository:
         tenant = TenantContext(company_id=company_id, user_id=buyer_user_id)
         async with self._uow_factory.begin(tenant) as uow:
             result = await uow.session.execute(
-                _UPDATE_ORDER_DELETED,
+                _HIDE_CUSTOMER_ORDER,
                 {
                     "order_id": order_id,
                     "company_id": company_id,

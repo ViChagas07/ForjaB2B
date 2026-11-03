@@ -32,7 +32,7 @@ from app.infrastructure.db.models.idempotency import IdempotencyKey
 from app.infrastructure.db.models.identity import CompanyMember, ConsumerProfile, User
 from app.infrastructure.db.models.invoicing import Invoice
 from app.infrastructure.db.models.notification import Notification, NotificationPreference
-from app.infrastructure.db.models.ordering import Order, OrderItem
+from app.infrastructure.db.models.ordering import CustomerHiddenOrder, Order, OrderItem
 from app.infrastructure.db.models.payment import Payment, PaymentEvent
 from app.infrastructure.db.models.pgvector_type import Vector
 from app.infrastructure.db.models.pricing import CompanyPriceRule
@@ -61,6 +61,7 @@ __all__ = [
     "CouponRedemption",
     "CreditAccount",
     "CreditEntry",
+    "CustomerHiddenOrder",
     "IdempotencyKey",
     "Invoice",
     "Notification",

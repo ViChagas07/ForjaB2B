@@ -81,12 +81,6 @@ class Order(TimestampMixin, Base):
         Index("ix_orders_status", "status"),
         Index("ix_orders_created_at", "created_at"),
         Index(
-            "ix_orders_company_buyer_deleted",
-            "company_id",
-            "buyer_user_id",
-            "deleted_at",
-        ),
-        Index(
             "uq_orders_idempotency_key",
             "company_id",
             "idempotency_key",
@@ -144,12 +138,36 @@ class Order(TimestampMixin, Base):
     content_locale: Mapped[str] = mapped_column(
         String(10), nullable=False, server_default=text("'pt-BR'")
     )
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     company: Mapped[Company] = relationship(back_populates="orders")
     buyer: Mapped[User] = relationship(back_populates="orders")
     items: Mapped[list[OrderItem]] = relationship(back_populates="order")
     invoices: Mapped[list[Invoice]] = relationship(back_populates="order")
+
+
+class CustomerHiddenOrder(Base):
+    """Pedido oculto do historico/rotas de um comprador.
+
+    Sem FK para ``orders`` porque a role de migrations do Render nao tem
+    REFERENCES nas tabelas pre-existentes. A ausencia da linha significa que o
+    pedido continua visivel.
+    """
+
+    __tablename__ = "customer_hidden_orders"
+    __table_args__ = (
+        Index(
+            "ix_customer_hidden_orders_company_buyer",
+            "company_id",
+            "buyer_user_id",
+        ),
+    )
+
+    order_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    company_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    buyer_user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    deleted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
 
 
 class OrderItem(TimestampMixin, Base):
