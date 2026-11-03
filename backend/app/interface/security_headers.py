@@ -16,6 +16,7 @@ from app.core.request_context import request_scheme
 
 _SENSITIVE_PREFIXES = (
     "/api/v1/auth",
+    "/api/v1/account/phone/verification",
     "/api/v1/admin",
     "/api/v1/privacy",
     "/api/v1/payments",

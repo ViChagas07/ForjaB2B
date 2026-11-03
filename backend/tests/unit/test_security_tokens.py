@@ -24,20 +24,22 @@ def _service(*, expire_minutes: int = 30) -> TokenService:
     return TokenService(secret_key=_SECRET, algorithm="HS256", expire_minutes=expire_minutes)
 
 
-def _auth(role: str = "BUYER") -> AuthContext:
+def _auth(role: str = "BUYER", credential_epoch: int = 0) -> AuthContext:
     return AuthContext(
         user_id=uuid.uuid4(),
         company_id=uuid.uuid4(),
         role=role,
         token_id=uuid.uuid4().hex,
+        credential_epoch=credential_epoch,
     )
 
 
 def test_issue_decode_roundtrip() -> None:
     svc = _service()
-    auth = _auth(role="APPROVER")
+    auth = _auth(role="APPROVER", credential_epoch=4)
     decoded = svc.decode_access_token(svc.issue_access_token(auth))
     assert decoded == auth
+    assert decoded.credential_epoch == 4
 
 
 def test_token_assinado_com_outra_chave_rejeitado() -> None:
@@ -103,3 +105,32 @@ def test_require_role_permitido() -> None:
 def test_require_role_insuficiente_negado() -> None:
     with pytest.raises(AuthorizationError):
         require_role(_auth(role="BUYER"), "ADMIN")
+
+
+def _legacy_payload(**extra: object) -> dict[str, object]:
+    now = datetime.now(UTC)
+    payload: dict[str, object] = {
+        "sub": str(uuid.uuid4()),
+        "company_id": str(uuid.uuid4()),
+        "role": "BUYER",
+        "type": "access",
+        "jti": uuid.uuid4().hex,
+        "iat": now,
+        "exp": now + timedelta(minutes=30),
+    }
+    payload.update(extra)
+    return payload
+
+
+def test_token_legado_sem_cep_vira_epoca_zero() -> None:
+    svc = _service()
+    token = jwt.encode(_legacy_payload(), _SECRET, algorithm="HS256")
+    assert svc.decode_access_token(token).credential_epoch == 0
+
+
+@pytest.mark.parametrize("cep", ["1", -1, True, 1.5, None])
+def test_cep_invalido_rejeitado(cep: object) -> None:
+    svc = _service()
+    token = jwt.encode(_legacy_payload(cep=cep), _SECRET, algorithm="HS256")
+    with pytest.raises(InvalidTokenError):
+        svc.decode_access_token(token)

@@ -23,6 +23,7 @@ celery_app = Celery(
         "app.tasks.search",
         "app.tasks.cart_recovery",
         "app.tasks.ai_chat",
+        "app.tasks.password_recovery",
     ],
 )
 
@@ -32,6 +33,10 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    # Eventos de task carregam args/kwargs; o worker nao roda com -E. Manter
+    # desligado evita expor codigos de recuperacao em eventos/monitoracao.
+    worker_send_task_events=False,
+    task_send_sent_event=False,
 )
 
 celery_app.conf.beat_schedule = {

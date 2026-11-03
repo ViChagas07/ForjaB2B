@@ -19,6 +19,32 @@ class InvalidCredentialsError(AppError):
     code = "invalid_credentials"
 
 
+class AntiBotVerificationError(AppError):
+    """Falha na verificacao anti-bot (Turnstile), sempre generica.
+
+    Inclui token invalido, timeout, erro de rede ou resposta inesperada da
+    Cloudflare. Detalhes do provedor nunca sao expostos ao cliente.
+    """
+
+    status_code = 400
+    title = "Bad Request"
+    code = "antibot_verification_failed"
+
+    def __init__(self) -> None:
+        super().__init__("Nao foi possivel validar a verificacao anti-bot.")
+
+
+class InvalidPasswordRecoveryRequestError(AppError):
+    """Payload sem exatamente um identificador (defesa alem do schema)."""
+
+    status_code = 422
+    title = "Unprocessable Entity"
+    code = "invalid_password_recovery_request"
+
+    def __init__(self) -> None:
+        super().__init__("Informe exatamente um entre e-mail e telefone.")
+
+
 class UserInactiveError(AppError):
     """Conta ou vinculo nao esta em estado que permita autenticacao."""
 
@@ -136,3 +162,55 @@ class OAuthExchangeError(AppError):
     status_code = 400
     title = "Bad Request"
     code = "oauth_exchange_invalid"
+
+
+class PasswordRecoveryCodeError(AppError):
+    """Codigo ausente/expirado/errado/tentativas excedidas (sempre generico)."""
+
+    status_code = 400
+    title = "Bad Request"
+    code = "password_recovery_code_invalid"
+
+    def __init__(self) -> None:
+        super().__init__("Codigo invalido ou expirado.")
+
+
+class PasswordResetTokenError(AppError):
+    """reset_token ausente/expirado/adulterado/reutilizado (sempre generico)."""
+
+    status_code = 400
+    title = "Bad Request"
+    code = "password_reset_token_invalid"
+
+    def __init__(self) -> None:
+        super().__init__("Token de redefinicao invalido ou expirado.")
+
+
+class PasswordReuseError(AppError):
+    """A nova senha e igual a senha atual."""
+
+    status_code = 400
+    title = "Bad Request"
+    code = "password_reuse"
+
+    def __init__(self) -> None:
+        super().__init__("A nova senha deve ser diferente da senha atual.")
+
+
+class PasswordRecoveryStoreError(RuntimeError):
+    """Redis indisponivel no fluxo de recuperacao (fail-closed)."""
+
+
+class PhoneVerificationFailedError(AppError):
+    """Codigo SMS invalido/expirado ou provedor recusou, sempre generico."""
+
+    status_code = 400
+    title = "Bad Request"
+    code = "phone_verification_failed"
+
+    def __init__(self) -> None:
+        super().__init__("Nao foi possivel verificar o telefone.")
+
+
+class PhoneVerificationConflictError(RuntimeError):
+    """Corrida de unicidade global ao reivindicar o telefone (retry interno)."""

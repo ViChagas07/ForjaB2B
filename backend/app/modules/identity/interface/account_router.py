@@ -8,6 +8,8 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Request, Response
 
 from app.application.security import AuthContext
+from app.core.config import Settings
+from app.core.request_context import client_ip
 from app.interface.deps import get_current_auth
 from app.modules.identity.application.account import (
     AccountProfile,
@@ -27,6 +29,11 @@ from app.modules.identity.application.avatar import (
     UpdateAccountAvatar,
 )
 from app.modules.identity.application.errors import AvatarTooLargeError
+from app.modules.identity.application.phone_verification import (
+    CheckPhoneVerification,
+    GetPhoneVerificationStatus,
+    StartPhoneVerification,
+)
 from app.modules.identity.interface.schemas import (
     AccountAvatarResponse,
     AccountPreferencesRequest,
@@ -34,6 +41,11 @@ from app.modules.identity.interface.schemas import (
     AccountProfileResponse,
     AccountSpendingVisibilityRequest,
     DisplayCurrency,
+    PhoneVerificationAcceptedResponse,
+    PhoneVerificationCheckRequest,
+    PhoneVerificationCheckResponse,
+    PhoneVerificationStartRequest,
+    PhoneVerificationStatusResponse,
     UpdateAccountRequest,
 )
 
@@ -71,6 +83,18 @@ def _get_avatar_usecase(request: Request) -> GetAccountAvatar:
     return cast(GetAccountAvatar, request.app.state.account_get_avatar)
 
 
+def _phone_start_usecase(request: Request) -> StartPhoneVerification:
+    return cast(StartPhoneVerification, request.app.state.account_phone_verification_start)
+
+
+def _phone_check_usecase(request: Request) -> CheckPhoneVerification:
+    return cast(CheckPhoneVerification, request.app.state.account_phone_verification_check)
+
+
+def _phone_status_usecase(request: Request) -> GetPhoneVerificationStatus:
+    return cast(GetPhoneVerificationStatus, request.app.state.account_phone_verification_status)
+
+
 @router.get(
     "",
     response_model=AccountProfileResponse,
@@ -104,6 +128,64 @@ async def update_account(
         ),
     )
     return _to_response(profile)
+
+
+@router.post(
+    "/phone/verification/start",
+    response_model=PhoneVerificationAcceptedResponse,
+    status_code=202,
+    summary="Enviar codigo SMS para verificar o telefone",
+)
+async def start_phone_verification(
+    payload: PhoneVerificationStartRequest,
+    request: Request,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[StartPhoneVerification, Depends(_phone_start_usecase)],
+) -> PhoneVerificationAcceptedResponse:
+    settings = cast(Settings, request.app.state.settings)
+    await use_case.execute(
+        auth,
+        phone_e164=payload.phone,
+        locale=payload.locale,
+        remote_ip=client_ip(request.scope, settings.trusted_proxy_count),
+    )
+    return PhoneVerificationAcceptedResponse()
+
+
+@router.post(
+    "/phone/verification/check",
+    response_model=PhoneVerificationCheckResponse,
+    summary="Confirmar o codigo SMS do telefone",
+)
+async def check_phone_verification(
+    payload: PhoneVerificationCheckRequest,
+    request: Request,
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[CheckPhoneVerification, Depends(_phone_check_usecase)],
+) -> PhoneVerificationCheckResponse:
+    settings = cast(Settings, request.app.state.settings)
+    await use_case.execute(
+        auth,
+        phone_e164=payload.phone,
+        code=payload.code,
+        remote_ip=client_ip(request.scope, settings.trusted_proxy_count),
+    )
+    return PhoneVerificationCheckResponse()
+
+
+@router.get(
+    "/phone/verification",
+    response_model=PhoneVerificationStatusResponse,
+    summary="Status do telefone verificado",
+)
+async def get_phone_verification_status(
+    auth: Annotated[AuthContext, Depends(get_current_auth)],
+    use_case: Annotated[GetPhoneVerificationStatus, Depends(_phone_status_usecase)],
+) -> PhoneVerificationStatusResponse:
+    status = await use_case.execute(auth)
+    return PhoneVerificationStatusResponse(
+        verified=status.verified, phone_masked=status.phone_masked
+    )
 
 
 @router.patch(

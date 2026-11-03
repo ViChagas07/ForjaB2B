@@ -223,3 +223,93 @@ def test_html_do_texto_e_minimo_e_escapado() -> None:
     html_body = render_html("linha 1\n\nlinha 2 <b>&</b>", locale="pt-BR")
     assert html_body.count("<p>") == 2
     assert "&lt;b&gt;&amp;&lt;/b&gt;" in html_body
+
+
+def test_templates_de_recuperacao_existem_nos_11_locales() -> None:
+    slots = {"code": "123456", "expires_minutes": "10"}
+    for locale in ALL_LOCALES:
+        subject, text = render_text(
+            event_type="auth.password_reset_code", locale=locale, slots=slots
+        )
+        assert subject.strip(), f"subject vazio em {locale}"
+        assert "123456" in text, f"codigo ausente em {locale}"
+        assert "10" in text, f"validade ausente em {locale}"
+        assert "http" not in text.lower(), f"link inesperado em {locale}"
+
+        changed_subject, changed_text = render_text(
+            event_type="auth.password_changed", locale=locale, slots={}
+        )
+        assert changed_subject.strip(), f"subject changed vazio em {locale}"
+        assert changed_text.strip(), f"texto changed vazio em {locale}"
+
+
+def test_placeholders_dos_templates_de_recuperacao_sao_paritarios() -> None:
+    from string import Formatter
+
+    from app.modules.notification.domain.notification import _templates
+
+    def fields(template: str) -> set[str]:
+        return {name for _literal, name, _spec, _conv in Formatter().parse(template) if name}
+
+    events = _templates()
+    code_event = events["auth.password_reset_code"]
+    for locale in ALL_LOCALES:
+        template = code_event[locale]
+        assert fields(template["subject"]) | fields(template["text"]) == {
+            "code",
+            "expires_minutes",
+        }, locale
+
+    changed_event = events["auth.password_changed"]
+    for locale in ALL_LOCALES:
+        template = changed_event[locale]
+        assert fields(template["subject"]) | fields(template["text"]) == set(), locale
+
+
+def test_template_de_recuperacao_em_ar_usa_rtl() -> None:
+    subject, _text, html_body = render_email(
+        event_type="auth.password_reset_code",
+        locale="ar",
+        slots={"code": "123456", "expires_minutes": "10"},
+    )
+
+    assert subject.strip()
+    assert 'dir="rtl"' in html_body
+    assert 'lang="ar"' in html_body
+    assert "123456" in html_body
+
+
+def test_fallback_de_evento_desconhecido_nao_quebra_sem_order_id() -> None:
+    subject, text = render_text(event_type="evento.inexistente", locale="pt-BR", slots={})
+    assert subject == "Notificacao"
+    assert text == ""
+
+
+def test_template_phone_unlinked_existe_nos_11_locales() -> None:
+    from string import Formatter
+
+    from app.modules.notification.domain.notification import _templates
+
+    events = _templates()
+    event = events["auth.phone_unlinked"]
+    assert set(event) == set(ALL_LOCALES)
+    for locale in ALL_LOCALES:
+        template = event[locale]
+        fields = {
+            name
+            for part in (template["subject"], template["text"])
+            for _literal, name, _spec, _conv in Formatter().parse(part)
+            if name
+        }
+        assert fields == set(), locale
+        subject, text = render_text(event_type="auth.phone_unlinked", locale=locale, slots={})
+        assert subject.strip(), locale
+        assert text.strip(), locale
+
+
+def test_template_phone_unlinked_em_ar_usa_rtl() -> None:
+    _subject, _text, html_body = render_email(
+        event_type="auth.phone_unlinked", locale="ar", slots={}
+    )
+    assert 'dir="rtl"' in html_body
+    assert 'lang="ar"' in html_body

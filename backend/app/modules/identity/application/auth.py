@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from app.application.security import AuthContext, TokenService
+from app.application.security import AuthContext, CredentialEpochResolver, TokenService
 from app.modules.identity.application.errors import (
     InvalidCredentialsError,
     RefreshTokenRejectedError,
@@ -56,6 +56,7 @@ class AuthenticateUser:
         membership_reader: MembershipReader,
         token_service: TokenService,
         refresh_store: RefreshTokenStore,
+        credential_epoch: CredentialEpochResolver,
         access_token_expire_minutes: int,
         refresh_token_expire_seconds: int,
     ) -> None:
@@ -64,6 +65,7 @@ class AuthenticateUser:
         self._membership_reader = membership_reader
         self._token_service = token_service
         self._refresh_store = refresh_store
+        self._credential_epoch = credential_epoch
         self._access_token_expire_minutes = access_token_expire_minutes
         self._refresh_token_expire_seconds = refresh_token_expire_seconds
 
@@ -96,6 +98,9 @@ class AuthenticateUser:
             raise UserInactiveError()
 
         role = membership.role.value
+        credential_epoch = await self._credential_epoch.resolve(
+            user_id=identity.user_id, company_id=identity.company_id
+        )
         access_token = self._token_service.issue_access_token(
             AuthContext(
                 user_id=identity.user_id,
@@ -103,6 +108,7 @@ class AuthenticateUser:
                 role=role,
                 account_type=identity.account_type,
                 token_id=secrets.token_hex(16),
+                credential_epoch=credential_epoch,
             )
         )
         refresh_token = secrets.token_urlsafe(_REFRESH_TOKEN_BYTES)
@@ -113,6 +119,7 @@ class AuthenticateUser:
                 company_id=identity.company_id,
                 role=role,
                 account_type=identity.account_type,
+                credential_epoch=credential_epoch,
             ),
             self._refresh_token_expire_seconds,
         )
@@ -139,17 +146,27 @@ class RefreshSession:
         *,
         refresh_store: RefreshTokenStore,
         token_service: TokenService,
+        credential_epoch: CredentialEpochResolver,
         access_token_expire_minutes: int,
         refresh_token_expire_seconds: int,
     ) -> None:
         self._refresh_store = refresh_store
         self._token_service = token_service
+        self._credential_epoch = credential_epoch
         self._access_token_expire_minutes = access_token_expire_minutes
         self._refresh_token_expire_seconds = refresh_token_expire_seconds
 
     async def refresh(self, refresh_token: str) -> AuthenticationResult:
         payload = await self._refresh_store.get(refresh_token)
         if payload is None:
+            raise RefreshTokenRejectedError()
+
+        current_epoch = await self._credential_epoch.resolve(
+            user_id=payload.user_id, company_id=payload.company_id
+        )
+        if payload.credential_epoch < current_epoch:
+            # Token emitido antes do reset: consome e rejeita, sem revelar.
+            await self._refresh_store.delete(refresh_token)
             raise RefreshTokenRejectedError()
 
         # Rotacao: o token antigo e consumido e nao pode ser reutilizado.
@@ -162,11 +179,14 @@ class RefreshSession:
                 role=payload.role,
                 account_type=payload.account_type,
                 token_id=secrets.token_hex(16),
+                credential_epoch=current_epoch,
             )
         )
         new_refresh_token = secrets.token_urlsafe(_REFRESH_TOKEN_BYTES)
         await self._refresh_store.put(
-            new_refresh_token, payload, self._refresh_token_expire_seconds
+            new_refresh_token,
+            replace(payload, credential_epoch=current_epoch),
+            self._refresh_token_expire_seconds,
         )
         return AuthenticationResult(
             access_token=access_token,

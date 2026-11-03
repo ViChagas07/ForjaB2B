@@ -14,7 +14,12 @@ from app.modules.identity.application.errors import (
     AccountNotFoundError,
     InvalidAccountProfileError,
 )
-from app.modules.identity.application.ports import AccountRecord, AccountRepository
+from app.modules.identity.application.phone import normalize_phone_e164
+from app.modules.identity.application.ports import (
+    AccountRecord,
+    AccountRepository,
+    PhoneVerificationRepository,
+)
 
 _NON_DIGITS = re.compile(r"\D")
 _MIN_AGE = 18
@@ -68,8 +73,15 @@ class GetAccount:
 
 
 class UpdateAccount:
-    def __init__(self, *, repository: AccountRepository, today: date | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        repository: AccountRepository,
+        phone_verification: PhoneVerificationRepository | None = None,
+        today: date | None = None,
+    ) -> None:
         self._repository = repository
+        self._phone_verification = phone_verification
         self._today = today or date.today()
 
     async def execute(self, auth: AuthContext, command: UpdateAccountCommand) -> AccountProfile:
@@ -93,6 +105,7 @@ class UpdateAccount:
         if command.postal_code and len(postal_code) != 8:
             raise InvalidAccountProfileError("Informe um CEP com 8 digitos.")
 
+        unlink_verified_phone = await self._will_unlink_verified_phone(auth, phone=phone)
         record = await self._repository.update(
             company_id=auth.company_id,
             user_id=auth.user_id,
@@ -101,10 +114,27 @@ class UpdateAccount:
             birth_date=command.birth_date,
             gender=command.gender,
             postal_code=postal_code or None,
+            unlink_verified_phone=unlink_verified_phone,
         )
         if record is None:
             raise AccountNotFoundError()
         return _to_profile(record, role=auth.role)
+
+    async def _will_unlink_verified_phone(self, auth: AuthContext, *, phone: str | None) -> bool:
+        if self._phone_verification is None:
+            return False
+        verified = await self._phone_verification.get_verified_phone(
+            company_id=auth.company_id, user_id=auth.user_id
+        )
+        if verified is None:
+            return False
+        if phone is None:
+            return True
+        try:
+            normalized = normalize_phone_e164(phone)
+        except ValueError:
+            return True
+        return normalized != verified
 
 
 class UpdateAccountCurrency:

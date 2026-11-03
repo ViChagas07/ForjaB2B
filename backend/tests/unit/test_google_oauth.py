@@ -124,6 +124,15 @@ class FakeRefreshStore:
         self.tokens.pop(token, None)
 
 
+class FakeCredentialEpoch:
+    def __init__(self, epoch: int = 0) -> None:
+        self.epoch = epoch
+
+    async def resolve(self, *, user_id: uuid.UUID, company_id: uuid.UUID) -> int:
+        _ = (user_id, company_id)
+        return self.epoch
+
+
 def _userinfo() -> GoogleUserInfo:
     return GoogleUserInfo(
         subject="google-sub-1", email="buyer@empresa.com", email_verified=True, name="Buyer"
@@ -163,6 +172,7 @@ def _complete_usecase(**overrides: Any) -> CompleteGoogleOAuth:
         "membership_reader": FakeMembershipReader(_membership()),
         "token_service": _token_service(),
         "refresh_store": FakeRefreshStore(),
+        "credential_epoch": FakeCredentialEpoch(),
         "access_token_expire_minutes": 30,
         "refresh_token_expire_seconds": 7 * 24 * 3600,
     }
@@ -376,3 +386,21 @@ async def test_exchange_store_preserva_account_type_e_avatar() -> None:
     assert payload is not None
     assert payload.account_type == "PERSON"
     assert payload.avatar_url == "https://lh3.googleusercontent.com/a/foto"
+
+
+async def test_callback_inclui_epoca_no_access_e_no_refresh() -> None:
+    exchange_store = FakeExchangeCodeStore()
+    refresh_store = FakeRefreshStore()
+    use_case = _complete_usecase(
+        exchange_code_store=exchange_store,
+        refresh_store=refresh_store,
+        credential_epoch=FakeCredentialEpoch(epoch=3),
+    )
+
+    result = await use_case.complete(code="code", state="state")
+
+    payload = exchange_store.codes[result.exchange_code]
+    assert payload.access_token is not None
+    assert payload.refresh_token is not None
+    assert _token_service().decode_access_token(payload.access_token).credential_epoch == 3
+    assert refresh_store.tokens[payload.refresh_token].credential_epoch == 3

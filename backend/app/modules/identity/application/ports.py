@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Protocol
+from typing import Literal, Protocol
 
 from app.domain.consumer import Gender
 from app.modules.identity.domain.enums import MemberRole, MemberStatus, UserStatus
@@ -63,6 +63,7 @@ class RefreshTokenPayload:
     company_id: uuid.UUID
     role: str
     account_type: str = "COMPANY"
+    credential_epoch: int = 0
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -98,8 +99,9 @@ class AccountRepository(Protocol):
         birth_date: date | None = None,
         gender: Gender | None = None,
         postal_code: str | None = None,
+        unlink_verified_phone: bool = False,
     ) -> AccountRecord | None:
-        """Atualiza nome/telefone e opcionalmente birth_date/gender/postal_code (consumer_profiles); None se o usuario sumiu."""
+        """Atualiza nome/telefone; remove o telefone verificado se solicitado."""
 
     async def update_display_currency(
         self,
@@ -278,3 +280,228 @@ class OAuthExchangeCodeStore(Protocol):
 
     async def consume(self, code: str) -> OAuthExchange | None:
         """Consome um exchange code (devolve None se ausente/expirado/reutilizado)."""
+
+
+class TurnstileVerifier(Protocol):
+    """Verifica um token Cloudflare Turnstile no servidor (fail-closed)."""
+
+    async def verify(self, *, token: str, remote_ip: str | None) -> bool:
+        """True somente quando a Cloudflare confirma o token; qualquer falha e False."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordRecoveryCodeState:
+    """Estado do codigo de recuperacao guardado no Redis (sem texto puro)."""
+
+    digest: str
+    attempts: int
+    locale: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetTokenData:
+    """Dados associados ao reset_token (o token em claro nunca e persistido)."""
+
+    user_id: uuid.UUID
+    company_id: uuid.UUID
+    locale: str | None = None
+    channel: Literal["email", "sms"] = "email"
+
+
+@dataclass(frozen=True, kw_only=True)
+class PasswordResetUser:
+    """Usuario resolvido no tenant para o reset de senha."""
+
+    user_id: uuid.UUID
+    company_id: uuid.UUID
+    email: str
+    password_hash: str | None
+    status: UserStatus
+
+
+class PasswordRecoveryStore(Protocol):
+    """Temporarios do fluxo de recuperacao no Redis (fail-closed)."""
+
+    async def reserve_resend(self, *, user_id: uuid.UUID, ttl_seconds: int) -> bool:
+        """Reserva o cooldown de reenvio; False quando ainda ativo."""
+
+    async def save_code(
+        self,
+        *,
+        user_id: uuid.UUID,
+        digest: str,
+        locale: str | None,
+        ttl_seconds: int,
+    ) -> None:
+        """Grava/sobrescreve o codigo (apenas HMAC) e zera tentativas."""
+
+    async def load_code(self, *, user_id: uuid.UUID) -> PasswordRecoveryCodeState | None:
+        """Le o estado do codigo ou None (ausente/expirado)."""
+
+    async def record_failed_attempt(self, *, user_id: uuid.UUID, max_attempts: int) -> int:
+        """Incrementa tentativas e invalida o codigo ao atingir o maximo."""
+
+    async def consume_code(self, *, user_id: uuid.UUID, digest: str) -> bool:
+        """Consome o codigo atomicamente; True somente se o HMAC confere."""
+
+    async def delete_code(self, *, user_id: uuid.UUID) -> None:
+        """Invalida o codigo (sucesso/limpeza)."""
+
+    async def delete_cooldown(self, *, user_id: uuid.UUID) -> None:
+        """Libera o reenvio apos sucesso."""
+
+    async def save_reset_token(
+        self,
+        *,
+        token_hash: str,
+        user_id: uuid.UUID,
+        company_id: uuid.UUID,
+        locale: str | None,
+        channel: Literal["email", "sms"],
+        ttl_seconds: int,
+    ) -> None:
+        """Grava somente o hash do reset_token com TTL."""
+
+    async def consume_reset_token(self, *, token_hash: str) -> PasswordResetTokenData | None:
+        """Consome o reset_token atomicamente; None se ausente/expirado/reutilizado."""
+
+    async def probe(self) -> None:
+        """Garante que o Redis responde (usado no caminho sem conta)."""
+
+    async def get_sms_attempts(self, *, user_id: uuid.UUID) -> int:
+        """Tentativas SMS consumidas na janela atual (0 se ausente)."""
+
+    async def record_sms_failed_attempt(
+        self, *, user_id: uuid.UUID, max_attempts: int, ttl_seconds: int
+    ) -> int:
+        """Incrementa tentativas SMS e devolve o total atual."""
+
+    async def clear_sms_attempts(self, *, user_id: uuid.UUID) -> None:
+        """Zera tentativas SMS apos sucesso."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class VerifiedPhoneOwner:
+    """Usuario/tenant resolvido por telefone verificado (sem status)."""
+
+    user_id: uuid.UUID
+    company_id: uuid.UUID
+
+
+class VerifiedPhoneResolver(Protocol):
+    """Resolve user/company por telefone verificado sem tenant autenticado."""
+
+    async def resolve(self, *, phone_e164: str) -> VerifiedPhoneOwner | None:
+        """Dono verificado ou None; nunca revela status."""
+
+
+class PasswordRecoverySmsDispatcher(Protocol):
+    """Enfileira o SMS de recuperacao (Twilio gera o codigo)."""
+
+    async def send_reset_code(self, *, to_phone: str, locale: str | None) -> None:
+        """Enfileira o envio do SMS; nao bloqueia a request."""
+
+
+class PasswordRecoveryEmailDispatcher(Protocol):
+    """Enfileira o envio de e-mail da recuperacao (nunca envia na request)."""
+
+    async def send_reset_code(
+        self, *, to: str, locale: str | None, code: str, expires_minutes: int
+    ) -> None:
+        """Enfileira o e-mail com o codigo (trafega apenas no broker)."""
+
+    async def send_password_changed(self, *, to: str, locale: str | None) -> None:
+        """Enfileira o aviso de senha alterada (sem codigo)."""
+
+
+class PasswordResetRepository(Protocol):
+    """Leitura/atualizacao de senha e auditoria no tenant resolvido."""
+
+    async def get_user(
+        self, *, company_id: uuid.UUID, user_id: uuid.UUID
+    ) -> PasswordResetUser | None:
+        """Usuario do tenant ou None (RLS aplicada)."""
+
+    async def update_password_and_audit(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        password_hash: str,
+        audit_action: str,
+        audit_details: dict[str, str],
+    ) -> int | None:
+        """Troca o hash, incrementa a epoca e audita na mesma transacao.
+
+        Retorna a nova epoca de credencial, ou None se o usuario sumiu/nao
+        estiver ACTIVE. A epoca nunca diminui.
+        """
+
+    async def record_audit(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: str,
+        details: dict[str, str],
+    ) -> None:
+        """Grava um evento de auditoria sem PII."""
+
+
+class PasswordResetSessionRevoker(Protocol):
+    """Atualiza o cache da epoca para revogar sessoes antigas apos o reset."""
+
+    async def revoke_all_for_user(
+        self, *, user_id: uuid.UUID, company_id: uuid.UUID, credential_epoch: int
+    ) -> None:
+        """Propaga a nova epoca para o cache (o banco ja foi atualizado)."""
+
+
+class PhoneVerificationService(Protocol):
+    """Envio/checagem de codigo SMS via provedor (Twilio Verify)."""
+
+    async def start(self, *, phone_e164: str, locale: str | None) -> bool:
+        """Inicia a verificacao; False em qualquer falha do provedor."""
+
+    async def check(self, *, phone_e164: str, code: str) -> bool:
+        """True somente quando o provedor aprova o codigo."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class PreviousPhoneOwner:
+    """Dono anterior de um telefone vinculado que acabou de ser reivindicado."""
+
+    user_id: uuid.UUID
+    company_id: uuid.UUID
+
+
+class PhoneVerificationRepository(Protocol):
+    """Persistencia/auditoria da verificacao de telefone."""
+
+    async def get_verified_phone(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
+        """Telefone verificado do usuario no tenant, se houver."""
+
+    async def claim_verified_phone(
+        self, *, phone_e164: str, user_id: uuid.UUID, company_id: uuid.UUID
+    ) -> PreviousPhoneOwner | None:
+        """Grava o vinculo atomicamente e devolve o dono anterior, se diferente."""
+
+    async def get_user_email(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
+        """E-mail de um usuario no tenant informado (para aviso de desvinculo)."""
+
+    async def record_audit(
+        self,
+        *,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: str,
+        details: dict[str, str],
+    ) -> None:
+        """Grava auditoria sem PII."""
+
+
+class AccountEmailDispatcher(Protocol):
+    """Enfileira e-mails de seguranca da conta."""
+
+    async def send_phone_unlinked(self, *, to: str, locale: str | None) -> None:
+        """Enfileira o aviso de telefone desvinculado."""

@@ -154,8 +154,8 @@ def test_no_ddl_on_pre_existing_tables():
 def test_alembic_head_matches_current():
     """Verifica se a revisao head do alembic e a esperada."""
     head = _get_head_revision()
-    # A revisao head deve ser 0042 (snapshot do desconto CNPJ em order_items)
-    assert head == "0042", f"Head revision esperada 0042, mas encontrada: {head}"
+    # A revisao head deve ser 0044 (claim atomico de telefone verificado)
+    assert head == "0044", f"Head revision esperada 0044, mas encontrada: {head}"
 
 
 if __name__ == "__main__":

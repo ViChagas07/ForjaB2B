@@ -101,8 +101,15 @@ def locale_key(locale: str | None) -> str:
     return "pt-BR"
 
 
+class _SafeSlots(dict[str, str]):
+    """Slots ausentes viram string vazia (fallback seguro para evento novo)."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
 def _render(template: str, slots: dict[str, str]) -> str:
-    rendered = template.format(**slots)
+    rendered = template.format_map(_SafeSlots(slots))
     return _NEWLINES.sub("\n\n", rendered).strip()
 
 

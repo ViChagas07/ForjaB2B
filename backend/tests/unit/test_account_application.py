@@ -238,3 +238,46 @@ async def test_privacidade_dos_gastos_de_usuario_ausente_404() -> None:
         await UpdateAccountSpendingVisibility(repository=FakeRepository(None)).execute(
             _AUTH, UpdateAccountSpendingVisibilityCommand(hide_spending=True)
         )
+
+
+class FakePhoneVerification:
+    def __init__(self, verified: str | None) -> None:
+        self.verified = verified
+
+    async def get_verified_phone(self, *, company_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
+        _ = (company_id, user_id)
+        return self.verified
+
+
+async def test_update_account_remove_vinculo_quando_telefone_muda() -> None:
+    repository = FakeRepository(_record())
+    usecase = UpdateAccount(
+        repository=repository,
+        phone_verification=FakePhoneVerification("+5511999999999"),
+        today=_TODAY,
+    )
+
+    await usecase.execute(
+        _AUTH,
+        UpdateAccountCommand(full_name="Comprador", phone="+55 (11) 98888-7777"),
+    )
+
+    assert repository.last_update is not None
+    assert repository.last_update["unlink_verified_phone"] is True
+
+
+async def test_update_account_mantem_vinculo_quando_telefone_igual_normalizado() -> None:
+    repository = FakeRepository(_record())
+    usecase = UpdateAccount(
+        repository=repository,
+        phone_verification=FakePhoneVerification("+5511999999999"),
+        today=_TODAY,
+    )
+
+    await usecase.execute(
+        _AUTH,
+        UpdateAccountCommand(full_name="Comprador", phone="+55 (11) 99999-9999"),
+    )
+
+    assert repository.last_update is not None
+    assert repository.last_update["unlink_verified_phone"] is False

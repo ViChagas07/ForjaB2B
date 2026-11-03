@@ -20,7 +20,7 @@ import secrets
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
-from app.application.security import AuthContext, TokenService
+from app.application.security import AuthContext, CredentialEpochResolver, TokenService
 from app.modules.identity.application.errors import (
     OAuthCodeError,
     OAuthCompanyAccountError,
@@ -105,6 +105,7 @@ class CompleteGoogleOAuth:
         membership_reader: MembershipReader,
         token_service: TokenService,
         refresh_store: RefreshTokenStore,
+        credential_epoch: CredentialEpochResolver,
         access_token_expire_minutes: int,
         refresh_token_expire_seconds: int,
         exchange_code_ttl_seconds: int = 60,
@@ -117,6 +118,7 @@ class CompleteGoogleOAuth:
         self._membership_reader = membership_reader
         self._token_service = token_service
         self._refresh_store = refresh_store
+        self._credential_epoch = credential_epoch
         self._access_token_expire_minutes = access_token_expire_minutes
         self._refresh_token_expire_seconds = refresh_token_expire_seconds
         self._exchange_code_ttl_seconds = exchange_code_ttl_seconds
@@ -164,6 +166,9 @@ class CompleteGoogleOAuth:
         )
 
         role = membership.role.value
+        credential_epoch = await self._credential_epoch.resolve(
+            user_id=identity.user_id, company_id=identity.company_id
+        )
         access_token = self._token_service.issue_access_token(
             AuthContext(
                 user_id=identity.user_id,
@@ -171,6 +176,7 @@ class CompleteGoogleOAuth:
                 role=role,
                 account_type=identity.account_type,
                 token_id=secrets.token_hex(16),
+                credential_epoch=credential_epoch,
             )
         )
         refresh_token = secrets.token_urlsafe(_REFRESH_TOKEN_BYTES)
@@ -181,6 +187,7 @@ class CompleteGoogleOAuth:
                 company_id=identity.company_id,
                 role=role,
                 account_type=identity.account_type,
+                credential_epoch=credential_epoch,
             ),
             self._refresh_token_expire_seconds,
         )

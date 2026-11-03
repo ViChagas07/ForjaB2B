@@ -19,7 +19,12 @@ from fastapi import Depends, Header, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.application.ports.unit_of_work import UnitOfWorkFactory
-from app.application.security import AuthContext, InvalidTokenError, TokenService
+from app.application.security import (
+    AuthContext,
+    CredentialEpochResolver,
+    InvalidTokenError,
+    TokenService,
+)
 from app.core.config import Settings
 from app.domain.i18n import negotiate_locale
 
@@ -76,8 +81,8 @@ def get_uow_factory(request: Request) -> UnitOfWorkFactory:
     return cast(UnitOfWorkFactory, request.app.state.uow_factory)
 
 
-def get_redis_client(request: Request) -> redis.Redis[str]:
-    return cast(redis.Redis[str], request.app.state.redis_client)
+def get_redis_client(request: Request) -> redis.Redis:
+    return cast(redis.Redis, request.app.state.redis_client)
 
 
 def get_token_service(settings: Annotated[Settings, Depends(get_settings)]) -> TokenService:
@@ -97,6 +102,14 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
     return token or None
 
 
+async def _enforce_credential_epoch(request: Request, auth: AuthContext) -> None:
+    """Rejeita access token de epoca anterior; fail-closed se nao ler a epoca."""
+    resolver = cast(CredentialEpochResolver, request.app.state.credential_epoch)
+    current = await resolver.resolve(user_id=auth.user_id, company_id=auth.company_id)
+    if auth.credential_epoch < current:
+        raise InvalidTokenError()
+
+
 async def get_current_auth(
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
@@ -110,7 +123,9 @@ async def get_current_auth(
         algorithm=settings.jwt_algorithm,
         expire_minutes=settings.access_token_expire_minutes,
     )
-    return token_service.decode_access_token(token)
+    auth = token_service.decode_access_token(token)
+    await _enforce_credential_epoch(request, auth)
+    return auth
 
 
 async def get_optional_auth(
@@ -126,4 +141,6 @@ async def get_optional_auth(
         algorithm=settings.jwt_algorithm,
         expire_minutes=settings.access_token_expire_minutes,
     )
-    return token_service.decode_access_token(token)
+    auth = token_service.decode_access_token(token)
+    await _enforce_credential_epoch(request, auth)
+    return auth

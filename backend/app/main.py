@@ -23,6 +23,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import SecretStr
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
@@ -56,7 +57,16 @@ from app.infrastructure.db.probe import ping_database
 from app.infrastructure.db.schema_check import SchemaCheckResult, check_schema_current
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
-from app.infrastructure.rate_limit import RedisBucketStore, RedisFailureStore
+from app.infrastructure.rate_limit import (
+    RedisBucketStore,
+    RedisCooldownStore,
+    RedisDailyQuotaStore,
+    RedisFailureStore,
+)
+from app.infrastructure.security.credential_epoch import (
+    CredentialEpochSessionRevoker,
+    SqlAlchemyRedisCredentialEpochResolver,
+)
 from app.interface.deprecation import register_deprecation
 from app.interface.errors import register_exception_handlers
 from app.interface.health import ReadinessProbe
@@ -145,6 +155,19 @@ from app.modules.identity.application.google_oauth import (
     CompleteGoogleOAuth,
     ExchangeOAuthCode,
 )
+from app.modules.identity.application.password_recovery import (
+    PasswordRecoveryLimiter,
+    RequestPasswordRecovery,
+    ResetPassword,
+    VerifyPasswordRecoveryCode,
+)
+from app.modules.identity.application.phone_verification import (
+    CheckPhoneVerification,
+    GetPhoneVerificationStatus,
+    PhoneVerificationLimiter,
+    StartPhoneVerification,
+)
+from app.modules.identity.application.ports import PhoneVerificationService
 from app.modules.identity.infrastructure.account_repository import (
     SqlAlchemyAccountRepository,
 )
@@ -157,7 +180,27 @@ from app.modules.identity.infrastructure.membership import SqlAlchemyMembershipR
 from app.modules.identity.infrastructure.oauth_exchange import RedisOAuthExchangeCodeStore
 from app.modules.identity.infrastructure.oauth_state import RedisOAuthStateStore
 from app.modules.identity.infrastructure.password import Argon2PasswordHasher
+from app.modules.identity.infrastructure.password_recovery_repository import (
+    SqlAlchemyPasswordResetRepository,
+)
+from app.modules.identity.infrastructure.password_recovery_store import (
+    RedisPasswordRecoveryStore,
+)
+from app.modules.identity.infrastructure.phone_verification_repository import (
+    SqlAlchemyPhoneVerificationRepository,
+)
 from app.modules.identity.infrastructure.tokens import RedisRefreshTokenStore
+from app.modules.identity.infrastructure.turnstile import CloudflareTurnstileVerifier
+from app.modules.identity.infrastructure.twilio_verify import (
+    FakePhoneVerificationService,
+    TwilioVerifyService,
+)
+from app.modules.identity.infrastructure.verified_phone_resolver import (
+    SqlAlchemyVerifiedPhoneResolver,
+)
+from app.modules.identity.interface.password_recovery_router import (
+    router as password_recovery_router,
+)
 from app.modules.invoicing.application.invoice import CreateInvoice, GetInvoice, GetInvoiceByOrder
 from app.modules.invoicing.infrastructure.repository import SqlAlchemyInvoicingRepository
 from app.modules.notification.application.notification import (
@@ -228,6 +271,11 @@ from app.modules.search.infrastructure.postgres_search import PostgresSearchRead
 from app.modules.search.infrastructure.reader import SqlAlchemyProductReader
 from app.modules.search.infrastructure.reconcile import ReconcileService
 from app.modules.search.infrastructure.suggest_cache import SuggestCache
+from app.tasks.password_recovery import (
+    CeleryAccountEmailDispatcher,
+    CeleryPasswordRecoveryEmailDispatcher,
+    CeleryPasswordRecoverySmsDispatcher,
+)
 from app.wiring.ai_tools import build_ai_catalog_wiring
 
 _logger = get_logger(__name__)
@@ -396,6 +444,40 @@ def _rate_limit_policies(settings: Settings) -> dict[RateLimitClass, RateLimitPo
             capacity=settings.rate_limit_coupon_preview_ip_capacity,
             refill_per_minute=settings.rate_limit_coupon_preview_ip_refill_per_minute,
         ),
+        RateLimitClass.PASSWORD_RECOVERY: RateLimitPolicy(
+            capacity=settings.rate_limit_password_recovery_ip_capacity,
+            refill_per_minute=settings.rate_limit_password_recovery_ip_refill_per_minute,
+        ),
+        RateLimitClass.PASSWORD_RECOVERY_IDENTIFIER: RateLimitPolicy(
+            capacity=settings.rate_limit_password_recovery_identifier_capacity,
+            refill_per_minute=settings.rate_limit_password_recovery_identifier_refill_per_minute,
+        ),
+        RateLimitClass.PASSWORD_RECOVERY_VERIFY_IP: RateLimitPolicy(
+            capacity=settings.rate_limit_password_recovery_verify_ip_capacity,
+            refill_per_minute=settings.rate_limit_password_recovery_verify_ip_refill_per_minute,
+        ),
+        RateLimitClass.PASSWORD_RECOVERY_VERIFY_IDENTIFIER: RateLimitPolicy(
+            capacity=settings.rate_limit_password_recovery_verify_identifier_capacity,
+            refill_per_minute=(
+                settings.rate_limit_password_recovery_verify_identifier_refill_per_minute
+            ),
+        ),
+        RateLimitClass.PHONE_VERIFICATION_IP: RateLimitPolicy(
+            capacity=settings.rate_limit_phone_verification_ip_capacity,
+            refill_per_minute=settings.rate_limit_phone_verification_ip_refill_per_minute,
+        ),
+        RateLimitClass.PHONE_VERIFICATION_USER: RateLimitPolicy(
+            capacity=settings.rate_limit_phone_verification_user_capacity,
+            refill_per_minute=settings.rate_limit_phone_verification_user_refill_per_minute,
+        ),
+        RateLimitClass.PHONE_VERIFICATION_CHECK_IP: RateLimitPolicy(
+            capacity=settings.rate_limit_phone_verification_check_ip_capacity,
+            refill_per_minute=(settings.rate_limit_phone_verification_check_ip_refill_per_minute),
+        ),
+        RateLimitClass.PHONE_VERIFICATION_CHECK_USER: RateLimitPolicy(
+            capacity=settings.rate_limit_phone_verification_check_user_capacity,
+            refill_per_minute=(settings.rate_limit_phone_verification_check_user_refill_per_minute),
+        ),
     }
 
 
@@ -419,6 +501,117 @@ def _build_login_throttle(settings: Settings, redis_client: Redis[str]) -> Login
         base_backoff_seconds=settings.login_failure_base_backoff_seconds,
         max_backoff_seconds=settings.login_failure_max_backoff_seconds,
     )
+
+
+def _build_turnstile_verifier(settings: Settings) -> CloudflareTurnstileVerifier | None:
+    """Verificador Turnstile; ausente em dev/testes sem a chave configurada."""
+    secret = settings.turnstile_secret_key
+    if secret is None:
+        return None
+    value = secret.get_secret_value().strip()
+    if not value:
+        return None
+    return CloudflareTurnstileVerifier(secret_key=value)
+
+
+def _secret_value(value: SecretStr | None) -> str | None:
+    if value is None:
+        return None
+    raw = value.get_secret_value().strip()
+    return raw or None
+
+
+def _build_phone_verification_service(
+    settings: Settings,
+) -> PhoneVerificationService | None:
+    """Twilio real quando configurado; fake deterministico so fora de producao."""
+    if settings.phone_verification_dry_run and not settings.is_production:
+        return FakePhoneVerificationService()
+    account_sid = _secret_value(settings.twilio_account_sid)
+    auth_token = _secret_value(settings.twilio_auth_token)
+    service_sid = _secret_value(settings.twilio_verify_service_sid)
+    if account_sid is None or auth_token is None or service_sid is None:
+        return None
+    return TwilioVerifyService(
+        account_sid=account_sid,
+        auth_token=auth_token,
+        service_sid=service_sid,
+    )
+
+
+def _build_phone_verification_limiter(
+    settings: Settings,
+    redis_client: Redis[str],
+    rate_limiter: RateLimiter,
+) -> PhoneVerificationLimiter:
+    return PhoneVerificationLimiter(
+        limiter=rate_limiter,
+        daily_store=RedisDailyQuotaStore(redis_client),
+        cooldown_store=RedisCooldownStore(redis_client),
+        daily_user_limit=settings.phone_verification_daily_user_limit,
+        daily_ip_limit=settings.phone_verification_daily_ip_limit,
+        cooldown_seconds=settings.phone_verification_resend_cooldown_seconds,
+        enabled=settings.rate_limit_enabled,
+    )
+
+
+def _build_password_recovery_use_cases(
+    settings: Settings,
+    redis_client: Redis[str],
+    rate_limiter: RateLimiter,
+    session_factory: async_sessionmaker[AsyncSession],
+    uow_factory: SqlAlchemyUnitOfWorkFactory,
+    session_revoker: CredentialEpochSessionRevoker,
+) -> tuple[RequestPasswordRecovery, VerifyPasswordRecoveryCode, ResetPassword]:
+    """Casos de uso da recuperacao com Redis fail-closed e envio via Celery."""
+    limiter = PasswordRecoveryLimiter(
+        limiter=rate_limiter,
+        daily_store=RedisDailyQuotaStore(redis_client),
+        secret=settings.secret_key,
+        daily_limit=settings.password_recovery_daily_limit,
+        enabled=settings.rate_limit_enabled,
+    )
+    store = RedisPasswordRecoveryStore(redis_client)
+    resolver = SqlAlchemyUserIdentityResolver(session_factory)
+    phone_resolver = SqlAlchemyVerifiedPhoneResolver(session_factory)
+    repository = SqlAlchemyPasswordResetRepository(uow_factory)
+    email_dispatcher = CeleryPasswordRecoveryEmailDispatcher()
+    sms_dispatcher = CeleryPasswordRecoverySmsDispatcher()
+
+    request = RequestPasswordRecovery(
+        verifier=_build_turnstile_verifier(settings),
+        limiter=limiter,
+        resolver=resolver,
+        phone_resolver=phone_resolver,
+        store=store,
+        email_dispatcher=email_dispatcher,
+        sms_dispatcher=sms_dispatcher,
+        audit=repository,
+        pepper=settings.pepper,
+        code_ttl_seconds=settings.recovery_code_ttl_seconds,
+        resend_cooldown_seconds=settings.password_recovery_resend_cooldown_seconds,
+    )
+    verify = VerifyPasswordRecoveryCode(
+        resolver=resolver,
+        phone_resolver=phone_resolver,
+        phone_service=_build_phone_verification_service(settings),
+        store=store,
+        limiter=limiter,
+        audit=repository,
+        pepper=settings.pepper,
+        reset_token_ttl_seconds=settings.recovery_reset_token_ttl_seconds,
+        max_attempts=settings.recovery_code_max_attempts,
+        code_ttl_seconds=settings.recovery_code_ttl_seconds,
+    )
+    reset = ResetPassword(
+        store=store,
+        repository=repository,
+        hasher=Argon2PasswordHasher(),
+        email_dispatcher=email_dispatcher,
+        limiter=limiter,
+        session_revoker=session_revoker,
+    )
+    return request, verify, reset
 
 
 def _build_admin_factories(
@@ -652,6 +845,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.session_factory = create_session_factory(engine)
     app.state.uow_factory = SqlAlchemyUnitOfWorkFactory(app.state.session_factory)
+    app.state.credential_epoch = SqlAlchemyRedisCredentialEpochResolver(
+        redis_client=redis_client,
+        uow_factory=app.state.uow_factory,
+    )
+    credential_epoch_revoker = CredentialEpochSessionRevoker(redis_client=redis_client)
+    (
+        app.state.password_recovery_request,
+        app.state.password_recovery_verify,
+        app.state.password_recovery_reset,
+    ) = _build_password_recovery_use_cases(
+        settings,
+        redis_client,
+        app.state.rate_limiter,
+        app.state.session_factory,
+        app.state.uow_factory,
+        credential_epoch_revoker,
+    )
     app.state.idempotency_service = IdempotencyService(
         repository=SqlAlchemyIdempotencyRepository(app.state.uow_factory),
         ttl_seconds=settings.idempotency_ttl_seconds,
@@ -684,20 +894,47 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         membership_reader=SqlAlchemyMembershipReader(app.state.uow_factory),
         token_service=token_service,
         refresh_store=refresh_store,
+        credential_epoch=app.state.credential_epoch,
         access_token_expire_minutes=settings.access_token_expire_minutes,
         refresh_token_expire_seconds=settings.refresh_token_expire_days * 24 * 3600,
     )
     app.state.identity_refresh = RefreshSession(
         refresh_store=refresh_store,
         token_service=token_service,
+        credential_epoch=app.state.credential_epoch,
         access_token_expire_minutes=settings.access_token_expire_minutes,
         refresh_token_expire_seconds=settings.refresh_token_expire_days * 24 * 3600,
     )
     app.state.identity_logout = Logout(refresh_store=refresh_store)
 
+    phone_verification_repository = SqlAlchemyPhoneVerificationRepository(app.state.uow_factory)
+    app.state.phone_verification_repository = phone_verification_repository
+    phone_verification_limiter = _build_phone_verification_limiter(
+        settings, redis_client, app.state.rate_limiter
+    )
+    phone_verification_service = _build_phone_verification_service(settings)
+    app.state.account_phone_verification_start = StartPhoneVerification(
+        service=phone_verification_service,
+        limiter=phone_verification_limiter,
+        repository=phone_verification_repository,
+        cooldown_seconds=settings.phone_verification_resend_cooldown_seconds,
+    )
+    app.state.account_phone_verification_check = CheckPhoneVerification(
+        service=phone_verification_service,
+        limiter=phone_verification_limiter,
+        repository=phone_verification_repository,
+        email_dispatcher=CeleryAccountEmailDispatcher(),
+    )
+    app.state.account_phone_verification_status = GetPhoneVerificationStatus(
+        repository=phone_verification_repository
+    )
+
     account_repository = SqlAlchemyAccountRepository(app.state.uow_factory)
     app.state.account_get = GetAccount(repository=account_repository)
-    app.state.account_update = UpdateAccount(repository=account_repository)
+    app.state.account_update = UpdateAccount(
+        repository=account_repository,
+        phone_verification=phone_verification_repository,
+    )
     app.state.account_update_currency = UpdateAccountCurrency(repository=account_repository)
     app.state.account_update_spending_visibility = UpdateAccountSpendingVisibility(
         repository=account_repository
@@ -743,6 +980,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             membership_reader=SqlAlchemyMembershipReader(app.state.uow_factory),
             token_service=token_service,
             refresh_store=refresh_store,
+            credential_epoch=app.state.credential_epoch,
             access_token_expire_minutes=settings.access_token_expire_minutes,
             refresh_token_expire_seconds=settings.refresh_token_expire_days * 24 * 3600,
         )
@@ -956,6 +1194,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(api_v1_router)
+    if settings.password_recovery_enabled:
+        app.include_router(password_recovery_router, prefix="/api/v1")
     app.include_router(catalog_admin_router, prefix="/api/v1")
     app.include_router(translation_admin_router, prefix="/api/v1")
     app.include_router(coupon_admin_router, prefix="/api/v1")

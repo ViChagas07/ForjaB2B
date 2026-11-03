@@ -12,7 +12,7 @@ import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Uuid, column, select, table
+from sqlalchemy import String, Uuid, column, select, table, text
 from sqlalchemy.orm import selectinload
 
 from app.application.ports.tenant import TenantContext
@@ -34,8 +34,14 @@ _COMPANIES = table(
     column("account_type", String(24)),
 )
 
+_UNLINK_VERIFIED_PHONE = text(
+    "DELETE FROM user_verified_phones WHERE company_id = :company_id AND user_id = :user_id"
+)
 
-async def _get_preferences_or_create(uow, company_id: uuid.UUID, user_id: uuid.UUID) -> UserPreferences:
+
+async def _get_preferences_or_create(
+    uow, company_id: uuid.UUID, user_id: uuid.UUID
+) -> UserPreferences:
     """Obtem ou cria as preferencias do usuario (upsert)."""
     prefs = await uow.session.get(UserPreferences, user_id)
     if prefs is None:
@@ -80,6 +86,7 @@ class SqlAlchemyAccountRepository:
         birth_date: date | None = None,
         gender: Gender | None = None,
         postal_code: str | None = None,
+        unlink_verified_phone: bool = False,
     ) -> AccountRecord | None:
         tenant = TenantContext(company_id=company_id, user_id=user_id)
         async with self._uow_factory.begin(tenant) as uow:
@@ -98,6 +105,11 @@ class SqlAlchemyAccountRepository:
             user, profile, account_type = row
             user.full_name = full_name
             user.phone = phone
+            if unlink_verified_phone:
+                await uow.session.execute(
+                    _UNLINK_VERIFIED_PHONE,
+                    {"company_id": company_id, "user_id": user_id},
+                )
 
             # Atualiza consumer_profiles se informado (contas PERSON)
             if birth_date is not None or gender is not None or postal_code is not None:
@@ -219,7 +231,11 @@ class SqlAlchemyAccountRepository:
             prefs = await uow.session.get(UserPreferences, user_id)
             if prefs is None or prefs.avatar_key != avatar_key:
                 return None
-            if prefs.avatar_content_type is None or prefs.avatar_data is None or prefs.avatar_updated_at is None:
+            if (
+                prefs.avatar_content_type is None
+                or prefs.avatar_data is None
+                or prefs.avatar_updated_at is None
+            ):
                 return None
             return AvatarBlob(
                 content_type=prefs.avatar_content_type,

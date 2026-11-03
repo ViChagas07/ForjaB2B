@@ -64,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 
 ENTRYPOINT ["tini", "--"]
 
-CMD ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=INFO", "--concurrency=4", "-E"]
+CMD ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=INFO", "--concurrency=4"]

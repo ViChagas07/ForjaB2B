@@ -17,6 +17,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Protocol
 
 import jwt
 
@@ -41,6 +42,28 @@ class ExpiredTokenError(AppError):
     code = "token_expired"
 
 
+class CredentialEpochUnavailableError(AppError):
+    """Epoca de credencial indisponivel (Redis e banco fora): fail-closed 503.
+
+    Nao respondemos 401 porque o token pode ser valido; 503 nega a operacao e
+    sinaliza indisponibilidade transitoria, sem forcar logout indevido.
+    """
+
+    status_code = 503
+    title = "Service Unavailable"
+    code = "credential_epoch_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__("Servico temporariamente indisponivel.")
+
+
+class CredentialEpochResolver(Protocol):
+    """Le a epoca de credencial atual (cache Redis, depois banco)."""
+
+    async def resolve(self, *, user_id: uuid.UUID, company_id: uuid.UUID) -> int:
+        """Epoca atual; levanta CredentialEpochUnavailableError se ambas falharem."""
+
+
 class AuthorizationError(AppError):
     """Identidade autenticada porem sem permissao (403)."""
 
@@ -63,6 +86,7 @@ class AuthContext:
     role: str
     token_id: str
     account_type: str = "COMPANY"
+    credential_epoch: int = 0
 
 
 def require_role(auth: AuthContext, *allowed_roles: str) -> None:
@@ -94,6 +118,7 @@ class TokenService:
             "account_type": auth.account_type,
             "type": _ACCESS_TOKEN_TYPE,
             "jti": auth.token_id,
+            "cep": auth.credential_epoch,
             "iat": now,
             "exp": now + timedelta(minutes=self._expire_minutes),
         }
@@ -126,10 +151,18 @@ class TokenService:
             raise InvalidTokenError()
         if not isinstance(account_type, str) or not account_type:
             raise InvalidTokenError()
+        credential_epoch = payload.get("cep", 0)
+        if (
+            not isinstance(credential_epoch, int)
+            or isinstance(credential_epoch, bool)
+            or credential_epoch < 0
+        ):
+            raise InvalidTokenError()
         return AuthContext(
             user_id=user_id,
             company_id=company_id,
             role=role,
             token_id=token_id,
             account_type=account_type,
+            credential_epoch=credential_epoch,
         )
