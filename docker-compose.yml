@@ -329,8 +329,38 @@ services:
       SECURITY_HSTS_MAX_AGE_SECONDS: ${SECURITY_HSTS_MAX_AGE_SECONDS:-31536000}
       SECURITY_HSTS_INCLUDE_SUBDOMAINS: ${SECURITY_HSTS_INCLUDE_SUBDOMAINS:-true}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-dev_admin_api_key_change_in_production}
+      # IA local (LM Studio no host) e kill switches. LLM_BASE_URL_DOCKER e
+      # separado de LLM_BASE_URL para o backend via Docker usar o gateway do
+      # host sem quebrar quem roda o backend direto (localhost).
+      AI_AGENTS_ENABLED: ${AI_AGENTS_ENABLED:-false}
+      LLM_ENABLED: ${LLM_ENABLED:-true}
+      LLM_BASE_URL: ${LLM_BASE_URL_DOCKER:-http://host.docker.internal:1235/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-lm-studio}
+      LLM_MODEL: ${LLM_MODEL:-qwen/qwen3.5-9b}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.3}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-60}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-512}
+      LLM_MAX_CONCURRENCY: ${LLM_MAX_CONCURRENCY:-1}
+      LLM_QUEUE_SIZE: ${LLM_QUEUE_SIZE:-2}
+      LLM_QUEUE_TIMEOUT_SECONDS: ${LLM_QUEUE_TIMEOUT_SECONDS:-10}
+      LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-none}
+      LLM_HEALTH_CACHE_SECONDS: ${LLM_HEALTH_CACHE_SECONDS:-30}
+      LLM_HEALTH_TIMEOUT_SECONDS: ${LLM_HEALTH_TIMEOUT_SECONDS:-3}
+      AI_DAILY_TOKEN_BUDGET: ${AI_DAILY_TOKEN_BUDGET:-200000}
+      AI_CHAT_MAX_MESSAGE_CHARS: ${AI_CHAT_MAX_MESSAGE_CHARS:-500}
+      AI_CHAT_HISTORY_TURNS: ${AI_CHAT_HISTORY_TURNS:-6}
+      AI_CONVERSATION_TTL_DAYS: ${AI_CONVERSATION_TTL_DAYS:-30}
+      AI_CHAT_CLEANUP_BATCH: ${AI_CHAT_CLEANUP_BATCH:-500}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+      EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-false}
     ports:
       - "8000:8000"
+    # LM Studio roda no HOST. Dentro do container, localhost e o proprio
+    # container; host-gateway funciona no Docker Desktop e no Linux.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - forja-network
     depends_on:
@@ -391,6 +421,30 @@ services:
       EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:-mailpit}
       EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-1025}
       EMAIL_FROM: ${EMAIL_FROM:-no-reply@forja.local}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+      EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-false}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      # Recuperacao de carrinho: kill switch + LLM local (somente leitura).
+      AI_AGENTS_ENABLED: ${AI_AGENTS_ENABLED:-false}
+      LLM_ENABLED: ${LLM_ENABLED:-true}
+      LLM_BASE_URL: ${LLM_BASE_URL_DOCKER:-http://host.docker.internal:1235/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-lm-studio}
+      LLM_MODEL: ${LLM_MODEL:-qwen/qwen3.5-9b}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.3}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-60}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-512}
+      LLM_MAX_CONCURRENCY: ${LLM_MAX_CONCURRENCY:-1}
+      LLM_QUEUE_SIZE: ${LLM_QUEUE_SIZE:-2}
+      LLM_QUEUE_TIMEOUT_SECONDS: ${LLM_QUEUE_TIMEOUT_SECONDS:-10}
+      LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-none}
+      CART_RECOVERY_FREE_SHIPPING_MIN_BRL: ${CART_RECOVERY_FREE_SHIPPING_MIN_BRL:-1500.00}
+      CART_RECOVERY_ESCALATE_MIN_BRL: ${CART_RECOVERY_ESCALATE_MIN_BRL:-20000.00}
+      CART_RECOVERY_TENANT_BATCH: ${CART_RECOVERY_TENANT_BATCH:-20}
+      CART_RECOVERY_CART_BATCH: ${CART_RECOVERY_CART_BATCH:-20}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - forja-network
     depends_on:

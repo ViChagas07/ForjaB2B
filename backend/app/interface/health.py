@@ -22,6 +22,7 @@ from app.interface.schemas import (
     CheckStatus,
     HealthResponse,
     LivenessResponse,
+    LLMHealthResponse,
     ReadinessResponse,
     SearchHealthResponse,
     SearchHealthStatus,
@@ -136,6 +137,29 @@ async def search_health(request: Request) -> SearchHealthResponse:
     return SearchHealthResponse(
         status=_SEARCH_STATUS.get(str(health.state.value), "unavailable"),
         detail=health.detail,
+    )
+
+
+@router.get("/health/llm", response_model=LLMHealthResponse)
+async def llm_health(request: Request) -> LLMHealthResponse:
+    """Estado do LLM local, separado da saude da aplicacao.
+
+    Sempre HTTP 200: LM Studio indisponivel nao e falha da API (o chat
+    degrada e o e-mail usa template fixo). O probe e cacheado na origem.
+    """
+    settings = getattr(request.app.state, "settings", None)
+    fallback_model = str(getattr(settings, "llm_model", "") or "")
+    probe = getattr(request.app.state, "llm_health_probe", None)
+    if probe is None:
+        return LLMHealthResponse(available=False, enabled=False, model=fallback_model)
+    try:
+        result = await probe.check()
+    except Exception:  # noqa: BLE001 - health nunca deve retornar 500
+        return LLMHealthResponse(available=False, enabled=False, model=fallback_model)
+    return LLMHealthResponse(
+        available=bool(result.available),
+        enabled=bool(result.enabled),
+        model=str(result.model or fallback_model),
     )
 
 

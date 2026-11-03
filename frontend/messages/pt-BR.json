@@ -988,6 +988,8 @@
     "viewProduct": "Ver produto",
     "addToCart": "Adicionar ao carrinho",
     "goToCatalog": "Ir para o catálogo",
+    "demoMode": "Assistente de IA disponível em modo demonstração local.",
+    "demoModeLink": "Ver como rodar no README",
     "suggestion1": "Capacete para soldador",
     "suggestion2": "Como funciona o frete?",
     "suggestion3": "Qual o pedido minimo?",

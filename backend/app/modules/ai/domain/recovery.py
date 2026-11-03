@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
 
 MIN_IDLE_HOURS = 24
@@ -62,6 +62,27 @@ class RecoveryConfig:
 
     free_shipping_min_brl: Decimal = Decimal("1500.00")
     escalate_min_brl: Decimal = Decimal("20000.00")
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecoveryFacts:
+    """Fatos CALCULADOS pelo codigo e enviados ao LLM (texto persuasivo).
+
+    O LLM nunca decide acao/desconto: recebe estes valores prontos e escreve
+    apenas o paragrafo. A validacao posterior compara cada numero citado com
+    os valores daqui (e com o template fixo que sempre acompanha o e-mail).
+    """
+
+    company_name: str
+    items_summary: str
+    locale: str
+    action: RecoveryAction
+    subtotal: Decimal
+    shipping_total: Decimal
+    discount_percent: Decimal | None
+    discount_amount: Decimal | None
+    free_shipping_min: Decimal
+    cart_url: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -124,6 +145,80 @@ def evaluate_recovery(
         stop_reason=None,
         eligible_actions=tuple(actions),
         reason_hints=hints,
+    )
+
+
+def discount_for(snapshot: CartSnapshot) -> Decimal:
+    """Valor do desconto de 3% (somente linhas sem preco negociado).
+
+    Mesma formula do checkout (`eligible_product_total * percent / 100`,
+    arredondada a centavos). A duplicacao e proposital: o dominio de IA nao
+    importa o dominio de pedidos (bounded contexts).
+    """
+    if snapshot.non_negotiated_subtotal <= 0:
+        return Decimal("0.00")
+    raw = snapshot.non_negotiated_subtotal * DISCOUNT_PERCENT / Decimal("100")
+    return raw.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def select_recovery_action(
+    snapshot: CartSnapshot,
+    policy: RecoveryPolicy,
+    *,
+    config: RecoveryConfig,
+) -> tuple[RecoveryAction, RecoveryReason]:
+    """Decide acao e motivo SOMENTE com regras de codigo (nunca LLM).
+
+    Prioridade entre as acoes JA elegiveis pela politica:
+    1. desconto de 3% quando o beneficio em reais for >= frete gratis;
+    2. frete gratis;
+    3. desconto de 3% restante;
+    4. escalar para humano (alto valor/risco);
+    5. lembrete.
+    """
+    if not policy.eligible:
+        raise ValueError("carrinho inelegivel nao tem acao")
+    actions = set(policy.eligible_actions)
+    discount = discount_for(snapshot)
+    if RecoveryAction.DISCOUNT_3PCT in actions and discount >= snapshot.shipping_total:
+        return RecoveryAction.DISCOUNT_3PCT, RecoveryReason.REPEAT_CUSTOMER
+    if RecoveryAction.FREE_SHIPPING in actions:
+        return RecoveryAction.FREE_SHIPPING, RecoveryReason.ABOVE_FREE_SHIPPING_MIN
+    if RecoveryAction.DISCOUNT_3PCT in actions:
+        return RecoveryAction.DISCOUNT_3PCT, RecoveryReason.REPEAT_CUSTOMER
+    if RecoveryAction.ESCALATE_HUMAN in actions:
+        reason = (
+            RecoveryReason.HIGH_VALUE
+            if snapshot.subtotal >= config.escalate_min_brl
+            else RecoveryReason.RISK_SIGNAL
+        )
+        return RecoveryAction.ESCALATE_HUMAN, reason
+    return RecoveryAction.REMIND, RecoveryReason.CART_IDLE
+
+
+def build_recovery_facts(
+    snapshot: CartSnapshot,
+    *,
+    action: RecoveryAction,
+    company_name: str,
+    items_summary: str,
+    locale: str,
+    cart_url: str,
+    config: RecoveryConfig,
+) -> RecoveryFacts:
+    """Monta o payload de fatos (codigo) entregue ao redator do e-mail."""
+    discount_amount = discount_for(snapshot) if action == RecoveryAction.DISCOUNT_3PCT else None
+    return RecoveryFacts(
+        company_name=company_name,
+        items_summary=items_summary,
+        locale=locale,
+        action=action,
+        subtotal=snapshot.subtotal,
+        shipping_total=snapshot.shipping_total,
+        discount_percent=DISCOUNT_PERCENT if discount_amount is not None else None,
+        discount_amount=discount_amount,
+        free_shipping_min=config.free_shipping_min_brl,
+        cart_url=cart_url,
     )
 
 

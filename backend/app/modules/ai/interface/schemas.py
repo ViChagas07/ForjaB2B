@@ -42,6 +42,8 @@ class ChatResponse(BaseModel):
     conversation_id: uuid.UUID
     reply: str
     product_cards: list[ProductCardOut]
+    # true = LLM local desligado/indisponivel (modo demonstracao/template).
+    degraded: bool = False
 
 
 def card_to_out(card: ProductCard) -> ProductCardOut:

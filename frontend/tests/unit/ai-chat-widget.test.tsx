@@ -13,6 +13,7 @@ import { ApiError } from "@/infrastructure/http/errors";
 
 const pushMock = vi.fn();
 const sendChatMessageMock = vi.fn();
+const getLlmHealthMock = vi.fn();
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
@@ -28,6 +29,7 @@ vi.mock("@/infrastructure/http", async (importOriginal) => {
   return {
     ...actual,
     sendChatMessage: (...args: unknown[]) => sendChatMessageMock(...args),
+    getLlmHealth: (...args: unknown[]) => getLlmHealthMock(...args),
   };
 });
 
@@ -85,6 +87,8 @@ beforeEach(() => {
   useAiChatStore.getState().reset();
   pushMock.mockReset();
   sendChatMessageMock.mockReset();
+  getLlmHealthMock.mockReset();
+  getLlmHealthMock.mockResolvedValue({ available: true, enabled: true, model: "qwen/qwen3.5-9b" });
 });
 
 afterEach(() => {
@@ -207,3 +211,13 @@ describe("AiChatWidget", () => {
     expect(screen.getByRole("link", { name: /catálogo/i }).getAttribute("href")).toBe("/catalog");
   });
 });
+
+  it("mostra modo demonstração quando /health/llm está indisponível", async () => {
+    getLlmHealthMock.mockResolvedValue({ available: false, enabled: true, model: "qwen/qwen3.5-9b" });
+    openWidget();
+    const banner = await screen.findByTestId("ai-chat-demo");
+    expect(banner.textContent).toMatch(/modo demonstração local/i);
+    expect(screen.getByRole("link", { name: /README/i }).getAttribute("href")).toContain(
+      "github.com/ViChagas07/ForjaB2B",
+    );
+  });

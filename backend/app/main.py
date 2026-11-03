@@ -70,13 +70,13 @@ from app.interface.v1.router import api_v1_router
 from app.modules.ai.application.chat import ChatService
 from app.modules.ai.application.chat_graph import ChatGraph
 from app.modules.ai.application.conversation_service import ConversationService
-from app.modules.ai.application.ports import ResilientLLM
 from app.modules.ai.application.security.budget import InMemoryDailyTokenBudget
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
 from app.modules.ai.infrastructure.chat_audit import SqlAlchemyChatAudit
 from app.modules.ai.infrastructure.chat_repository import SqlAlchemyConversationRepository
-from app.modules.ai.infrastructure.llm_openai import build_langchain_llm
+from app.modules.ai.infrastructure.llm_health import LLMHealthProbe
+from app.modules.ai.infrastructure.llm_openai import build_resilient_llm
 from app.modules.cart.application.cart import CartService
 from app.modules.cart.infrastructure.repository import SqlAlchemyCartRepository
 from app.modules.catalog.application.catalog import (
@@ -490,10 +490,13 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
     Kill switch: com `AI_AGENTS_ENABLED=false` o LLM nem e construido (o
     endpoint responde 503 neutro e nenhum custo e gerado).
     """
-    ai_llm = (
-        ResilientLLM(build_langchain_llm(settings), timeout_seconds=settings.llm_timeout_s)
-        if settings.ai_agents_enabled and settings.llm_ready
-        else None
+    ai_llm = build_resilient_llm(settings)
+    app.state.llm_health_probe = LLMHealthProbe(
+        enabled=settings.ai_agents_enabled and settings.llm_enabled,
+        base_url=settings.llm_base_url,
+        model=settings.llm_model,
+        timeout_seconds=settings.llm_health_timeout_seconds,
+        cache_seconds=settings.llm_health_cache_seconds,
     )
     ai_tools, ai_cards = build_ai_catalog_wiring(
         search_products=app.state.search_products,

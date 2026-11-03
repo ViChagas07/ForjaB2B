@@ -8,9 +8,15 @@ import pytest
 from pydantic import BaseModel
 
 from app.core.config import Settings
-from app.modules.ai.application.ports import ResilientLLM
+from app.modules.ai.application.ports import ConcurrencyLimitedLLM, ResilientLLM
 from app.modules.ai.infrastructure.llm_fake import FakeLLM
-from app.modules.ai.infrastructure.llm_openai import LangChainOpenAILLM, build_langchain_llm
+from app.modules.ai.infrastructure.llm_openai import (
+    LangChainOpenAILLM,
+    build_langchain_llm,
+    build_resilient_llm,
+    extract_json_object,
+    strip_reasoning,
+)
 
 _MESSAGES: list[dict[str, str]] = [{"role": "user", "content": "oi"}]
 
@@ -44,11 +50,30 @@ async def test_fake_llm_pode_ser_envelopado_pelo_resiliente() -> None:
     assert await resilient.complete_text(messages=_MESSAGES) == "ok"
 
 
-def test_fabrica_rejeita_llm_nao_configurado() -> None:
-    settings = Settings(_env_file=None)  # sem LLM_BASE_URL/LLM_API_KEY
+def test_strip_reasoning_remove_think_e_tokens_especiais() -> None:
+    raw = "<think>raciocinio interno</think>Resposta<|im_end|>"
+    assert strip_reasoning(raw) == "Resposta"
+
+
+def test_strip_reasoning_remove_think_sem_fechamento() -> None:
+    assert strip_reasoning("Resposta<think>pensando...") == "Resposta"
+
+
+def test_extract_json_object_aceita_cerca_e_virgula_final() -> None:
+    raw = '```json\n{"intent": "PRODUCT_SEARCH",}\n```'
+    assert extract_json_object(raw) == {"intent": "PRODUCT_SEARCH"}
+
+
+def test_fabrica_rejeita_llm_desabilitado() -> None:
+    settings = Settings(_env_file=None, llm_enabled=False)
     assert settings.llm_ready is False
     with pytest.raises(Exception, match="llm_not_configured"):
         build_langchain_llm(settings)
+
+
+def test_fabrica_degradada_nao_constroi_llm_quando_ia_desligada() -> None:
+    settings = Settings(_env_file=None, ai_agents_enabled=False)
+    assert build_resilient_llm(settings) is None
 
 
 def test_adaptador_openai_compativel_constroi_sem_rede() -> None:
@@ -59,5 +84,20 @@ def test_adaptador_openai_compativel_constroi_sem_rede() -> None:
         model="fake-model",
         timeout_seconds=5.0,
         max_tokens=128,
+        temperature=0.3,
+        reasoning_effort="none",
     )
     assert adapter is not None
+
+
+def test_fabrica_resiliente_envolve_semaforo_quando_configurada() -> None:
+    settings = Settings(
+        _env_file=None,
+        ai_agents_enabled=True,
+        llm_enabled=True,
+        llm_base_url="http://localhost:9/v1",
+        llm_api_key="lm-studio",
+    )
+    resilient = build_resilient_llm(settings)
+    assert isinstance(resilient, ResilientLLM)
+    assert isinstance(resilient._inner, ConcurrencyLimitedLLM)

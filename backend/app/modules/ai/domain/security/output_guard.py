@@ -31,7 +31,9 @@ _ABSOLUTE_URL = re.compile(r"(?i)(?:https?://|www\.)[^\s<>\"']{1,300}")
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{0,120})\]\(([^)\n]{1,300})\)")
 _MARKDOWN_IMAGE = re.compile(r"!\[[^\]\n]{0,120}\]\(([^)\n]{1,300})\)")
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_PHONE = re.compile(r"\b\+?\d{1,3}?\s?\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4}\b")
+# Lookarounds evitam falso positivo dentro de UUID/SKU (ex.: ...-8ddd-...):
+# telefone comeca em fronteira que NAO e letra/digito/hifen.
+_PHONE = re.compile(r"(?<![\w-])\+?\d{1,3}?\s?\(?\d{2}\)?\s?\d{4,5}[-\s]?\d{4}(?![\w-])")
 _SECRET = re.compile(
     r"(?i)(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}"
     r"|whsec_[A-Za-z0-9]{8,}"
@@ -105,14 +107,25 @@ def guard_model_output(
     allowed_url_prefixes: Sequence[str] = ("/catalog", "/cart", "/checkout", "/orders", "/"),
     canary: str | None = None,
     system_prompt: str | None = None,
+    allow_money: bool = False,
 ) -> GuardedOutput:
-    """Aplica as regras de saida; BLOCK devolve texto vazio + motivo."""
+    """Aplica as regras de saida; BLOCK devolve texto vazio + motivo.
+
+    `allow_money=True` e usado SOMENTE no e-mail de recuperacao depois que o
+    chamador validou cada valor contra os numeros calculados pelo codigo. O
+    chat mantem o default (preco nunca sai do modelo).
+    """
     blocked = _block_reason(text, locale=locale, canary=canary, system_prompt=system_prompt)
     if blocked is not None:
         return GuardedOutput(text="", blocked=True, reason_code=blocked)
 
     actions: list[str] = []
-    cleaned = _clean_text(text, actions=actions, allowed_url_prefixes=tuple(allowed_url_prefixes))
+    cleaned = _clean_text(
+        text,
+        actions=actions,
+        allowed_url_prefixes=tuple(allowed_url_prefixes),
+        allow_money=allow_money,
+    )
     cleaned = " ".join(cleaned.split())
     if len(cleaned) > max_chars:
         cleaned = cleaned[:max_chars]
@@ -144,6 +157,7 @@ def _clean_text(
     *,
     actions: list[str],
     allowed_url_prefixes: tuple[str, ...],
+    allow_money: bool = False,
 ) -> str:
     """Remove conteudo proibido da saida, registrando cada acao."""
     state = {"value": _MARKDOWN_IMAGE.sub("", text)}
@@ -167,7 +181,8 @@ def _clean_text(
     _sub(_EMAIL, "", "email_removido")
     _sub(_PHONE, "", "telefone_removido")
     _sub(_SECRET, "[removido]", "segredo_removido")
-    _sub(_MONEY, "", "preco_removido")
+    if not allow_money:
+        _sub(_MONEY, "", "preco_removido")
     return state["value"]
 
 

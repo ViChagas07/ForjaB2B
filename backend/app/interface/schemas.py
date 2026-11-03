@@ -79,3 +79,13 @@ class SearchHealthResponse(BaseModel):
 
     status: SearchHealthStatus
     detail: str | None = None
+
+
+class LLMHealthResponse(BaseModel):
+    """Estado do LLM local (separado de /health e nao essencial ao readiness)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    available: bool
+    enabled: bool
+    model: str

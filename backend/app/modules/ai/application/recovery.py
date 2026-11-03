@@ -5,15 +5,15 @@ load_context -> policy -> decide -> validate -> act -> end.
 
 - load_context: codigo (o snapshot vem do job com contexto RLS; identidade
   NUNCA vem do LLM).
-- policy: codigo (`evaluate_recovery`) — elegibilidade + eligible_actions +
+- policy: codigo (`evaluate_recovery`) — elegibilidade + acoes permitidas +
   reason_hints. Inelegivel => grafo TERMINA sem LLM nem envio.
-- decide: LLM com saida estruturada ESTRITA (RecoveryDecision): reason_code de
-  um enum, chosen_action DENTRO de eligible_actions, personal_note <= 200 no
-  locale do usuario. Recebe apenas dados minimos e sem PII/precos brutos
-  (contagens e faixas) em bloco nao confiavel da Fase 2. Kill switch off ou
-  falha de LLM => REMIND deterministico sem nota (degrada, nunca quebra).
-- validate: codigo — acao fora da lista ou nota reprovada pelo guard => REMIND
-  sem nota (fallback deterministico).
+- decide: acao/reason escolhidos EXCLUSIVAMENTE pelo codigo
+  (`select_recovery_action`). O LLM recebe os fatos prontos (empresa, itens,
+  subtotal, frete, desconto ja calculado, link) e escreve APENAS o paragrafo
+  persuasivo no locale do cliente. Kill switch/falha => texto vazio e
+  template fixo (o e-mail sempre sai).
+- validate: guard de saida (HTML/URL/PII/idioma/injecao) + validacao
+  numerica: nenhum percentual/valor diferente do calculado pode passar.
 - act: codigo — cria oferta (se FREE_SHIPPING/DISCOUNT_3PCT), enfileira
   cart.recovery no outbox, grava attempt + audit (uma transacao).
 """
@@ -24,11 +24,9 @@ import secrets
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from decimal import Decimal
 from typing import Any, NotRequired, Protocol, TypedDict
 
 from langgraph.graph import END, StateGraph
-from pydantic import BaseModel, ConfigDict, Field
 
 from app.modules.ai.application.ports import LLMMessage, LLMPort
 from app.modules.ai.application.security.prompt_builder import untrusted_block
@@ -36,15 +34,19 @@ from app.modules.ai.domain.recovery import (
     CartSnapshot,
     RecoveryAction,
     RecoveryConfig,
+    RecoveryFacts,
     RecoveryPolicy,
     RecoveryReason,
+    build_recovery_facts,
     evaluate_recovery,
+    select_recovery_action,
 )
+from app.modules.ai.domain.recovery_copy import validate_recovery_copy
 from app.modules.ai.domain.security.injection import scan_injection
 from app.modules.ai.domain.security.output_guard import guard_model_output
 from app.modules.ai.domain.types import resolve_locale
 
-NOTE_MAX_CHARS = 200
+NOTE_MAX_CHARS = 600
 
 _OFFER_TEXT = {
     RecoveryAction.FREE_SHIPPING: {
@@ -74,15 +76,6 @@ _OFFER_TEXT = {
         "zh-CN": "本购物车中非议价商品享 3% 折扣。",
     },
 }
-
-
-class RecoveryDecision(BaseModel):
-    """Saida ESTRITA esperada do LLM (invalida = fallback REMIND sem nota)."""
-
-    model_config = ConfigDict(extra="forbid", strict=True)
-    reason_code: RecoveryReason
-    chosen_action: RecoveryAction
-    personal_note: str = Field(default="", max_length=NOTE_MAX_CHARS)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -124,8 +117,14 @@ class RecoveryPersistPort(Protocol):
 class RecoveryState(TypedDict):
     snapshot: CartSnapshot
     locale: str
+    company_name: str
+    items_summary: str
+    cart_url: str
     policy: NotRequired[RecoveryPolicy]
-    decision: NotRequired[RecoveryDecision]
+    action: NotRequired[RecoveryAction]
+    reason_code: NotRequired[RecoveryReason]
+    facts: NotRequired[RecoveryFacts]
+    copy: NotRequired[str]
     outcome: NotRequired[RecoveryOutcome]
     degraded: NotRequired[bool]
     verdict: NotRequired[str]
@@ -177,6 +176,9 @@ class CartRecoveryGraph:
         *,
         snapshot: CartSnapshot,
         locale: str,
+        company_name: str,
+        items_summary: str,
+        cart_url: str,
         last_attempt_at: datetime | None,
         attempts_for_state: int,
         persist_request: Callable[
@@ -188,6 +190,9 @@ class CartRecoveryGraph:
             {
                 "snapshot": snapshot,
                 "locale": locale,
+                "company_name": company_name,
+                "items_summary": items_summary,
+                "cart_url": cart_url,
                 "last_attempt_at": last_attempt_at,
                 "attempts_for_state": attempts_for_state,
                 "persist": persist_request,
@@ -217,109 +222,118 @@ class CartRecoveryGraph:
 
     async def _decide(self, state: RecoveryState) -> dict[str, Any]:
         policy = state["policy"]
-        decision, degraded = await self._ask_llm(state["snapshot"], policy, state["locale"])
-        return {"decision": decision, "degraded": degraded}
+        action, reason = select_recovery_action(state["snapshot"], policy, config=self._config)
+        facts = build_recovery_facts(
+            state["snapshot"],
+            action=action,
+            company_name=state["company_name"],
+            items_summary=state["items_summary"],
+            locale=state["locale"],
+            cart_url=state["cart_url"],
+            config=self._config,
+        )
+        copy, degraded = await self._write_copy(facts)
+        return {
+            "action": action,
+            "reason_code": reason,
+            "facts": facts,
+            "copy": copy,
+            "degraded": degraded,
+        }
 
-    async def _ask_llm(
-        self, snapshot: CartSnapshot, policy: RecoveryPolicy, locale: str
-    ) -> tuple[RecoveryDecision, bool]:
-        fallback = RecoveryDecision(
-            reason_code=RecoveryReason.CART_IDLE,
-            chosen_action=RecoveryAction.REMIND,
-            personal_note="",
-        )
+    async def _write_copy(self, facts: RecoveryFacts) -> tuple[str, bool]:
+        """Texto persuasivo do LLM; vazio + template fixo em qualquer falha."""
         if not self._ai_enabled or self._llm is None:
-            return fallback, True
+            return "", True
         tag = self._tag_factory()
-        data = (
-            f"itens={snapshot.item_count}; "
-            f"faixa_subtotal={_subtotal_band(snapshot.subtotal)}; "
-            f"faixa_pedidos_pagos={_orders_band(snapshot.company_paid_orders)}; "
-            f"sinais={','.join(h.value for h in policy.reason_hints)}; "
-            f"acoes_permitidas={','.join(a.value for a in policy.eligible_actions)}"
-        )
+        data = _facts_block(facts)
         messages: list[LLMMessage] = [
             {
                 "role": "system",
                 "content": (
-                    "Voce escolhe UMA acao permitida e um motivo de um enum para um e-mail "
-                    "de recuperacao de carrinho. Nunca invente acoes, precos ou links. "
-                    "personal_note: texto curto no idioma pedido, sem dados pessoais."
+                    "Voce escreve SOMENTE o paragrafo persuasivo de um e-mail de "
+                    "recuperacao de carrinho B2B. Use apenas os fatos fornecidos. "
+                    "Nao escreva links, e-mails, telefones, HTML, Markdown, emojis, "
+                    "percentuais ou valores diferentes dos informados. Nao prometa "
+                    "beneficio que nao esteja em acao. Responda no idioma indicado, "
+                    "em texto simples, com no maximo duas frases curtas."
                 ),
             },
             {
                 "role": "user",
-                "content": f"idioma={locale}\n" + untrusted_block("dados_do_carrinho", data, tag),
+                "content": f"idioma={facts.locale}\n"
+                + untrusted_block("fatos_do_carrinho", data, tag),
             },
         ]
         try:
-            decision = await self._llm.complete_structured(
-                schema=RecoveryDecision, messages=messages
-            )
+            text = await self._llm.complete_text(messages=messages)
         except Exception:  # noqa: BLE001 - LLM nunca derruba o agente
-            return fallback, True
-        if decision.chosen_action not in policy.eligible_actions:
-            return fallback, True
-        return decision, False
+            return "", True
+        text = text.strip()
+        if not text:
+            return "", True
+        locale = resolve_locale(facts.locale)
+        guarded = guard_model_output(
+            text,
+            locale=locale,
+            max_chars=NOTE_MAX_CHARS,
+            allow_money=True,
+        )
+        if guarded.blocked or not guarded.text:
+            return "", True
+        if scan_injection(guarded.text).level.value == "BLOCK":
+            return "", True
+        validation = validate_recovery_copy(guarded.text, facts=facts, max_chars=NOTE_MAX_CHARS)
+        if not validation.ok:
+            return "", True
+        return guarded.text, False
 
     async def _validate(self, state: RecoveryState) -> dict[str, Any]:
-        policy = state["policy"]
-        decision = state["decision"]
-        degraded = state.get("degraded", False)
-        action, reason, note = (
-            decision.chosen_action,
-            decision.reason_code,
-            decision.personal_note.strip(),
-        )
+        copy = state.get("copy", "")
         verdict = "ALLOW"
-        if action not in policy.eligible_actions:
-            action, reason, note, verdict = (
-                RecoveryAction.REMIND,
-                RecoveryReason.CART_IDLE,
-                "",
-                "BLOCK",
-            )
-            degraded = True
-        if note:
-            locale = resolve_locale(state["locale"])
-            guarded = guard_model_output(note, locale=locale, max_chars=NOTE_MAX_CHARS)
-            injection = scan_injection(guarded.text) if guarded.text else None
-            if (
-                guarded.blocked
-                or not guarded.text
-                or (injection is not None and injection.level.value == "BLOCK")
-            ):
-                note, verdict = "", "BLOCK"
-        return {
-            "decision": RecoveryDecision(
-                reason_code=reason, chosen_action=action, personal_note=note
-            ),
-            "verdict": verdict,
-            "degraded": degraded,
-        }
+        degraded = state.get("degraded", False)
+        if copy:
+            injection = scan_injection(copy)
+            if injection.level.value == "BLOCK":
+                copy, verdict, degraded = "", "BLOCK", True
+        return {"copy": copy, "verdict": verdict, "degraded": degraded}
 
     async def _act(self, state: RecoveryState) -> dict[str, Any]:
-        decision = state["decision"]
+        action = state["action"]
+        reason = state["reason_code"]
         persist = state.get("persist")
         if persist is None:  # pragma: no cover - sempre injetado pelo job
             raise RuntimeError("persist nao injetado")
-        request = persist(
-            decision.chosen_action,
-            decision.reason_code,
-            decision.personal_note,
-            state.get("verdict", "ALLOW"),
-        )
+        request = persist(action, reason, state.get("copy", ""), state.get("verdict", "ALLOW"))
         offer_id = await self._persist_port.persist(request)
         return {
             "outcome": RecoveryOutcome(
-                action=decision.chosen_action,
-                reason_code=decision.reason_code,
-                note=decision.personal_note,
+                action=action,
+                reason_code=reason,
+                note=state.get("copy", ""),
                 offer_id=offer_id,
                 degraded=state.get("degraded", False),
                 guard_verdict=state.get("verdict", "ALLOW"),
             )
         }
+
+
+def _facts_block(facts: RecoveryFacts) -> str:
+    lines = [
+        f"empresa={facts.company_name}",
+        f"itens={facts.items_summary}",
+        f"subtotal_brl={facts.subtotal:.2f}",
+        f"frete_brl={facts.shipping_total:.2f}",
+        f"frete_gratis={'true' if facts.action == RecoveryAction.FREE_SHIPPING else 'false'}",
+        f"valor_minimo_frete_gratis_brl={facts.free_shipping_min:.2f}",
+        f"link_do_carrinho={facts.cart_url} (nao reproduza o link no texto)",
+    ]
+    if facts.discount_percent is not None:
+        lines.append(f"desconto_percentual={facts.discount_percent:.2f}")
+    if facts.discount_amount is not None:
+        lines.append(f"desconto_brl={facts.discount_amount:.2f}")
+    lines.append(f"acao={facts.action.value}")
+    return "\n".join(lines)
 
 
 def offer_text_for(action: RecoveryAction, locale: str) -> str:
@@ -328,21 +342,3 @@ def offer_text_for(action: RecoveryAction, locale: str) -> str:
     if table is None:
         return ""
     return table.get(locale, table["pt-BR"])
-
-
-def _subtotal_band(subtotal: Decimal) -> str:
-    if subtotal < Decimal("1500"):
-        return "ate_1500"
-    if subtotal < Decimal("5000"):
-        return "1500_5000"
-    if subtotal < Decimal("20000"):
-        return "5000_20000"
-    return "acima_20000"
-
-
-def _orders_band(paid_orders: int) -> str:
-    if paid_orders <= 0:
-        return "nenhum"
-    if paid_orders <= 4:
-        return "1_4"
-    return "5_mais"

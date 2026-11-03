@@ -988,6 +988,8 @@
     "viewProduct": "View product",
     "addToCart": "Add to cart",
     "goToCatalog": "Go to catalog",
+    "demoMode": "AI assistant available in local demo mode.",
+    "demoModeLink": "See how to run it in the README",
     "suggestion1": "Welding helmet",
     "suggestion2": "How does shipping work?",
     "suggestion3": "What is the minimum order?",

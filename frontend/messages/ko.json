@@ -988,6 +988,8 @@
     "viewProduct": "상품 보기",
     "addToCart": "장바구니에 추가",
     "goToCatalog": "카탈로그로",
+    "demoMode": "AI 어시스턴트를 로컬 데모 모드로 사용할 수 있습니다.",
+    "demoModeLink": "실행 방법은 README에서 확인하세요",
     "suggestion1": "용접용 헬멧",
     "suggestion2": "배송은 어떻게 계산되나요?",
     "suggestion3": "최소 주문 수량은?",

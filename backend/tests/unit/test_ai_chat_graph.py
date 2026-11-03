@@ -20,6 +20,7 @@ from app.modules.ai.application.product_cards import (
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
 from app.modules.ai.application.tools import CatalogTools, ToolProduct
+from app.modules.ai.domain.degradation import demo_mode_response
 from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.types import Locale
 from app.modules.ai.infrastructure.llm_fake import FakeLLM
@@ -291,7 +292,7 @@ async def test_pedido_sensivel_vira_off_topic_neutro() -> None:
     assert llm.structured_calls == []
 
 
-async def test_kill_switch_devolve_neutra_e_cartoes_deterministicos() -> None:
+async def test_kill_switch_devolve_demo_e_cartoes_deterministicos() -> None:
     llm = FakeLLM()
     graph, _c, _a, _h = build(llm=llm, ai_enabled=False)
     result = await graph.run(
@@ -301,8 +302,9 @@ async def test_kill_switch_devolve_neutra_e_cartoes_deterministicos() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == neutral_response(Locale.PT_BR)
+    assert result.reply == demo_mode_response(Locale.PT_BR)
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]  # degradacao
+    assert result.degraded is True
     assert llm.structured_calls == []
 
 
@@ -322,7 +324,7 @@ async def test_llm_indisponivel_degrada_com_cartoes() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == neutral_response(Locale.PT_BR)
+    assert result.reply == demo_mode_response(Locale.PT_BR)
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]
     assert result.degraded is True
 
@@ -371,8 +373,69 @@ async def test_historico_entra_como_dado_nao_confiavel_no_prompt() -> None:
     )
     answer_prompt = llm.structured_calls[1][1]
     joined = " ".join(str(message["content"]) for message in answer_prompt)
-    # Historico vai SEMPRE dentro do bloco de dado nao confiavel (o truncamento
-    # para AI_CHAT_HISTORY_TURNS e responsabilidade do ConversationService).
+    # Historico vai SEMPRE dentro do bloco de dado nao confiavel e limitado as
+    # ultimas 6 mensagens (contexto curto do modelo local).
     assert 'label="historico"' in joined
-    assert "historico 0" in joined
+    assert "historico 0" not in joined
+    assert "historico 4" in joined
     assert "historico 9" in joined
+
+
+async def test_uuid_forjado_citado_no_texto_e_removido() -> None:
+    llm = FakeLLM(
+        structured=[
+            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
+            AnswerDecision(
+                reply=f"Veja {FORGED_ID} e {PRODUCT_ID}.",
+                product_ids=[PRODUCT_ID],
+            ),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="capacete",
+        history=[],
+        auth=auth_like(),
+    )
+    assert FORGED_ID not in result.reply
+    assert PRODUCT_ID in result.reply
+    assert [card.product_id for card in result.cards] == [PRODUCT_ID]
+
+
+async def test_rota_por_palavra_chave_nao_chama_roteador_llm() -> None:
+    llm = FakeLLM(structured=[AnswerDecision(reply="Frete simulado.", product_ids=[])])
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="como funciona o frete?",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == "Frete simulado."
+    assert len(llm.structured_calls) == 1
+    assert llm.structured_calls[0][0] is AnswerDecision
+
+
+async def test_prompt_de_resposta_tem_um_unico_system_no_inicio() -> None:
+    llm = FakeLLM(
+        structured=[
+            RouterDecision(intent=ChatIntent.PRODUCT_SEARCH),
+            AnswerDecision(reply="Veja o capacete.", product_ids=[PRODUCT_ID]),
+        ]
+    )
+    graph, _c, _a, _h = build(llm=llm)
+    await graph.run(
+        conversation=CONVERSATION,
+        locale="pt-BR",
+        message="capacete",
+        history=[],
+        auth=auth_like(),
+    )
+    roles = [message["role"] for message in llm.structured_calls[1][1]]
+    # Template do Qwen no LM Studio exige UM system no INICIO; inserir outro
+    # system no meio retorna HTTP 400 ("System message must be at the beginning").
+    assert roles[0] == "system"
+    assert roles.count("system") == 1

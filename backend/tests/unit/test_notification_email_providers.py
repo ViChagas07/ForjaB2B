@@ -11,6 +11,7 @@ import pytest
 from app.core.config import Settings
 from app.modules.notification.application.errors import EmailPermanentError, EmailTransientError
 from app.modules.notification.infrastructure.email import (
+    DryRunEmailSender,
     FakeEmailSender,
     ResendEmailSender,
     SmtpEmailSender,
@@ -112,3 +113,26 @@ def test_smtp_padrao_dev_e_mailpit() -> None:
     assert settings.email_smtp_port == 1025
     fake = FakeEmailSender()
     assert fake.sent == []
+
+
+async def test_dry_run_nao_envia_e_registra_email() -> None:
+    settings = Settings(
+        _env_file=None,
+        email_provider="resend",
+        email_dry_run=True,
+        resend_api_key=None,
+        resend_from=None,
+    )
+    sender = build_email_sender(settings)
+    assert isinstance(sender, DryRunEmailSender)
+    await sender.send(
+        to="cliente@empresa.test", subject="Seu carrinho", body="texto", html="<p>texto</p>"
+    )
+    assert sender.sent == [
+        {
+            "to": "cliente@empresa.test",
+            "subject": "Seu carrinho",
+            "body": "texto",
+            "html": "<p>texto</p>",
+        }
+    ]

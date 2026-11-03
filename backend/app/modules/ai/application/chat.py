@@ -27,6 +27,7 @@ class ChatResult:
     conversation_id: uuid.UUID
     reply: str
     product_cards: list[ProductCard]
+    degraded: bool = False
 
 
 class ChatService:
@@ -65,4 +66,5 @@ class ChatService:
             conversation_id=conversation.id,
             reply=outcome.reply,
             product_cards=outcome.cards,
+            degraded=outcome.degraded,
         )

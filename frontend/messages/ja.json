@@ -988,6 +988,8 @@
     "viewProduct": "商品を見る",
     "addToCart": "カートに追加",
     "goToCatalog": "カタログへ",
+    "demoMode": "AIアシスタントはローカルデモモードで利用できます。",
+    "demoModeLink": "実行方法はREADMEへ",
     "suggestion1": "溶接用ヘルメット",
     "suggestion2": "送料はどう計算されますか？",
     "suggestion3": "最小注文数は？",

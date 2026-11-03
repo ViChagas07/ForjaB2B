@@ -988,6 +988,8 @@
     "viewProduct": "Voir le produit",
     "addToCart": "Ajouter au panier",
     "goToCatalog": "Aller au catalogue",
+    "demoMode": "Assistant IA disponible en mode démonstration local.",
+    "demoModeLink": "Voir comment le lancer dans le README",
     "suggestion1": "Casque de soudeur",
     "suggestion2": "Comment fonctionne la livraison ?",
     "suggestion3": "Quelle est la commande minimale ?",

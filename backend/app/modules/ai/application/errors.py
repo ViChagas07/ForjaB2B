@@ -14,6 +14,10 @@ class LLMUnavailableError(RuntimeError):
     """LLM indisponivel ou falho apos esgotadas as tentativas."""
 
 
+class LLMQueueFullError(LLMUnavailableError):
+    """Fila curta da GPU cheia: falha rapido e deixa o chamador degradar."""
+
+
 class AIDisabledError(RuntimeError):
     """IA desabilitada pelo kill switch (AI_AGENTS_ENABLED=false)."""
 

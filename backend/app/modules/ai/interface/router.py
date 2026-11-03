@@ -20,6 +20,7 @@ from app.application.rate_limit import (
     pseudonymous_key,
 )
 from app.application.security import AuthContext
+from app.core.config import Settings
 from app.core.errors import RateLimitExceededError
 from app.core.request_context import client_ip
 from app.interface.deps import get_locale, get_optional_auth
@@ -41,6 +42,34 @@ def _chat_service(request: Request) -> ChatService:
 
 def _rate_limiter(request: Request) -> RateLimiter:
     return cast(RateLimiter, request.app.state.rate_limiter)
+
+
+async def _enforce_rate_limits(
+    *,
+    limiter: RateLimiter,
+    settings: Settings,
+    request: Request,
+    payload: ChatRequest,
+    auth: AuthContext | None,
+) -> None:
+    """Aplica os baldes AI (IP, conversa e usuario), sempre pseudonimos."""
+    ip = client_ip(request.scope, settings.trusted_proxy_count)
+    identities = [f"ip:{pseudonymous_key(settings.secret_key, ip)}"]
+    if payload.conversation_id is not None:
+        conversation = pseudonymous_key(settings.secret_key, str(payload.conversation_id))
+        identities.append(f"conv:{conversation}")
+    if auth is not None:
+        user = pseudonymous_key(settings.secret_key, str(auth.user_id))
+        identities.append(f"user:{user}")
+    for identity in identities:
+        decision = await limiter.check(rate_class=RateLimitClass.AI, identity=identity)
+        if not decision.allowed:
+            raise RateLimitExceededError(
+                retry_after_seconds=decision.retry_after_seconds,
+                limit=decision.limit,
+                remaining=decision.remaining,
+                reset_after_seconds=decision.reset_after_seconds,
+            )
 
 
 @router.post(
@@ -68,31 +97,13 @@ async def chat(
     if not settings.ai_agents_enabled:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=neutral)
 
-    ip = client_ip(request.scope, settings.trusted_proxy_count)
-    ip_decision = await limiter.check(
-        rate_class=RateLimitClass.AI,
-        identity=f"ip:{pseudonymous_key(settings.secret_key, ip)}",
+    await _enforce_rate_limits(
+        limiter=limiter,
+        settings=settings,
+        request=request,
+        payload=payload,
+        auth=auth,
     )
-    if not ip_decision.allowed:
-        raise RateLimitExceededError(
-            retry_after_seconds=ip_decision.retry_after_seconds,
-            limit=ip_decision.limit,
-            remaining=ip_decision.remaining,
-            reset_after_seconds=ip_decision.reset_after_seconds,
-        )
-    if payload.conversation_id is not None:
-        conversation_identity = pseudonymous_key(settings.secret_key, str(payload.conversation_id))
-        conversation_decision = await limiter.check(
-            rate_class=RateLimitClass.AI,
-            identity=f"conv:{conversation_identity}",
-        )
-        if not conversation_decision.allowed:
-            raise RateLimitExceededError(
-                retry_after_seconds=conversation_decision.retry_after_seconds,
-                limit=conversation_decision.limit,
-                remaining=conversation_decision.remaining,
-                reset_after_seconds=conversation_decision.reset_after_seconds,
-            )
 
     # Orcamento diario: roteador + resposta podem consumir ate 2x max_tokens.
     estimated = estimate_tokens(len(payload.message)) + settings.llm_max_tokens * 2
@@ -124,4 +135,5 @@ async def chat(
         conversation_id=result.conversation_id,
         reply=result.reply,
         product_cards=[card_to_out(card) for card in result.product_cards],
+        degraded=result.degraded,
     )

@@ -15,7 +15,7 @@ from app.modules.ai.domain.security.injection import scan_injection
 from app.modules.ai.domain.security.output_guard import guard_model_output
 from app.modules.ai.domain.types import Locale
 
-PERSONAL_NOTE_MAX_CHARS = 200
+PERSONAL_NOTE_MAX_CHARS = 600
 
 SanitizePersonalNote = Callable[[str | None, str | None], str]
 
@@ -27,8 +27,14 @@ def build_personal_note_sanitizer() -> SanitizePersonalNote:
         if note is None or not note.strip():
             return ""
         locale_value = str(locale) if locale else "pt-BR"
+        # `allow_money=True`: o agente de carrinho valida cada valor contra os
+        # numeros calculados pelo codigo ANTES de persistir a nota. O guard
+        # ainda remove HTML/URL/PII/segredos e aplica o scan de injecao.
         guarded = guard_model_output(
-            note.strip(), locale=Locale(locale_value), max_chars=PERSONAL_NOTE_MAX_CHARS
+            note.strip(),
+            locale=Locale(locale_value),
+            max_chars=PERSONAL_NOTE_MAX_CHARS,
+            allow_money=True,
         )
         if guarded.blocked or not guarded.text:
             return ""

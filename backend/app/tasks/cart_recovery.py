@@ -23,7 +23,6 @@ from app.domain.shipping import compute_shipping, compute_total_weight
 from app.infrastructure.db.engine import create_engine
 from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWorkFactory
-from app.modules.ai.application.ports import ResilientLLM
 from app.modules.ai.application.recovery import (
     CartRecoveryGraph,
     RecoveryPersistRequest,
@@ -35,13 +34,15 @@ from app.modules.ai.domain.recovery import (
     RecoveryConfig,
     RecoveryReason,
 )
-from app.modules.ai.infrastructure.llm_openai import build_langchain_llm
+from app.modules.ai.domain.types import resolve_locale
+from app.modules.ai.infrastructure.llm_openai import build_resilient_llm
 from app.modules.ai.infrastructure.recovery import (
     SqlAlchemyRecoveryContext,
     SqlAlchemyRecoveryRepository,
 )
 from app.modules.cart.application.cart import CartService
 from app.modules.cart.infrastructure.repository import SqlAlchemyCartRepository
+from app.modules.notification.domain.notification import cart_url as build_cart_url
 from app.modules.search.infrastructure.lock import PostgresAdvisoryLock
 from app.tasks.celery_app import celery_app
 
@@ -63,7 +64,7 @@ async def _run(settings: Settings) -> int:
         context = SqlAlchemyRecoveryContext(uow_factory)
         repository = SqlAlchemyRecoveryRepository(uow_factory)
         graph = CartRecoveryGraph(
-            llm=_build_llm(settings),
+            llm=build_resilient_llm(settings),
             persist_port=repository,
             config=RecoveryConfig(
                 free_shipping_min_brl=settings.cart_recovery_free_shipping_min_brl,
@@ -76,18 +77,17 @@ async def _run(settings: Settings) -> int:
         if not await lock.try_acquire():
             return 0
         try:
-            return await _run_locked(settings, context, graph, cart_service)
+            return await _run_locked(
+                settings,
+                context,
+                graph,
+                cart_service,
+                frontend_base_url=settings.frontend_base_url,
+            )
         finally:
             await lock.release()
     finally:
         await engine.dispose()
-
-
-def _build_llm(settings: Settings) -> ResilientLLM | None:
-    """LLM so quando habilitado e configurado (kill switch por padrao)."""
-    if not settings.ai_agents_enabled or not settings.llm_ready:
-        return None
-    return ResilientLLM(build_langchain_llm(settings), timeout_seconds=settings.llm_timeout_s)
 
 
 async def _run_locked(
@@ -95,6 +95,8 @@ async def _run_locked(
     context: SqlAlchemyRecoveryContext,
     graph: CartRecoveryGraph,
     cart_service: CartService,
+    *,
+    frontend_base_url: str,
 ) -> int:
     now = datetime.now(UTC)
     tenants = await context.list_tenants(limit=settings.cart_recovery_tenant_batch)
@@ -113,6 +115,7 @@ async def _run_locked(
                 graph=graph,
                 cart_service=cart_service,
                 now=now,
+                frontend_base_url=frontend_base_url,
             )
             if outcome:
                 sent += 1
@@ -128,12 +131,14 @@ async def _process_candidate(
     graph: CartRecoveryGraph,
     cart_service: CartService,
     now: datetime,
+    frontend_base_url: str,
 ) -> bool:
     cart_id = candidate["cart_id"]
     user_id = candidate["user_id"]
     last_activity_at = candidate["last_activity_at"]
+    locale = resolve_locale(str(candidate.get("locale") or _DEFAULT_LOCALE)).value
     subtotal, shipping, non_negotiated, summary = await _cart_basis(
-        cart_service, company_id, user_id
+        cart_service, company_id, user_id, locale
     )
     snapshot = CartSnapshot(
         item_count=int(candidate["item_count"]),
@@ -159,19 +164,22 @@ async def _process_candidate(
             cart_id=cart_id,
             company_id=company_id,
             user_id=user_id,
-            locale=_DEFAULT_LOCALE,
+            locale=locale,
             company_name=company_name,
             items_summary=summary,
             action=action,
             reason_code=reason,
             note=note,
-            offer_text=offer_text_for(action, _DEFAULT_LOCALE),
+            offer_text=offer_text_for(action, locale),
             guard_verdict=verdict,
         )
 
     outcome = await graph.run(
         snapshot=snapshot,
-        locale=_DEFAULT_LOCALE,
+        locale=locale,
+        company_name=company_name,
+        items_summary=summary,
+        cart_url=build_cart_url(locale, frontend_base_url=frontend_base_url),
         last_attempt_at=last_attempt_at,
         attempts_for_state=attempts,
         persist_request=persist_request,
@@ -180,13 +188,13 @@ async def _process_candidate(
 
 
 async def _cart_basis(
-    cart_service: CartService, company_id: uuid.UUID, user_id: uuid.UUID
+    cart_service: CartService, company_id: uuid.UUID, user_id: uuid.UUID, locale: str
 ) -> tuple[Decimal, Decimal, Decimal, str]:
     """(subtotal, frete simulado, subtotal sem preco negociado, resumo de itens).
 
     Roda na raiz de composicao (task) para o modulo ai nao importar o cart.
     """
-    view = await cart_service.get_cart(company_id, user_id, _DEFAULT_LOCALE)
+    view = await cart_service.get_cart(company_id, user_id, locale)
     lines: list[str] = []
     weights: list[tuple[int, Decimal | None]] = []
     non_negotiated = Decimal("0.00")

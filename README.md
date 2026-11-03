@@ -228,6 +228,75 @@ npm run dev   # http://localhost:3000
 > definir `BACKEND_URL` no painel da Vercel e refazer o deploy, pois os rewrites são
 > resolvidos no build.
 
+## IA local com LM Studio (Qwen 3.5 9B)
+
+> **[Espaço reservado para o GIF/vídeo de demonstração]** — gravar o chat respondendo
+> nos 11 locales e o e-mail de carrinho abandonado saindo pelo Mailpit/Resend dry-run.
+
+### Por que o LLM é local
+
+O projeto é de portfólio e a IA roda em um modelo pequeno (Qwen 3.5 9B) no LM Studio,
+em `http://localhost:1235/v1` (API compatível com OpenAI). A decisão evita custo por
+token e mantém catálogo, conversas e dados de clientes fora de provedores de nuvem.
+
+O compromisso é explícito: **a IA é um extra, não uma dependência**. Em produção
+(Render) o LM Studio local não está acessível; por isso:
+
+- `GET /health` e o readiness **nunca** consultam o LLM;
+- `GET /health/llm` é separado, tem cache de ~30 s e sempre responde HTTP 200 com
+  `{available, enabled, model}`;
+- sem LLM, o chat mostra uma mensagem traduzida de "modo demonstração local" e ainda
+  devolve os cartões determinísticos da busca;
+- o e-mail de carrinho abandonado sempre sai: o LLM só redige o parágrafo persuasivo
+  e, se estiver indisponível ou citar valor/percentual divergente, o template fixo
+  traduzido é usado. Desconto (máx. 3%, só para quem já comprou) e frete grátis são
+  decididos exclusivamente pelo código.
+
+### Rodando a IA localmente com LM Studio
+
+1. Instale o [LM Studio](https://lmstudio.ai/) e baixe o modelo **Qwen 3.5 9B**
+   (o identificador exato visto em `/v1/models` neste ambiente é `qwen/qwen3.5-9b`).
+2. Carregue o modelo e inicie o servidor local na porta **1235** (Developer → Local
+   Server). Confirme:
+   ```bash
+   curl http://localhost:1235/v1/models
+   ```
+3. No `.env`, habilite a IA e aponte para o endpoint:
+   ```dotenv
+   AI_AGENTS_ENABLED=true
+   LLM_ENABLED=true
+   LLM_BASE_URL=http://localhost:1235/v1
+   LLM_API_KEY=lm-studio
+   LLM_MODEL=qwen/qwen3.5-9b
+   LLM_TEMPERATURE=0.3
+   LLM_TIMEOUT_SECONDS=60
+   LLM_MAX_TOKENS=512
+   LLM_REASONING_EFFORT=none
+   ```
+   `LLM_REASONING_EFFORT=none` desliga o bloco de raciocínio do Qwen no LM Studio
+   (respostas rápidas). O cliente também remove qualquer `<think>...</think>` que
+   escapar. `LLM_API_KEY` é fictícia: o LM Studio ignora o valor.
+4. **Docker:** o backend roda em container, então `localhost` aponta para o próprio
+   container. O `docker-compose.yml` já declara
+   `extra_hosts: host.docker.internal:host-gateway` e usa
+   `LLM_BASE_URL_DOCKER`, cujo padrão é `http://host.docker.internal:1235/v1`.
+   Quem roda o backend direto no host usa `LLM_BASE_URL=http://localhost:1235/v1`.
+   No Linux, o `extra_hosts` com `host-gateway` é o que torna o host acessível.
+5. Suba/rebuilde backend e worker e confira:
+   ```bash
+   docker compose up -d --build backend celery-worker
+   curl http://localhost:8000/health/llm
+   ```
+   Esperado: `{"available":true,"enabled":true,"model":"qwen/qwen3.5-9b"}`.
+6. O endpoint de chat é `POST /api/v1/ai/chat`; o widget consulta `/health/llm`
+   (cache de 30 s) e mostra o aviso de demonstração quando o modelo não está
+   disponível. Nenhuma rota de catálogo, carrinho, checkout ou login depende do LLM.
+7. Para testar o e-mail de carrinho sem enviar mensagens reais:
+   ```dotenv
+   EMAIL_DRY_RUN=true
+   ```
+   O worker renderiza o e-mail e registra no log em vez de chamar o Resend.
+
 ### Usuários de demonstração
 
 O seed só cria usuários se `DEMO_USER_PASSWORD` estiver definida (o `.env.example` traz um

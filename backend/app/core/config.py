@@ -298,6 +298,9 @@ class Settings(BaseSettings):
     email_provider: str = "smtp"
     resend_api_key: str | None = None
     resend_from: str | None = None
+    # Modo dry-run: quando true, o worker LOGA o e-mail em vez de enviar.
+    # Serve para validar templates/IA sem disparar mensagens reais.
+    email_dry_run: bool = False
     # Canal WhatsApp (recuperacao de carrinho): DESLIGADO por padrao. Envia
     # somente com opt-in explicito e numero E.164 (regras no DispatchOutbox).
     whatsapp_enabled: bool = False
@@ -330,14 +333,36 @@ class Settings(BaseSettings):
     # nenhum caminho de requisicao importa pacotes de LLM. Falha de IA nunca
     # bloqueia catalogo, carrinho, checkout ou pedido.
     ai_agents_enabled: bool = False
-    # LLM via API compativel com OpenAI (qualquer endpoint: OpenAI, Azure,
-    # gateways, modelos locais). `llm_api_key` fica SOMENTE no backend, nunca
-    # vai para logs, respostas ou o frontend; string vazia conta como ausente.
-    llm_base_url: str | None = None
-    llm_api_key: str | None = None
-    llm_model: str = "gpt-4o-mini"
-    llm_timeout_s: float = Field(default=30.0, gt=0)
+    # LLM local via LM Studio (API compativel com OpenAI). `llm_enabled` e o
+    # interruptor especifico do LLM: com false o chat degrada para mensagem
+    # demonstrativa e o e-mail usa o template fixo. `llm_api_key` fica SOMENTE
+    # no backend, nunca vai para logs, respostas ou o frontend; string vazia
+    # conta como ausente (LM Studio ignora o valor).
+    llm_enabled: bool = True
+    llm_base_url: str | None = "http://localhost:1235/v1"
+    llm_api_key: str | None = "lm-studio"
+    llm_model: str = "qwen/qwen3.5-9b"
+    llm_temperature: float = Field(default=0.3, ge=0, le=2)
+    # Aceita LLM_TIMEOUT_SECONDS (nome pedido na integracao) e o alias
+    # historico LLM_TIMEOUT_S. O atributo Python continua `llm_timeout_s`.
+    llm_timeout_s: float = Field(
+        default=60.0,
+        gt=0,
+        validation_alias=AliasChoices("llm_timeout_seconds", "llm_timeout_s"),
+    )
     llm_max_tokens: int = Field(default=512, ge=1)
+    # GPU pequena: UMA requisicao simultanea e fila curta. Quando a fila
+    # enche, a chamada falha rapido e o chamador degrada (nunca pendura).
+    llm_max_concurrency: int = Field(default=1, ge=1, le=4)
+    llm_queue_size: int = Field(default=2, ge=0, le=20)
+    llm_queue_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
+    # Qwen 3.5 "pensa" por padrao e pode gastar todos os tokens em
+    # reasoning_content. "none" desliga o thinking no LM Studio; valores
+    # aceitos pelo provedor: none, minimal, low, medium, high.
+    llm_reasoning_effort: str = "none"
+    # Cache do /health/llm (nao pode virar carga na GPU a cada request).
+    llm_health_cache_seconds: float = Field(default=30.0, ge=1, le=300)
+    llm_health_timeout_seconds: float = Field(default=3.0, gt=0, le=10)
     # Orcamento diario de tokens estimados por processo (contabilidade
     # conservadora, reset diario); 0 = sem orcamento (so o kill switch limita).
     ai_daily_token_budget: int = Field(default=200_000, ge=0)
@@ -345,7 +370,7 @@ class Settings(BaseSettings):
     # rodadas (pergunta+resposta) de historico sao enviadas ao LLM. O historico
     # NUNCA inclui precos, CNPJ, e-mail, telefone ou dados de contrato.
     ai_chat_max_message_chars: int = Field(default=500, ge=1)
-    ai_chat_history_turns: int = Field(default=10, ge=1)
+    ai_chat_history_turns: int = Field(default=6, ge=1, le=40)
     # Retencao da conversa do chat (agent_conversations) para auditoria/TTL.
     ai_conversation_ttl_days: int = Field(default=30, ge=1)
     # Limpeza diaria de conversas de chat expiradas (lote por execucao).
@@ -406,8 +431,8 @@ class Settings(BaseSettings):
 
     @property
     def llm_ready(self) -> bool:
-        """LLM utilizavel: endpoint compativel com OpenAI totalmente configurado."""
-        return self.llm_base_url is not None and self.llm_api_key is not None
+        """LLM utilizavel: habilitado e com endpoint OpenAI-like configurado."""
+        return self.llm_enabled and self.llm_base_url is not None and self.llm_api_key is not None
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -458,6 +483,16 @@ class Settings(BaseSettings):
         if isinstance(value, str) and value.strip() == "":
             return None
         return value
+
+    @field_validator("llm_reasoning_effort", mode="before")
+    @classmethod
+    def _validate_llm_reasoning_effort(cls, value: object) -> str:
+        """Normaliza o esforco de raciocinio aceito pelo provedor."""
+        effort = str(value).strip().lower()
+        allowed = {"none", "minimal", "low", "medium", "high"}
+        if effort not in allowed:
+            raise ValueError("llm_reasoning_effort deve ser none, minimal, low, medium ou high")
+        return effort
 
     @field_validator("email_provider", mode="before")
     @classmethod

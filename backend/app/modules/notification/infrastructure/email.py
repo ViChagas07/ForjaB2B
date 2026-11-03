@@ -17,10 +17,29 @@ from email.message import EmailMessage
 import httpx
 
 from app.core.config import Settings
+from app.core.logging import get_logger
 from app.modules.notification.application.errors import EmailPermanentError, EmailTransientError
 from app.modules.notification.application.ports import EmailSender
 
 _RESEND_BASE_URL = "https://api.resend.com"
+_logger = get_logger(__name__)
+
+
+class DryRunEmailSender:
+    """Nao envia: registra o e-mail renderizado em log/memoria (dev/testes)."""
+
+    def __init__(self) -> None:
+        self.sent: list[dict[str, str | None]] = []
+
+    async def send(self, *, to: str, subject: str, body: str, html: str | None = None) -> None:
+        self.sent.append({"to": to, "subject": subject, "body": body, "html": html})
+        _logger.info(
+            "email_dry_run",
+            to=to,
+            subject=subject,
+            body=body,
+            html=html,
+        )
 
 
 class FakeEmailSender:
@@ -111,7 +130,13 @@ class ResendEmailSender:
 
 
 def build_email_sender(settings: Settings) -> EmailSender:
-    """Fabrica por EMAIL_PROVIDER: 'smtp' (Mailpit, padrao dev) ou 'resend'."""
+    """Fabrica por EMAIL_PROVIDER: 'smtp' (Mailpit, padrao dev) ou 'resend'.
+
+    Com EMAIL_DRY_RUN=true nenhum provedor e construido/chamado: o e-mail
+    renderizado e apenas logado (teste local sem spam e sem credenciais).
+    """
+    if settings.email_dry_run:
+        return DryRunEmailSender()
     if settings.email_provider == "resend":
         if not settings.resend_api_key or not settings.resend_from:
             raise EmailPermanentError("email provider misconfigured")

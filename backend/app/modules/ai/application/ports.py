@@ -17,16 +17,18 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol, TypedDict, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 
-from app.modules.ai.application.errors import LLMUnavailableError
+from app.modules.ai.application.errors import LLMQueueFullError, LLMUnavailableError
 
 _MAX_ATTEMPTS = 2  # 1 tentativa + 1 retry
+_DEFAULT_RETRY_BACKOFF_SECONDS = 0.5
 
 
 class LLMMessage(TypedDict):
@@ -59,9 +61,18 @@ class ResilientLLM:
     sem retry (falha nao-transitoria; retentar e inutil e atrasa o fallback).
     """
 
-    def __init__(self, inner: LLMPort, *, timeout_seconds: float) -> None:
+    def __init__(
+        self,
+        inner: LLMPort,
+        *,
+        timeout_seconds: float,
+        retry_backoff_seconds: float = _DEFAULT_RETRY_BACKOFF_SECONDS,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> None:
         self._inner = inner
         self._timeout_seconds = timeout_seconds
+        self._retry_backoff_seconds = max(0.0, retry_backoff_seconds)
+        self._sleep = sleep
 
     async def complete_structured(
         self, *, schema: type[TModel], messages: Sequence[LLMMessage]
@@ -85,11 +96,74 @@ class ResilientLLM:
                 # reportada pelo adaptador. Retenta ate esgotar.
                 last_error = exc
                 if attempt < _MAX_ATTEMPTS:
+                    await self._sleep(self._retry_backoff_seconds * attempt)
                     continue
             except Exception as exc:
                 # Nao-transitoria (ex.: saida invalida): converte sem retry.
                 raise LLMUnavailableError("llm_failed") from exc
         raise LLMUnavailableError("llm_unavailable_after_retries") from last_error
+
+
+class ConcurrencyLimitedLLM:
+    """Envelope `LLMPort`: semaforo da GPU + fila CURTA com timeout.
+
+    O modelo local roda em 8 GB de RAM/VRAM: permitir rajadas so aumenta a
+    latencia de todo mundo. Com a fila cheia, levanta `LLMQueueFullError`
+    imediatamente (o chat/e-mail degrada) em vez de pendurar requisicoes.
+    O semaforo e por processo; API e worker tem cada um o seu.
+    """
+
+    def __init__(
+        self,
+        inner: LLMPort,
+        *,
+        max_concurrency: int = 1,
+        queue_size: int = 2,
+        queue_timeout_seconds: float = 10.0,
+    ) -> None:
+        if max_concurrency < 1:
+            raise ValueError("max_concurrency deve ser >= 1")
+        self._inner = inner
+        self._max_concurrency = max_concurrency
+        self._queue_size = max(0, queue_size)
+        self._queue_timeout_seconds = queue_timeout_seconds
+        self._active = 0
+        self._waiting = 0
+        self._condition = asyncio.Condition()
+
+    async def complete_structured(
+        self, *, schema: type[TModel], messages: Sequence[LLMMessage]
+    ) -> TModel:
+        async with self._slot():
+            return await self._inner.complete_structured(schema=schema, messages=messages)
+
+    async def complete_text(self, *, messages: Sequence[LLMMessage]) -> str:
+        async with self._slot():
+            return await self._inner.complete_text(messages=messages)
+
+    @asynccontextmanager
+    async def _slot(self) -> AsyncIterator[None]:
+        async with self._condition:
+            if self._active >= self._max_concurrency:
+                if self._waiting >= self._queue_size:
+                    raise LLMQueueFullError("llm_queue_full")
+                self._waiting += 1
+                try:
+                    await asyncio.wait_for(
+                        self._condition.wait_for(lambda: self._active < self._max_concurrency),
+                        timeout=self._queue_timeout_seconds,
+                    )
+                except TimeoutError as exc:
+                    raise LLMQueueFullError("llm_queue_timeout") from exc
+                finally:
+                    self._waiting -= 1
+            self._active += 1
+        try:
+            yield
+        finally:
+            async with self._condition:
+                self._active -= 1
+                self._condition.notify()
 
 
 # ---------------------------------------------------------------------------

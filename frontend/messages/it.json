@@ -988,6 +988,8 @@
     "viewProduct": "Vedi prodotto",
     "addToCart": "Aggiungi al carrello",
     "goToCatalog": "Vai al catalogo",
+    "demoMode": "Assistente IA disponibile in modalità dimostrazione locale.",
+    "demoModeLink": "Scopri come avviarlo nel README",
     "suggestion1": "Casco per saldatore",
     "suggestion2": "Come funziona la spedizione?",
     "suggestion3": "Qual è l'ordine minimo?",

@@ -1179,6 +1179,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health/llm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Llm Health
+         * @description Estado do LLM local, separado da saude da aplicacao.
+         *
+         *     Sempre HTTP 200: LM Studio indisponivel nao e falha da API (o chat
+         *     degrada e o e-mail usa template fixo). O probe e cacheado na origem.
+         */
+        get: operations["llm_health_health_llm_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/ready": {
         parameters: {
             query?: never;
@@ -1623,6 +1646,11 @@ export interface components {
              * Format: uuid
              */
             conversation_id: string;
+            /**
+             * Degraded
+             * @default false
+             */
+            degraded: boolean;
             /** Product Cards */
             product_cards: components["schemas"]["ProductCardOut"][];
             /** Reply */
@@ -2227,6 +2255,18 @@ export interface components {
          * @enum {string}
          */
         InvoiceTerms: "NET_30" | "NET_60";
+        /**
+         * LLMHealthResponse
+         * @description Estado do LLM local (separado de /health e nao essencial ao readiness).
+         */
+        LLMHealthResponse: {
+            /** Available */
+            available: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Model */
+            model: string;
+        };
         /** LivenessResponse */
         LivenessResponse: {
             /**
@@ -13278,6 +13318,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LivenessResponse"];
+                };
+            };
+            /** @description Payload invalido ou chave de idempotencia reutilizada com outro payload. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Payload invalido ou chave de idempotencia reutilizada com outro payload.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 422,
+                     *       "title": "Unprocessable Entity",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_422"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Limite de requisicoes excedido (Retry-After). */
+            429: {
+                headers: {
+                    /** @description Segundos ate a proxima tentativa permitida. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Limite de requisicoes excedido (Retry-After).",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 429,
+                     *       "title": "Too Many Requests",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_429"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Erro interno inesperado. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Erro interno inesperado.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 500,
+                     *       "title": "Internal Server Error",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_500"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Dependencia externa indisponivel. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Dependencia externa indisponivel.",
+                     *       "instance": "/api/v1/recurso",
+                     *       "request_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "status": 503,
+                     *       "title": "Service Unavailable",
+                     *       "trace_id": "0f9a4b2c7d8e4f1a9b3c5d6e7f8091a2",
+                     *       "type": "urn:forja:problem:http_503"
+                     *     }
+                     */
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    llm_health_health_llm_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LLMHealthResponse"];
                 };
             };
             /** @description Payload invalido ou chave de idempotencia reutilizada com outro payload. */

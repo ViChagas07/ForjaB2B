@@ -22,6 +22,7 @@ de LLM quando AI_AGENTS_ENABLED=false.
 
 from __future__ import annotations
 
+import re
 import secrets
 import time
 import uuid
@@ -51,12 +52,18 @@ from app.modules.ai.application.tools import (
     ShippingPolicyArgs,
     ToolOutput,
 )
+from app.modules.ai.domain.degradation import demo_mode_response
 from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.security.output_guard import guard_model_output
 from app.modules.ai.domain.types import resolve_locale
 
 ANSWER_MAX_CHARS = 600
-CHAT_HISTORY_MESSAGES = 10
+CHAT_HISTORY_MESSAGES = 6
+MAX_CONTEXT_CHARS = 3000
+_UUID = re.compile(
+    r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
+    re.IGNORECASE,
+)
 
 
 class ChatIntent(StrEnum):
@@ -253,6 +260,11 @@ class ChatGraph:
         lowered = state["message"].lower()
         if any(term in lowered for term in _SENSITIVE_TERMS):
             return {"intent": ChatIntent.OFF_TOPIC, "reason_code": "sensitive_request"}
+        # Modelo pequeno: quando o vocabulario da mensagem ja identifica a
+        # intent, NAO gastamos uma chamada de LLM (e evitamos erro do 9B).
+        keyword_intent = _keyword_intent(state)
+        if keyword_intent is not None:
+            return {"intent": keyword_intent, "reason_code": "keyword_route"}
         intent = await self._ask_route(state)
         return {"intent": intent, "reason_code": intent.value.lower()}
 
@@ -323,7 +335,7 @@ class ChatGraph:
             output = self._tools.get_shipping_policy(ShippingPolicyArgs(), locale=state["locale"])
             return {
                 "tool_output": output,
-                "context_text": output.context_text,
+                "context_text": output.context_text[:MAX_CONTEXT_CHARS],
                 "allowed_ids": set(output.product_ids),
                 "quarantined": _quarantine(output),
             }
@@ -331,7 +343,7 @@ class ChatGraph:
             output = await self._tools.list_categories(ListCategoriesArgs(), locale=state["locale"])
             return {
                 "tool_output": output,
-                "context_text": output.context_text,
+                "context_text": output.context_text[:MAX_CONTEXT_CHARS],
                 "allowed_ids": set(output.product_ids),
                 "quarantined": _quarantine(output),
             }
@@ -342,7 +354,7 @@ class ChatGraph:
         )
         return {
             "tool_output": output,
-            "context_text": output.context_text,
+            "context_text": output.context_text[:MAX_CONTEXT_CHARS],
             "allowed_ids": set(output.product_ids),
             "quarantined": _quarantine(output),
         }
@@ -350,13 +362,11 @@ class ChatGraph:
     async def _answer(self, state: ChatState) -> dict[str, Any]:
         if state.get("blocked"):
             return {}
+        locale = resolve_locale(state["locale"])
         if state["intent"] == ChatIntent.OFF_TOPIC:
-            return {
-                "reply": neutral_response(resolve_locale(state["locale"])),
-                "product_ids": [],
-            }
+            return {"reply": neutral_response(locale), "product_ids": []}
         allowed = set(state.get("allowed_ids", set()))
-        fallback = neutral_response(resolve_locale(state["locale"]))
+        fallback = demo_mode_response(locale)
         if not self._ai_enabled or self._llm is None:
             # Degradacao: PRODUCT_SEARCH ainda devolve os cartoes da busca.
             return {
@@ -368,23 +378,26 @@ class ChatGraph:
             }
         canary = secrets.token_hex(8)
         builder = PromptBuilder(canary_token=canary)
+        # Contexto curto: ultimas N mensagens (o servico tambem trunca) e
+        # trechos de catalogo limitados. O modelo local tem janela pequena.
+        history = state["history"][-self._history_turns :]
         messages = builder.build(
-            locale=resolve_locale(state["locale"]),
+            locale=locale,
             user_message=state["message"],
-            history=[(turn.role, turn.content) for turn in state["history"]],
-            tool_context=state.get("context_text") or None,
+            history=[(turn.role, turn.content) for turn in history],
+            tool_context=(state.get("context_text") or "")[:MAX_CONTEXT_CHARS] or None,
         )
-        messages.insert(
-            0,
-            {
-                "role": "system",
-                "content": (
-                    "Responda so com base no contexto recebido, no idioma do sistema, de "
-                    "forma curta. NUNCA invente produtos, precos, prazos ou links; use "
-                    "product_ids apenas com identificadores do contexto."
-                ),
-            },
+        # Qwen (template do LM Studio) exige UM system message no INICIO:
+        # concatenar a instrucao extra no system existente, nunca inserir outro.
+        extra_system = (
+            "Responda so com base no contexto recebido, no idioma do sistema, de "
+            "forma curta. NUNCA invente produtos, precos, prazos ou links; use "
+            "product_ids apenas com identificadores do contexto."
         )
+        messages[0] = {
+            "role": "system",
+            "content": f"{messages[0]['content']}\n\n{extra_system}",
+        }
         started = time.perf_counter()
         try:
             decision = await self._llm.complete_structured(schema=AnswerDecision, messages=messages)
@@ -413,7 +426,20 @@ class ChatGraph:
             ),
         )
         valid_ids = [pid for pid in decision.product_ids if pid in allowed]
-        return {"reply": decision.reply, "product_ids": valid_ids, "blocked_canary": canary}
+        # Anti-alucinacao: UUID citado no texto que NAO veio das ferramentas
+        # deste turno e removido (o cartao correspondente tambem nao existe).
+        reply = _filter_unknown_ids(decision.reply, allowed)
+        if not reply:
+            reply = fallback
+            return {
+                "reply": reply,
+                "product_ids": (
+                    sorted(allowed) if state["intent"] == ChatIntent.PRODUCT_SEARCH else []
+                ),
+                "degraded": True,
+                "blocked_canary": canary,
+            }
+        return {"reply": reply, "product_ids": valid_ids, "blocked_canary": canary}
 
     async def _output_guard(self, state: ChatState) -> dict[str, Any]:
         if state.get("blocked"):
@@ -486,14 +512,37 @@ def _quarantine(output: ToolOutput) -> list[tuple[str, str]]:
     return [(doc.product_id, doc.reason_code or "quarantine") for doc in output.quarantined]
 
 
-def _fallback_intent(state: ChatState) -> ChatIntent:
-    lowered = state["message"].lower()
-    if any(term in lowered for term in _SENSITIVE_TERMS):
-        return ChatIntent.OFF_TOPIC
-    if any(term in lowered for term in _SHIPPING_TERMS):
+def _keyword_intent(state: ChatState) -> ChatIntent | None:
+    """Intent por vocabulario (deterministica); None = precisa do LLM."""
+    message = state["message"]
+    if _matches(message, _SHIPPING_TERMS):
         return ChatIntent.SHIPPING_POLICY
-    if any(term in lowered for term in _CART_TERMS):
+    if _matches(message, _CART_TERMS):
         return ChatIntent.CART_HELP if state.get("company_id") else ChatIntent.OFF_TOPIC
-    if any(term in lowered for term in _CATALOG_TERMS):
+    if _matches(message, _CATALOG_TERMS):
         return ChatIntent.CATALOG_HELP
+    return None
+
+
+def _fallback_intent(state: ChatState) -> ChatIntent:
+    keyword = _keyword_intent(state)
+    if keyword is not None:
+        return keyword
+    if any(term in state["message"].lower() for term in _SENSITIVE_TERMS):
+        return ChatIntent.OFF_TOPIC
     return ChatIntent.PRODUCT_SEARCH
+
+
+def _matches(text: str, terms: Sequence[str]) -> bool:
+    """Casa termos como PALAVRA (evita 'cart' em 'cartucho')."""
+    return any(re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text, re.IGNORECASE) for term in terms)
+
+
+def _filter_unknown_ids(text: str, allowed: set[str]) -> str:
+    """Remove UUIDs que nao vieram das ferramentas deste turno."""
+
+    def _keep(match: re.Match[str]) -> str:
+        return match.group(0) if match.group(0).lower() in allowed else ""
+
+    cleaned = _UUID.sub(_keep, text)
+    return re.sub(r"\s{2,}", " ", cleaned).strip()

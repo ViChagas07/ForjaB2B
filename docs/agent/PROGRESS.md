@@ -3025,3 +3025,58 @@ Diagnostico (evidencias):
 Licao de operacao: CADA push que muda _PRODUCT_IMAGES/precos exige rodar o seed no banco
 remoto (job manual no Render ou local com o host publico); push so entrega codigo.
 
+### Prompt 11 - LLM local Qwen 3.5 9B via LM Studio (2026-11-02)
+
+Integracao do chat e do agente de carrinho no UNICO cliente LLM local
+(`app/modules/ai/infrastructure/llm_openai.py` -> `build_resilient_llm`), com
+degradacao em producao onde o LM Studio nao existe.
+
+FASE 0 (diagnostico, sem codigo): modelo exato `qwen/qwen3.5-9b`; LM Studio em
+`http://localhost:1235/v1`; o modelo devolve texto em `reasoning_content` com
+`content` vazio por padrao; `chat_template_kwargs` e `/no_think` foram ignorados;
+`reasoning_effort: "none"` desligou o thinking; streaming SSE funciona; resposta
+curta ~0,9 s e json_schema ~1,7 s. Backend roda em Docker: `localhost` nao serve;
+`host.docker.internal:1235` respondeu de dentro do container (compose ganhou
+`extra_hosts: host.docker.internal:host-gateway` e `LLM_BASE_URL_DOCKER`).
+
+FASE 1: `LLM_ENABLED`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`,
+`LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_TOKENS`, fila/semaforo
+(`LLM_MAX_CONCURRENCY=1`, `LLM_QUEUE_SIZE=2`, timeout de fila), retry com backoff
+e `GET /health/llm` cacheado (~30 s, separado de `/health`). O cliente e unico
+para chat e carrinho; a chave nunca e logada.
+
+FASE 2: pos-processador unico remove `<think>` e tokens especiais (inclusive
+`reasoning_content` vazio -> falha amigavel), `response_format=json_schema` com
+fallback para prompt JSON + parser tolerante + Pydantic + 1 reparo; historico do
+chat limitado a 6 mensagens e contexto a 3000 caracteres. Bug real encontrado no
+LM Studio: o template do Qwen rejeita um SEGUNDO system message com HTTP 400
+("System message must be at the beginning"); a instrucao extra agora e
+concatenada ao system existente (teste de regressao).
+
+FASE 3: rota deterministica por palavra-chave antes do LLM; busca no catalogo
+continua no codigo; o LLM so redige citando IDs; UUIDs fora do conjunto do turno
+sao removidos do texto e dos cartoes; rate limit por IP, conversa e usuario;
+resposta `degraded=true` com mensagem de modo demonstracao nos 11 locales.
+
+FASE 4: acao/reason/desconto/frete gratis decididos SO pelo codigo
+(`select_recovery_action`; desconto de 3% so para quem ja comprou; frete gratis
+so acima do minimo). O LLM recebe fatos prontos e escreve so o paragrafo; a
+validacao compara cada valor/percentual e reprova URL/HTML/PII/promessa de frete
+gratis indevida. Reprovou/indisponivel => template fixo traduzido; o e-mail sempre
+sai. `EMAIL_DRY_RUN=true` loga em vez de enviar. Locale vem do ultimo pedido do
+comprador (fallback pt-BR); idempotencia existente (attempt/cooldown + lock)
+mantida.
+
+FASE 5: widget consulta `/health/llm` (cache de 30 s), mostra aviso traduzido e
+link para o README; 503 do kill switch continua neutro, e o chat degradado retorna
+HTTP 200 com cartoes deterministicos. `/health`, compra, login e catalogo nao
+dependem do LLM.
+
+FASE 6: suite de unidade 1189 passed; ruff/mypy strict 0 nos modulos alterados.
+Testado com o LM Studio REAL: /v1/models, chat completions, reasoning/streaming/
+json_schema, cliente texto+estruturado e /health/llm via Docker. O chat completo
+via Docker chegou a devolver os 6 cartoes com `degraded=true` por causa do bug do
+system message; a correcao esta coberta por teste com FakeLLM, mas a revalidacao
+com o modelo real ficou PENDENTE porque LM Studio/Docker foram encerrados no fim
+da sessao. Nenhum `.env` foi versionado.
+\n

@@ -9,8 +9,13 @@ from typing import cast
 import pytest
 from pydantic import BaseModel
 
-from app.modules.ai.application.errors import LLMUnavailableError
-from app.modules.ai.application.ports import LLMMessage, LLMPort, ResilientLLM
+from app.modules.ai.application.errors import LLMQueueFullError, LLMUnavailableError
+from app.modules.ai.application.ports import (
+    ConcurrencyLimitedLLM,
+    LLMMessage,
+    LLMPort,
+    ResilientLLM,
+)
 
 
 class _EchoSchema(BaseModel):
@@ -92,3 +97,54 @@ async def test_complete_structured_devolve_instancia_validada() -> None:
     out = await resilient.complete_structured(schema=_EchoSchema, messages=_MESSAGES)
     assert isinstance(out, _EchoSchema)
     assert out.answer == "oi"
+
+
+class _BlockingLLM:
+    """Stub que segura a primeira chamada ate o teste liberar."""
+
+    def __init__(self) -> None:
+        self.started = 0
+        self.release = asyncio.Event()
+        self.active = 0
+        self.max_active = 0
+
+    async def complete_text(self, *, messages: list[LLMMessage]) -> str:
+        self.started += 1
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        try:
+            await self.release.wait()
+        finally:
+            self.active -= 1
+        return "ok"
+
+    async def complete_structured(self, **_kwargs: object) -> object:
+        raise AssertionError("nao usado")
+
+
+async def test_semaforo_serializa_uma_requisicao_por_vez() -> None:
+    inner = _BlockingLLM()
+    limited = ConcurrencyLimitedLLM(
+        cast("LLMPort", inner), max_concurrency=1, queue_size=2, queue_timeout_seconds=1.0
+    )
+    first = asyncio.create_task(limited.complete_text(messages=_MESSAGES))
+    second = asyncio.create_task(limited.complete_text(messages=_MESSAGES))
+    await asyncio.sleep(0.05)
+    assert inner.started == 1
+    inner.release.set()
+    assert await first == "ok"
+    assert await second == "ok"
+    assert inner.max_active == 1
+
+
+async def test_fila_curta_cheia_falha_rapido() -> None:
+    inner = _BlockingLLM()
+    limited = ConcurrencyLimitedLLM(
+        cast("LLMPort", inner), max_concurrency=1, queue_size=0, queue_timeout_seconds=1.0
+    )
+    first = asyncio.create_task(limited.complete_text(messages=_MESSAGES))
+    await asyncio.sleep(0.02)
+    with pytest.raises(LLMQueueFullError):
+        await limited.complete_text(messages=_MESSAGES)
+    inner.release.set()
+    assert await first == "ok"

@@ -67,7 +67,14 @@ const nextConfig = {
         destination: `${backendUrl}/api/v1/:path*`,
       },
       {
-        // Imagens/ilustrações versionadas da API passam a ser same-origin,
+        // Health do LLM local (LM Studio). Same-origin: o widget consulta
+        // /health/llm e decide entre modo normal e demonstracao. Nao passa
+        // por /api/v1 e nunca depende do /health da aplicacao.
+        source: "/health/llm",
+        destination: `${backendUrl}/health/llm`,
+      },
+      {
+        // Imagens/ilustraÃ§Ãµes versionadas da API passam a ser same-origin,
         // sem exigir uma URL de backend no bundle do navegador.
         source: "/static/:path*",
         destination: `${backendUrl}/static/:path*`,

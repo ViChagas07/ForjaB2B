@@ -9,7 +9,7 @@ import { useAuthStore } from "@/shared/stores/auth-store";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { Link } from "@/i18n/navigation";
-import { ApiError, sendChatMessage } from "@/infrastructure/http";
+import { ApiError, getLlmHealth, sendChatMessage, type LlmHealth } from "@/infrastructure/http";
 
 import { ChatProductCardView } from "./product-card";
 import { type ChatMessage, useAiChatStore } from "./store";
@@ -17,6 +17,9 @@ import { type ChatMessage, useAiChatStore } from "./store";
 const MAX_CHARS = 500;
 const RATE_LIMIT_COOLDOWN_MS = 30_000;
 const SUGGESTION_KEYS = ["suggestion1", "suggestion2", "suggestion3"] as const;
+const AI_DEMO_URL =
+  process.env.NEXT_PUBLIC_AI_DEMO_URL ??
+  "https://github.com/ViChagas07/ForjaB2B#rodando-a-ia-localmente-com-lm-studio";
 
 type ChatError = "rateLimited" | "unavailable" | "timeout" | "generic";
 
@@ -49,6 +52,8 @@ export function AiChatWidget() {
   const [error, setError] = React.useState<ChatError | null>(null);
   const [mounted, setMounted] = React.useState(false);
   const [now, setNow] = React.useState(() => Date.now());
+  const [llmHealth, setLlmHealth] = React.useState<LlmHealth | null>(null);
+  const [degraded, setDegraded] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const abortRef = React.useRef<AbortController | null>(null);
@@ -57,6 +62,7 @@ export function AiChatWidget() {
   const isCoolingDown = cooldownSeconds > 0;
   const canSend =
     !pending && !isCoolingDown && draft.trim().length > 0 && draft.length <= MAX_CHARS;
+  const demoMode = degraded || (llmHealth !== null && !llmHealth.available);
 
   React.useEffect(() => {
     if (!cooldownUntil) return;
@@ -67,6 +73,17 @@ export function AiChatWidget() {
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    void getLlmHealth().then((health) => {
+      if (active) setLlmHealth(health);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -108,6 +125,7 @@ export function AiChatWidget() {
         signal: controller.signal,
       });
       setConversationId(response.conversation_id);
+      setDegraded(Boolean(response.degraded));
       addMessage({
         id: `${Date.now()}-assistant`,
         role: "assistant",
@@ -120,6 +138,7 @@ export function AiChatWidget() {
         setCooldown(Date.now() + RATE_LIMIT_COOLDOWN_MS);
         setError("rateLimited");
       } else if (cause instanceof ApiError && cause.status === 503) {
+        setLlmHealth({ available: false, enabled: false, model: "" });
         setError("unavailable");
       } else if (cause instanceof ApiError && cause.status === 0) {
         setError("timeout");
@@ -144,6 +163,8 @@ export function AiChatWidget() {
     newConversation();
     setError(null);
     setDraft("");
+    setDegraded(false);
+    void getLlmHealth(true).then(setLlmHealth);
     inputRef.current?.focus();
   }
 
@@ -221,6 +242,23 @@ export function AiChatWidget() {
                 />
                 {t("disclaimer")}
               </p>
+
+              {demoMode ? (
+                <p
+                  data-testid="ai-chat-demo"
+                  className="mx-3 mt-2 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-[11px] leading-snug text-sky-100"
+                >
+                  {t("demoMode")}{" "}
+                  <a
+                    href={AI_DEMO_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="underline underline-offset-2"
+                  >
+                    {t("demoModeLink")}
+                  </a>
+                </p>
+              ) : null}
 
               <div
                 role="log"
