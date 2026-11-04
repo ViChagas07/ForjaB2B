@@ -3,14 +3,16 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { Bot, MessageSquarePlus, Send, Sparkles, X } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { NextIntlClientProvider, useLocale, useTranslations } from "next-intl";
 
 import { useAuthStore } from "@/shared/stores/auth-store";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { defaultLocale, directionForLocale, isLocale, type Locale } from "@/i18n/locales";
 import { Link } from "@/i18n/navigation";
 import { ApiError, getLlmHealth, sendChatMessage, type LlmHealth } from "@/infrastructure/http";
 
+import { CHAT_CARD_MESSAGES } from "./card-messages";
 import { ChatProductCardView } from "./product-card";
 import { type ChatMessage, useAiChatStore } from "./store";
 
@@ -32,6 +34,7 @@ type ChatError = "rateLimited" | "unavailable" | "timeout" | "generic";
 export function AiChatWidget() {
   const t = useTranslations("aiChat");
   const locale = useLocale();
+  const siteLocale: Locale = isLocale(locale) ? locale : defaultLocale;
   const status = useAuthStore((s) => s.status);
   const session = useAuthStore((s) => s.session);
 
@@ -45,6 +48,7 @@ export function AiChatWidget() {
   const newConversation = useAiChatStore((s) => s.newConversation);
   const addMessage = useAiChatStore((s) => s.addMessage);
   const setConversationId = useAiChatStore((s) => s.setConversationId);
+  const setMessageLanguage = useAiChatStore((s) => s.setMessageLanguage);
   const setPending = useAiChatStore((s) => s.setPending);
   const setCooldown = useAiChatStore((s) => s.setCooldown);
 
@@ -108,8 +112,9 @@ export function AiChatWidget() {
     if (!message || pending || isCoolingDown) return;
     setError(null);
     setDraft("");
+    const userMessageId = `${Date.now()}-user`;
     addMessage({
-      id: `${Date.now()}-user`,
+      id: userMessageId,
       role: "user",
       text: message,
     });
@@ -124,8 +129,13 @@ export function AiChatWidget() {
         accessToken: status === "authenticated" ? session?.access_token : null,
         signal: controller.signal,
       });
+      const responseLanguage: Locale =
+        typeof response.language === "string" && isLocale(response.language)
+          ? response.language
+          : siteLocale;
       setConversationId(response.conversation_id);
       setDegraded(Boolean(response.degraded));
+      setMessageLanguage(userMessageId, responseLanguage);
       if (!response.degraded) {
         // Se o health estava em cache como indisponivel (backend/modelo
         // acabou de subir), uma resposta real bem-sucedida limpa o aviso.
@@ -140,6 +150,7 @@ export function AiChatWidget() {
         id: `${Date.now()}-assistant`,
         role: "assistant",
         text: response.reply,
+        language: responseLanguage,
         cards: response.product_cards,
       });
     } catch (cause) {
@@ -218,7 +229,10 @@ export function AiChatWidget() {
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-sm font-semibold">{t("title")}</h2>
                   <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground dark:text-white/60">
-                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                    <span
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"
+                    />
                     {t("online")}
                   </p>
                 </div>
@@ -295,7 +309,7 @@ export function AiChatWidget() {
                 ) : null}
 
                 {messages.map((message) => (
-                  <ChatBubble key={message.id} message={message} />
+                  <ChatBubble key={message.id} message={message} siteLocale={siteLocale} />
                 ))}
 
                 {pending ? (
@@ -349,6 +363,7 @@ export function AiChatWidget() {
                     onChange={(event) => setDraft(event.target.value.slice(0, MAX_CHARS))}
                     onKeyDown={handleKeyDown}
                     placeholder={t("placeholder")}
+                    dir="auto"
                     maxLength={MAX_CHARS}
                     rows={2}
                     aria-describedby="ai-chat-counter"
@@ -409,14 +424,18 @@ function RobotFaceIcon() {
   );
 }
 
-function ChatBubble({ message }: { message: ChatMessage }) {
+function ChatBubble({ message, siteLocale }: { message: ChatMessage; siteLocale: Locale }) {
   const isUser = message.role === "user";
+  const messageLocale = message.language ?? siteLocale;
+  const dir = directionForLocale(messageLocale);
   return (
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div className={cn("max-w-[92%] space-y-2", isUser ? "items-end" : "items-start")}>
         {/* Texto SEMPRE puro: sem HTML/Markdown, sem links vindos do modelo. */}
         <p
           data-testid={`ai-chat-message-${message.role}`}
+          lang={message.language}
+          dir={message.language ? dir : "auto"}
           className={cn(
             "whitespace-pre-line rounded-2xl px-3 py-2 text-sm leading-relaxed",
             isUser
@@ -427,10 +446,16 @@ function ChatBubble({ message }: { message: ChatMessage }) {
           {message.text}
         </p>
         {message.cards && message.cards.length > 0 ? (
-          <ul data-testid="ai-chat-cards" className="space-y-2">
-            {message.cards.map((card) => (
-              <ChatProductCardView key={card.product_id} card={card} />
-            ))}
+          <ul data-testid="ai-chat-cards" lang={messageLocale} dir={dir} className="space-y-2">
+            <NextIntlClientProvider
+              locale={messageLocale}
+              messages={CHAT_CARD_MESSAGES[messageLocale]}
+              timeZone="UTC"
+            >
+              {message.cards.map((card) => (
+                <ChatProductCardView key={card.product_id} card={card} siteLocale={siteLocale} />
+              ))}
+            </NextIntlClientProvider>
           </ul>
         ) : null}
       </div>

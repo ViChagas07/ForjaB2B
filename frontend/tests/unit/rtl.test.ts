@@ -74,4 +74,16 @@ describe("RTL", () => {
       expect(tailwind, font).toContain(font);
     }
   });
+
+  it("prioriza a variante CJK/Arabe pelo lang da bolha", () => {
+    const css = readFileSync(join(ROOT, "app/globals.css"), "utf-8");
+    expect(css).toContain(":lang(ar)");
+    expect(css).toContain(":lang(ja)");
+    expect(css).toContain(":lang(ko)");
+    expect(css).toContain(":lang(zh-CN)");
+    expect(css).toContain('"Noto Sans Arabic"');
+    expect(css).toContain('"Noto Sans JP"');
+    expect(css).toContain('"Noto Sans KR"');
+    expect(css).toContain('"Noto Sans SC"');
+  });
 });

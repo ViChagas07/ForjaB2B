@@ -16,7 +16,16 @@ const sendChatMessageMock = vi.fn();
 const getLlmHealthMock = vi.fn();
 
 vi.mock("@/i18n/navigation", () => ({
-  Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
+  Link: ({
+    href,
+    children,
+    locale: _locale,
+    ...rest
+  }: {
+    href: string;
+    children: React.ReactNode;
+    locale?: string;
+  }) => (
     <a href={href} {...rest}>
       {children}
     </a>
@@ -40,16 +49,24 @@ vi.mock("@/shared/components/product-image", () => ({
   ),
 }));
 
-vi.mock("@/features/catalog", () => ({
-  CatalogPrice: ({
+vi.mock("@/features/catalog", async () => {
+  const { useTranslations } = await import("next-intl");
+  function MockCatalogPrice({
     amount,
     priceOnRequest,
   }: {
     amount: string | null;
     priceOnRequest: boolean;
-  }) => <span>{priceOnRequest || !amount ? "sob consulta" : `R$ ${amount}`}</span>,
-  CaStatusBadge: () => <span>CA</span>,
-}));
+  }) {
+    const t = useTranslations();
+    return <span>{priceOnRequest || !amount ? t("catalog.priceOnRequest") : `R$ ${amount}`}</span>;
+  }
+  function MockCaStatusBadge() {
+    const t = useTranslations();
+    return <span>{t("catalog.caValid")}</span>;
+  }
+  return { CatalogPrice: MockCatalogPrice, CaStatusBadge: MockCaStatusBadge };
+});
 
 vi.mock("@/features/cart/hooks", () => ({
   useAddCartItem: () => ({ mutate: vi.fn(), isPending: false }),
@@ -170,7 +187,7 @@ describe("AiChatWidget", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     const link = await screen.findByRole("link", { name: "Ver produto" });
     expect(link.getAttribute("href")).toBe(`/catalog/${CARD.product_id}`);
-    expect(screen.getAllByText("sob consulta").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/sob consulta/i).length).toBeGreaterThan(0);
   });
 
   it("429 mostra mensagem neutra e desabilita o envio até o Retry-After", async () => {
@@ -212,12 +229,58 @@ describe("AiChatWidget", () => {
   });
 });
 
-  it("mostra modo demonstração quando /health/llm está indisponível", async () => {
-    getLlmHealthMock.mockResolvedValue({ available: false, enabled: true, model: "qwen/qwen3.5-9b" });
-    openWidget();
-    const banner = await screen.findByTestId("ai-chat-demo");
-    expect(banner.textContent).toMatch(/modo demonstração local/i);
-    expect(screen.getByRole("link", { name: /README/i }).getAttribute("href")).toContain(
-      "github.com/ViChagas07/ForjaB2B",
-    );
+it("mostra modo demonstração quando /health/llm está indisponível", async () => {
+  getLlmHealthMock.mockResolvedValue({ available: false, enabled: true, model: "qwen/qwen3.5-9b" });
+  openWidget();
+  const banner = await screen.findByTestId("ai-chat-demo");
+  expect(banner.textContent).toMatch(/modo demonstração local/i);
+  expect(screen.getByRole("link", { name: /README/i }).getAttribute("href")).toContain(
+    "github.com/ViChagas07/ForjaB2B",
+  );
+});
+
+it("aplica lang/dir e rotulos do cartao na bolha arabe em site pt-BR", async () => {
+  sendChatMessageMock.mockResolvedValue({
+    conversation_id: "22222222-2222-4222-8222-222222222222",
+    reply: "مرحباً! هذه لفات.",
+    product_cards: [CARD],
+    language: "ar",
   });
+  openWidget();
+  expect(
+    screen.getByLabelText("Pergunte sobre produtos, frete ou seu carrinho...").getAttribute("dir"),
+  ).toBe("auto");
+  const input = screen.getByLabelText("Pergunte sobre produtos, frete ou seu carrinho...");
+  fireEvent.change(input, { target: { value: "مرحبا" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await screen.findByText("مرحباً! هذه لفات.");
+  expect(screen.getByTestId("ai-chat-message-user").getAttribute("lang")).toBe("ar");
+  expect(screen.getByTestId("ai-chat-message-user").getAttribute("dir")).toBe("rtl");
+  expect(screen.getByTestId("ai-chat-message-assistant").getAttribute("lang")).toBe("ar");
+  expect(screen.getByTestId("ai-chat-message-assistant").getAttribute("dir")).toBe("rtl");
+  expect(screen.getByTestId("ai-chat-cards").getAttribute("dir")).toBe("rtl");
+  expect(screen.getByTestId("ai-chat-cards").getAttribute("lang")).toBe("ar");
+  expect(screen.getByText(/السعر عند الطلب/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "عرض المنتج" })).toBeTruthy();
+});
+
+it("aplica lang/dir e rotulos japoneses na bolha em site pt-BR", async () => {
+  sendChatMessageMock.mockResolvedValue({
+    conversation_id: "22222222-2222-4222-8222-222222222222",
+    reply: "こんにちは! 手袋です。",
+    product_cards: [CARD],
+    language: "ja",
+  });
+  openWidget();
+  const input = screen.getByLabelText("Pergunte sobre produtos, frete ou seu carrinho...");
+  fireEvent.change(input, { target: { value: "こんにちは" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await screen.findByText("こんにちは! 手袋です。");
+  expect(screen.getByTestId("ai-chat-message-user").getAttribute("lang")).toBe("ja");
+  expect(screen.getByTestId("ai-chat-message-user").getAttribute("dir")).toBe("ltr");
+  expect(screen.getByTestId("ai-chat-message-assistant").getAttribute("lang")).toBe("ja");
+  expect(screen.getByTestId("ai-chat-message-assistant").getAttribute("dir")).toBe("ltr");
+  expect(screen.getByTestId("ai-chat-cards").getAttribute("dir")).toBe("ltr");
+  expect(screen.getByText(/価格はお問い合わせください/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "商品を見る" })).toBeTruthy();
+});

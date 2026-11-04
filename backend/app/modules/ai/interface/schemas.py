@@ -42,6 +42,8 @@ class ChatResponse(BaseModel):
     conversation_id: uuid.UUID
     reply: str
     product_cards: list[ProductCardOut]
+    # Idioma efetivo da resposta/mensagem (11 locales), persistido no backend.
+    language: str
     # true = LLM local desligado/indisponivel (modo demonstracao/template).
     degraded: bool = False
 

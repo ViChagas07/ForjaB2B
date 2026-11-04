@@ -1707,6 +1707,8 @@ export interface components {
              * @default false
              */
             degraded: boolean;
+            /** Language */
+            language: string;
             /** Product Cards */
             product_cards: components["schemas"]["ProductCardOut"][];
             /** Reply */

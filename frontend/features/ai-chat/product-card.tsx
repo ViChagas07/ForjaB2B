@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { CaStatusBadge, CatalogPrice } from "@/features/catalog";
 import { useAddCartItem } from "@/features/cart";
 import type { ChatProductCard } from "@/infrastructure/http";
+import type { Locale } from "@/i18n/locales";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ProductImage } from "@/shared/components/product-image";
 import { useAuthStore } from "@/shared/stores/auth-store";
@@ -17,7 +18,13 @@ import { Button } from "@/shared/ui/button";
  * Visitante vê "sob consulta" (price_on_request) e o botão de carrinho leva
  * ao login; logado usa a mutation existente do carrinho.
  */
-export function ChatProductCardView({ card }: { card: ChatProductCard }) {
+export function ChatProductCardView({
+  card,
+  siteLocale,
+}: {
+  card: ChatProductCard;
+  siteLocale: Locale;
+}) {
   const t = useTranslations();
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
@@ -26,7 +33,7 @@ export function ChatProductCardView({ card }: { card: ChatProductCard }) {
 
   function handleAddToCart() {
     if (!isAuthenticated) {
-      router.push("/login");
+      router.push("/login", { locale: siteLocale });
       return;
     }
     addItem.mutate({ product_id: card.product_id, quantity: card.min_order_qty });
@@ -56,7 +63,9 @@ export function ChatProductCardView({ card }: { card: ChatProductCard }) {
         </div>
         <div className="flex flex-wrap gap-2 pt-1">
           <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
-            <Link href={`/catalog/${card.product_id}`}>{t("aiChat.viewProduct")}</Link>
+            <Link href={`/catalog/${card.product_id}`} locale={siteLocale}>
+              {t("aiChat.viewProduct")}
+            </Link>
           </Button>
           <Button
             size="sm"

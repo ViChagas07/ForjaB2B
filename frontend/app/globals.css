@@ -126,6 +126,32 @@
       "calt" 1;
   }
 
+  /*
+   * Variante correta de fonte por script. O `lang` do <html> cobre o site; o
+   * `lang` de cada bolha do chat cobre mensagens em outro idioma. As fontes
+   * Noto ja fazem parte da pilha do Tailwind; aqui so priorizamos a variante
+   * CJK/Arabe certa para evitar glifos japoneses renderizados com face SC.
+   */
+  :lang(ar) {
+    font-family: "Noto Sans Arabic", "Noto Naskh Arabic", "Segoe UI", system-ui, sans-serif;
+  }
+
+  :lang(ja) {
+    font-family:
+      "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  }
+
+  :lang(ko) {
+    font-family:
+      "Noto Sans KR", "Noto Sans CJK KR", "Malgun Gothic", "Apple SD Gothic Neo", system-ui,
+      sans-serif;
+  }
+
+  :lang(zh-CN) {
+    font-family:
+      "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  }
+
   ::selection {
     background: hsl(var(--primary) / 0.35);
     color: hsl(var(--foreground));

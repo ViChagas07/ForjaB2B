@@ -1197,6 +1197,10 @@
             "title": "Degraded",
             "type": "boolean"
           },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
           "product_cards": {
             "items": {
               "$ref": "#/components/schemas/ProductCardOut"
@@ -1212,7 +1216,8 @@
         "required": [
           "conversation_id",
           "reply",
-          "product_cards"
+          "product_cards",
+          "language"
         ],
         "title": "ChatResponse",
         "type": "object"

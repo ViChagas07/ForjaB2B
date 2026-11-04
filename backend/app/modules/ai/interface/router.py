@@ -23,7 +23,7 @@ from app.application.security import AuthContext
 from app.core.config import Settings
 from app.core.errors import RateLimitExceededError
 from app.core.request_context import client_ip
-from app.interface.deps import get_locale, get_optional_auth
+from app.interface.deps import ChatLocaleInfo, get_chat_locale, get_optional_auth
 from app.modules.ai.application.chat import ChatResult, ChatService
 from app.modules.ai.application.conversation_service import ConversationScope
 from app.modules.ai.application.security.budget import estimate_tokens
@@ -87,10 +87,10 @@ async def chat(
     use_case: Annotated[ChatService, Depends(_chat_service)],
     limiter: Annotated[RateLimiter, Depends(_rate_limiter)],
     auth: Annotated[AuthContext | None, Depends(get_optional_auth)],
-    locale: Annotated[str, Depends(get_locale)],
+    chat_locale: Annotated[ChatLocaleInfo, Depends(get_chat_locale)],
 ) -> ChatResponse:
     settings = request.app.state.settings
-    locale_value = resolve_locale(locale)
+    locale_value = resolve_locale(chat_locale.reply_language)
     neutral = neutral_response(locale_value)
 
     # Kill switch: nenhuma chamada de LLM; resposta neutra e curta.
@@ -124,7 +124,8 @@ async def chat(
     result: ChatResult | None = await use_case.handle(
         conversation_id=payload.conversation_id,
         scope=scope,
-        locale=locale,
+        site_locale=chat_locale.reply_language,
+        content_locale=chat_locale.content_locale,
         message=payload.message,
         auth=auth,
     )
@@ -135,5 +136,6 @@ async def chat(
         conversation_id=result.conversation_id,
         reply=result.reply,
         product_cards=[card_to_out(card) for card in result.product_cards],
+        language=result.language,
         degraded=result.degraded,
     )
