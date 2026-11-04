@@ -15,6 +15,7 @@ import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
 
+from app.modules.ai.application.lexicon import ConsultingTask, task_terms
 from app.modules.ai.domain.security.catalog_sanitizer import sanitize_tool_text
 
 _KB_FILE = "knowledge_base.chat.v1.md"
@@ -113,10 +114,20 @@ class KnowledgeBase:
         )
         return cls.from_markdown(resource.read_text(encoding="utf-8"))
 
-    def search(self, query: str, *, limit: int = 2) -> tuple[KnowledgeSection, ...]:
-        tokens = _tokens(query)
+    def search(
+        self, query: str, *, limit: int = 2, task: ConsultingTask | None = None
+    ) -> tuple[KnowledgeSection, ...]:
+        tokens = list(_tokens(query))
+        # A chave canonica adiciona os termos PT-BR da atividade a pontuacao;
+        # o tokenizador lexical ([a-z0-9]) nunca e a unica via.
+        if task is not None:
+            tokens.extend(_tokens(" ".join(task_terms(task))))
+            tokens = list(dict.fromkeys(tokens))
         if not tokens:
             return ()
+        return self._rank(tokens, limit)
+
+    def _rank(self, tokens: list[str], limit: int) -> tuple[KnowledgeSection, ...]:
         scored: list[tuple[int, KnowledgeSection]] = []
         for section in self._sections:
             haystack_title = _fold(section.title)

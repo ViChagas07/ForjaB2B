@@ -25,6 +25,7 @@ from app.modules.ai.application.intent_router import (
     fallback_decision,
     normalize_decision,
 )
+from app.modules.ai.application.lexicon import find_task
 from app.modules.ai.application.ports import LLMPort
 from app.modules.ai.domain.security.injection import scan_injection
 
@@ -97,7 +98,7 @@ async def _run_refusal_case(
     case: EvalCase, *, llm: LLMPort | None, deterministic_only: bool
 ) -> EvalResult:
     blocked = scan_injection(case.message).level.value == "BLOCK"
-    decision = deterministic_decision(case.message, locale=case.locale)
+    decision = deterministic_decision(case.message, reply_language=case.locale)
     if decision is None and llm is not None and not deterministic_only:
         decision = await _ask_llm(case, llm)
     refused = blocked or (decision is not None and decision.intent == IntentName.OUT_OF_SCOPE)
@@ -119,16 +120,16 @@ async def _decide_case(
         session = ChatSessionState.from_json(json.dumps(case.session))
         if session is None:
             return None, False
-        decision = follow_up_decision(session, case.message, locale=case.locale)
+        decision = follow_up_decision(session, case.message, reply_language=case.locale)
         return decision, False
-    decision = deterministic_decision(case.message, locale=case.locale)
+    decision = deterministic_decision(case.message, reply_language=case.locale)
     if decision is None:
         if llm is None or deterministic_only:
             return None, True
         decision = await _ask_llm(case, llm)
     if decision is None:
         return None, False
-    return normalize_decision(decision, message=case.message, locale=case.locale), False
+    return normalize_decision(decision, message=case.message, reply_language=case.locale), False
 
 
 async def run_dataset(
@@ -158,7 +159,7 @@ async def _ask_llm(case: EvalCase, llm: LLMPort) -> IntentDecision | None:
     messages = build_router_messages(
         message=case.message,
         history=[],
-        locale=case.locale,
+        reply_language=case.locale,
         tag=secrets.token_hex(8),
     )
     try:
@@ -166,8 +167,8 @@ async def _ask_llm(case: EvalCase, llm: LLMPort) -> IntentDecision | None:
             schema=IntentDecision, messages=messages, temperature=0.1
         )
     except Exception:  # noqa: BLE001 - LLM nunca derruba a avaliacao
-        return fallback_decision(case.message, locale=case.locale)
-    return normalize_decision(decision, message=case.message, locale=case.locale)
+        return fallback_decision(case.message, reply_language=case.locale)
+    return normalize_decision(decision, message=case.message, reply_language=case.locale)
 
 
 def _compare(case: EvalCase, decision: IntentDecision) -> list[str]:
@@ -194,9 +195,18 @@ def _compare_fields(case: EvalCase, decision: IntentDecision) -> list[str]:
         "category",
         "quantity",
     ):
-        if field in case.expected and getattr(decision, field) != case.expected[field]:
+        if field in case.expected and getattr(decision, field) != _expected_value(
+            field, case.expected[field]
+        ):
             failures.append(f"{field}={getattr(decision, field)}")
     return failures
+
+
+def _expected_value(field: str, value: object) -> object:
+    """A tarefa agora e uma chave canonica; os casos antigos usam o termo PT."""
+    if field == "task" and value is not None:
+        return find_task(str(value))
+    return value
 
 
 def _compare_details(case: EvalCase, decision: IntentDecision) -> list[str]:

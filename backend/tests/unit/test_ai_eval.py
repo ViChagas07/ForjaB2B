@@ -117,7 +117,7 @@ async def test_caso_obrigatorio_passa_mesmo_com_llm_quebrado() -> None:
 
 
 def test_atalho_do_caso_obrigatorio_e_deterministico() -> None:
-    decision = deterministic_decision(MANDATORY, locale="pt-BR")
+    decision = deterministic_decision(MANDATORY, reply_language="pt-BR")
     assert decision is not None
     assert decision.intent == IntentName.PRODUCT_SEARCH
     assert decision.price_sort == PriceSort.ASC

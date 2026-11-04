@@ -1,5 +1,6 @@
 """Testes do output guard (Fase 2, C.7 + canary B.6)."""
 
+from app.modules.ai.domain.language import LanguageDetection
 from app.modules.ai.domain.security.output_guard import (
     check_canary,
     guard_model_output,
@@ -8,6 +9,17 @@ from app.modules.ai.domain.security.output_guard import (
 from app.modules.ai.domain.types import Locale
 
 SYSTEM = "HIERARQUIA (vence sempre, nesta ordem): 1. Regras do sistema (este texto)."
+
+
+class FixedLanguageDetector:
+    def __init__(self, language: Locale, confidence: float = 0.95) -> None:
+        self.language = language
+        self.confidence = confidence
+
+    def detect(self, _text: str) -> LanguageDetection:
+        return LanguageDetection(
+            language=self.language, confidence=self.confidence, source="detector"
+        )
 
 
 def test_url_inventada_na_saida_e_removida() -> None:
@@ -118,4 +130,63 @@ def test_trecho_do_system_prompt_vazado_bloqueia_resposta() -> None:
 def test_arabico_para_locale_arabic_nao_diverge() -> None:
     text = "لا يمكنني المساعدة في هذا الطلب"
     guarded = guard_model_output(text, locale=Locale.AR, max_chars=500)
+    assert guarded.blocked is False
+
+
+def test_resposta_no_idioma_da_mensagem_passa_em_todos_os_scripts() -> None:
+    cases = (
+        (Locale.AR, "مرحبًا! يمكنني مساعدتك في كتالوج Forja."),
+        (Locale.RU, "Здравствуйте! Чем я могу помочь по каталогу Forja?"),
+        (Locale.JA, "こんにちは! Forjaカタログについてお手伝いできますか?"),
+        (Locale.ZH_CN, "您好! 我能帮您了解 Forja 目录吗?"),
+        (Locale.KO, "안녕하세요! Forja 카탈로그에서 무엇을 도와드릴까요?"),
+    )
+    for locale, text in cases:
+        guarded = guard_model_output(text, locale=locale, max_chars=500)
+        assert guarded.blocked is False, (locale, guarded.reason_code)
+
+
+def test_resposta_latina_no_idioma_errado_falha_com_detector() -> None:
+    guarded = guard_model_output(
+        "This product is available in our catalog today, with fast shipping.",
+        locale=Locale.PT_BR,
+        max_chars=500,
+        language_detector=FixedLanguageDetector(Locale.EN),
+    )
+    assert guarded.blocked is True
+    assert guarded.reason_code == "idioma_divergente"
+
+
+def test_resposta_arabe_quando_reply_e_arabe_passa_com_marca_latina() -> None:
+    text = "مرحبًا! يمكنني مساعدتك في كتالوج Forja والمنتجات المتوفرة."
+    guarded = guard_model_output(text, locale=Locale.AR, max_chars=500)
+    assert guarded.blocked is False
+
+
+def test_resposta_latina_quando_reply_e_arabe_bloqueia() -> None:
+    guarded = guard_model_output(
+        "Olá! Posso ajudar com o catálogo de produtos da Forja.",
+        locale=Locale.AR,
+        max_chars=500,
+    )
+    assert guarded.blocked is True
+    assert guarded.reason_code == "idioma_divergente"
+
+
+def test_resposta_curta_ou_sku_nao_dispara_idioma() -> None:
+    detector = FixedLanguageDetector(Locale.EN)
+    for text in ("CAP-001", "Veja o produto.", "Ok, CAP-SOL-001"):
+        guarded = guard_model_output(
+            text, locale=Locale.PT_BR, max_chars=500, language_detector=detector
+        )
+        assert guarded.blocked is False, text
+
+
+def test_detector_sem_confianca_nao_bloqueia_idioma_latino() -> None:
+    guarded = guard_model_output(
+        "Este produto está disponível no catálogo da empresa hoje.",
+        locale=Locale.PT_BR,
+        max_chars=500,
+        language_detector=FixedLanguageDetector(Locale.ES, confidence=0.4),
+    )
     assert guarded.blocked is False

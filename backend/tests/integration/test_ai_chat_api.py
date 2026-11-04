@@ -10,6 +10,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager, contextmanager
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -28,6 +29,7 @@ from app.modules.ai.application.chat_graph import (
 from app.modules.ai.application.conversation_service import ConversationService
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
+from app.modules.ai.domain.degradation import greeting_response
 from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.types import Locale
 from app.modules.ai.infrastructure.chat_audit import SqlAlchemyChatAudit
@@ -168,7 +170,12 @@ def install_fake_llm(app: object, llm: FakeLLM) -> None:
         audit=SqlAlchemyChatAudit(app.state.uow_factory),  # type: ignore[attr-defined]
         ai_enabled=True,
     )
-    app.state.ai_chat_service = ChatService(conversations=conversations, graph=graph)  # type: ignore[attr-defined]
+    state = cast(Any, app).state
+    state.ai_chat_service = ChatService(
+        conversations=conversations,
+        graph=graph,
+        language_detector=state.ai_language_detector,
+    )
 
 
 def scripted_llm(*decisions: AnswerDecision) -> FakeLLM:
@@ -194,9 +201,7 @@ async def chat_client(
         cleanup(pg)
 
 
-async def test_aceite_visitante_cartoes_reais_sem_preco(
-    pg: object, test_settings: Settings
-) -> None:
+async def test_aceite_visitante_recebe_preco_publico(pg: object, test_settings: Settings) -> None:
     llm = scripted_llm(AnswerDecision(reply="Temos opcoes.", product_ids=[str(PRODUCT)]))
     async with chat_client(pg, test_settings, llm) as (_app, client):
         response = await client.post("/api/v1/ai/chat", json={"message": "capacete para soldador"})
@@ -206,8 +211,9 @@ async def test_aceite_visitante_cartoes_reais_sem_preco(
     assert body["conversation_id"]
     card = body["product_cards"][0]
     assert card["link"] == f"/catalog/{PRODUCT}"
-    assert card["price"] is None
-    assert card["price_on_request"] is True
+    # Regra vigente (commit c8cfcc18): visitante/CPF ve a tabela publica.
+    assert card["price"] == "999.00"
+    assert card["price_on_request"] is False
 
 
 async def test_logado_recebe_preco_da_propria_empresa(pg: object, test_settings: Settings) -> None:
@@ -305,3 +311,65 @@ async def test_kill_switch_responde_503_neutro(pg: object, test_settings: Settin
         await app.state.db_engine.dispose()
         await close_redis_client(app.state.redis_client)
         cleanup(pg)
+
+
+async def test_troca_de_idioma_por_mensagem_persiste_na_conversa(
+    pg: object, test_settings: Settings
+) -> None:
+    llm = scripted_llm(
+        AnswerDecision(
+            reply="Aquí están las opciones de guantes de seguridad que encontré.",
+            product_ids=[str(PRODUCT)],
+        )
+    )
+    async with chat_client(pg, test_settings, llm) as (_app, client):
+        first = await client.post(
+            "/api/v1/ai/chat",
+            json={"message": "Quiero ver los guantes más baratos del catálogo"},
+        )
+        assert first.status_code == 200, first.text
+        body = first.json()
+        assert "Aquí" in body["reply"]
+        second = await client.post(
+            "/api/v1/ai/chat",
+            json={"conversation_id": body["conversation_id"], "message": "hola"},
+        )
+    assert second.status_code == 200, second.text
+    # "hola" e curto/ambiguo: mantem o espanhol persistido na conversa.
+    assert second.json()["reply"] == greeting_response(Locale.ES)
+
+
+async def test_busca_alema_normaliza_pt_en_e_ordena_capacetes(
+    pg: object, test_settings: Settings
+) -> None:
+    async with chat_client(pg, test_settings, scripted_llm()) as (_app, client):
+        response = await client.post("/api/v1/ai/chat", json={"message": "günstigste Helme"})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["product_cards"]
+    assert any("Capacete" in card["name"] for card in body["product_cards"])
+    assert body["reply"]
+
+
+async def test_busca_mais_barata_nos_11_idiomas(pg: object, test_settings: Settings) -> None:
+    phrases = (
+        "capacete mais barato",
+        "cheapest helmet",
+        "casco más barato",
+        "günstigste Helme",
+        "casque le moins cher",
+        "casco più economico",
+        "самый дешёвый шлем",
+        "أرخص خوذة",
+        "一番安いヘルメット",
+        "가장 저렴한 헬멧",
+        "最便宜的头盔",
+    )
+    async with chat_client(pg, test_settings, scripted_llm()) as (_app, client):
+        for phrase in phrases:
+            response = await client.post("/api/v1/ai/chat", json={"message": phrase})
+            assert response.status_code == 200, (phrase, response.text)
+            body = response.json()
+            assert body["product_cards"], phrase
+            assert any("Capacete" in card["name"] for card in body["product_cards"]), phrase
+            assert body["reply"], phrase

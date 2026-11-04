@@ -6,6 +6,7 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
+from app.domain.shipping import BASE_FREIGHT, RATE_PER_KG
 from app.modules.ai.application.product_cards import (
     HydratedProduct,
     ProductCardService,
@@ -21,6 +22,7 @@ from app.modules.ai.application.tools import (
     ToolProduct,
     build_tool_registry,
 )
+from app.modules.ai.domain.formatting import format_number
 from app.modules.ai.domain.security.catalog_sanitizer import sanitize_catalog_document
 
 PRODUCT_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
@@ -95,6 +97,8 @@ def test_guard_remove_identidade_do_modelo_e_aplica_allowlist_por_no() -> None:
     assert "identidade_removida" in decision.actions
     assert set(decision.args.model_dump()) == {
         "query",
+        "query_pt",
+        "query_en",
         "category",
         "limit",
         "price_sort",
@@ -181,12 +185,13 @@ async def test_list_categories_sanitizado() -> None:
 def test_politica_de_frete_usa_constantes_e_nao_promete_prazo() -> None:
     tools, _port = make_tools([])
     output = tools.get_shipping_policy(ShippingPolicyArgs(), locale="pt-BR")
-    assert "15.00" in output.context_text  # BASE_FREIGHT
-    assert "5.00" in output.context_text  # RATE_PER_KG
+    assert format_number(BASE_FREIGHT, "pt-BR") in output.context_text  # BASE_FREIGHT
+    assert format_number(RATE_PER_KG, "pt-BR") in output.context_text  # RATE_PER_KG
     assert "prazo" in output.context_text.lower()
     for locale in ("pt-BR", "en", "es", "ar", "de", "fr", "it", "ja", "ko", "ru", "zh-CN"):
         text = tools.get_shipping_policy(ShippingPolicyArgs(), locale=locale).context_text
-        assert text and "15.00" in text and "5.00" in text, locale
+        assert text and format_number(BASE_FREIGHT, locale) in text, locale
+        assert format_number(RATE_PER_KG, locale) in text, locale
 
 
 # ------------------------------- cartoes -------------------------------------

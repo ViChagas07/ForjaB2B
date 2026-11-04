@@ -6,6 +6,7 @@ from app.modules.ai.application.intent_router import (
     normalize_decision,
 )
 from app.modules.ai.application.knowledge import KnowledgeBase, default_knowledge_base
+from app.modules.ai.application.lexicon import ConsultingTask
 
 
 def test_base_tem_secoes_de_epi_ca_tamanho_e_politicas() -> None:
@@ -39,10 +40,10 @@ def test_poisoning_na_base_nao_entra_no_contexto() -> None:
 
 
 def test_task_deterministica_para_soldagem() -> None:
-    decision = deterministic_decision("o que preciso para soldagem?", locale="pt-BR")
+    decision = deterministic_decision("o que preciso para soldagem?", reply_language="pt-BR")
     assert decision is not None
     assert decision.intent == IntentName.PRODUCT_SEARCH
-    assert decision.task == "soldagem"
+    assert decision.task == ConsultingTask.WELDING
 
 
 def test_normalize_preserva_task_do_llm() -> None:
@@ -54,6 +55,6 @@ def test_normalize_preserva_task_do_llm() -> None:
         task="soldagem",
         language="en",
     )
-    normalized = normalize_decision(llm, message="luva para solda", locale="pt-BR")
-    assert normalized.task == "soldagem"
+    normalized = normalize_decision(llm, message="luva para solda", reply_language="pt-BR")
+    assert normalized.task == ConsultingTask.WELDING
     assert normalized.language == "pt-BR"

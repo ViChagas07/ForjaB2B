@@ -3,7 +3,7 @@
 # - Regex Python, case-insensitive, aplicada ao texto JÁ normalizado (NFKC).
 # - Sem quantificadores aninhados (anti-ReDoS); frases longas e específicas.
 # - Acentos escritos por extenso nas classes ([çc], [õo], [êe], [áa], [ée], [íi], [óo]).
-# version: 1
+# version: 2
 # pt-BR
 ignore_previous_pt|BLOCK|ignor\w*\s+(as\s+|todas\s+as\s+|as\s+minhas\s+|suas\s+)?(instru[çc][õo]es|regras|orienta[çc][õo]es)\s+(anteriores|acima|iniciais|do\s+sistema)
 desconsidere_pt|BLOCK|desconsider\w*\s+(as\s+|todas\s+as\s+)?(instru[çc][õo]es|regras|orienta[çc][õo]es)
@@ -47,3 +47,59 @@ traduce_ejecuta_es|BLOCK|traduce\s+y\s+(ejecuta|ejecutar)
 eres_ahora_es|BLOCK|eres\s+ahora\s+(un|una)\s+
 saltar_reglas_es|BLOCK|saltar(te)?\s+(las\s+|tus\s+)?(reglas|restricciones)
 reglas_internas_es|SANITIZE|(reglas|instrucciones)\s+(internas|secretas|ocultas)\s+(de\s+tu\s+)?(modelo|sistema|chat|asistente)
+# de
+ignore_previous_de|BLOCK|ignorier\w*\s+(alle\s+|die\s+)?(vorherigen|bisherigen|fr[üu]heren)\s+(anweisungen|regeln|vorgaben)
+forget_instructions_de|BLOCK|vergiss\s+(alle\s+|deine\s+)?(anweisungen|regeln|vorgaben)
+reveal_prompt_de|BLOCK|(zeige|offenbare|gib)\s+(mir\s+)?(deinen\s+|den\s+)?(system\s*)?prompt|system\s*prompt
+developer_mode_de|BLOCK|entwicklermodus|jailbreak|modus\s+dan
+bypass_rules_de|BLOCK|umgeh\w*\s+(die\s+|alle\s+)?(regeln|richtlinien|einschr[äa]nkungen|filter)
+pretend_no_rules_de|BLOCK|tu\s+so\s+als\s+(ob\s+)?(es\s+)?(keine|ohne)\s+(regeln|einschr[äa]nkungen)
+# fr
+ignore_previous_fr|BLOCK|ignore\w*\s+(toutes\s+)?(les\s+)?(instructions|r[èe]gles)\s+(pr[ée]c[ée]dentes|ant[ée]rieures|initiales)
+forget_instructions_fr|BLOCK|oublie\w*\s+(toutes\s+)?(tes\s+|les\s+)?(instructions|r[èe]gles)
+reveal_prompt_fr|BLOCK|(r[ée]v[èe]le|montre|affiche|r[ée]p[èe]te)\s+(ton\s+|le\s+)?(prompt|instructions)\s*(syst[èe]me|du\s+syst[èe]me|secr[èe]tes|internes)?
+developer_mode_fr|BLOCK|mode\s+d[ée]veloppeur|jailbreak|mode\s+dan
+bypass_rules_fr|BLOCK|contourne\w*\s+(les\s+|toutes\s+les\s+)?(r[èe]gles|restrictions|filtres|garde-fous)
+pretend_no_rules_fr|BLOCK|fais\s+comme\s+s'il\s+n'y\s+avait\s+(pas|aucune)\s+de\s+r[èe]gles
+# it
+ignore_previous_it|BLOCK|ignora\w*\s+(tutte\s+)?(le\s+)?(istruzioni|regole)\s+(precedenti|anteriori|iniziali)
+forget_instructions_it|BLOCK|dimentica\w*\s+(tutte\s+)?(le\s+tue\s+)?(istruzioni|regole)
+reveal_prompt_it|BLOCK|(rivela|mostra|stampa|ripeti)\s+(il\s+|tuo\s+)?(prompt|istruzioni)\s*(di\s+sistema|segrete|interne)?
+developer_mode_it|BLOCK|modalit[àa]\s+sviluppatore|jailbreak|modalit[àa]\s+dan
+bypass_rules_it|BLOCK|aggira\w*\s+(le\s+|tutte\s+le\s+)?(regole|restrizioni|filtri)
+pretend_no_rules_it|BLOCK|fai\s+finta\s+che\s+non\s+ci\s+siano\s+(regole|restrizioni)
+# ru
+ignore_previous_ru|BLOCK|игнорируй\w*\s+(все\s+)?(предыдущие|прежние|прошлые)\s+(инструкции|правила|указания)
+forget_instructions_ru|BLOCK|забудь\w*\s+(все\s+)?(свои\s+|твои\s+)?(инструкции|правила)
+reveal_prompt_ru|BLOCK|(покажи|раскрой|выведи|повтори)\s+(свой\s+|системный\s+)?(промпт|инструкции)|системный\s+промпт
+developer_mode_ru|BLOCK|режим\s+разработчика|jailbreak|режим\s+dan
+bypass_rules_ru|BLOCK|обойди\w*\s+(все\s+)?(правила|ограничения|фильтры)
+pretend_no_rules_ru|BLOCK|представь\w*,?\s+что\s+(нет|отсутствуют)\s+(правила|ограничения)
+# ar
+ignore_previous_ar|BLOCK|تجاهل\w*\s+(كل\s+)?(التعليمات|القواعد|الإرشادات)\s+(السابقة|السابقه|الأولى)
+forget_instructions_ar|BLOCK|انس\w*\s+(كل\s+)?(تعليماتك|قواعدك|التعليمات)
+reveal_prompt_ar|BLOCK|(أظهر|اعرض|اطبع|كرر)\s+(موجه|برومبت|تعليمات)\s*(النظام|السرية|الداخلية)?|موجه\s+النظام
+developer_mode_ar|BLOCK|وضع\s+المطور|jailbreak|وضع\s+دان
+bypass_rules_ar|BLOCK|تجاوز\w*\s+(كل\s+)?(القواعد|القيود|الفلاتر|الحماية)
+pretend_no_rules_ar|BLOCK|تظاهر\w*\s+(بأنه\s+)?(لا\s+توجد|بدون)\s+(قواعد|قيود)
+# ja
+ignore_previous_ja|BLOCK|(以前|前|上記)の?(指示|命令|ルール|規則)を?(すべて)?無視
+forget_instructions_ja|BLOCK|(指示|命令|ルール|規則)を?(すべて)?忘れ
+reveal_prompt_ja|BLOCK|(システム)?プロンプトを?(表示|見せて|教えて|出力|繰り返)
+developer_mode_ja|BLOCK|開発者モード|ジェイルブレイク|danモード
+bypass_rules_ja|BLOCK|(ルール|規則|制限|フィルター|ガードレール)を?(すべて)?(回避|迂回|無効)
+pretend_no_rules_ja|BLOCK|(ルール|規則|制限)が?ない(ふり|かのように)
+# ko
+ignore_previous_ko|BLOCK|(이전|앞의|위의)\s*(지시|명령|규칙|지침)을?\s*(모두\s*)?무시
+forget_instructions_ko|BLOCK|(지시|명령|규칙|지침)을?\s*(모두\s*)?잊어
+reveal_prompt_ko|BLOCK|(시스템\s*)?프롬프트를?\s*(보여|알려|출력|반복)
+developer_mode_ko|BLOCK|개발자\s*모드|탈옥|dan\s*모드
+bypass_rules_ko|BLOCK|(규칙|제한|필터|가드레일)을?\s*(모두\s*)?(우회|회피|무시)
+pretend_no_rules_ko|BLOCK|(규칙|제한)이?\s*(없는|없다고)\s*(척|가정)
+# zh-CN
+ignore_previous_zh|BLOCK|忽(略|视)\s*(之前|先前|以上|所有)的?\s*(指令|指示|规则|規則)
+forget_instructions_zh|BLOCK|忘(记|掉)\s*(你的)?\s*(指令|指示|规则|規則)
+reveal_prompt_zh|BLOCK|(显示|展示|打印|重复|輸出|输出)\s*(系统)?\s*(提示词|提示詞|指令)|系统提示词|系統提示詞
+developer_mode_zh|BLOCK|开发者模式|開發者模式|越狱|越獄|dan模式
+bypass_rules_zh|BLOCK|(绕过|繞過|规避|規避|无视|無視)\s*(所有)?\s*(规则|規則|限制|过滤器|過濾器)
+pretend_no_rules_zh|BLOCK|假装\s*(没有|沒有)\s*(规则|規則|限制)|裝作\s*(没有|沒有)\s*(规则|規則)

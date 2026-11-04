@@ -6,11 +6,15 @@ Verifica a resposta do modelo ANTES de entregar ao usuario:
   (so caminhos relativos do proprio site sao permitidos);
 - remove e-mails, telefones, padroes de segredo (chaves/tokens) e valores
   monetarios no TEXTO do modelo (preco so existe em cartoes do backend);
-- BLOCK quando o idioma diverge do locale (quando detectavel por script
-  Unicode), quando o canary vazou ou quando ha trecho do system prompt;
+- BLOCK quando o idioma diverge do idioma esperado de resposta (script
+  Unicode sempre; detector real para os idiomas latinos), quando o canary
+  vazou ou quando ha trecho do system prompt;
 - limita o tamanho da resposta.
 
-Funcoes puras: sem I/O, sem LLM. Texto limpo segue com `actions` (para
+`locale` e o `reply_language` da conversa (11 locales), NAO o locale do site.
+Para respostas latinas, o detector so e consultado quando ha texto suficiente
+e confianca minima, evitando bloquear respostas curtas, nomes de produto e
+SKUs. Funcoes puras: sem I/O, sem LLM. Texto limpo segue com `actions` (para
 audit/metricas); BLOCK devolve `blocked=True` e o chamador responde neutro.
 """
 
@@ -20,6 +24,10 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from app.modules.ai.domain.language import (
+    LanguageDetectorPort,
+    guard_language_diverges,
+)
 from app.modules.ai.domain.types import Locale
 
 # ------------------------- padroes de remocao --------------------------------
@@ -51,29 +59,8 @@ _MONEY = re.compile(
 )
 
 # ------------------------- scripts Unicode -----------------------------------
-_SCRIPT_RANGES: tuple[tuple[str, str], ...] = (
-    ("cyrillic", "\u0400-\u04ff"),
-    ("greek", "\u0370-\u03ff"),
-    ("arabic", "\u0600-\u06ff\u0750-\u077f"),
-    ("han", "\u4e00-\u9fff"),
-    ("kana", "\u3040-\u30ff"),
-    ("hangul", "\uac00-\ud7af"),
-)
-_LATIN = re.compile(r"[A-Za-z\u00c0-\u024f\u1e00-\u1eff]")
-_EXPECTED_SCRIPTS: dict[str, frozenset[str]] = {
-    "pt-BR": frozenset({"latin"}),
-    "en": frozenset({"latin"}),
-    "es": frozenset({"latin"}),
-    "de": frozenset({"latin"}),
-    "fr": frozenset({"latin"}),
-    "it": frozenset({"latin"}),
-    "ru": frozenset({"cyrillic", "latin"}),
-    "ar": frozenset({"arabic", "latin"}),
-    "ja": frozenset({"latin", "kana", "han"}),
-    "ko": frozenset({"latin", "hangul"}),
-    "zh-CN": frozenset({"latin", "han"}),
-}
-_SCRIPT_DIVERSION_RATIO = 0.5
+# A comparacao de scripts/idioma fica em `domain.language` (sinais fortes +
+# detector restrito aos 11 locales), para ser reutilizada pelo chat.
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -109,14 +96,22 @@ def guard_model_output(
     canary: str | None = None,
     system_prompt: str | None = None,
     allow_money: bool = False,
+    language_detector: LanguageDetectorPort | None = None,
 ) -> GuardedOutput:
     """Aplica as regras de saida; BLOCK devolve texto vazio + motivo.
 
-    `allow_money=True` e usado SOMENTE no e-mail de recuperacao depois que o
-    chamador validou cada valor contra os numeros calculados pelo codigo. O
-    chat mantem o default (preco nunca sai do modelo).
+    `locale` e o idioma esperado da RESPOSTA (reply_language), nunca o locale
+    do site. `allow_money=True` e usado SOMENTE no e-mail de recuperacao depois
+    que o chamador validou cada valor contra os numeros calculados pelo codigo.
+    O chat mantem o default (preco nunca sai do modelo).
     """
-    blocked = _block_reason(text, locale=locale, canary=canary, system_prompt=system_prompt)
+    blocked = _block_reason(
+        text,
+        locale=locale,
+        canary=canary,
+        system_prompt=system_prompt,
+        language_detector=language_detector,
+    )
     if blocked is not None:
         return GuardedOutput(text="", blocked=True, reason_code=blocked)
 
@@ -140,6 +135,7 @@ def _block_reason(
     locale: Locale,
     canary: str | None,
     system_prompt: str | None,
+    language_detector: LanguageDetectorPort | None = None,
 ) -> str | None:
     """Motivo de BLOCK (canary/system prompt/html executavel/idioma), se houver."""
     if canary and check_canary(text, canary=canary):
@@ -148,7 +144,7 @@ def _block_reason(
         return "system_prompt_vazado"
     if _EXECUTABLE_HTML.search(text):
         return "html_executavel"
-    if _language_diverges(text, locale=locale):
+    if _language_diverges(text, locale=locale, detector=language_detector):
         return "idioma_divergente"
     return None
 
@@ -187,16 +183,11 @@ def _clean_text(
     return state["value"]
 
 
-def _language_diverges(text: str, *, locale: Locale) -> bool:
-    """Detecta divergencia por script Unicode (quando o texto tem letras)."""
-    allowed = _EXPECTED_SCRIPTS.get(locale.value, frozenset({"latin"}))
-    foreign = 0
-    latin = len(_LATIN.findall(text))
-    for name, pattern_range in _SCRIPT_RANGES:
-        count = len(re.findall(f"[{pattern_range}]", text))
-        if name not in allowed:
-            foreign += count
-    letters = foreign + latin
-    if letters == 0:
-        return False
-    return foreign / letters > _SCRIPT_DIVERSION_RATIO
+def _language_diverges(
+    text: str,
+    *,
+    locale: Locale,
+    detector: LanguageDetectorPort | None = None,
+) -> bool:
+    """Divergencia contra o `reply_language`: script forte + detector latino."""
+    return guard_language_diverges(text, expected=locale, detector=detector)

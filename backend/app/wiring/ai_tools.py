@@ -73,6 +73,86 @@ class SearchProductsToolAdapter:
         self,
         *,
         query: str,
+        query_pt: str = "",
+        query_en: str = "",
+        category: str | None,
+        limit: int,
+        locale: str,
+        auth: Any,
+        price_sort: str | None = None,
+        price_min: float | None = None,
+        price_max: float | None = None,
+        brand: str | None = None,
+        attributes: Mapping[str, str] | None = None,
+        offset: int = 0,
+    ) -> ProductSearchResult:
+        queries = _normalized_queries(query, query_pt, query_en)
+        if len(queries) == 1:
+            return await self._search_once(
+                query=queries[0],
+                category=category,
+                limit=limit,
+                locale=locale,
+                auth=auth,
+                price_sort=price_sort,
+                price_min=price_min,
+                price_max=price_max,
+                brand=brand,
+                attributes=attributes,
+                offset=offset,
+            )
+        return await self._search_many(
+            queries,
+            category=category,
+            limit=limit,
+            locale=locale,
+            auth=auth,
+            price_sort=price_sort,
+            price_min=price_min,
+            price_max=price_max,
+            brand=brand,
+            attributes=attributes,
+            offset=offset,
+        )
+
+    async def _search_many(
+        self,
+        queries: list[str],
+        *,
+        category: str | None,
+        limit: int,
+        locale: str,
+        auth: Any,
+        price_sort: str | None,
+        price_min: float | None,
+        price_max: float | None,
+        brand: str | None,
+        attributes: Mapping[str, str] | None,
+        offset: int,
+    ) -> ProductSearchResult:
+        per_query_limit = max(offset + limit, 50)
+        results = [
+            await self._search_once(
+                query=item,
+                category=category,
+                limit=per_query_limit,
+                locale=locale,
+                auth=auth,
+                price_sort=price_sort,
+                price_min=price_min,
+                price_max=price_max,
+                brand=brand,
+                attributes=attributes,
+                offset=0,
+            )
+            for item in queries
+        ]
+        return _merge_search_results(results, offset=offset, limit=limit, price_sort=price_sort)
+
+    async def _search_once(
+        self,
+        *,
+        query: str,
         category: str | None,
         limit: int,
         locale: str,
@@ -418,6 +498,52 @@ def _price_sort_key(item: Any, *, ascending: bool) -> tuple[bool, Decimal, str]:
     if price is None:
         return (True, Decimal("0"), str(getattr(item, "name", "")))
     return (False, price if ascending else -price, str(getattr(item, "name", "")))
+
+
+def _normalized_queries(query: str, query_pt: str, query_en: str) -> list[str]:
+    """Consulta original + traducao pt/en, sem duplicatas e com limite de 3."""
+    result: list[str] = []
+    seen: set[str] = set()
+    for candidate in (query, query_pt, query_en):
+        item = candidate.strip()
+        key = item.casefold()
+        if not item or key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result[:3] or [query.strip()]
+
+
+def _merge_search_results(
+    results: Sequence[ProductSearchResult],
+    *,
+    offset: int,
+    limit: int,
+    price_sort: str | None,
+) -> ProductSearchResult:
+    merged: list[Any] = []
+    seen: set[str] = set()
+    for result in results:
+        for product in result.products:
+            if product.product_id in seen:
+                continue
+            seen.add(product.product_id)
+            merged.append(product)
+    if price_sort in ("asc", "desc"):
+        merged.sort(
+            key=lambda product: _price_sort_key_product(product, ascending=price_sort == "asc")
+        )
+    return ProductSearchResult(
+        products=tuple(merged[offset : offset + limit]),
+        capped=any(result.capped for result in results),
+    )
+
+
+def _price_sort_key_product(product: Any, *, ascending: bool) -> tuple[bool, Decimal]:
+    price = getattr(product, "price", None)
+    if price is None:
+        return (True, Decimal("0"))
+    return (False, price if ascending else -price)
 
 
 def _select_candidates(

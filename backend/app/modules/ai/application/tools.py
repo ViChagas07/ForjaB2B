@@ -25,6 +25,7 @@ from pydantic import Field, field_validator, model_validator
 
 from app.domain.shipping import BASE_FREIGHT, RATE_PER_KG
 from app.modules.ai.application.security.tools import ToolRegistry, ToolSchema, ToolSpec
+from app.modules.ai.domain.formatting import format_brl
 from app.modules.ai.domain.security.catalog_sanitizer import (
     CatalogSanitizeResult,
     sanitize_catalog_document,
@@ -44,6 +45,8 @@ class SearchProductsArgs(ToolSchema):
     """Busca no catalogo (consulta + filtros + ordenacao por preco opcional)."""
 
     query: str = Field(min_length=2, max_length=200)
+    query_pt: str = Field(default="", max_length=200)
+    query_en: str = Field(default="", max_length=200)
     category: str | None = Field(default=None, pattern=_SLUG_PATTERN)
     limit: int = Field(default=5, ge=1, le=6)
     price_sort: Literal["asc", "desc"] | None = None
@@ -227,6 +230,8 @@ class ProductSearchPort(Protocol):
         self,
         *,
         query: str,
+        query_pt: str = "",
+        query_en: str = "",
         category: str | None,
         limit: int,
         locale: str,
@@ -254,47 +259,47 @@ class OrderStatusPort(Protocol):
 
 _SHIPPING_POLICY = {
     "pt-BR": (
-        "Frete simulado no checkout: valor base de R$ {base} mais R$ {rate} por kg "
+        "Frete simulado no checkout: valor base de {base} mais {rate} por kg "
         "do pedido. Nao ha promessa de prazo de entrega."
     ),
     "en": (
-        "Shipping is simulated at checkout: a base fee of R$ {base} plus R$ {rate} "
+        "Shipping is simulated at checkout: a base fee of {base} plus {rate} "
         "per kg of the order. No delivery deadline is promised."
     ),
     "es": (
-        "El envio es simulado en el checkout: una tarifa base de R$ {base} mas R$ {rate} "
+        "El envio es simulado en el checkout: una tarifa base de {base} mas {rate} "
         "por kg del pedido. No se promete plazo de entrega."
     ),
     "ar": (
-        "يُحتسب الشحن في الدفع: رسم أساسي {base} ريال Brazilian real أي R$ {base} "
-        "زائد R$ {rate} لكل كيلوغرام من الطلب. لا يوجد وعد بمدة التسليم."
+        "يُحتسب الشحن في الدفع: رسم أساسي {base} زائد {rate} لكل كيلوغرام من الطلب. "
+        "لا يوجد وعد بمدة التسليم."
     ),
     "de": (
-        "Der Versand wird an der Kasse simuliert: Grundbetrag R$ {base} plus R$ {rate} "
+        "Der Versand wird an der Kasse simuliert: Grundbetrag {base} plus {rate} "
         "pro kg der Bestellung. Es wird keine Lieferfrist zugesagt."
     ),
     "fr": (
-        "La livraison est simulée au paiement : forfait de base R$ {base} plus R$ {rate} "
+        "La livraison est simulée au paiement : forfait de base {base} plus {rate} "
         "par kg de la commande. Aucun délai de livraison n'est promis."
     ),
     "it": (
-        "La spedizione è simulata al checkout: tariffa base R$ {base} più R$ {rate} "
+        "La spedizione è simulata al checkout: tariffa base {base} più {rate} "
         "per kg dell'ordine. Nessun termine di consegna è promesso."
     ),
     "ja": (
-        "送料はチェックアウト時にシミュレーションされます：基本料金 R$ {base} に "  # noqa: RUF001
-        "1kg あたり R$ {rate} を加算します。お届け期限の約束はありません。"
+        "送料はチェックアウト時にシミュレーションされます：基本料金 {base} に "  # noqa: RUF001
+        "1kg あたり {rate} を加算します。お届け期限の約束はありません。"
     ),
     "ko": (
-        "배송비는 결제 시 시뮬레이션됩니다: 기본료 R$ {base}에 주문 1kg당 "
-        "R$ {rate}를 더합니다. 배송 기한은 약속하지 않습니다."
+        "배송비는 결제 시 시뮬레이션됩니다: 기본료 {base}에 주문 1kg당 "
+        "{rate}를 더합니다. 배송 기한은 약속하지 않습니다."
     ),
     "ru": (
-        "Доставка рассчитывается при оформлении: базовая ставка R$ {base} плюс "
-        "R$ {rate} за кг заказа. Сроки доставки не обещаются."
+        "Доставка рассчитывается при оформлении: базовая ставка {base} плюс "
+        "{rate} за кг заказа. Сроки доставки не обещаются."
     ),
     "zh-CN": (
-        "运费在结账时模拟计算：基础费用 R$ {base} 加上每公斤 R$ {rate}。不承诺配送期限。"  # noqa: RUF001
+        "运费在结账时模拟计算：基础费用 {base} 加上每公斤 {rate}。不承诺配送期限。"  # noqa: RUF001
     ),
 }
 
@@ -318,6 +323,8 @@ class CatalogTools:
     ) -> ToolOutput:
         result = await self._search.search(
             query=args.query,
+            query_pt=args.query_pt,
+            query_en=args.query_en,
             category=args.category,
             limit=min(args.limit, 6),
             locale=locale,
@@ -393,7 +400,10 @@ class CatalogTools:
 
     def get_shipping_policy(self, args: ShippingPolicyArgs, *, locale: str) -> ToolOutput:
         template = _SHIPPING_POLICY.get(locale, _SHIPPING_POLICY["pt-BR"])
-        text = template.format(base=f"{BASE_FREIGHT:.2f}", rate=f"{RATE_PER_KG:.2f}")
+        text = template.format(
+            base=format_brl(BASE_FREIGHT, locale),
+            rate=format_brl(RATE_PER_KG, locale),
+        )
         return ToolOutput(context_text=text, product_ids=())
 
 

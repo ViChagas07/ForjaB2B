@@ -1,3 +1,4 @@
+# ruff: noqa: RUF001 - vocabulario intencional em cirilico/arabe/japones/coreano/chinês
 """Estado curto da sessao de chat para follow-ups (Fase 5).
 
 O estado e SEMPRE escrito pelo servidor a partir da IntentDecision validada e
@@ -24,6 +25,8 @@ from app.modules.ai.application.intent_router import (
     extract_price_constraints,
     first_product_term,
 )
+from app.modules.ai.application.lexicon import find_task
+from app.modules.ai.domain.types import Locale
 
 MAX_QUERY_CHARS = 200
 MAX_PRODUCT_IDS = 8
@@ -32,13 +35,42 @@ MAX_ATTRIBUTE_CHARS = 60
 MAX_STATE_CHARS = 2000
 MAX_OFFSET = 50
 
-_SIZE = re.compile(r"(?i)\b(?:tamanho|size)\s*[:\-]?\s*(xxg|xg|gg|g|m|p|xs|s)\b")
-_MORE = re.compile(r"(?i)\b(?:me mostra mais|mais opcoes|mais opções|mais resultados)\b")
-_COMPARE = re.compile(
-    r"(?i)\b(?:compara (?:essas|esses|estas|estes)|comparar essas|esses dois|"
-    r"essas duas|os dois primeiros|as duas primeiras)\b"
+_SIZE = re.compile(
+    r"(?i)\b(?:tamanho|size|talla|taille|größe|grosse|taglia|размер|الحجم|"
+    r"サイズ|사이즈|尺寸)\s*[:\-]?\s*(xxg|xg|gg|g|m|p|xs|s)\b"
 )
-_FOLLOW_PREFIX = re.compile(r"(?i)^(?:e|e a|e o|agora|entao|então)\b")
+_MORE = re.compile(
+    r"(?i)(?:\bme mostra mais\b|\bmais op[cç][oõ]es\b|\bmais resultados\b|"
+    r"\bshow me more\b|\bmore options\b|\bmore results\b|"
+    r"\bmu[eé]strame m[aá]s\b|\bm[aá]s opciones\b|\bm[aá]s resultados\b|"
+    r"\bmontre[- ]moi plus\b|\bplus d'options\b|\bplus de r[eé]sultats\b|"
+    r"\bzeig mir mehr\b|\bmehr optionen\b|\bmehr ergebnisse\b|"
+    r"\bmostrami di pi[uù]\b|\bpi[uù] opzioni\b|\bpi[uù] risultati\b|"
+    r"\bпокажи (?:ещ[её]|больше)\b|\bещ[её] варианты\b|\bещ[её] результаты\b|"
+    r"\bأرني المزيد\b|\bالمزيد من الخيارات\b|"
+    r"もっと見せて|他のオプション|"
+    r"더 보여|더 많은 옵션|"
+    r"再给我看看|更多选项)"
+)
+_COMPARE = re.compile(
+    r"(?i)(?:\bcompara (?:essas|esses|estas|estes)\b|\bcomparar essas\b|"
+    r"\bess[ea]s dois\b|\bess[ea]s duas\b|\bos dois primeiros\b|\bas duas primeiras\b|"
+    r"\bcompare (?:these|those|them)\b|\bthese two\b|\bthose two\b|\bthe first two\b|"
+    r"\bcompara (?:estos|estas)\b|\bestos dos\b|\bestas dos\b|\blos dos primeros\b|"
+    r"\bcompare (?:ces|ceux-ci)\b|\bces deux\b|\bles deux premiers\b|"
+    r"\bvergleiche (?:diese|die)\b|\bdiese beiden\b|\bdie ersten zwei\b|"
+    r"\bconfronta (?:questi|queste)\b|\bquesti due\b|\bi primi due\b|"
+    r"\bсравни (?:эти|их)\b|\bэти два\b|\bпервые два\b|"
+    r"\bقارن (?:هذه|هذين)\b|\bهذان\b|"
+    r"これらを比較|この2つ|"
+    r"이것들을 비교|이 두 개|"
+    r"比较这些|这两个)"
+)
+_FOLLOW_PREFIX = re.compile(
+    r"(?i)^(?:[¿¡]?\s*)?(?:e|e a|e o|y|and|und|et|ed|и|а|و|agora|entao|então|"
+    r"ahora|entonces|now|then|maintenant|alors|jetzt|dann|adesso|allora|"
+    r"теперь|тогда|そして|それと|그리고|还有|那么)\b|^(?:そして|それと|그리고|还有|那么)"
+)
 
 
 class ChatSessionStore(Protocol):
@@ -51,6 +83,8 @@ class ChatSessionStore(Protocol):
 class ChatSessionState:
     intent: str
     query: str
+    query_pt: str = ""
+    query_en: str = ""
     category: str | None = None
     brand: str | None = None
     price_sort: str | None = None
@@ -60,12 +94,15 @@ class ChatSessionState:
     attributes: dict[str, str] = field(default_factory=dict)
     product_ids: tuple[str, ...] = ()
     offset: int = 0
+    language: str = "pt-BR"
 
     def to_json(self) -> str:
         return json.dumps(
             {
                 "intent": self.intent[:40],
                 "query": self.query[:MAX_QUERY_CHARS],
+                "query_pt": self.query_pt[:MAX_QUERY_CHARS],
+                "query_en": self.query_en[:MAX_QUERY_CHARS],
                 "category": _optional(self.category, 60),
                 "brand": _optional(self.brand, 80),
                 "price_sort": _optional(self.price_sort, 8),
@@ -75,6 +112,7 @@ class ChatSessionState:
                 "attributes": dict(list(self.attributes.items())[:MAX_ATTRIBUTES]),
                 "product_ids": list(self.product_ids[:MAX_PRODUCT_IDS]),
                 "offset": max(0, min(int(self.offset), MAX_OFFSET)),
+                "language": _language(self.language),
             },
             ensure_ascii=False,
             separators=(",", ":"),
@@ -104,6 +142,8 @@ class ChatSessionState:
         return cls(
             intent=intent,
             query=query[:MAX_QUERY_CHARS],
+            query_pt=_optional(data.get("query_pt"), MAX_QUERY_CHARS) or "",
+            query_en=_optional(data.get("query_en"), MAX_QUERY_CHARS) or "",
             category=_optional(data.get("category"), 60),
             brand=_optional(data.get("brand"), 80),
             price_sort=price_sort,
@@ -113,19 +153,27 @@ class ChatSessionState:
             attributes=attributes,
             product_ids=product_ids,
             offset=max(0, min(_int(data.get("offset")), MAX_OFFSET)),
+            language=_language(data.get("language")),
         )
 
 
 def session_from_decision(
-    decision: IntentDecision, *, product_ids: tuple[str, ...]
+    decision: IntentDecision,
+    *,
+    product_ids: tuple[str, ...],
+    previous: ChatSessionState | None = None,
 ) -> ChatSessionState:
     """Serializa somente campos validados do servidor (nunca o texto bruto)."""
     offset = 0
     if decision.offset > 0:
         offset = min(decision.offset + len(product_ids), MAX_OFFSET)
+    if not product_ids and previous is not None:
+        product_ids = previous.product_ids
     return ChatSessionState(
         intent=decision.intent.value,
         query=decision.query[:MAX_QUERY_CHARS],
+        query_pt=decision.query_pt[:MAX_QUERY_CHARS],
+        query_en=decision.query_en[:MAX_QUERY_CHARS],
         category=decision.category,
         brand=decision.brand,
         price_sort=decision.price_sort.value if decision.price_sort else None,
@@ -135,11 +183,12 @@ def session_from_decision(
         attributes=dict(list(decision.attributes.items())[:MAX_ATTRIBUTES]),
         product_ids=tuple(product_ids[:MAX_PRODUCT_IDS]),
         offset=offset,
+        language=_language(decision.language),
     )
 
 
 def follow_up_decision(
-    session: ChatSessionState, message: str, *, locale: str
+    session: ChatSessionState, message: str, *, reply_language: str
 ) -> IntentDecision | None:
     """Reescreve follow-ups curtos reutilizando o estado do servidor."""
     if not _is_follow_up(message):
@@ -170,6 +219,8 @@ def follow_up_decision(
     return IntentDecision(
         intent=intent,
         query=session.query,
+        query_pt=session.query_pt,
+        query_en=session.query_en,
         category=session.category,
         brand=session.brand,
         price_sort=price_sort or (PriceSort(session.price_sort) if session.price_sort else None),
@@ -177,9 +228,9 @@ def follow_up_decision(
         price_max=price_max if price_max is not None else session.price_max,
         attributes=attributes,
         product_refs=product_refs,
-        task=session.task,
+        task=find_task(session.task) if session.task else None,
         offset=offset,
-        language=locale,
+        language=reply_language,
     )
 
 
@@ -229,7 +280,13 @@ def _is_follow_up(message: str) -> bool:
         _MORE.search(message) or _COMPARE.search(message)
     ):
         return False
-    price_words = re.search(r"(?i)\b(?:mais barat|mais car|mais opcoes|mais opções)\b", message)
+    price_words = re.search(
+        r"(?i)\b(?:mais barat|mais car|mais opcoes|mais opções|"
+        r"m[aá]s barat|m[aá]s car|plus cher|moins cher|teurer|g[uü]nstiger|"
+        r"pi[uù] car|pi[uù] economic|дороже|дешевле|дорог|дешёв|дешев|"
+        r"أغلى|أرخص|most expensive|cheapest)|高い|安い|비싼|저렴|贵|便宜",
+        message,
+    )
     return bool(
         _FOLLOW_PREFIX.search(message)
         or _MORE.search(message)
@@ -289,3 +346,11 @@ def _product_ids(value: object) -> tuple[str, ...]:
     if not isinstance(value, list):
         return ()
     return tuple(str(item).strip()[:64] for item in value[:MAX_PRODUCT_IDS] if str(item).strip())
+
+
+def _language(value: object) -> str:
+    """Aceita somente os 11 locales do site; qualquer outro vira pt-BR."""
+    candidate = str(value).strip() if value is not None else ""
+    if candidate in {item.value for item in Locale}:
+        return candidate
+    return Locale.PT_BR.value
