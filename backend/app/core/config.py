@@ -31,6 +31,7 @@ from pydantic import (
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.errors import ConfigurationError
+from app.modules.ai.domain.types import Locale
 
 Environment = Literal["development", "test", "staging", "production"]
 LogFormat = Literal["json", "console"]
@@ -421,6 +422,12 @@ class Settings(BaseSettings):
     # Limites do chat: mensagem do usuario (texto simples, sem HTML) e quantas
     # rodadas (pergunta+resposta) de historico sao enviadas ao LLM. O historico
     # NUNCA inclui precos, CNPJ, e-mail, telefone ou dados de contrato.
+    # Fase 4: prompt de redacao v3 (ingles, idioma no inicio/fim) ligado por
+    # feature flag. Default v2 ate o smoke real validar v3.
+    ai_chat_prompt_version: str = "v2"
+    # Overrides de max_tokens de SAIDA por idioma (JSON no ambiente), ex.:
+    # AI_CHAT_MAX_TOKENS_BY_LANGUAGE='{"ja": 320, "ar": 280}'
+    ai_chat_max_tokens_by_language: dict[str, int] = Field(default_factory=dict)
     ai_chat_max_message_chars: int = Field(default=500, ge=1)
     ai_chat_history_turns: int = Field(default=6, ge=1, le=40)
     # Teto de candidatos varridos quando o chat ordena/filtra por preco.
@@ -554,6 +561,33 @@ class Settings(BaseSettings):
         if effort not in allowed:
             raise ValueError("llm_reasoning_effort deve ser none, minimal, low, medium ou high")
         return effort
+
+    @field_validator("ai_chat_prompt_version", mode="before")
+    @classmethod
+    def _validate_prompt_version(cls, value: object) -> str:
+        version = str(value or "v2").strip().lower()
+        if version not in {"v2", "v3"}:
+            raise ValueError("ai_chat_prompt_version deve ser v2 ou v3")
+        return version
+
+    @field_validator("ai_chat_max_tokens_by_language", mode="before")
+    @classmethod
+    def _validate_token_overrides(cls, value: object) -> dict[str, int]:
+        if value is None or value == "":
+            return {}
+        if not isinstance(value, dict):
+            raise ValueError("ai_chat_max_tokens_by_language deve ser um objeto JSON")
+        allowed = {item.value for item in Locale}
+        result: dict[str, int] = {}
+        for key, raw in value.items():
+            locale = str(key).strip()
+            if locale not in allowed:
+                raise ValueError(f"locale invalido em max_tokens: {locale}")
+            tokens = int(raw)
+            if not 64 <= tokens <= 512:
+                raise ValueError("max_tokens por idioma deve estar entre 64 e 512")
+            result[locale] = tokens
+        return result
 
     @field_validator("email_provider", mode="before")
     @classmethod

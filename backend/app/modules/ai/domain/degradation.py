@@ -8,6 +8,7 @@ backend conseguir montar. Texto puro, sem HTML/links.
 
 from __future__ import annotations
 
+from app.modules.ai.domain.formatting import format_brl, format_foreign_amount
 from app.modules.ai.domain.types import Locale
 
 _DEMO_MODE: dict[str, str] = {
@@ -124,6 +125,21 @@ _PRICE_ASC: dict[str, str] = {
     "ru": "Самый доступный вариант, который я нашёл: {name}. См. карточку ниже.",
     "zh-CN": "我找到的最经济选项是 {name}。请查看下方卡片。",
 }
+
+_PRICE_DESC: dict[str, str] = {
+    "pt-BR": "A opção mais cara que encontrei é {name}. Veja o cartão abaixo.",
+    "en": "The most expensive option I found is {name}. See the card below.",
+    "es": "La opción más cara que encontré es {name}. Consulta la tarjeta de abajo.",
+    "ar": "الخيار الأغلى الذي وجدته هو {name}. راجع البطاقة أدناه.",
+    "de": "Die teuerste Option, die ich gefunden habe, ist {name}. Siehe Karte unten.",
+    "fr": "L'option la plus chère que j'ai trouvée est {name}. Voir la fiche ci-dessous.",
+    "it": "L'opzione più costosa che ho trovato è {name}. Vedi la scheda qui sotto.",
+    "ja": "見つけた中で最も高いのは {name} です。下のカードをご覧ください。",
+    "ko": "가장 비싼 옵션은 {name}입니다. 아래 카드를 확인하세요.",
+    "ru": "Самый дорогой вариант, который я нашёл: {name}. См. карточку ниже.",
+    "zh-CN": "我找到的最贵选项是 {name}。请查看下方卡片。",
+}
+
 
 _PRICE_VISITOR_NOTE: dict[str, str] = {
     "pt-BR": (
@@ -292,9 +308,17 @@ _PRICE_CAPPED_NOTE: dict[str, str] = {
 }
 
 
-def price_sort_response(locale: Locale, *, name: str, visitor: bool, capped: bool = False) -> str:
-    """Resposta deterministica para "mais barato" (nunca inventa valor)."""
-    template = _PRICE_ASC.get(locale.value, _PRICE_ASC["pt-BR"])
+def price_sort_response(
+    locale: Locale,
+    *,
+    name: str,
+    visitor: bool,
+    capped: bool = False,
+    direction: str = "asc",
+) -> str:
+    """Resposta deterministica para "mais barato"/"mais caro" (sem inventar valor)."""
+    table = _PRICE_DESC if direction == "desc" else _PRICE_ASC
+    template = table.get(locale.value, table["pt-BR"])
     text = template.format(name=name)
     if capped:
         text = f"{text} {_PRICE_CAPPED_NOTE.get(locale.value, _PRICE_CAPPED_NOTE['pt-BR'])}"
@@ -363,8 +387,7 @@ _PRICE_ACCESS: dict[str, str] = {
     "pt-BR": "Para comparar preços e ver a opção mais barata, entre na sua conta com CNPJ.",
     "en": "To compare prices and see the cheapest option, sign in with your company account.",
     "es": (
-        "Para comparar precios y ver la opción más barata, inicia sesión con "
-        "tu cuenta de empresa."
+        "Para comparar precios y ver la opción más barata, inicia sesión con tu cuenta de empresa."
     ),
     "ar": "لمقارنة الأسعار ورؤية الخيار الأرخص، سجّل الدخول بحساب شركتك.",
     "de": (
@@ -388,3 +411,69 @@ _PRICE_ACCESS: dict[str, str] = {
 
 def price_access_response(locale: Locale) -> str:
     return _PRICE_ACCESS.get(locale.value, _PRICE_ACCESS["pt-BR"])
+
+
+_CURRENCY_CONFIRMATION: dict[str, str] = {
+    "pt-BR": (
+        "Os preços do catálogo são em R$. Você quis dizer {amount} ou {brl_amount}? "
+        "Confirme o valor em reais, por favor."
+    ),
+    "en": (
+        "Catalog prices are in BRL. Did you mean {amount} or {brl_amount}? "
+        "Please confirm the amount in BRL."
+    ),
+    "es": (
+        "Los precios del catálogo son en R$. ¿Quisiste decir {amount} o {brl_amount}? "
+        "Confirma el valor en reales, por favor."
+    ),
+    "ar": (
+        "أسعار الكتالوج بالريال البرازيلي (R$). هل تقصد {amount} أم {brl_amount}؟ "
+        "يرجى تأكيد القيمة بالريال البرازيلي."
+    ),
+    "de": (
+        "Die Katalogpreise sind in BRL. Meinten Sie {amount} oder {brl_amount}? "
+        "Bitte bestätigen Sie den Betrag in BRL."
+    ),
+    "fr": (
+        "Les prix du catalogue sont en R$. Voulez-vous dire {amount} ou {brl_amount} ? "
+        "Merci de confirmer le montant en reais."
+    ),
+    "it": (
+        "I prezzi del catalogo sono in R$. Intendevi {amount} o {brl_amount}? "
+        "Conferma l'importo in reais, per favore."
+    ),
+    "ja": (
+        "カタログの価格はR$ (ブラジルレアル) です。{amount} ですか、それとも "
+        "{brl_amount} ですか? レアルでの金額を確認してください。"
+    ),
+    "ko": (
+        "카탈로그 가격은 R$(브라질 헤알)입니다. {amount}인가요, 아니면 "
+        "{brl_amount}인가요? 헤알 기준 금액을 확인해 주세요."
+    ),
+    "ru": (
+        "Цены в каталоге указаны в BRL. Вы имели в виду {amount} или {brl_amount}? "
+        "Подтвердите сумму в реалах."
+    ),
+    "zh-CN": (
+        "目录价格以巴西雷亚尔 (R$) 计价。您是指 {amount} 还是 {brl_amount}? 请确认雷亚尔金额。"
+    ),
+}
+
+
+def currency_confirmation_response(
+    locale: Locale,
+    *,
+    minimum: float | None,
+    maximum: float | None,
+    currency: str,
+) -> str:
+    """Pedido unico de confirmacao quando a moeda citada nao pode ser aplicada."""
+    values = [value for value in (minimum, maximum) if value is not None]
+    if not values:
+        amount = f"? {currency}".strip()
+        brl_amount = "R$ ?"
+    else:
+        amount = " - ".join(format_foreign_amount(value, currency, locale) for value in values)
+        brl_amount = " - ".join(format_brl(value, locale) for value in values)
+    template = _CURRENCY_CONFIRMATION.get(locale.value, _CURRENCY_CONFIRMATION["pt-BR"])
+    return template.format(amount=amount, brl_amount=brl_amount)

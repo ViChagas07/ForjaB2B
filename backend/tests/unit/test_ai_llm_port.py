@@ -35,11 +35,16 @@ class _ScriptedLLM:
         schema: type[_EchoSchema],
         messages: list[LLMMessage],
         temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> _EchoSchema:
         return cast("_EchoSchema", await self._next(schema=schema))
 
     async def complete_text(
-        self, *, messages: list[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: list[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         return cast("str", await self._next(schema=str))
 
@@ -115,7 +120,11 @@ class _BlockingLLM:
         self.max_active = 0
 
     async def complete_text(
-        self, *, messages: list[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: list[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         self.started += 1
         self.active += 1

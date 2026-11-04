@@ -104,26 +104,27 @@ class LangChainOpenAILLM:
         self._max_tokens = max_tokens
         self._default_temperature = temperature
         self._reasoning_effort = reasoning_effort
-        self._chat = self._build_chat(temperature)
-        self._chats: dict[float, ChatOpenAI] = {temperature: self._chat}
+        self._chat = self._build_chat(temperature, max_tokens)
+        self._chats: dict[tuple[float, int], ChatOpenAI] = {(temperature, max_tokens): self._chat}
 
-    def _build_chat(self, temperature: float) -> ChatOpenAI:
+    def _build_chat(self, temperature: float, max_tokens: int | None) -> ChatOpenAI:
         return ChatOpenAI(
             model=self._model,
             base_url=self._base_url,
             api_key=self._api_key,  # so na memoria do processo; nunca logado
             timeout=self._timeout_seconds,
-            max_tokens=self._max_tokens,
+            max_tokens=max_tokens or self._max_tokens,
             temperature=temperature,
             reasoning_effort=self._reasoning_effort,
         )
 
-    def _chat_for(self, temperature: float | None) -> ChatOpenAI:
-        if temperature is None or temperature == self._default_temperature:
-            return self._chat
-        if temperature not in self._chats:
-            self._chats[temperature] = self._build_chat(temperature)
-        return self._chats[temperature]
+    def _chat_for(self, temperature: float | None, max_tokens: int | None = None) -> ChatOpenAI:
+        resolved_temperature = self._default_temperature if temperature is None else temperature
+        resolved_tokens = max_tokens or self._max_tokens
+        key = (resolved_temperature, resolved_tokens)
+        if key not in self._chats:
+            self._chats[key] = self._build_chat(resolved_temperature, resolved_tokens)
+        return self._chats[key]
 
     async def complete_structured(
         self,
@@ -131,21 +132,26 @@ class LangChainOpenAILLM:
         schema: type[TModel],
         messages: Sequence[LLMMessage],
         temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> TModel:
         try:
-            result = await self._structured_json_schema(schema, messages, temperature)
+            result = await self._structured_json_schema(schema, messages, temperature, max_tokens)
         except (APITimeoutError, APIConnectionError) as exc:
             raise LLMUnavailableError("llm_transport_failed") from exc
         except APIStatusError as exc:
             if exc.status_code not in _UNSUPPORTED_FORMAT_STATUS:
                 raise LLMUnavailableError("llm_transport_failed") from exc
             # Provedor sem response_format: prompt rigido + parser tolerante.
-            return await self._prompt_structured_with_repair(schema, messages, temperature)
+            return await self._prompt_structured_with_repair(
+                schema, messages, temperature, max_tokens
+            )
         except LLMUnavailableError:
             raise
         except (ValidationError, ValueError):
             # Saida fora do schema: tenta UMA reparacao com prompt rigido.
-            return await self._prompt_structured_with_repair(schema, messages, temperature)
+            return await self._prompt_structured_with_repair(
+                schema, messages, temperature, max_tokens
+            )
         except Exception as exc:
             raise LLMUnavailableError("llm_transport_failed") from exc
         if not isinstance(result, schema):
@@ -153,10 +159,14 @@ class LangChainOpenAILLM:
         return _clean_model_strings(result)
 
     async def complete_text(
-        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         try:
-            response = await self._chat_for(temperature).ainvoke(
+            response = await self._chat_for(temperature, max_tokens).ainvoke(
                 self._as_langchain_messages(messages)
             )
         except (APITimeoutError, APIConnectionError) as exc:
@@ -180,8 +190,9 @@ class LangChainOpenAILLM:
         schema: type[TModel],
         messages: Sequence[LLMMessage],
         temperature: float | None,
+        max_tokens: int | None,
     ) -> TModel:
-        structured = self._chat_for(temperature).with_structured_output(
+        structured = self._chat_for(temperature, max_tokens).with_structured_output(
             schema, method="json_schema"
         )
         result = await structured.ainvoke(self._as_langchain_messages(messages))
@@ -196,13 +207,14 @@ class LangChainOpenAILLM:
         schema: type[TModel],
         messages: Sequence[LLMMessage],
         temperature: float | None,
+        max_tokens: int | None,
     ) -> TModel:
         instruction = _json_instruction(schema)
         prompt: list[dict[str, Any]] = [
             *self._as_langchain_messages(messages),
             {"role": "user", "content": instruction},
         ]
-        raw = await self._invoke_text(prompt, temperature)
+        raw = await self._invoke_text(prompt, temperature, max_tokens)
         try:
             return schema.model_validate(extract_json_object(raw))
         except (ValueError, ValidationError):
@@ -217,17 +229,20 @@ class LangChainOpenAILLM:
                     ),
                 },
             ]
-            repaired = await self._invoke_text(repair, temperature)
+            repaired = await self._invoke_text(repair, temperature, max_tokens)
             try:
                 return schema.model_validate(extract_json_object(repaired))
             except (ValueError, ValidationError) as exc:
                 raise LLMUnavailableError("llm_schema_mismatch") from exc
 
     async def _invoke_text(
-        self, messages: Sequence[dict[str, Any]], temperature: float | None = None
+        self,
+        messages: Sequence[dict[str, Any]],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         try:
-            response = await self._chat_for(temperature).ainvoke(
+            response = await self._chat_for(temperature, max_tokens).ainvoke(
                 self._as_langchain_messages(messages)
             )
         except (APITimeoutError, APIConnectionError, APIStatusError) as exc:

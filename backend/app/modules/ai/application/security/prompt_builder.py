@@ -23,9 +23,14 @@ from collections.abc import Callable, Sequence
 from functools import lru_cache
 
 from app.modules.ai.application.ports import LLMMessage
+from app.modules.ai.domain.language import language_name
 from app.modules.ai.domain.types import Locale
 
-_SYSTEM_PROMPT_FILE = "system_prompt.chat.v2.txt"
+_SYSTEM_PROMPT_FILES = {
+    "v2": "system_prompt.chat.v2.txt",
+    "v3": "system_prompt.chat.v3.txt",
+}
+_DEFAULT_PROMPT_VERSION = "v2"
 
 # Variacoes possiveis do delimitador (tentativa de fuga), com e sem acento:
 # remove qualquer ocorrencia de tags parecidas com <dados_nao_confiaveis ...>.
@@ -36,17 +41,18 @@ _DELIMITER_LIKE = re.compile(
 _TAG_LABEL_SAFE = re.compile(r"^[a-z0-9_.:-]{1,40}$", re.IGNORECASE)
 
 
-@lru_cache(maxsize=1)
-def load_system_prompt_template() -> str:
-    """System prompt versionado (com placeholders {locale} e {canary})."""
+@lru_cache(maxsize=4)
+def load_system_prompt_template(version: str = _DEFAULT_PROMPT_VERSION) -> str:
+    """System prompt versionado (placeholders {language_name}/{locale}/{canary})."""
+    filename = _SYSTEM_PROMPT_FILES.get(version, _SYSTEM_PROMPT_FILES[_DEFAULT_PROMPT_VERSION])
     resource = importlib.resources.files("app.modules.ai.application.security").joinpath(
-        f"data/{_SYSTEM_PROMPT_FILE}"
+        f"data/{filename}"
     )
     return resource.read_text(encoding="utf-8")
 
 
-def system_prompt_version() -> str:
-    return _SYSTEM_PROMPT_FILE
+def system_prompt_version(version: str = _DEFAULT_PROMPT_VERSION) -> str:
+    return _SYSTEM_PROMPT_FILES.get(version, _SYSTEM_PROMPT_FILES[_DEFAULT_PROMPT_VERSION])
 
 
 def strip_delimiters(content: str) -> str:
@@ -63,10 +69,11 @@ class PromptBuilder:
         canary_token: str,
         tag_factory: Callable[[], str] | None = None,
         system_template: str | None = None,
+        prompt_version: str = _DEFAULT_PROMPT_VERSION,
     ) -> None:
         self._canary_token = canary_token
         self._tag_factory = tag_factory or (lambda: secrets.token_hex(8))
-        self._system_template = system_template or load_system_prompt_template()
+        self._system_template = system_template or load_system_prompt_template(prompt_version)
 
     def build(
         self,
@@ -81,8 +88,10 @@ class PromptBuilder:
         messages: list[LLMMessage] = [
             LLMMessage(
                 role="system",
-                content=self._system_template.replace("{locale}", locale.value).replace(
-                    "{canary}", self._canary_token
+                content=(
+                    self._system_template.replace("{locale}", locale.value)
+                    .replace("{language_name}", language_name(locale))
+                    .replace("{canary}", self._canary_token)
                 ),
             )
         ]

@@ -88,6 +88,7 @@ from app.modules.ai.application.security.ports import InMemoryBlockCounter
 from app.modules.ai.infrastructure.chat_audit import SqlAlchemyChatAudit
 from app.modules.ai.infrastructure.chat_repository import SqlAlchemyConversationRepository
 from app.modules.ai.infrastructure.chat_session import RedisChatSessionStore
+from app.modules.ai.infrastructure.language_detector import LangidLanguageDetector
 from app.modules.ai.infrastructure.llm_health import LLMHealthProbe
 from app.modules.ai.infrastructure.llm_openai import build_resilient_llm
 from app.modules.cart.application.cart import CartService
@@ -282,6 +283,7 @@ from app.tasks.password_recovery import (
     CeleryPasswordRecoveryEmailDispatcher,
     CeleryPasswordRecoverySmsDispatcher,
 )
+from app.wiring.ai_currency import FxCurrencyConverter
 from app.wiring.ai_tools import build_ai_catalog_wiring
 
 _logger = get_logger(__name__)
@@ -720,8 +722,12 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
         history_turns=settings.ai_chat_history_turns,
         max_message_chars=settings.ai_chat_max_message_chars,
     )
+    # Detector carregado UMA vez por processo e somente quando a IA esta ligada.
+    language_detector = LangidLanguageDetector() if settings.ai_agents_enabled else None
+    app.state.ai_language_detector = language_detector
     app.state.ai_chat_service = ChatService(
         conversations=ai_conversations,
+        language_detector=language_detector,
         graph=ChatGraph(
             llm=ai_llm,
             tools=ai_tools,
@@ -738,6 +744,11 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
             audit=SqlAlchemyChatAudit(app.state.uow_factory),
             ai_enabled=settings.ai_agents_enabled,
             history_turns=settings.ai_chat_history_turns,
+            language_detector=language_detector,
+            currency_converter=FxCurrencyConverter(get_rates=app.state.fx_get_rates),
+            prompt_version=settings.ai_chat_prompt_version,
+            max_tokens_cap=settings.llm_max_tokens,
+            max_tokens_overrides=settings.ai_chat_max_tokens_by_language,
         ),
     )
     app.state.ai_token_budget = InMemoryDailyTokenBudget(

@@ -9,9 +9,12 @@ input_guard -> route -> retrieve -> answer -> output_guard -> persist -> end.
 - retrieve: codigo, por intent, usando as FERRAMENTAS da Fase 5b (somente
   leitura; saida ja sanitizada/quarentenada; nunca preco). CART_HELP so para
   logado e so resumo do proprio carrinho, sem precos.
-- answer: LLM curto no locale, so com o contexto; devolve product_ids que sao
-  FILTRADOS para o conjunto devolvido pelas ferramentas NESTE turno.
-- output_guard: guard da Fase 2 (URLs/PII/segredos/precos/idioma/canary).
+- answer: LLM curto no `reply_language` (idioma da mensagem), so com o
+  contexto; devolve product_ids que sao FILTRADOS para o conjunto devolvido
+  pelas ferramentas NESTE turno. `content_locale` continua separado e resolve
+  apenas dados de conteudo (nome/descricao de produto).
+- output_guard: guard da Fase 2 (URLs/PII/segredos/precos/idioma/canary)
+  comparando com `reply_language`, nunca com o locale do site.
 - persist: conversation_service (user sanitizado + assistant aprovado), audit
   sem PII e cartoes montados pelo backend.
 
@@ -25,8 +28,9 @@ from __future__ import annotations
 import re
 import secrets
 import time
+import unicodedata
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, NotRequired, Protocol, TypedDict
@@ -54,7 +58,13 @@ from app.modules.ai.application.intent_router import (
     normalize_decision,
 )
 from app.modules.ai.application.knowledge import KnowledgeBase
-from app.modules.ai.application.ports import ChatTurn, ConversationView, LLMPort
+from app.modules.ai.application.lexicon import INTENT_TERMS, flatten, task_terms
+from app.modules.ai.application.ports import (
+    ChatTurn,
+    ConversationView,
+    CurrencyConversionPort,
+    LLMPort,
+)
 from app.modules.ai.application.product_cards import ProductCard, ProductCardService
 from app.modules.ai.application.security.budget import estimate_tokens
 from app.modules.ai.application.security.input_gate import InputGate, InputOutcome
@@ -74,6 +84,7 @@ from app.modules.ai.application.tools import (
 )
 from app.modules.ai.domain.degradation import (
     clarify_response,
+    currency_confirmation_response,
     demo_mode_response,
     greeting_response,
     grounding_fallback_response,
@@ -85,11 +96,18 @@ from app.modules.ai.domain.degradation import (
     price_unverified_response,
     tool_error_response,
 )
+from app.modules.ai.domain.language import (
+    LanguageDetectorPort,
+    guard_language_diverges,
+    language_name,
+    looks_truncated,
+    max_tokens_for,
+)
 from app.modules.ai.domain.security.catalog_sanitizer import sanitize_tool_text
 from app.modules.ai.domain.security.grounding import prices_are_grounded
 from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.security.output_guard import guard_model_output
-from app.modules.ai.domain.types import resolve_locale
+from app.modules.ai.domain.types import Locale, resolve_locale
 
 ANSWER_MAX_CHARS = 600
 CHAT_HISTORY_MESSAGES = 6
@@ -125,23 +143,7 @@ class AnswerDecision(BaseModel):
     product_ids: list[str] = Field(default_factory=list, max_length=6)
 
 
-_SENSITIVE_TERMS = (
-    "outra empresa",
-    "otra empresa",
-    "other company",
-    "desconto",
-    "discount",
-    "descuento",
-    "alterar o preco",
-    "change the price",
-    "cambiar el precio",
-    "preco especial",
-    "precio especial",
-    "preco negociado",
-    "precio negociado",
-    "contrato",
-    "cnpj",
-)
+_SENSITIVE_TERMS = flatten(INTENT_TERMS["sensitive"])
 
 
 class CartSummaryPort(Protocol):
@@ -174,7 +176,8 @@ class ChatState(TypedDict):
     conversation: ConversationView
     company_id: uuid.UUID | None
     user_id: uuid.UUID | None
-    locale: str
+    reply_language: str
+    content_locale: str
     message: str
     history: list[ChatTurn]
     intent: NotRequired[ChatIntent]
@@ -194,6 +197,13 @@ class ChatState(TypedDict):
     quarantined: NotRequired[list[tuple[str, str]]]
     outcome: NotRequired[ChatRunResult]
     blocked_canary: NotRequired[str]
+    currency_confirmation: NotRequired[bool]
+    detected_language: NotRequired[str]
+    detected_confidence: NotRequired[float]
+    regenerated: NotRequired[bool]
+    started_at: NotRequired[float]
+    retrieve_ms: NotRequired[float]
+    answer_ms: NotRequired[float]
     _auth: NotRequired[Any]
     session: NotRequired[ChatSessionState | None]
 
@@ -214,6 +224,11 @@ class ChatGraph:
         ai_enabled: bool,
         history_turns: int = CHAT_HISTORY_MESSAGES,
         tag_factory: Callable[[], str] | None = None,
+        language_detector: LanguageDetectorPort | None = None,
+        currency_converter: CurrencyConversionPort | None = None,
+        prompt_version: str = "v2",
+        max_tokens_cap: int = 512,
+        max_tokens_overrides: Mapping[str, int] | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
@@ -227,7 +242,12 @@ class ChatGraph:
         self._ai_enabled = ai_enabled
         self._history_turns = history_turns
         self._tag_factory = tag_factory or (lambda: secrets.token_hex(8))
-        self._system_template = load_system_prompt_template()
+        self._language_detector = language_detector
+        self._currency_converter = currency_converter
+        self._prompt_version = prompt_version
+        self._max_tokens_cap = max_tokens_cap
+        self._max_tokens_overrides = dict(max_tokens_overrides or {})
+        self._system_template = load_system_prompt_template(prompt_version)
         self._graph = self._build()
 
     def _build(self) -> Any:
@@ -253,10 +273,11 @@ class ChatGraph:
         self,
         *,
         conversation: ConversationView,
-        locale: str,
+        reply_language: str,
         message: str,
         history: Sequence[ChatTurn],
         auth: Any,
+        content_locale: str | None = None,
     ) -> ChatRunResult:
         session = (
             await self._session_store.load(conversation.id)
@@ -269,9 +290,11 @@ class ChatGraph:
                 "session": session,
                 "company_id": conversation.company_id,
                 "user_id": conversation.user_id,
-                "locale": locale,
+                "reply_language": reply_language,
+                "content_locale": content_locale or reply_language,
                 "message": message,
                 "history": list(history),
+                "started_at": time.perf_counter(),
                 "_auth": auth,
             }
         )
@@ -284,7 +307,7 @@ class ChatGraph:
     async def _input_guard(self, state: ChatState) -> dict[str, Any]:
         decision = self._input_gate.check(
             conversation_id=state["conversation"].id,
-            locale=resolve_locale(state["locale"]),
+            locale=resolve_locale(state["reply_language"]),
             raw_message=state["message"],
             recent_user_messages=[turn.content for turn in state["history"] if turn.role == "user"],
         )
@@ -294,7 +317,7 @@ class ChatGraph:
                 "blocked": True,
                 "verdict": "BLOCK",
                 "reason_code": decision.reason_code or "input_blocked",
-                "reply": neutral_response(resolve_locale(state["locale"])),
+                "reply": neutral_response(resolve_locale(state["reply_language"])),
                 "product_ids": [],
                 "allowed_ids": set(),
                 "context_text": "",
@@ -310,13 +333,13 @@ class ChatGraph:
             return {
                 "intent": ChatIntent.OFF_TOPIC,
                 "intent_decision": IntentDecision(
-                    intent=IntentName.OUT_OF_SCOPE, language=state["locale"]
+                    intent=IntentName.OUT_OF_SCOPE, language=state["reply_language"]
                 ),
                 "reason_code": "sensitive_request",
             }
         session = state.get("session")
         follow_up = (
-            follow_up_decision(session, state["message"], locale=state["locale"])
+            follow_up_decision(session, state["message"], reply_language=state["reply_language"])
             if session is not None
             else None
         )
@@ -328,7 +351,7 @@ class ChatGraph:
             }
         # 1) atalhos de codigo (preco/produto/frete/etc.) SEM LLM; 2) LLM
         # curto para o que restar; 3) product_search com o texto original.
-        decision = deterministic_decision(state["message"], locale=state["locale"])
+        decision = deterministic_decision(state["message"], reply_language=state["reply_language"])
         reason_code = "keyword_route" if decision is not None else "intent_llm"
         needs_refs = (
             decision is not None
@@ -356,7 +379,7 @@ class ChatGraph:
                         }
                     )
         if decision is None:
-            decision = fallback_decision(state["message"], locale=state["locale"])
+            decision = fallback_decision(state["message"], reply_language=state["reply_language"])
             reason_code = "intent_fallback"
         return {
             "intent": _map_intent(decision.intent),
@@ -370,7 +393,7 @@ class ChatGraph:
         messages = build_router_messages(
             message=state["message"],
             history=state["history"],
-            locale=state["locale"],
+            reply_language=state["reply_language"],
             tag=self._tag(),
         )
         started = time.perf_counter()
@@ -394,14 +417,19 @@ class ChatGraph:
             outcome="ok",
             estimated_tokens=estimate_tokens(len(state["message"])),
         )
-        return normalize_decision(decision, message=state["message"], locale=state["locale"])
+        return normalize_decision(
+            decision, message=state["message"], reply_language=state["reply_language"]
+        )
 
     async def _retrieve(self, state: ChatState) -> dict[str, Any]:
         """Executa ferramentas; qualquer falha vira mensagem amigavel (sem 500)."""
+        started = time.perf_counter()
         try:
             result = await self._retrieve_inner(state)
+            state["retrieve_ms"] = round((time.perf_counter() - started) * 1000, 1)
             return _with_grounded(result)
         except Exception:
+            state["retrieve_ms"] = round((time.perf_counter() - started) * 1000, 1)
             _logger.exception(
                 "chat_tool_failed",
                 intent=state.get("intent", ""),
@@ -423,8 +451,20 @@ class ChatGraph:
         if special is not None:
             return special
         decision = state.get("intent_decision") or fallback_decision(
-            state["message"], locale=state["locale"]
+            state["message"], reply_language=state["reply_language"]
         )
+        converted_decision = await self._convert_currency(decision)
+        if converted_decision is None:
+            return {
+                "currency_confirmation": True,
+                "tool_output": None,
+                "context_text": "",
+                "allowed_ids": set(),
+                "quarantined": [],
+                "reason_code": "currency_confirmation",
+            }
+        decision = converted_decision
+        state["intent_decision"] = decision
         query = _query_for(decision, state["message"])
         if intent == ChatIntent.ORDER_STATUS:
             return await self._order_retrieve(state, decision, auth)
@@ -436,12 +476,53 @@ class ChatGraph:
             return await self._catalog_retrieve(state)
         return await self._product_dispatch(decision, query=query, state=state, auth=auth)
 
+    async def _convert_currency(self, decision: IntentDecision) -> IntentDecision | None:
+        """Converte filtros em moeda de exibicao para BRL; None = confirmar.
+
+        Moeda fora da lista suportada, cambio indisponivel ou valor misto NUNCA
+        viram filtro em BRL: o grafo pede UMA confirmacao objetiva.
+        """
+        if decision.price_currency_confirmation:
+            return None
+        has_price = decision.price_min is not None or decision.price_max is not None
+        if not has_price or decision.price_currency == "BRL":
+            return decision
+        converter = self._currency_converter
+        if converter is None or decision.price_currency not in converter.supported:
+            return None
+        price_min = decision.price_min
+        price_max = decision.price_max
+        if price_min is not None:
+            converted_min = await converter.to_brl(
+                float(price_min), currency=decision.price_currency
+            )
+            if converted_min is None:
+                return None
+            price_min = round(converted_min, 2)
+        if price_max is not None:
+            converted_max = await converter.to_brl(
+                float(price_max), currency=decision.price_currency
+            )
+            if converted_max is None:
+                return None
+            price_max = round(converted_max, 2)
+        return decision.model_copy(
+            update={
+                "price_min": price_min,
+                "price_max": price_max,
+                "price_currency": "BRL",
+                "price_currency_confirmation": False,
+            }
+        )
+
     async def _search_retrieve(
         self, decision: IntentDecision, *, query: str, state: ChatState, auth: Any
     ) -> dict[str, Any]:
         limit = _requested_limit(decision)
         args: dict[str, Any] = {
             "query": query[:200],
+            "query_pt": decision.query_pt[:200],
+            "query_en": decision.query_en[:200],
             "limit": limit,
             "price_sort": decision.price_sort.value if decision.price_sort else None,
             "price_min": float(decision.price_min) if decision.price_min is not None else None,
@@ -454,7 +535,9 @@ class ChatGraph:
             search_args = SearchProductsArgs.model_validate(args)
         except Exception:  # noqa: BLE001 - filtro invalido do LLM
             search_args = SearchProductsArgs.model_validate({"query": query[:200], "limit": 5})
-        output = await self._tools.search_products(search_args, locale=state["locale"], auth=auth)
+        output = await self._tools.search_products(
+            search_args, locale=state["content_locale"], auth=auth
+        )
         return {
             "tool_output": output,
             "context_text": output.context_text[:MAX_CONTEXT_CHARS],
@@ -463,7 +546,9 @@ class ChatGraph:
         }
 
     def _shipping_retrieve(self, state: ChatState) -> dict[str, Any]:
-        output = self._tools.get_shipping_policy(ShippingPolicyArgs(), locale=state["locale"])
+        output = self._tools.get_shipping_policy(
+            ShippingPolicyArgs(), locale=state["reply_language"]
+        )
         return {
             "tool_output": output,
             "context_text": output.context_text[:MAX_CONTEXT_CHARS],
@@ -472,7 +557,9 @@ class ChatGraph:
         }
 
     async def _catalog_retrieve(self, state: ChatState) -> dict[str, Any]:
-        output = await self._tools.list_categories(ListCategoriesArgs(), locale=state["locale"])
+        output = await self._tools.list_categories(
+            ListCategoriesArgs(), locale=state["content_locale"]
+        )
         return {
             "tool_output": output,
             "context_text": output.context_text[:MAX_CONTEXT_CHARS],
@@ -558,7 +645,12 @@ class ChatGraph:
     def _knowledge_retrieve(self, state: ChatState) -> dict[str, Any]:
         if self._knowledge is None:
             return _base_state(ChatIntent.INFO, "knowledge_unavailable")
-        sections = self._knowledge.search(state["message"], limit=2)
+        decision = state.get("intent_decision")
+        sections = self._knowledge.search(
+            state["message"],
+            limit=2,
+            task=decision.task if decision is not None else None,
+        )
         if not sections:
             return _base_state(ChatIntent.INFO, "knowledge_not_found")
         text = "\n\n".join(f"{section.title}:\n{section.text}" for section in sections)
@@ -574,7 +666,9 @@ class ChatGraph:
         self, decision: IntentDecision, *, query: str, state: ChatState
     ) -> dict[str, Any]:
         sections = (
-            self._knowledge.search(decision.task or query, limit=2)
+            self._knowledge.search(
+                _consultation_query(decision, query), limit=2, task=decision.task
+            )
             if self._knowledge is not None
             else ()
         )
@@ -625,6 +719,8 @@ class ChatGraph:
         limit = limit or _requested_limit(decision)
         args: dict[str, Any] = {
             "query": query[:200],
+            "query_pt": decision.query_pt[:200],
+            "query_en": decision.query_en[:200],
             "limit": limit,
             "category": category,
             "price_sort": decision.price_sort.value if decision.price_sort else None,
@@ -639,7 +735,7 @@ class ChatGraph:
         except Exception:  # noqa: BLE001 - categoria/filtro invalido do LLM
             search_args = SearchProductsArgs.model_validate({"query": query[:200], "limit": 5})
         return await self._tools.search_products(
-            search_args, locale=state["locale"], auth=state.get("_auth")
+            search_args, locale=state["content_locale"], auth=state.get("_auth")
         )
 
     async def _compare_retrieve(
@@ -648,8 +744,15 @@ class ChatGraph:
         refs = list(decision.product_refs)
         if len(refs) < 2:
             nearest = await self._tools.search_products(
-                SearchProductsArgs.model_validate({"query": query[:200], "limit": 2}),
-                locale=state["locale"],
+                SearchProductsArgs.model_validate(
+                    {
+                        "query": query[:200],
+                        "query_pt": decision.query_pt,
+                        "query_en": decision.query_en,
+                        "limit": 2,
+                    }
+                ),
+                locale=state["content_locale"],
                 auth=state.get("_auth"),
             )
             refs = list(nearest.product_ids)
@@ -657,7 +760,7 @@ class ChatGraph:
             return _clarify_state("compare_needs_two")
         output = await self._tools.compare_products(
             CompareProductsArgs(product_refs=refs[:4]),
-            locale=state["locale"],
+            locale=state["content_locale"],
             auth=state.get("_auth"),
         )
         if output.reason_code == "compare_needs_two":
@@ -679,8 +782,15 @@ class ChatGraph:
         ref = decision.product_refs[0] if decision.product_refs else None
         if ref is None:
             nearest = await self._tools.search_products(
-                SearchProductsArgs.model_validate({"query": query[:200], "limit": 1}),
-                locale=state["locale"],
+                SearchProductsArgs.model_validate(
+                    {
+                        "query": query[:200],
+                        "query_pt": decision.query_pt,
+                        "query_en": decision.query_en,
+                        "limit": 1,
+                    }
+                ),
+                locale=state["content_locale"],
                 auth=state.get("_auth"),
             )
             ref = nearest.product_ids[0] if nearest.product_ids else None
@@ -688,7 +798,7 @@ class ChatGraph:
             return _clarify_state("product_not_provided")
         output = await self._tools.get_product(
             GetProductArgs(product_ref=ref),
-            locale=state["locale"],
+            locale=state["content_locale"],
             auth=state.get("_auth"),
         )
         if output.reason_code == "product_not_found":
@@ -730,37 +840,63 @@ class ChatGraph:
                 "reply": price_question_response(locale, name=name, visitor=False),
                 "product_ids": ordered_ids[:5],
             }
-        if decision.price_sort == PriceSort.ASC:
+        if decision.price_sort in (PriceSort.ASC, PriceSort.DESC):
             output = state.get("tool_output")
             capped = bool(output.price_scan_capped) if output is not None else False
             return {
-                "reply": price_sort_response(locale, name=name, visitor=False, capped=capped),
+                "reply": price_sort_response(
+                    locale,
+                    name=name,
+                    visitor=False,
+                    capped=capped,
+                    direction="desc" if decision.price_sort == PriceSort.DESC else "asc",
+                ),
                 "product_ids": ordered_ids[:5],
             }
         return None
 
-    async def _answer(self, state: ChatState) -> dict[str, Any]:
+    def _currency_confirmation_reply(
+        self, state: ChatState, locale: Locale
+    ) -> dict[str, Any] | None:
+        if not state.get("currency_confirmation"):
+            return None
+        decision = state.get("intent_decision")
+        return {
+            "reply": currency_confirmation_response(
+                locale,
+                minimum=decision.price_min if decision is not None else None,
+                maximum=decision.price_max if decision is not None else None,
+                currency=decision.price_currency if decision is not None else "BRL",
+            ),
+            "product_ids": [],
+        }
+
+    async def _answer(self, state: ChatState) -> dict[str, Any]:  # noqa: C901 - fluxo de resposta
         if state.get("blocked"):
             return {}
-        locale = resolve_locale(state["locale"])
+        locale = resolve_locale(state["reply_language"])
+        confirmation = self._currency_confirmation_reply(state, locale)
+        if confirmation is not None:
+            return confirmation
         direct = self._direct_answer(state, locale)
         if direct is not None:
             return direct
         allowed = set(state.get("allowed_ids", set()))
+        allowed_prices = frozenset(state.get("allowed_prices", frozenset()))
         ordered_ids = _ordered_ids(state)
         decision = state.get("intent_decision")
-        fallback = demo_mode_response(locale)
+        fallback = self._deterministic_answer(state, locale)
+        llm_fallback = {
+            "reply": demo_mode_response(locale),
+            "product_ids": (
+                ordered_ids[:5] if state["intent"] == ChatIntent.PRODUCT_SEARCH else []
+            ),
+            "degraded": True,
+        }
         if not self._ai_enabled or self._llm is None:
-            # Degradacao: PRODUCT_SEARCH ainda devolve os cartoes da busca.
-            return {
-                "reply": fallback,
-                "product_ids": (
-                    ordered_ids[:5] if state["intent"] == ChatIntent.PRODUCT_SEARCH else []
-                ),
-                "degraded": True,
-            }
+            return llm_fallback
         canary = secrets.token_hex(8)
-        builder = PromptBuilder(canary_token=canary)
+        builder = PromptBuilder(canary_token=canary, prompt_version=self._prompt_version)
         # Contexto curto: ultimas N mensagens (o servico tambem trunca) e
         # trechos de catalogo limitados. O modelo local tem janela pequena.
         history = state["history"][-self._history_turns :]
@@ -777,10 +913,13 @@ class ChatGraph:
             "role": "system",
             "content": f"{messages[0]['content']}\n\n{extra_system}",
         }
+        limit = self._token_limit(locale)
         started = time.perf_counter()
         try:
-            answer = await self._llm.complete_structured(schema=AnswerDecision, messages=messages)
-        except Exception:  # noqa: BLE001 - degrada com cartoes deterministicos
+            answer = await self._llm.complete_structured(
+                schema=AnswerDecision, messages=messages, max_tokens=limit
+            )
+        except Exception:  # noqa: BLE001 - tenta UMA regeneracao curta
             metrics.observe_llm_call(
                 agent="chat",
                 duration=time.perf_counter() - started,
@@ -789,13 +928,11 @@ class ChatGraph:
                     len(state["message"]) + len(state.get("context_text", ""))
                 ),
             )
-            return {
-                "reply": fallback,
-                "product_ids": ordered_ids[:5]
-                if state["intent"] == ChatIntent.PRODUCT_SEARCH
-                else [],
-                "degraded": True,
-            }
+            regenerated = await self._regenerate_answer(messages, locale, limit, reason="truncated")
+            if regenerated is None:
+                return llm_fallback
+            answer = regenerated
+        state["answer_ms"] = round((time.perf_counter() - started) * 1000, 1)
         metrics.observe_llm_call(
             agent="chat",
             duration=time.perf_counter() - started,
@@ -808,7 +945,8 @@ class ChatGraph:
             answer,
             messages,
             allowed=allowed,
-            allowed_prices=frozenset(state.get("allowed_prices", frozenset())),
+            allowed_prices=allowed_prices,
+            knowledge_text=state.get("knowledge_text", ""),
             state=state,
             ordered_ids=ordered_ids,
             canary=canary,
@@ -817,6 +955,44 @@ class ChatGraph:
         if isinstance(repaired, dict):
             return repaired
         answer = repaired
+        if looks_truncated(answer.reply, locale):
+            state["regenerated"] = True
+            regenerated = await self._regenerate_answer(messages, locale, limit, reason="truncated")
+            if regenerated is None or looks_truncated(regenerated.reply, locale):
+                return fallback
+            answer = regenerated
+            if (
+                _grounded_problem(
+                    answer,
+                    allowed,
+                    allowed_prices,
+                    knowledge_text=state.get("knowledge_text", ""),
+                )
+                is not None
+            ):
+                return fallback
+        detected = self._detect_reply(answer.reply)
+        if detected is not None:
+            state["detected_language"] = (
+                detected.language.value if detected.language is not None else ""
+            )
+            state["detected_confidence"] = detected.confidence
+        if self._reply_diverges(answer.reply, locale):
+            state["regenerated"] = True
+            regenerated = await self._regenerate_answer(messages, locale, limit, reason="language")
+            if regenerated is None or self._reply_diverges(regenerated.reply, locale):
+                return fallback
+            answer = regenerated
+            if (
+                _grounded_problem(
+                    answer,
+                    allowed,
+                    allowed_prices,
+                    knowledge_text=state.get("knowledge_text", ""),
+                )
+                is not None
+            ):
+                return fallback
         valid_ids = [pid for pid in answer.product_ids if pid in allowed]
         # Os cartoes sao SEMPRE montados a partir dos produtos retornados
         # nesta rodada, independentemente do texto do LLM.
@@ -830,16 +1006,69 @@ class ChatGraph:
             else answer.reply
         )
         if not reply:
-            reply = fallback
-            return {
-                "reply": reply,
-                "product_ids": (
-                    ordered_ids[:5] if state["intent"] == ChatIntent.PRODUCT_SEARCH else []
-                ),
-                "degraded": True,
-                "blocked_canary": canary,
-            }
+            return fallback
         return {"reply": reply, "product_ids": valid_ids, "blocked_canary": canary}
+
+    def _token_limit(self, locale: Locale) -> int:
+        override = self._max_tokens_overrides.get(locale.value)
+        limit = override or max_tokens_for(locale, cap=self._max_tokens_cap)
+        return max(16, min(int(limit), self._max_tokens_cap))
+
+    def _detect_reply(self, text: str) -> Any | None:
+        if self._language_detector is None:
+            return None
+        return self._language_detector.detect(text)
+
+    def _reply_diverges(self, text: str, locale: Locale) -> bool:
+        if self._language_detector is None:
+            return False
+        return guard_language_diverges(text, expected=locale, detector=self._language_detector)
+
+    def _deterministic_answer(self, state: ChatState, locale: Locale) -> dict[str, Any]:
+        ordered_ids = _ordered_ids(state)
+        if state["intent"] == ChatIntent.PRODUCT_SEARCH and ordered_ids:
+            return {
+                "reply": grounding_fallback_response(locale),
+                "product_ids": ordered_ids[:5],
+                "degraded": True,
+            }
+        return {
+            "reply": demo_mode_response(locale),
+            "product_ids": [],
+            "degraded": True,
+        }
+
+    async def _regenerate_answer(
+        self,
+        messages: Sequence[Any],
+        locale: Locale,
+        limit: int,
+        *,
+        reason: str,
+    ) -> AnswerDecision | None:
+        if self._llm is None:
+            return None
+        if reason == "language":
+            instruction = (
+                f"Your previous answer was NOT in {language_name(locale)}. "
+                f"Reply again ONLY in {language_name(locale)}, 1 to 2 short "
+                "sentences, using the same CONTEXT and the JSON schema."
+            )
+        else:
+            instruction = (
+                "Your previous answer was cut off or invalid. Reply again in "
+                "at most 2 short sentences, finish every sentence, use the same "
+                "CONTEXT and the JSON schema."
+            )
+        try:
+            return await self._llm.complete_structured(
+                schema=AnswerDecision,
+                messages=[*messages, {"role": "user", "content": instruction}],
+                temperature=0.1,
+                max_tokens=limit,
+            )
+        except Exception:  # noqa: BLE001 - fallback deterministico
+            return None
 
     async def _maybe_repair(
         self,
@@ -848,16 +1077,21 @@ class ChatGraph:
         *,
         allowed: set[str],
         allowed_prices: frozenset[Any],
+        knowledge_text: str,
         state: ChatState,
         ordered_ids: list[str],
         canary: str,
         locale: Any,
     ) -> AnswerDecision | dict[str, Any]:
-        problem = _grounded_problem(answer, allowed, allowed_prices)
+        problem = _grounded_problem(answer, allowed, allowed_prices, knowledge_text=knowledge_text)
         if problem is None:
             return answer
         repaired = await self._repair_answer(messages, problem=problem, locale=locale)
-        if repaired is not None and _grounded_problem(repaired, allowed, allowed_prices) is None:
+        if (
+            repaired is not None
+            and _grounded_problem(repaired, allowed, allowed_prices, knowledge_text=knowledge_text)
+            is None
+        ):
             return repaired
         _logger.warning(
             "chat_grounding_fallback",
@@ -884,6 +1118,11 @@ class ChatGraph:
             "CORRECAO OBRIGATORIA: a resposta anterior citou "
             + ("ids que nao existem no CONTEXTO. " if problem == "ids" else "")
             + ("valores que nao existem no CONTEXTO. " if problem == "prices" else "")
+            + (
+                "CA/NR que nao existem no trecho recuperado. "
+                if problem == "knowledge_numbers"
+                else ""
+            )
             + "Responda de novo SOMENTE com o JSON do schema, usando apenas ids do "
             "CONTEXTO e, se houver preco no CONTEXTO, somente esses valores. "
             "Se o preco nao estiver no CONTEXTO, diga que e sob consulta. "
@@ -902,12 +1141,15 @@ class ChatGraph:
         if state.get("blocked"):
             return {}
         canary = state.get("blocked_canary") or ""
-        system_prompt = self._system_template.replace("{locale}", state["locale"]).replace(
-            "{canary}", canary or "-"
+        locale = resolve_locale(state["reply_language"])
+        system_prompt = (
+            self._system_template.replace("{locale}", state["reply_language"])
+            .replace("{language_name}", language_name(locale))
+            .replace("{canary}", canary or "-")
         )
         guarded = guard_model_output(
             state.get("reply", ""),
-            locale=resolve_locale(state["locale"]),
+            locale=locale,
             max_chars=ANSWER_MAX_CHARS,
             canary=canary or None,
             system_prompt=system_prompt,
@@ -915,7 +1157,9 @@ class ChatGraph:
             # existe no CONTEXTO quando o usuario esta logado; a resposta e
             # validada contra os precos do banco abaixo.
             allow_money=state["intent"] == ChatIntent.SHIPPING_POLICY
-            or bool(state.get("grounded_context")),
+            or bool(state.get("grounded_context"))
+            or bool(state.get("currency_confirmation")),
+            language_detector=self._language_detector,
         )
         if (
             not guarded.blocked
@@ -926,35 +1170,43 @@ class ChatGraph:
         ):
             metrics.increment_ai_guard_block(agent="chat")
             return {
-                "reply": price_unverified_response(resolve_locale(state["locale"])),
+                "reply": price_unverified_response(resolve_locale(state["reply_language"])),
                 "product_ids": state.get("product_ids") or _ordered_ids(state)[:5],
                 "verdict": "BLOCK",
                 "reason_code": "price_not_grounded",
             }
         if guarded.blocked:
             metrics.increment_ai_guard_block(agent="chat")
+            if guarded.reason_code == "idioma_divergente":
+                fallback = self._deterministic_answer(state, locale)
+                fallback["verdict"] = "BLOCK"
+                fallback["reason_code"] = "idioma_divergente"
+                return fallback
             return {
-                "reply": neutral_response(resolve_locale(state["locale"])),
+                "reply": neutral_response(locale),
                 "product_ids": [],
                 "verdict": "BLOCK",
                 "reason_code": guarded.reason_code or "output_blocked",
             }
-        return {"reply": guarded.text or neutral_response(resolve_locale(state["locale"]))}
+        return {"reply": guarded.text or neutral_response(locale)}
 
     async def _persist(self, state: ChatState) -> dict[str, Any]:
         conversation = state["conversation"]
+        language = state["reply_language"]
         if not state.get("blocked"):
             await self._conversations.append_user_message(
-                conversation, sanitized_text=state["message"]
+                conversation, sanitized_text=state["message"], language=language
             )
         reply = state.get("reply", "")
-        await self._conversations.append_assistant_message(conversation, approved_text=reply)
+        await self._conversations.append_assistant_message(
+            conversation, approved_text=reply, language=language
+        )
         cards: list[ProductCard] = []
         if not state.get("blocked"):
             cards = await self._cards.build(
                 requested_ids=state.get("product_ids", []),
                 allowed_product_ids=set(state.get("allowed_ids", set())),
-                locale=state["locale"],
+                locale=state["content_locale"],
                 auth=state.get("_auth"),
             )
         for product_id, reason in state.get("quarantined", []):
@@ -973,7 +1225,11 @@ class ChatGraph:
             try:
                 await self._session_store.save(
                     conversation.id,
-                    session_from_decision(decision, product_ids=product_ids),
+                    session_from_decision(
+                        decision,
+                        product_ids=product_ids,
+                        previous=state.get("session"),
+                    ),
                 )
             except Exception:  # noqa: BLE001 - sessao nunca derruba a resposta
                 _logger.warning("chat_session_save_failed")
@@ -995,6 +1251,16 @@ class ChatGraph:
             task=decision.task if decision is not None else None,
             attributes=decision.attributes if decision is not None else {},
             results=len(cards),
+            language=language,
+            language_detected=state.get("detected_language"),
+            detected_confidence=round(float(state.get("detected_confidence", 0.0)), 3),
+            regenerated=bool(state.get("regenerated", False)),
+            latency_ms=round(
+                (time.perf_counter() - state.get("started_at", time.perf_counter())) * 1000,
+                1,
+            ),
+            retrieve_ms=state.get("retrieve_ms"),
+            answer_ms=state.get("answer_ms"),
             fallback=bool(state.get("degraded", False))
             or state.get("verdict") in ("BLOCK", "FALLBACK"),
             capped=bool(output.price_scan_capped) if output is not None else False,
@@ -1130,18 +1396,24 @@ def _first_product_name(context_text: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+def _consultation_query(decision: IntentDecision, query: str) -> str:
+    if decision.task is not None:
+        return " ".join(task_terms(decision.task))
+    return decision.query or query
+
+
 def _consultation_attempts(
     sections: Sequence[Any], decision: IntentDecision, query: str
 ) -> list[tuple[str, str | None]]:
     if not sections:
-        return [(decision.query or decision.task or query, decision.category)]
+        return [(_consultation_query(decision, query), decision.category)]
     section = sections[0]
     pairs = list(zip(section.search_terms, section.categories, strict=False))
     product = first_product_term(decision.query or query)
     if product is not None:
         pairs.sort(key=lambda pair: pair[0] != product)
     if not pairs:
-        return [(decision.query or decision.task or query, decision.category)]
+        return [(_consultation_query(decision, query), decision.category)]
     return pairs[:4]
 
 
@@ -1183,7 +1455,11 @@ def _answer_context(state: ChatState) -> str:
 
 
 def _grounded_problem(
-    answer: AnswerDecision, allowed: set[str], allowed_prices: frozenset[Any]
+    answer: AnswerDecision,
+    allowed: set[str],
+    allowed_prices: frozenset[Any],
+    *,
+    knowledge_text: str = "",
 ) -> str | None:
     # Sem produtos nesta rodada (pedido, KB, categoria), nao ha id de produto
     # a validar: pedido_id e outros UUIDs sao dados legitimos do contexto.
@@ -1195,14 +1471,31 @@ def _grounded_problem(
             return "ids"
     if not prices_are_grounded(answer.reply, allowed_prices):
         return "prices"
+    if not knowledge_numbers_grounded(answer.reply, knowledge_text):
+        return "knowledge_numbers"
     return None
+
+
+_CA_VALUE = re.compile(r"(?i)\bCA\s*[:#]?\s*(\d{3,})")
+_NR_VALUE = re.compile(r"(?i)\bNR\s*[:#]?\s*(\d{1,4}(?:[.,]\d+)?)")
+
+
+def knowledge_numbers_grounded(reply: str, knowledge_text: str) -> bool:
+    """CA/NR citados na resposta precisam existir no trecho recuperado."""
+    values = _CA_VALUE.findall(reply) + _NR_VALUE.findall(reply)
+    if not values:
+        return True
+    if not knowledge_text:
+        return False
+    normalized = unicodedata.normalize("NFKC", knowledge_text)
+    return all(value in normalized for value in values)
 
 
 def _answer_instruction(decision: IntentDecision | None) -> str:
     """Instrucao extra do redator (preco/ordenacao/visitante) em um so lugar."""
     instruction = (
-        "Responda so com base no CONTEXTO em JSON, no idioma do sistema, em 1 a 3 "
-        "frases. NUNCA invente produtos, precos, estoque, prazos ou links; cite "
+        "Responda so com base no CONTEXTO em JSON, no idioma da mensagem do "
+        "usuario, em 1 a 3 frases. NUNCA invente produtos, precos, estoque, prazos ou links; cite "
         "apenas ids do CONTEXTO."
     )
     if decision is not None and (

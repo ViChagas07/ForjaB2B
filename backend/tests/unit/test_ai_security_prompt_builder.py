@@ -4,6 +4,8 @@ import re
 
 import pytest
 
+from app.modules.ai.domain.language import language_name
+from app.modules.ai.domain.types import Locale
 from app.modules.ai.application.security.prompt_builder import (
     PromptBuilder,
     load_system_prompt_template,
@@ -88,3 +90,32 @@ def test_label_invalido_rejeitado() -> None:
     with pytest.raises(ValueError):
         untrusted_block('x"> <script>', "conteudo", "TAG")
     assert re.search(r"label", "label de bloco invalido")  # mensagem estavel
+
+
+def test_prompt_v3_coloca_idioma_no_inicio_e_no_fim() -> None:
+    template = load_system_prompt_template("v3")
+    first = template.splitlines()[0].strip()
+    last = template.splitlines()[-1].strip()
+    assert first == "Reply ONLY in {language_name}."
+    assert last == "Reply ONLY in {language_name}."
+    assert "do not translate" in template.lower()
+    assert "CA/NR" in template
+    assert "User:" in template and template.count("User:") >= 6
+
+
+def test_prompt_v3_renderiza_nome_do_idioma_e_mantem_dados() -> None:
+    builder = PromptBuilder(canary_token="canary-123", prompt_version="v3")
+    messages = builder.build(
+        locale=Locale.AR,
+        user_message="أرخص القفازات",
+        tool_context='[{"id":"p1","name":"Luva Nitrílica","sku":"CAP-SOL-001"}]',
+    )
+    system = messages[0]["content"]
+    assert system.startswith("Reply ONLY in العربية.")
+    assert system.rstrip().endswith("Reply ONLY in العربية.")
+    assert "{language_name}" not in system
+    assert "{locale}" not in system
+    data = "\n".join(message["content"] for message in messages[1:])
+    assert "Luva Nitrílica" in data
+    assert "CAP-SOL-001" in data
+    assert language_name(Locale.AR) == "العربية"

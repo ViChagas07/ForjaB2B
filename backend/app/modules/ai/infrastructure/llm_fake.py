@@ -36,6 +36,7 @@ class FakeLLM:
         schema: type[TModel],
         messages: list[LLMMessage],
         temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> TModel:
         self.structured_calls.append((schema, list(messages)))
         item = self._next(self._structured, schema=schema)
@@ -44,7 +45,11 @@ class FakeLLM:
         return item
 
     async def complete_text(
-        self, *, messages: list[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: list[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         self.text_calls.append(list(messages))
         item = self._next(self._texts, schema=str)
