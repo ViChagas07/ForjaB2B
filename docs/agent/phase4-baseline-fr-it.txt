@@ -1,0 +1,23 @@
+CONVERSATION 01ff884e-688a-443c-8901-cff45377c7d1
+fr     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 2234.0 ms reply="L'option la plus �conomique que j'ai trouv�e est Luva Nitr�lica Descar"
+fr     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=12117.7 ms reply="Je n'ai pas d'informations sur le produit le plus cher dans le catalog"
+it     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  240.3 ms reply="L'opzione pi� economica che ho trovato � Luva Nitr�lica Descart�vel. V"
+it     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=10627.7 ms reply='Non ho informazioni sul prodotto pi� caro nel catalogo attuale. Vuoi f'
+python.exe : Traceback (most recent call last):
+No linha:4 caractere:1
++ & ".\.venv\Scripts\python.exe" -u scripts\ai_language_smoke.py --base ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "D:\ForjaB2B\backend\scripts\ai_language_smoke.py", line 274, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "D:\ForjaB2B\backend\scripts\ai_language_smoke.py", line 220, in main
+    _report(report)
+  File "D:\ForjaB2B\backend\scripts\ai_language_smoke.py", line 116, in _report
+    print(
+  File "C:\Users\Alisson Davi\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 98-102: character maps to <undefined>

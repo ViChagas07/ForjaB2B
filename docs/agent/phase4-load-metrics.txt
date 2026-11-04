@@ -1,0 +1,22 @@
+Phase 4 real smoke load metrics (Windows host, Docker backend + llama-server
+Vulkan 2.66, Qwen3.5-9B-Q4_K_M, ctx 4096, one language per run).
+
+Before starting Docker: free RAM ~7973 MB.
+After backend (WEB_CONCURRENCY=1, Postgres/Redis only): free RAM ~4154 MB.
+After llama-server model load: free RAM ~412 MB.
+After fr batch: free RAM ~426 MB; after 15s pause: ~400 MB.
+After it batch: free RAM ~383 MB; after 15s pause: ~444 MB.
+During ru batch: machine shut down after the search turn, before the follow-up.
+CPU load observed idle before batches: 4-10%.
+
+Mitigations used:
+- Elasticsearch, Grafana, Prometheus, OTel, RabbitMQ, celery worker/beat stopped.
+- Backend recreated with WEB_CONCURRENCY=1.
+- llama-server ctx reduced from 8192 to 4096.
+- One language per smoke invocation; script pauses 6s between languages;
+  additional 15s pause between invocations; no parallel tests or dev server.
+- Stopped the real LLM smoke when the machine shut down; did not retry the
+  remaining languages under the same load.
+
+Suggestion if Elasticsearch must run during future tests: set
+ES_JAVA_OPTS=-Xms512m -Xmx512m (not changed by this task).

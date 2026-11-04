@@ -1,0 +1,2 @@
+CONVERSATION a7a317e3-fa21-42c3-a879-792d949569cc
+ru     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 2106.7 ms reply='Самый доступный вариант, который я нашёл: Luva Nitrílica Descartável. '

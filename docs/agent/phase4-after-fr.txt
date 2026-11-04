@@ -1,0 +1,6 @@
+CONVERSATION b6b47b2d-61be-496e-bbac-048620bdfa66
+fr     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 6195.2 ms reply="L'option la plus économique que j'ai trouvée est Luva Nitrílica Descar"
+fr     follow   intent=product_search status=200 cards=5 ordem_ok=True latencia=15114.8 ms reply='La plus chère est la Luva Anticorte Nível 5 (e98aaf60-009c-5634-a80b-a'
+
+latencia mediana=10655.0 ms p95=6195.2 ms turnos=2
+OK: todos os idiomas devolveram luvas na ordem esperada por fase.

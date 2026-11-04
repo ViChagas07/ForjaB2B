@@ -1,0 +1,12 @@
+CONVERSATION 01ff884e-688a-443c-8901-cff45377c7d1
+ar     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 2120.4 ms reply='الخيار الأكثر اقتصاديًا الذي وجدته هو Luva Nitrílica Descartável. راجع'
+ar     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=10620.0 ms reply='الأغلى هي Luva de Raspa Premium (p2) بسعر 49,90. راجع البطاقة أدناه.'
+ja     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  109.4 ms reply='見つけた中で最もお手頃なのは Luva Nitrílica Descartável です。下のカードをご覧ください。'
+ja     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=10608.5 ms reply='一番高いのは Luva de Raspa Premium (p2) で、価格は 49,90 です。下のカードをご覧ください。'
+ko     busca    intent=product_search status=200 cards=1 ordem_ok=True latencia= 2103.8 ms reply='가장 경제적인 옵션은 Luva Nitrílica Descartável입니다. 아래 카드를 확인하세요.'
+ko     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=10214.1 ms reply='가장 비싼 제품은 Luva de Raspa Premium (p2) 으로, 가격은 49,90 원입니다. 아래 카드를 확인하세요.'
+zh-CN  busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  121.3 ms reply='我找到的最经济选项是 Luva Nitrílica Descartável。请查看下方卡片。'
+zh-CN  follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=10434.2 ms reply='最贵的是 Luva de Raspa Premium (p2)，价格为 49,90 元。请查看下方卡片。'
+
+latencia mediana=6167.2 ms p95=10608.5 ms turnos=8
+FALHAS: 4 turno(s) sem cards/ordem/HTTP 200

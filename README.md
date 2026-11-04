@@ -282,6 +282,83 @@ Redis por conversa, com TTL curto e limite de tamanho. O texto do usuário não
 sobrescreve esse estado. O histórico enviado ao modelo é limitado às últimas
 6 mensagens.
 
+### Assistente multilíngue (idioma por mensagem)
+
+O assistente responde no idioma da **mensagem**, não no idioma do site, para os 11 locales
+(`pt-BR`, `en`, `zh-CN`, `ja`, `ko`, `ru`, `es`, `de`, `fr`, `it`, `ar`). O locale do site
+continua decidindo a interface (menus, placeholder) e o `content_locale` (pt-BR/en/es/ar)
+continua resolvendo nome/descrição de produto e cartões.
+
+- **Detecção:** `langid==1.1.6` offline e restrito aos 11 locales, carregado uma vez.
+  Scripts Unicode vêm antes do modelo (`ko`, `ja`, `zh-CN`, `ar`, `ru`); SKUs, números,
+  URLs, marcas e símbolos são removidos antes de detectar. Mensagens curtas/ambíguas
+  mantêm o idioma da conversa; um léxico mínimo desempata frases curtas de produto.
+- **Pedido explícito:** “answer in English”/“responda em espanhol” vence a detecção e
+  passa a ser o idioma da conversa; mensagens seguintes curtas o mantêm.
+- **Persistência:** `chat_conversations.conversation_language` e `chat_messages.language`
+  (migration `0047`), além do estado curto no Redis. O histórico recarregado traz o
+  idioma de cada turno. O usuário não escreve esses campos: só o detector/pedido
+  reconhecido pelo servidor.
+- **Prompt:** `system_prompt.chat.v3.txt` (inglês) repete “Reply ONLY in {language_name}”
+  no início e no fim, usa few-shots em 7 idiomas e proíbe traduzir nomes, SKUs, marcas,
+  CA/NR e valores. A flag `AI_CHAT_PROMPT_VERSION` escolhe v2/v3 (default v2 até a
+  validação completa); `max_tokens` é por idioma e o thinking fica desligado.
+- **Guard:** a resposta é comparada ao `reply_language` (não ao locale do site); se
+  divergir, há UMA regeneração e depois fallback determinístico localizado. Valores
+  monetários e IDs são validados contra o CONTEXTO; CA/NR precisam existir no trecho
+  de conhecimento.
+- **Frontend:** cada bolha recebe `lang`/`dir` por mensagem (`ar` = RTL; os demais LTR);
+  o textarea usa `dir="auto"`. Os rótulos dos cartões usam um subconjunto de mensagens
+  no idioma da resposta; menus/placeholder seguem o site. As fontes priorizam
+  Noto Sans Arabic/JP/KR/SC.
+
+Limitações conhecidas:
+
+- nomes e descrições de produto continuam no `content_locale` (pt/en/es/ar), não no
+  idioma da mensagem;
+- os rótulos de cartão têm tradução parcial (SKU, preço sob consulta, CA e ações);
+- follow-ups que dependem do LLM podem levar 15-25 s; o atalho determinístico cobre
+  “mais barato/mais caro” com cartões;
+- idiomas sem atalho determinístico passam pelo LLM de roteamento/redação e podem ser
+  mais lentos;
+- o prompt v3 fica atrás da flag até o smoke real dos 11 idiomas fechar.
+
+#### Como adicionar um novo idioma
+
+1. `frontend/i18n/locales.ts` e `frontend/messages/<locale>.json` (UI) e
+   `frontend/features/ai-chat/card-messages.ts` (rótulos mínimos dos cartões).
+2. `backend/app/modules/ai/domain/types.py` (enum `Locale`) e
+   `backend/app/modules/ai/domain/language.py` (nome, `max_tokens`, sinais fortes/aliases).
+3. `backend/app/modules/ai/application/lexicon.py` (intenções, tarefas, ordenação,
+   faixas, quantidade, números por extenso e ruído de consulta).
+4. `backend/app/modules/ai/application/query_normalization.py` (conceitos de produto),
+   `backend/app/modules/ai/infrastructure/language_detector.py` (código langid) e
+   `backend/app/modules/ai/domain/degradation.py` (respostas determinísticas).
+5. `backend/app/modules/ai/domain/security/data/injection_patterns.v1.txt` e os testes
+   de detector/guarda/idioma. A migration `0047` lista os valores aceitos; um novo
+   locale exige migration idempotente e backup antes.
+
+#### Como rodar smoke e eval
+
+Com o LM Studio em `http://localhost:1235/v1` e o backend local:
+
+```bash
+# smoke real, um idioma por vez; salva em docs/agent/phase4-after-<idioma>.txt
+backend/.venv/Scripts/python.exe backend/scripts/ai_language_smoke.py   --base-url http://127.0.0.1:8000 --languages pt-BR
+
+# avaliação em lotes (modo reduzido: ru, ar, ja, ko, zh-CN; search/followup/injection/oos)
+backend/.venv/Scripts/python.exe backend/scripts/eval_assistant_languages.py --dry-run
+backend/.venv/Scripts/python.exe backend/scripts/eval_assistant_languages.py --languages ru,ar --resume
+
+# modo completo (inclui curta, misturada, pedido explícito, volta ao pt-BR e moeda)
+backend/.venv/Scripts/python.exe backend/scripts/eval_assistant_languages.py --full --languages ru
+```
+
+O script de avaliação aborta se a RAM livre ficar abaixo de 1,5 GB, usa timeout por
+requisição, pausa entre idiomas e grava o resultado de cada idioma antes de seguir.
+Rode um idioma/lote por vez; não execute junto com Playwright, servidor de dev ou a
+suíte completa.
+
 ### Avaliação (EDD)
 
 O dataset versionado `backend/app/modules/ai/evaluation/data/assistant_eval.v1.json`

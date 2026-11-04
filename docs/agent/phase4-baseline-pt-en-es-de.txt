@@ -1,0 +1,8 @@
+pt-BR  busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 1453.6 ms reply='A op��o mais econ�mica que encontrei � Luva Nitr�lica Descart�vel. Vej'
+pt-BR  follow   intent=product_search status=200 cards=5 ordem_ok=False latencia=51244.3 ms reply='A mais cara � a Luva Anticorte N�vel 5 (e98aaf60-009c-5634-a80b-a82695'
+en     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  388.1 ms reply='The most affordable option I found is Luva Nitr�lica Descart�vel. See '
+HTTP 500 em http://127.0.0.1:8000/api/v1/ai/chat: {"type":"urn:forja:problem:internal_error","title":"Internal Server Error","status":500,"detail":"Erro interno inesperado.","instance":"/api/v1/ai/chat","trace_id":"bbca9079a69523551f0cd84fa07578a8"}
+en     follow   intent=unknown        status=500 cards=0 ordem_ok=False latencia=22792.9 ms reply=''
+es     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  536.7 ms reply='La opci�n m�s econ�mica que encontr� es Luva Nitr�lica Descart�vel. Co'
+es     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=11759.7 ms reply='No puedo confirmar el precio de la opci�n m�s cara sin ver el contexto'
+de     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  468.3 ms reply='Die g�nstigste Option, die ich gefunden habe, ist Luva Nitr�lica Desca'

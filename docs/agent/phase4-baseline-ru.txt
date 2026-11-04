@@ -1,0 +1,6 @@
+CONVERSATION 01ff884e-688a-443c-8901-cff45377c7d1
+ru     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia=  223.8 ms reply='Самый доступный вариант, который я нашёл: Luva Nitrílica Descartável. '
+ru     follow   intent=unknown        status=200 cards=0 ordem_ok=True latencia=11121.5 ms reply='Самая дорогая перчатка — Luva de Raspa Premium (p2) по цене 49,90. См.'
+
+latencia mediana=5672.7 ms p95=223.8 ms turnos=2
+FALHAS: 1 turno(s) sem cards/ordem/HTTP 200

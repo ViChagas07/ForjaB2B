@@ -1,0 +1,15 @@
+Direct v3 prompt test (real LM Studio/llama-server, Vulkan 2.66, ctx 4096)
+Date: 2026-11-04
+Locale: ar
+System prompt tokens (cl100k proxy): 1235
+Prompt tokens reported by llama-server: 1409
+Completion tokens: 48
+Latency: 7589 ms
+First system line: Reply ONLY in العربية.
+Last system line: Reply ONLY in العربية.
+Assistant reply:
+أفضل خيار هو Luva de Raspa Premium (p2) بسعر 49.90 ريال، بينما Luva Nitrílica (p1) بسعر 3.90 ريال مناسبة للمهام الخفيفة.
+Observation: product names preserved; the model translated the BRL label to "ريال".
+Mitigation added after this run: explicit prompt rule that context prices are BRL and
+the currency must be written as R$ or BRL, never translated. Not re-tested with the
+real model because the machine shut down during the remaining smoke batches.

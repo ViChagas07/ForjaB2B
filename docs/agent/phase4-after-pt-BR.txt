@@ -1,0 +1,6 @@
+CONVERSATION a6b107f1-66d5-494a-98d3-d1bace8feddb
+pt-BR  busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 2123.0 ms reply='A opção mais econômica que encontrei é Luva Nitrílica Descartável. Vej'
+pt-BR  follow   intent=product_search status=200 cards=5 ordem_ok=True latencia=14794.9 ms reply='A opção mais cara é a Luva Anticorte Nível 5 (e98aaf60-009c-5634-a80b-'
+
+latencia mediana=8459.0 ms p95=2123.0 ms turnos=2
+OK: todos os idiomas devolveram luvas em ordem crescente.

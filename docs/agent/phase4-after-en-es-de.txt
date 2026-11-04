@@ -1,0 +1,7 @@
+CONVERSATION a68cfd4a-9a90-4cd4-b907-c4e7d43799db
+en     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 4223.0 ms reply='The most affordable option I found is Luva Nitrílica Descartável. See '
+en     follow   intent=product_search status=200 cards=5 ordem_ok=True latencia=17379.2 ms reply='The most expensive option is the Luva Anticorte Nível 5 (e98aaf60-009c'
+es     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 4948.0 ms reply='La opción más económica que encontré es Luva Nitrílica Descartável. Co'
+es     follow   intent=product_search status=200 cards=5 ordem_ok=True latencia=23106.4 ms reply='La opción más cara es la Luva Anticorte Nível 5 (e98aaf60-009c-5634-a8'
+de     busca    intent=product_search status=200 cards=5 ordem_ok=True latencia= 2252.0 ms reply='Die günstigste Option, die ich gefunden habe, ist Luva Nitrílica Desca'
+de     follow   intent=product_search status=200 cards=5 ordem_ok=True latencia=17861.8 ms reply='Die teuerste Option ist die Luva Anticorte Nível 5 (e98aaf60-009c-5634'
