@@ -217,7 +217,7 @@ def deterministic_decision(message: str, *, reply_language: str) -> IntentDecisi
     return None
 
 
-def _keyword_decision(
+def _keyword_decision(  # noqa: C901 - prioridades do roteador
     message: str,
     *,
     reply_language: str,
@@ -252,6 +252,24 @@ def _keyword_decision(
             query_pt=query_pt,
             query_en=query_en,
             task=task,
+            quantity=extract_quantity(message),
+            language=reply_language,
+        )
+    # "Qual a luva mais barata do catalogo?" tem termo de produto E preco:
+    # a busca de produto vence "catalogo" (que antes mandava a pergunta ao LLM).
+    if _matches(message, _PRODUCT_TERMS) and (
+        price_sort is not None or price_min is not None or price_max is not None
+    ):
+        return IntentDecision(
+            intent=IntentName.PRODUCT_SEARCH,
+            query=query,
+            query_pt=query_pt,
+            query_en=query_en,
+            price_sort=price_sort,
+            price_min=price_min,
+            price_max=price_max,
+            price_currency=price_currency,
+            price_currency_confirmation=price_currency_confirmation,
             quantity=extract_quantity(message),
             language=reply_language,
         )

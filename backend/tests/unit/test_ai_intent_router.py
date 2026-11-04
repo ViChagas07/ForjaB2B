@@ -113,6 +113,17 @@ def test_decision_rejeita_faixa_invertida() -> None:
         )
 
 
+def test_produto_com_preco_vence_ajuda_de_catalogo() -> None:
+    decision = deterministic_decision(
+        "Qual a luva mais barata do catálogo ?", reply_language="pt-BR"
+    )
+    assert decision is not None
+    assert decision.intent == IntentName.PRODUCT_SEARCH
+    assert decision.price_sort == PriceSort.ASC
+    assert "luvas" in decision.query_pt
+    assert "gloves" in decision.query_en
+
+
 def test_atributos_e_refs_sao_limitados() -> None:
     decision = IntentDecision(
         intent=IntentName.PRODUCT_SEARCH,
