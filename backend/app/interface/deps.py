@@ -40,6 +40,18 @@ class LocaleInfo:
     content_fallback: bool
 
 
+@dataclass(frozen=True, kw_only=True)
+class ChatLocaleInfo:
+    """Idiomas do CHAT: resposta (11) separada do conteudo de produto (4).
+
+    `reply_language` e apenas o valor inicial/fallback do site; a cada turno
+    o detector decide o idioma real da mensagem.
+    """
+
+    reply_language: str
+    content_locale: str
+
+
 def get_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
 
@@ -71,6 +83,19 @@ def get_locale_info(request: Request, lang: str | None = Query(default=None)) ->
 def get_locale(request: Request, lang: str | None = Query(default=None)) -> str:
     """Idioma do conteudo (compatibilidade): ``?lang=`` > ``Accept-Language`` > default."""
     return get_locale_info(request, lang).content_locale
+
+
+def get_chat_locale(request: Request, lang: str | None = Query(default=None)) -> ChatLocaleInfo:
+    """Idioma do chat (11 locales) separado do locale de conteudo (dados).
+
+    Nao reutiliza `get_locale`: a resposta do assistente nao pode ser
+    limitada aos 4 idiomas de conteudo do catalogo.
+    """
+    info = get_locale_info(request, lang)
+    return ChatLocaleInfo(
+        reply_language=info.ui_locale,
+        content_locale=info.content_locale,
+    )
 
 
 def get_session_factory(request: Request) -> async_sessionmaker[AsyncSession]:

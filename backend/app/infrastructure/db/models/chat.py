@@ -21,7 +21,13 @@ from app.infrastructure.db.base import Base
 
 class ChatConversation(Base):
     __tablename__ = "chat_conversations"
-    __table_args__ = ()
+    __table_args__ = (
+        CheckConstraint(
+            "conversation_language IS NULL OR conversation_language IN "
+            "('pt-BR','en','zh-CN','ja','ko','ru','es','de','fr','it','ar')",
+            name="chat_conversations_conversation_language_check",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, server_default=text("gen_random_uuid()")
@@ -33,6 +39,7 @@ class ChatConversation(Base):
         ForeignKey("users.id", ondelete="RESTRICT"), index=True
     )
     locale: Mapped[str] = mapped_column(String(16), nullable=False, server_default=text("'pt-BR'"))
+    conversation_language: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
@@ -46,7 +53,14 @@ class ChatConversation(Base):
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
-    __table_args__ = (CheckConstraint("role IN ('user', 'assistant')", name="role"),)
+    __table_args__ = (
+        CheckConstraint("role IN ('user', 'assistant')", name="role"),
+        CheckConstraint(
+            "language IS NULL OR language IN "
+            "('pt-BR','en','zh-CN','ja','ko','ru','es','de','fr','it','ar')",
+            name="chat_messages_language_check",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, server_default=text("gen_random_uuid()")
@@ -56,6 +70,7 @@ class ChatMessage(Base):
     )
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    language: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

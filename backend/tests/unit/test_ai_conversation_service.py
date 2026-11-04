@@ -1,6 +1,7 @@
 """Testes do ConversationService (FASE 5a) — repository fake, sem I/O."""
 
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.modules.ai.application.conversation_service import (
@@ -20,22 +21,37 @@ CONVERSATION = uuid.UUID("eeee0000-0000-4000-8000-00000000e004")
 class FakeRepo:
     def __init__(self) -> None:
         self.conversations: dict[uuid.UUID, ConversationView] = {}
-        self.messages: list[tuple[uuid.UUID, str, str]] = []
-        self.touched: list[tuple[uuid.UUID, datetime]] = []
+        self.messages: list[tuple[uuid.UUID, str, str, str | None]] = []
+        self.touched: list[tuple[uuid.UUID, datetime, str | None]] = []
         self.deleted_limits: list[int] = []
 
-    async def create(self, *, company_id, user_id, locale, expires_at) -> uuid.UUID:
+    async def create(
+        self,
+        *,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+        locale: str,
+        expires_at: datetime,
+        conversation_language: str | None = None,
+    ) -> uuid.UUID:
         view = ConversationView(
             id=CONVERSATION,
             company_id=company_id,
             user_id=user_id,
             locale=locale,
             expires_at=expires_at,
+            conversation_language=conversation_language or locale,
         )
         self.conversations[CONVERSATION] = view
         return CONVERSATION
 
-    async def get(self, conversation_id, *, company_id, user_id):
+    async def get(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+    ) -> ConversationView | None:
         view = self.conversations.get(conversation_id)
         if view is None:
             return None
@@ -44,21 +60,52 @@ class FakeRepo:
             return view if view.company_id is None else None
         return view if view.company_id == company_id and view.user_id == user_id else None
 
-    async def append_message(self, conversation_id, *, role, content, company_id, user_id) -> None:
+    async def append_message(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        role: str,
+        content: str,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+        language: str | None = None,
+    ) -> None:
         view = self.conversations[conversation_id]
         if company_id is None and user_id is None:
             if view.company_id is not None:
                 raise ConversationAccessError("visitor cannot write")
         elif view.company_id != company_id or view.user_id != user_id:
             raise ConversationAccessError("owner mismatch")
-        self.messages.append((conversation_id, role, content))
+        self.messages.append((conversation_id, role, content, language))
 
-    async def last_messages(self, conversation_id, *, limit, company_id, user_id):
+    async def last_messages(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        limit: int,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+    ) -> list[ChatTurn]:
         rows = [m for m in self.messages if m[0] == conversation_id][-limit:]
-        return [ChatTurn(role=r, content=c, created_at=NOW) for _cid, r, c in rows]
+        return [
+            ChatTurn(role=r, content=c, created_at=NOW, language=language)
+            for _cid, r, c, language in rows
+        ]
 
-    async def touch(self, conversation_id, *, expires_at, company_id, user_id) -> None:
-        self.touched.append((conversation_id, expires_at))
+    async def touch(
+        self,
+        conversation_id: uuid.UUID,
+        *,
+        expires_at: datetime,
+        company_id: uuid.UUID | None,
+        user_id: uuid.UUID | None,
+        language: str | None = None,
+    ) -> None:
+        self.touched.append((conversation_id, expires_at, language))
+        if language:
+            self.conversations[conversation_id] = replace(
+                self.conversations[conversation_id], conversation_language=language
+            )
 
     async def delete_expired(self, *, limit) -> int:
         self.deleted_limits.append(limit)
@@ -137,9 +184,13 @@ async def test_somente_user_e_assistant_sao_persistidos() -> None:
         conversation_id=None, scope=visitor(), locale="pt-BR"
     )
     assert conversation is not None
-    await service.append_user_message(conversation, sanitized_text="capacete para soldador")
-    await service.append_assistant_message(conversation, approved_text="Veja os cartoes abaixo.")
-    roles = [role for _cid, role, _content in repo.messages]
+    await service.append_user_message(
+        conversation, sanitized_text="capacete para soldador", language="pt-BR"
+    )
+    await service.append_assistant_message(
+        conversation, approved_text="Veja os cartoes abaixo.", language="pt-BR"
+    )
+    roles = [role for _cid, role, _content, _language in repo.messages]
     assert roles == ["user", "assistant"]
     # Nao existe API para gravar saida de ferramenta/produto/system prompt.
     public = {name for name in dir(service) if not name.startswith("_")}
@@ -158,7 +209,9 @@ async def test_mensagem_de_usuario_e_renormalizada_ao_gravar() -> None:
         conversation_id=None, scope=visitor(), locale="pt-BR"
     )
     assert conversation is not None
-    await service.append_user_message(conversation, sanitized_text="comprar  capacete\u200b ")
+    await service.append_user_message(
+        conversation, sanitized_text="comprar  capacete\u200b ", language="pt-BR"
+    )
     assert repo.messages[0][2] == "comprar capacete"
 
 
@@ -170,7 +223,9 @@ async def test_historico_truncado_em_ai_chat_history_turns() -> None:
     )
     assert conversation is not None
     for index in range(10):
-        await service.append_user_message(conversation, sanitized_text=f"msg {index}")
+        await service.append_user_message(
+            conversation, sanitized_text=f"msg {index}", language="pt-BR"
+        )
     turns = await service.last_turns(conversation)
     assert len(turns) == 4
     assert turns[-1].content == "msg 9"
@@ -184,8 +239,31 @@ async def test_ttl_definido_na_criacao_e_renovado_ao_gravar() -> None:
     )
     assert conversation is not None
     assert (conversation.expires_at - NOW).days == 30
-    await service.append_assistant_message(conversation, approved_text="ok")
+    await service.append_assistant_message(conversation, approved_text="ok", language="pt-BR")
     assert repo.touched and (repo.touched[-1][1] - NOW).days == 30
+
+
+async def test_idioma_da_mensagem_e_da_conversa_e_persistido() -> None:
+    repo = FakeRepo()
+    service = make_service(repo)
+    conversation = await service.open_or_resume(
+        conversation_id=None,
+        scope=visitor(),
+        locale="pt-BR",
+        conversation_language="pt-BR",
+    )
+    assert conversation is not None
+    await service.append_user_message(conversation, sanitized_text="hola", language="es")
+    await service.append_assistant_message(conversation, approved_text="Hola", language="es")
+    assert [message[3] for message in repo.messages] == ["es", "es"]
+    assert repo.touched[-1][2] == "es"
+    turns = await service.last_turns(conversation)
+    assert turns[-1].language == "es"
+    resumed = await service.open_or_resume(
+        conversation_id=conversation.id, scope=visitor(), locale="pt-BR"
+    )
+    assert resumed is not None
+    assert resumed.conversation_language == "es"
 
 
 async def test_conversa_desconhecida_nao_e_criada_silenciosamente() -> None:

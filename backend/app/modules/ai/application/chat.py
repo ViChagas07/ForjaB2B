@@ -20,6 +20,7 @@ from app.modules.ai.application.conversation_service import (
     ConversationService,
 )
 from app.modules.ai.application.product_cards import ProductCard
+from app.modules.ai.domain.language import LanguageDetectorPort, resolve_reply_language
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -27,6 +28,7 @@ class ChatResult:
     conversation_id: uuid.UUID
     reply: str
     product_cards: list[ProductCard]
+    language: str = "pt-BR"
     degraded: bool = False
 
 
@@ -36,28 +38,44 @@ class ChatService:
         *,
         conversations: ConversationService,
         graph: ChatGraph,
+        language_detector: LanguageDetectorPort | None = None,
     ) -> None:
         self._conversations = conversations
         self._graph = graph
+        self._language_detector = language_detector
 
     async def handle(
         self,
         *,
         conversation_id: uuid.UUID | None,
         scope: ConversationScope,
-        locale: str,
+        site_locale: str,
+        content_locale: str,
         message: str,
         auth: Any,
     ) -> ChatResult | None:
         conversation = await self._conversations.open_or_resume(
-            conversation_id=conversation_id, scope=scope, locale=locale
+            conversation_id=conversation_id,
+            scope=scope,
+            locale=site_locale,
+            conversation_language=site_locale,
         )
         if conversation is None:
             return None
         history = await self._conversations.last_turns(conversation)
+        detection = (
+            self._language_detector.detect(message) if self._language_detector is not None else None
+        )
+        reply_language = resolve_reply_language(
+            message=message,
+            detection=detection,
+            conversation_language=conversation.conversation_language,
+            site_locale=site_locale,
+        )
         outcome = await self._graph.run(
             conversation=conversation,
-            locale=locale,
+            reply_language=reply_language.language.value,
+            content_locale=content_locale,
             message=message,
             history=history,
             auth=auth,
@@ -66,5 +84,6 @@ class ChatService:
             conversation_id=conversation.id,
             reply=outcome.reply,
             product_cards=outcome.cards,
+            language=reply_language.language.value,
             degraded=outcome.degraded,
         )

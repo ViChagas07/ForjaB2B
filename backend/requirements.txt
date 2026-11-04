@@ -55,3 +55,5 @@ prometheus-client==0.21.0
 langgraph==1.2.18
 langchain-core==1.7.0
 langchain-openai==1.7.3
+# Detector de idioma offline do chat (~2 MB, restrito aos 11 locales).
+langid==1.1.6

@@ -188,8 +188,8 @@ def test_no_ddl_on_pre_existing_tables():
 def test_alembic_head_matches_current():
     """Verifica se a revisao head do alembic e a esperada."""
     head = _get_head_revision()
-    # A revisao head deve ser 0046 (pedidos ocultos + padroes dos cupons)
-    assert head == "0046", f"Head revision esperada 0046, mas encontrada: {head}"
+    # A revisao head deve ser 0047 (idioma dinamico do chat)
+    assert head == "0047", f"Head revision esperada 0047, mas encontrada: {head}"
 
 
 if __name__ == "__main__":

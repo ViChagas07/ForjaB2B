@@ -52,10 +52,15 @@ class LLMPort(Protocol):
         schema: type[TModel],
         messages: Sequence[LLMMessage],
         temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> TModel: ...
 
     async def complete_text(
-        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str: ...
 
 
@@ -86,18 +91,28 @@ class ResilientLLM:
         schema: type[TModel],
         messages: Sequence[LLMMessage],
         temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> TModel:
         return await self._call_with_resilience(
             lambda: self._inner.complete_structured(
-                schema=schema, messages=messages, temperature=temperature
+                schema=schema,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
         )
 
     async def complete_text(
-        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         return await self._call_with_resilience(
-            lambda: self._inner.complete_text(messages=messages, temperature=temperature)
+            lambda: self._inner.complete_text(
+                messages=messages, temperature=temperature, max_tokens=max_tokens
+            )
         )
 
     async def _call_with_resilience(self, call: Callable[[], Awaitable[TReturn]]) -> TReturn:
@@ -151,18 +166,26 @@ class ConcurrencyLimitedLLM:
         schema: type[TModel],
         messages: Sequence[LLMMessage],
         temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> TModel:
         async with self._slot():
             return await self._inner.complete_structured(
-                schema=schema, messages=messages, temperature=temperature
+                schema=schema,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
 
     async def complete_text(
-        self, *, messages: Sequence[LLMMessage], temperature: float | None = None
+        self,
+        *,
+        messages: Sequence[LLMMessage],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         async with self._slot():
             return await self._inner.complete_text(
-                messages=messages, temperature=temperature
+                messages=messages, temperature=temperature, max_tokens=max_tokens
             )
 
     @asynccontextmanager
@@ -202,6 +225,8 @@ class ChatTurn:
     role: str  # "user" | "assistant"
     content: str
     created_at: datetime
+    # Idioma detectado no turno (11 locales); None em mensagens legadas.
+    language: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -213,6 +238,22 @@ class ConversationView:
     user_id: uuid.UUID | None
     locale: str
     expires_at: datetime
+    # Idioma corrente da conversa; None em conversas legadas (usa `locale`).
+    conversation_language: str | None = None
+
+
+class CurrencyConversionPort(Protocol):
+    """Conversao de moeda de EXIBICAO para BRL (filtro de preco do chat).
+
+    `supported` e a lista fechada de moedas que o projeto ja converte na
+    interface. `to_brl` devolve None quando o cambio esta indisponivel; nesse
+    caso o chat pede confirmacao e NUNCA aplica o valor estrangeiro como BRL.
+    """
+
+    @property
+    def supported(self) -> frozenset[str]: ...
+
+    async def to_brl(self, amount: float, *, currency: str) -> float | None: ...
 
 
 class ConversationRepositoryPort(Protocol):
@@ -231,6 +272,7 @@ class ConversationRepositoryPort(Protocol):
         user_id: uuid.UUID | None,
         locale: str,
         expires_at: datetime,
+        conversation_language: str | None = None,
     ) -> uuid.UUID:
         """Cria a conversa e devolve o UUID (nao adivinhavel)."""
         ...
@@ -253,6 +295,7 @@ class ConversationRepositoryPort(Protocol):
         content: str,
         company_id: uuid.UUID | None,
         user_id: uuid.UUID | None,
+        language: str | None = None,
     ) -> None:
         """Grava UMA mensagem ja sanitizada/aprovada no escopo do chamador."""
         ...
@@ -275,6 +318,7 @@ class ConversationRepositoryPort(Protocol):
         expires_at: datetime,
         company_id: uuid.UUID | None,
         user_id: uuid.UUID | None,
+        language: str | None = None,
     ) -> None:
         """Renova last_message_at/expires_at (TTL) no escopo do chamador."""
         ...

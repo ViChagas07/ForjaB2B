@@ -65,10 +65,13 @@ class ConversationService:
         conversation_id: uuid.UUID | None,
         scope: ConversationScope,
         locale: str,
+        conversation_language: str | None = None,
     ) -> ConversationView | None:
         """Retoma a conversa se o chamador for o dono; None = inexistente/negado."""
         if conversation_id is None:
-            return await self._create(scope=scope, locale=locale)
+            return await self._create(
+                scope=scope, locale=locale, conversation_language=conversation_language
+            )
         view = await self._repository.get(
             conversation_id, company_id=scope.company_id, user_id=scope.user_id
         )
@@ -86,45 +89,65 @@ class ConversationService:
         )
 
     async def append_user_message(
-        self, conversation: ConversationView, *, sanitized_text: str
+        self,
+        conversation: ConversationView,
+        *,
+        sanitized_text: str,
+        language: str,
     ) -> None:
         """Grava a mensagem do usuario (ja sanitizada) — re-normaliza por defesa."""
         text = normalize_user_text(sanitized_text, max_chars=self._max_message_chars).text
         if not text:
             return
-        await self._append(conversation, role="user", content=text)
+        await self._append(conversation, role="user", content=text, language=language)
 
     async def append_assistant_message(
-        self, conversation: ConversationView, *, approved_text: str
+        self,
+        conversation: ConversationView,
+        *,
+        approved_text: str,
+        language: str,
     ) -> None:
         """Grava a resposta final (ja aprovada pelo output guard da Fase 2)."""
         text = approved_text.strip()
         if not text:
             return
-        await self._append(conversation, role="assistant", content=text)
+        await self._append(conversation, role="assistant", content=text, language=language)
 
-    async def _append(self, conversation: ConversationView, *, role: str, content: str) -> None:
+    async def _append(
+        self, conversation: ConversationView, *, role: str, content: str, language: str
+    ) -> None:
         await self._repository.append_message(
             conversation.id,
             role=role,
             content=content,
             company_id=conversation.company_id,
             user_id=conversation.user_id,
+            language=language,
         )
         await self._repository.touch(
             conversation.id,
             expires_at=self._expires_at(),
             company_id=conversation.company_id,
             user_id=conversation.user_id,
+            language=language,
         )
 
-    async def _create(self, *, scope: ConversationScope, locale: str) -> ConversationView:
+    async def _create(
+        self,
+        *,
+        scope: ConversationScope,
+        locale: str,
+        conversation_language: str | None,
+    ) -> ConversationView:
         expires_at = self._expires_at()
+        language = conversation_language or locale
         conversation_id = await self._repository.create(
             company_id=scope.company_id,
             user_id=scope.user_id,
             locale=locale,
             expires_at=expires_at,
+            conversation_language=language,
         )
         return ConversationView(
             id=conversation_id,
@@ -132,6 +155,7 @@ class ConversationService:
             user_id=scope.user_id,
             locale=locale,
             expires_at=expires_at,
+            conversation_language=language,
         )
 
     def _expires_at(self) -> datetime:

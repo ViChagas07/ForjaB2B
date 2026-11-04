@@ -84,6 +84,11 @@ exclude = ["\\.venv/", "\\.mypy_cache/", "alembic/versions/"]
 module = ["docker", "docker.*"]
 ignore_missing_imports = true
 
+# langid (detector offline do chat) nao distribui stubs/py.typed.
+[[tool.mypy.overrides]]
+module = ["langid", "langid.*"]
+ignore_missing_imports = true
+
 # celery (worker assincrono) nao distribui stubs; uso restrito a app.tasks.
 [[tool.mypy.overrides]]
 module = ["celery", "celery.*"]

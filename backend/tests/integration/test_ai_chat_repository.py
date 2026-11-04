@@ -169,6 +169,40 @@ async def test_historico_truncado_na_ordem_cronologica(uow_factory: object) -> N
     assert [turn.role for turn in turns] == ["user", "assistant", "user"]
 
 
+async def test_idioma_das_mensagens_e_da_conversa_persiste(uow_factory: object) -> None:
+    repository = make_repository(uow_factory)
+    conversation_id = await repository.create(
+        company_id=None,
+        user_id=None,
+        locale="pt-BR",
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+        conversation_language="pt-BR",
+    )
+    view = await repository.get(conversation_id, company_id=None, user_id=None)
+    assert view is not None
+    assert view.conversation_language == "pt-BR"
+    await repository.append_message(
+        conversation_id,
+        role="user",
+        content="hola",
+        company_id=None,
+        user_id=None,
+        language="es",
+    )
+    await repository.touch(
+        conversation_id,
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+        company_id=None,
+        user_id=None,
+        language="es",
+    )
+    turns = await repository.last_messages(conversation_id, limit=1, company_id=None, user_id=None)
+    assert turns[0].language == "es"
+    updated = await repository.get(conversation_id, company_id=None, user_id=None)
+    assert updated is not None
+    assert updated.conversation_language == "es"
+
+
 async def test_limpeza_ttl_remove_conversas_expiradas(pg: object, uow_factory: object) -> None:
     with db_tx(pg) as conn:
         expired_id = conn.execute(

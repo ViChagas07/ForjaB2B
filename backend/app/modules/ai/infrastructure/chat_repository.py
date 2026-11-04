@@ -28,17 +28,20 @@ from app.modules.ai.application.errors import ConversationAccessError
 from app.modules.ai.application.ports import ChatTurn, ConversationView
 
 _INSERT_CONVERSATION = text(
-    "INSERT INTO chat_conversations (company_id, user_id, locale, expires_at) "
-    "VALUES (:company_id, :user_id, :locale, :expires_at) RETURNING id"
+    "INSERT INTO chat_conversations "
+    "(company_id, user_id, locale, conversation_language, expires_at) "
+    "VALUES (:company_id, :user_id, :locale, "
+    "CAST(:conversation_language AS varchar), :expires_at) RETURNING id"
 )
 _SELECT_CONVERSATION = text(
-    "SELECT id, company_id, user_id, locale, expires_at FROM chat_conversations WHERE id = :id"
+    "SELECT id, company_id, user_id, locale, conversation_language, expires_at "
+    "FROM chat_conversations WHERE id = :id"
 )
 # Guarda de dono NA MESMA instrucao: visitante so grava em conversa sem dono;
 # logado so grava na conversa da propria empresa E do proprio usuario.
 _INSERT_MESSAGE = text(
-    "INSERT INTO chat_messages (conversation_id, role, content) "
-    "SELECT :conversation_id, :role, :content WHERE EXISTS ("
+    "INSERT INTO chat_messages (conversation_id, role, content, language) "
+    "SELECT :conversation_id, :role, :content, CAST(:language AS varchar) WHERE EXISTS ("
     " SELECT 1 FROM chat_conversations c WHERE c.id = :conversation_id AND ("
     "  (CAST(:company_id AS uuid) IS NULL AND CAST(:user_id AS uuid) IS NULL "
     "   AND c.company_id IS NULL) OR "
@@ -46,11 +49,13 @@ _INSERT_MESSAGE = text(
     "   AND c.user_id = CAST(:user_id AS uuid))))"
 )
 _SELECT_MESSAGES = text(
-    "SELECT role, content, created_at FROM chat_messages "
+    "SELECT role, content, language, created_at FROM chat_messages "
     "WHERE conversation_id = :id ORDER BY created_at DESC, id DESC LIMIT :limit"
 )
 _TOUCH = text(
-    "UPDATE chat_conversations SET last_message_at = now(), expires_at = :expires_at WHERE id = :id"
+    "UPDATE chat_conversations SET last_message_at = now(), expires_at = :expires_at, "
+    "conversation_language = COALESCE(CAST(:language AS varchar), conversation_language) "
+    "WHERE id = :id"
 )
 _DELETE_EXPIRED = text("SELECT app.delete_expired_chat_conversations(:limit)")
 
@@ -68,6 +73,7 @@ class SqlAlchemyConversationRepository:
         user_id: uuid.UUID | None,
         locale: str,
         expires_at: datetime,
+        conversation_language: str | None = None,
     ) -> uuid.UUID:
         async with self._uow_factory.begin(self._tenant(company_id, user_id)) as uow:
             conversation_id = (
@@ -77,6 +83,7 @@ class SqlAlchemyConversationRepository:
                         "company_id": company_id,
                         "user_id": user_id,
                         "locale": locale,
+                        "conversation_language": conversation_language or locale,
                         "expires_at": expires_at,
                     },
                 )
@@ -102,6 +109,7 @@ class SqlAlchemyConversationRepository:
             user_id=row.user_id,
             locale=row.locale,
             expires_at=row.expires_at,
+            conversation_language=row.conversation_language,
         )
 
     async def append_message(
@@ -112,6 +120,7 @@ class SqlAlchemyConversationRepository:
         content: str,
         company_id: uuid.UUID | None,
         user_id: uuid.UUID | None,
+        language: str | None = None,
     ) -> None:
         if role not in ("user", "assistant"):
             raise ValueError("role invalido na memoria do chat")
@@ -122,6 +131,7 @@ class SqlAlchemyConversationRepository:
                     "conversation_id": conversation_id,
                     "role": role,
                     "content": content,
+                    "language": language,
                     "company_id": company_id,
                     "user_id": user_id,
                 },
@@ -147,7 +157,12 @@ class SqlAlchemyConversationRepository:
             await uow.commit()
         ordered = list(reversed(rows))
         return [
-            ChatTurn(role=row.role, content=row.content, created_at=row.created_at)
+            ChatTurn(
+                role=row.role,
+                content=row.content,
+                created_at=row.created_at,
+                language=row.language,
+            )
             for row in ordered
         ]
 
@@ -158,9 +173,17 @@ class SqlAlchemyConversationRepository:
         expires_at: datetime,
         company_id: uuid.UUID | None,
         user_id: uuid.UUID | None,
+        language: str | None = None,
     ) -> None:
         async with self._uow_factory.begin(self._tenant(company_id, user_id)) as uow:
-            await uow.session.execute(_TOUCH, {"id": conversation_id, "expires_at": expires_at})
+            await uow.session.execute(
+                _TOUCH,
+                {
+                    "id": conversation_id,
+                    "expires_at": expires_at,
+                    "language": language,
+                },
+            )
             await uow.commit()
 
     async def delete_expired(self, *, limit: int) -> int:
