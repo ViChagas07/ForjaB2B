@@ -361,3 +361,43 @@ describe("fechamento por clique fora e reset de conversa", () => {
     });
   });
 });
+
+describe("alerta de idioma do app", () => {
+  it("alerta no idioma do app quando o usuario fala outro idioma", async () => {
+    sendChatMessageMock.mockResolvedValue({
+      conversation_id: "22222222-2222-4222-8222-222222222222",
+      reply: "To speak in that language, change the app's general language to that language.",
+      product_cards: [],
+      language: "en",
+      language_mismatch: true,
+      detected_language: "ru",
+    });
+    const view = renderWidget("en");
+    fireEvent.click(screen.getByTestId("ai-chat-trigger"));
+    const input = screen.getByLabelText("Pergunte sobre produtos, frete ou seu carrinho...");
+    fireEvent.change(input, { target: { value: "Привет, есть перчатки?" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    const alert = await screen.findByTestId("ai-chat-language-alert");
+    expect(alert.getAttribute("role")).toBe("alert");
+    expect(alert.getAttribute("lang")).toBe("en");
+    expect(alert.textContent).toContain("change the app's general language");
+    expect(screen.getByTestId("ai-chat-message-user").getAttribute("lang")).toBe("ru");
+    expect(view).toBeTruthy();
+  });
+});
+
+describe("reset ao remontar o layout de idioma", () => {
+  it("reinicia a conversa quando o widget remonta em outro locale", async () => {
+    openWidget();
+    useAiChatStore.setState({
+      conversationId: "conv-remount",
+      messages: [{ id: "1", role: "user", text: "oi" }],
+    });
+    cleanup();
+    renderWidget("en");
+    await waitFor(() => {
+      expect(useAiChatStore.getState().messages).toHaveLength(0);
+      expect(useAiChatStore.getState().conversationId).toBeNull();
+    });
+  });
+});

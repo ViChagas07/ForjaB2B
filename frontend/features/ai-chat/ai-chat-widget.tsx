@@ -123,6 +123,16 @@ export function AiChatWidget() {
   }, []);
 
   React.useEffect(() => {
+    // A troca de idioma via next-intl pode remontar o widget no novo layout
+    // [locale]. Nesse caso os refs acima ja nascem com o valor novo; o store
+    // global e que sobrevive. Se ha conversa, ela pertence ao mount anterior.
+    const state = useAiChatStore.getState();
+    if (state.messages.length > 0 || state.conversationId !== null) {
+      resetConversation();
+    }
+  }, [resetConversation]);
+
+  React.useEffect(() => {
     if (!isOpen) return;
     let active = true;
     void getLlmHealth().then((health) => {
@@ -191,10 +201,18 @@ export function AiChatWidget() {
         typeof response.language === "string" && isLocale(response.language)
           ? response.language
           : siteLocale;
+      const languageMismatch = response.language_mismatch === true;
+      const detectedLanguage: Locale | null =
+        typeof response.detected_language === "string" && isLocale(response.detected_language)
+          ? response.detected_language
+          : null;
       setConversationId(response.conversation_id);
       setDegraded(Boolean(response.degraded));
-      setMessageLanguage(userMessageId, responseLanguage);
-      if (!response.degraded) {
+      setMessageLanguage(
+        userMessageId,
+        languageMismatch && detectedLanguage ? detectedLanguage : responseLanguage,
+      );
+      if (!response.degraded && !languageMismatch) {
         // Se o health estava em cache como indisponivel (backend/modelo
         // acabou de subir), uma resposta real bem-sucedida limpa o aviso.
         setLlmHealth((previous) => ({
@@ -210,6 +228,7 @@ export function AiChatWidget() {
         text: response.reply,
         language: responseLanguage,
         cards: response.product_cards,
+        warning: languageMismatch,
       });
     } catch (cause) {
       if (controller.signal.aborted) return;
@@ -487,19 +506,31 @@ function ChatBubble({ message, siteLocale }: { message: ChatMessage; siteLocale:
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
       <div className={cn("max-w-[92%] space-y-2", isUser ? "items-end" : "items-start")}>
         {/* Texto SEMPRE puro: sem HTML/Markdown, sem links vindos do modelo. */}
-        <p
-          data-testid={`ai-chat-message-${message.role}`}
-          lang={message.language}
-          dir={message.language ? dir : "auto"}
-          className={cn(
-            "whitespace-pre-line rounded-2xl px-3 py-2 text-sm leading-relaxed",
-            isUser
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-foreground dark:bg-white/8 dark:text-white/90",
-          )}
-        >
-          {message.text}
-        </p>
+        {message.warning ? (
+          <div
+            data-testid="ai-chat-language-alert"
+            role="alert"
+            lang={message.language}
+            dir={message.language ? dir : "auto"}
+            className="whitespace-pre-line rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm leading-relaxed text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
+          >
+            {message.text}
+          </div>
+        ) : (
+          <p
+            data-testid={`ai-chat-message-${message.role}`}
+            lang={message.language}
+            dir={message.language ? dir : "auto"}
+            className={cn(
+              "whitespace-pre-line rounded-2xl px-3 py-2 text-sm leading-relaxed",
+              isUser
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-foreground dark:bg-white/8 dark:text-white/90",
+            )}
+          >
+            {message.text}
+          </p>
+        )}
         {message.cards && message.cards.length > 0 ? (
           <ul data-testid="ai-chat-cards" lang={messageLocale} dir={dir} className="space-y-2">
             <NextIntlClientProvider

@@ -46,6 +46,10 @@ class ChatResponse(BaseModel):
     language: str
     # true = LLM local desligado/indisponivel (modo demonstracao/template).
     degraded: bool = False
+    # true = usuario falou em idioma diferente do app; a resposta e um alerta
+    # no idioma do app pedindo para trocar o idioma geral.
+    language_mismatch: bool = False
+    detected_language: str | None = None
 
 
 def card_to_out(card: ProductCard) -> ProductCardOut:

@@ -939,6 +939,26 @@ _COUNT_EMPTY: dict[str, str] = {
     "zh-CN": "目录中没有找到 {filter} 的产品。",
 }
 
+_LANGUAGE_SWITCH_ALERT: dict[str, str] = {
+    "pt-BR": "Para falar nesse idioma, troque o idioma geral do app para essa língua.",
+    "en": "To speak in that language, change the app's general language to that language.",
+    "es": "Para hablar en ese idioma, cambia el idioma general de la app a ese idioma.",
+    "ar": "للتحدث بهذه اللغة، غيّر لغة التطبيق العامة إلى هذه اللغة.",
+    "de": (
+        "Um in dieser Sprache zu sprechen, ändern Sie die allgemeine App-Sprache "
+        "auf diese Sprache."
+    ),
+    "fr": (
+        "Pour parler dans cette langue, changez la langue générale de l'application "
+        "pour celle-ci."
+    ),
+    "it": "Per parlare in quella lingua, cambia la lingua generale dell'app in quella lingua.",
+    "ja": "その言語で話すには、アプリの一般言語をその言語に変更してください。",
+    "ko": "해당 언어로 말하려면 앱의 일반 언어를 해당 언어로 변경하세요.",
+    "ru": "Чтобы говорить на этом языке, измените общий язык приложения на этот язык.",
+    "zh-CN": "要用该语言交流，请将应用的通用语言切换为该语言。",
+}
+
 _MORE_SUFFIX: dict[str, str] = {
     "pt-BR": "e mais {count}",
     "en": "and {count} more",
@@ -956,6 +976,10 @@ _MORE_SUFFIX: dict[str, str] = {
 
 def _table(table: dict[str, str], locale: Locale) -> str:
     return table.get(locale.value, table["pt-BR"])
+
+
+def language_switch_alert(locale: Locale) -> str:
+    return _table(_LANGUAGE_SWITCH_ALERT, locale)
 
 
 def _with_more(items: list[str], total: int, locale: Locale) -> str:

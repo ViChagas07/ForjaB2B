@@ -13,6 +13,7 @@ from app.modules.ai.application.conversation_service import (
     ConversationService,
 )
 from app.modules.ai.application.ports import ConversationView
+from app.modules.ai.domain.degradation import language_switch_alert
 from app.modules.ai.domain.language import LanguageDetection
 from app.modules.ai.domain.types import Locale
 
@@ -90,7 +91,7 @@ async def test_idioma_detectado_vale_so_para_a_mensagem_atual() -> None:
     await chat.handle(
         conversation_id=None,
         scope=VISITOR,
-        site_locale="pt-BR",
+        site_locale="es",
         content_locale="pt-BR",
         message="Quiero ver los guantes más baratos del catálogo",
         auth=None,
@@ -142,6 +143,33 @@ async def test_pedido_explicito_troca_e_persiste_ate_nova_deteccao() -> None:
     assert graph.calls[1]["reply_language"] == "en"
 
 
+async def test_idioma_diferente_do_app_alerta_sem_chamar_grafo() -> None:
+    conversations = FakeConversations()
+    graph = FakeGraph(conversations)
+    detector = FakeDetector(
+        {
+            "Привет, есть перчатки?": LanguageDetection(
+                language=Locale.RU, confidence=0.99, source="script"
+            )
+        }
+    )
+    chat = service(conversations=conversations, graph=graph, detector=detector)
+    result = await chat.handle(
+        conversation_id=None,
+        scope=VISITOR,
+        site_locale="en",
+        content_locale="en",
+        message="Привет, есть перчатки?",
+        auth=None,
+    )
+    assert result is not None
+    assert result.language_mismatch is True
+    assert result.detected_language == "ru"
+    assert result.language == "en"
+    assert result.reply == language_switch_alert(Locale.EN)
+    assert graph.calls == []
+
+
 async def test_historico_e_conversa_sao_os_mesmos_na_troca() -> None:
     conversations = FakeConversations()
     conversations.history = [object()]
@@ -157,7 +185,7 @@ async def test_historico_e_conversa_sao_os_mesmos_na_troca() -> None:
     await chat.handle(
         conversation_id=CONVERSATION_ID,
         scope=VISITOR,
-        site_locale="pt-BR",
+        site_locale="es",
         content_locale="pt-BR",
         message="Quiero ver los guantes más baratos del catálogo",
         auth=None,

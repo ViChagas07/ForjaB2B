@@ -13,6 +13,8 @@ export interface ChatMessage {
   language?: Locale;
   /** Cartões montados pelo BACKEND (imagem/link/preço) — nunca HTML. */
   cards?: ChatProductCard[];
+  /** Alerta de idioma: resposta do app pedindo troca do idioma geral. */
+  warning?: boolean;
 }
 
 interface AiChatState {

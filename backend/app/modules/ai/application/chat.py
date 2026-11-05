@@ -21,7 +21,7 @@ from app.modules.ai.application.conversation_service import (
     ConversationService,
 )
 from app.modules.ai.application.product_cards import ProductCard
-from app.modules.ai.domain.degradation import catalog_mode_response
+from app.modules.ai.domain.degradation import catalog_mode_response, language_switch_alert
 from app.modules.ai.domain.language import LanguageDetectorPort, resolve_reply_language
 from app.modules.ai.domain.types import resolve_locale
 
@@ -35,6 +35,8 @@ class ChatResult:
     product_cards: list[ProductCard]
     language: str = "pt-BR"
     degraded: bool = False
+    language_mismatch: bool = False
+    detected_language: str | None = None
 
 
 class ChatService:
@@ -77,6 +79,26 @@ class ChatService:
             conversation_language=conversation.conversation_language,
             site_locale=site_locale,
         )
+        site = resolve_locale(site_locale)
+        if (
+            reply_language.language is not site
+            and reply_language.confidence >= 0.70
+            and reply_language.source in {"detector", "script", "lexicon"}
+        ):
+            _logger.info(
+                "chat_language_mismatch",
+                app_language=site.value,
+                detected_language=reply_language.language.value,
+                source=reply_language.source,
+            )
+            return ChatResult(
+                conversation_id=conversation.id,
+                reply=language_switch_alert(site),
+                product_cards=[],
+                language=site.value,
+                language_mismatch=True,
+                detected_language=reply_language.language.value,
+            )
         try:
             outcome = await self._graph.run(
                 conversation=conversation,

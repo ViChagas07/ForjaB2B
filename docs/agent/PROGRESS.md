@@ -6,6 +6,29 @@
 > exemplo, "rate limiting herdado do middleware" não corresponde ao código
 > atual); em caso de divergência, vale o código e o `STATUS.md`.
 
+## Chat UI: fechamento, reset e alerta de idioma - 2026-11-05
+
+- **Fechar clicando fora**: `pointerdown` em captura fecha o painel quando o alvo nao
+  esta no painel nem no gatilho; cliques internos e no gatilho continuam normais.
+- **Reset**: `visibilitychange` (aba oculta), `pagehide`/`pageshow` persistido, mudanca
+  de `pathname`, mudanca de locale e remontagem do widget (layout `[locale]`) limpam
+  `conversationId`, mensagens, draft, erro e pending. O reset na remontagem e o que
+  faltava para a troca de idioma via `router.replace(pathname, {locale})`, que preserva
+  o store global e iniciava o novo efeito com os refs ja no locale novo.
+- **Idioma diferente do app**: `ChatService` compara o idioma resolvido da mensagem
+  com o `site_locale`; se diferir com confianca >=0.7 e origem `detector`/`script`/
+  `lexicon`, retorna imediatamente um alerta no idioma do app, com
+  `language_mismatch=true` e `detected_language`, sem chamar LLM/busca. Templates nos
+  11 idiomas. Pedido explicito ("answer in English") continua honrado.
+- **Frontend**: a bolha do usuario recebe o idioma detectado (`lang`/`dir`) e o alerta
+  vira uma bolha `role="alert"` no idioma do app; resposta atrasada de requisicao
+  abortada nao entra na conversa nova.
+- **Contrato**: `ChatResponse` ganhou `language_mismatch` e `detected_language`;
+  `docs/api/openapi.json` e tipos gerados atualizados.
+- **Validacao**: 524 testes de IA/seguranca passaram; 17 testes do widget; API real
+  confirmou `en + russo -> alerta em en` e `pt-BR + ingles -> alerta em pt-BR`;
+  `tsc --noEmit`, ESLint e Prettier passaram.
+
 ## Assistente: perguntas estranhas de loja, marcas e visao geral - 2026-11-05
 
 ### Implementado

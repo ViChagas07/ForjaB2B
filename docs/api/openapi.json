@@ -1197,9 +1197,25 @@
             "title": "Degraded",
             "type": "boolean"
           },
+          "detected_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Language"
+          },
           "language": {
             "title": "Language",
             "type": "string"
+          },
+          "language_mismatch": {
+            "default": false,
+            "title": "Language Mismatch",
+            "type": "boolean"
           },
           "product_cards": {
             "items": {

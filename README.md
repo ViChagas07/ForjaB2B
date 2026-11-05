@@ -336,9 +336,9 @@ esperar o LLM.
   removido. Timeouts são explícitos por etapa (roteador, redação, regeneração) e a
   fila da GPU falha rápido com fallback.
 
-### Assistente multilíngue (idioma por mensagem)
+### Assistente multilíngue (idioma do app + alerta de troca)
 
-O assistente responde no idioma da **mensagem**, não no idioma do site, para os 11 locales
+O assistente responde no **idioma configurado no app** para os 11 locales
 (`pt-BR`, `en`, `zh-CN`, `ja`, `ko`, `ru`, `es`, `de`, `fr`, `it`, `ar`). O locale do site
 continua decidindo a interface (menus, placeholder) e o `content_locale` (pt-BR/en/es/ar)
 continua resolvendo nome/descrição de produto e cartões.
@@ -346,11 +346,20 @@ continua resolvendo nome/descrição de produto e cartões.
 - **Detecção:** `langid==1.1.6` offline e restrito aos 11 locales, carregado uma vez.
   Scripts Unicode vêm antes do modelo (`ko`, `ja`, `zh-CN`, `ar`, `ru`); SKUs, números,
   URLs, marcas e símbolos são removidos antes de detectar. Mensagens curtas/ambíguas
-  mantêm o idioma da conversa; termos fortes do domínio (`tem`, `loja`, `estoque`,
-  `luvas`, `gloves`, `tienen`) vencem o detector — sem isso, “A loja tem prensa
-  hidráulica?” era classificado como espanhol com 0,99 de confiança.
-- **Pedido explícito:** “answer in English”/“responda em espanhol” vence a detecção e
-  passa a ser o idioma da conversa; mensagens seguintes curtas o mantêm.
+  mantêm o idioma do app; termos fortes do domínio (`tem`, `loja`, `estoque`, `luvas`,
+  `gloves`, `tienen`) vencem o detector — sem isso, “A loja tem prensa hidráulica?” era
+  classificado como espanhol com 0,99 de confiança.
+- **Idioma diferente do app:** se a mensagem for detectada em outro idioma (ex.: app em
+  inglês e mensagem em russo), o backend **não responde no idioma da mensagem**: devolve
+  imediatamente um alerta no idioma do app pedindo para trocar o idioma geral
+  (“To speak in that language, change the app's general language to that language.”).
+  O alerta vem em `language_mismatch=true` + `detected_language`; a bolha do usuário é
+  marcada com o idioma detectado e a do alerta com o idioma do app.
+- **Pedido explícito:** “answer in English”/“responda em espanhol” continua sendo honrado
+  e passa a ser o idioma da resposta; mensagens seguintes curtas o mantêm.
+- **Reset da conversa:** refresh, troca de aba/rota, troca do idioma do app e clique fora
+  do painel encerram o estado em memória e começam uma conversa nova; uma resposta
+  atrasada de requisição abortada não entra na conversa nova.
 - **Persistência:** `chat_conversations.conversation_language` e `chat_messages.language`
   (migration `0047`), além do estado curto no Redis. O histórico recarregado traz o
   idioma de cada turno. O usuário não escreve esses campos: só o detector/pedido

@@ -1707,8 +1707,15 @@ export interface components {
              * @default false
              */
             degraded: boolean;
+            /** Detected Language */
+            detected_language?: string | null;
             /** Language */
             language: string;
+            /**
+             * Language Mismatch
+             * @default false
+             */
+            language_mismatch: boolean;
             /** Product Cards */
             product_cards: components["schemas"]["ProductCardOut"][];
             /** Reply */

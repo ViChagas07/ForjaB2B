@@ -146,4 +146,6 @@ async def chat(
         product_cards=[card_to_out(card) for card in result.product_cards],
         language=result.language,
         degraded=result.degraded,
+        language_mismatch=result.language_mismatch,
+        detected_language=result.detected_language,
     )
