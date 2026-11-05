@@ -291,6 +291,31 @@ mesmo guard/validação antes de liberar o texto. O frontend já tem bolhas
 incrementais prontas para receber deltas; nenhum atalho determinístico precisa
 esperar o LLM.
 
+### Operações de catálogo por código (marcas, visão geral, contagem e faixa)
+
+- **`list_brands(category, query, limit)`**: marcas distintas com contagem de produtos
+  (top 15 + “e mais N”), filtráveis por categoria ou termo. Nomes de marca não são
+  traduzidos.
+- **`products_by_brand(brand, category, sort)`**: resolve grafia aproximada
+  (`proteck` → `PROTEC`) e ambiguidade; devolve cartões reais, nunca marca inventada.
+  Marca inexistente (`Bosh`, `3M`) retorna as marcas que existem no banco.
+- **`catalog_overview(category_query)`**: categorias com contagem e total de produtos,
+  a partir do PostgreSQL; “máquinas” filtra as categorias reais de máquinas.
+- **`price_range(category|query)`**: menor/maior preço do recorte, com hidratação por
+  papel (visitante/CPF: tabela pública; CNPJ: preço da empresa) e cartões do mais
+  barato/mais caro. Valores vêm do banco e passam pelo mesmo saneamento.
+- **`count_products(category|brand|query)`**: contagem real; perguntas como “quantos
+  produtos vocês têm?” e “quantos produtos de proteção auditiva?” não dependem do LLM.
+- **Na dúvida, buscar**: mensagem com termo/verbo de loja nunca é recusada por
+  estranheza; se o LLM classificar como `out_of_scope`, o roteador rebaixa para
+  `product_search`. Assuntos realmente fora (clima, política, poema, programação)
+  continuam bloqueados.
+- **Como estender**: sinônimos de domínio ficam em
+  `query_normalization.py` (dados `ProductConcept`); termos por idioma ficam em
+  `lexicon.py` (`INTENT_TERMS`, `EXISTENCE_PATTERNS`, `BRAND_PRODUCTS_PATTERNS`,
+  `CATALOG_CATEGORY_QUERIES`). Novas marcas/categorias vêm do banco, não de listas
+  fixas no código.
+
 ### Existência, preço e modo catálogo (sem depender do LLM)
 
 - **“A loja tem X?” / “do you have X?” / “¿tienen X?”**: padrões de dados nos 11
@@ -416,10 +441,11 @@ LLM corretamente marcados como skipped quando o LM Studio não está no ar. O
 caso obrigatório das luvas mais baratas passa **sem chamar o LLM** mesmo se o
 roteador falhar, pois o atalho de preço é determinístico.
 
-A bateria de loja (`store_assistant_eval.v1.json`) cobre 67 perguntas reais em
-pt-BR/en/es nas categorias existência, preço, comparação, estoque, frete,
-pagamento B2B/CNPJ, carrinho/pedido, consultoria, termos vagos, erros de
-digitação, follow-ups, fora de escopo e injection:
+A bateria de loja (`store_assistant_eval.v1.json`) cobre **136 perguntas reais**
+em pt-BR/en/es/ar/ja/ru nas categorias existência, marcas, visão geral/contagem,
+faixa de preço, preço, comparação, estoque, frete, pagamento B2B/CNPJ,
+carrinho/pedido, consultoria, termos vagos, erros de digitação, follow-ups,
+fora de escopo e injection:
 
 ```bash
 # (a) LLM mockado como indisponível, em processo, com catálogo fixture
@@ -431,8 +457,10 @@ backend/.venv/Scripts/python.exe backend/scripts/eval_store_assistant.py --mode 
 
 Cada lote real grava `docs/agent/store-eval-real-batch-NN.txt`; o resumo fica em
 `store-eval-real-summary.json`. O script aborta antes de um lote se a RAM livre
-estiver abaixo de 1,5 GB. No modo offline a regra é a mesma: nenhum produto pode
-virar erro genérico; perguntas que só o LLM redigiria podem cair no modo catálogo.
+estiver abaixo de 1,5 GB, se `/health` estiver fora ou se `/health/llm` disser que
+o modelo não está disponível; nesses casos grava `store-eval-real-unavailable.txt`
+sem chamar o modelo. No modo offline a regra é a mesma: nenhum produto pode virar
+erro genérico; perguntas que só o LLM redigiria podem cair no modo catálogo.
 
 ### Rodando a IA localmente com LM Studio
 
