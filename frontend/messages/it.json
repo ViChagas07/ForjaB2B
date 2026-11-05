@@ -1004,9 +1004,9 @@
     "goToCatalog": "Vai al catalogo",
     "demoMode": "Assistente IA disponibile in modalità dimostrazione locale.",
     "demoModeLink": "Scopri come avviarlo nel README",
-    "suggestion1": "Casco per saldatore",
+    "suggestion1": "Qual è il guanto più economico?",
     "suggestion2": "Come funziona la spedizione?",
-    "suggestion3": "Qual è l'ordine minimo?",
+    "suggestion3": "Quali sono gli occhiali più economici?",
     "errors": {
       "rateLimited": "Troppi messaggi. Riprova tra {seconds}s.",
       "unavailable": "L'assistente non è disponibile ora.",

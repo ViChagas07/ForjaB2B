@@ -1004,9 +1004,9 @@
     "goToCatalog": "Aller au catalogue",
     "demoMode": "Assistant IA disponible en mode démonstration local.",
     "demoModeLink": "Voir comment le lancer dans le README",
-    "suggestion1": "Casque de soudeur",
+    "suggestion1": "Quel est le gant le moins cher ?",
     "suggestion2": "Comment fonctionne la livraison ?",
-    "suggestion3": "Quelle est la commande minimale ?",
+    "suggestion3": "Quelles sont les lunettes les moins chères ?",
     "errors": {
       "rateLimited": "Trop de messages. Réessayez dans {seconds}s.",
       "unavailable": "L'assistant est indisponible pour le moment.",

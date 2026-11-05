@@ -1004,9 +1004,9 @@
     "goToCatalog": "Ir al catálogo",
     "demoMode": "Asistente de IA disponible en modo demostración local.",
     "demoModeLink": "Ver cómo ejecutarlo en el README",
-    "suggestion1": "Casco para soldador",
+    "suggestion1": "¿Cuál es el guante más barato?",
     "suggestion2": "¿Cómo funciona el envío?",
-    "suggestion3": "¿Cuál es el pedido mínimo?",
+    "suggestion3": "¿Cuáles son las gafas más baratas?",
     "errors": {
       "rateLimited": "Demasiados mensajes. Intente en {seconds}s.",
       "unavailable": "El asistente no está disponible ahora.",

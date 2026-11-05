@@ -1004,9 +1004,9 @@
     "goToCatalog": "Zum Katalog",
     "demoMode": "KI-Assistent im lokalen Demo-Modus verfügbar.",
     "demoModeLink": "Im README erfahren, wie man es startet",
-    "suggestion1": "Schweißerhelm",
+    "suggestion1": "Welcher Handschuh ist am günstigsten?",
     "suggestion2": "Wie funktioniert der Versand?",
-    "suggestion3": "Wie hoch ist die Mindestbestellung?",
+    "suggestion3": "Welche Schutzbrille ist am günstigsten?",
     "errors": {
       "rateLimited": "Zu viele Nachrichten. Versuchen Sie es in {seconds}s.",
       "unavailable": "Der Assistent ist derzeit nicht verfügbar.",

@@ -1004,9 +1004,9 @@
     "goToCatalog": "카탈로그로",
     "demoMode": "AI 어시스턴트를 로컬 데모 모드로 사용할 수 있습니다.",
     "demoModeLink": "실행 방법은 README에서 확인하세요",
-    "suggestion1": "용접용 헬멧",
+    "suggestion1": "가장 저렴한 장갑은 무엇인가요?",
     "suggestion2": "배송은 어떻게 계산되나요?",
-    "suggestion3": "최소 주문 수량은?",
+    "suggestion3": "가장 저렴한 고글은 무엇인가요?",
     "errors": {
       "rateLimited": "메시지가 너무 많습니다. {seconds}초 후 다시 시도하세요.",
       "unavailable": "어시스턴트를 지금 사용할 수 없습니다.",

@@ -1004,9 +1004,9 @@
     "goToCatalog": "Go to catalog",
     "demoMode": "AI assistant available in local demo mode.",
     "demoModeLink": "See how to run it in the README",
-    "suggestion1": "Welding helmet",
+    "suggestion1": "Which is the cheapest glove?",
     "suggestion2": "How does shipping work?",
-    "suggestion3": "What is the minimum order?",
+    "suggestion3": "Which are the cheapest goggles?",
     "errors": {
       "rateLimited": "Too many messages. Try again in {seconds}s.",
       "unavailable": "The assistant is unavailable right now.",

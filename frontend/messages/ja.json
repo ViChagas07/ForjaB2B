@@ -1004,9 +1004,9 @@
     "goToCatalog": "カタログへ",
     "demoMode": "AIアシスタントはローカルデモモードで利用できます。",
     "demoModeLink": "実行方法はREADMEへ",
-    "suggestion1": "溶接用ヘルメット",
+    "suggestion1": "一番安い手袋はどれですか?",
     "suggestion2": "送料はどう計算されますか？",
-    "suggestion3": "最小注文数は？",
+    "suggestion3": "一番安いゴーグルはどれですか?",
     "errors": {
       "rateLimited": "メッセージが多すぎます。{seconds}秒後にお試しください。",
       "unavailable": "アシスタントは現在利用できません。",
