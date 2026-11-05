@@ -50,9 +50,11 @@
   `docs/agent/store-eval-catalog-ops-api.json`.
 - **LM Studio real: BLOQUEADO** — o Docker Desktop caiu durante a sessao; apos
   religar, o LM Studio nao estava escutando em `:1235` e a RAM livre voltou a
-  0,63 GB. O script abortou no preflight (`store-eval-real-unavailable.txt`), sem
-  chamar o modelo. Latencia real por etapa ainda nao medida; a API deterministic
-  respondeu em <1 s para as operacoes de catalogo.
+  0,63 GB. O script abortou no preflight (  `store-eval-real-unavailable.txt`), sem
+  chamar o modelo. Latencia real por etapa ainda nao medida. Na API real, as
+  consultas SQL de visao geral/contagem responderam em ~60-100 ms; buscas que
+  dependem do Elasticsearch ausente (marca/produto/faixa) levaram ~2-4 s no
+  fallback Postgres.
 - **Testes**: 523 testes de IA/seguranca passaram; 136 casos offline passaram;
   ruff e mypy --strict limpos nos arquivos alterados (exceto avisos antigos ja
   listados). A API real deterministica respondeu 12/12 casos de catalogo.
