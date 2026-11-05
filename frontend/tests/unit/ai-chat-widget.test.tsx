@@ -14,6 +14,7 @@ import { ApiError } from "@/infrastructure/http/errors";
 const pushMock = vi.fn();
 const sendChatMessageMock = vi.fn();
 const getLlmHealthMock = vi.fn();
+const { pathnameMock } = vi.hoisted(() => ({ pathnameMock: vi.fn(() => "/") }));
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
@@ -31,6 +32,7 @@ vi.mock("@/i18n/navigation", () => ({
     </a>
   ),
   useRouter: () => ({ push: pushMock, replace: vi.fn(), refresh: vi.fn() }),
+  usePathname: pathnameMock,
 }));
 
 vi.mock("@/infrastructure/http", async (importOriginal) => {
@@ -78,12 +80,16 @@ const messages = JSON.parse(
   readFileSync(join(process.cwd(), "messages", "pt-BR.json"), "utf-8"),
 ) as AbstractIntlMessages;
 
-function renderWidget() {
-  return render(
-    <NextIntlClientProvider locale="pt-BR" messages={messages}>
+function widgetTree(locale = "pt-BR") {
+  return (
+    <NextIntlClientProvider locale={locale} messages={messages}>
       <AiChatWidget />
-    </NextIntlClientProvider>,
+    </NextIntlClientProvider>
   );
+}
+
+function renderWidget(locale = "pt-BR") {
+  return render(widgetTree(locale));
 }
 
 const CARD = {
@@ -105,6 +111,7 @@ beforeEach(() => {
   pushMock.mockReset();
   sendChatMessageMock.mockReset();
   getLlmHealthMock.mockReset();
+  pathnameMock.mockReturnValue("/");
   getLlmHealthMock.mockResolvedValue({ available: true, enabled: true, model: "qwen/qwen3.5-9b" });
 });
 
@@ -283,4 +290,74 @@ it("aplica lang/dir e rotulos japoneses na bolha em site pt-BR", async () => {
   expect(screen.getByTestId("ai-chat-cards").getAttribute("dir")).toBe("ltr");
   expect(screen.getByText(/価格はお問い合わせください/)).toBeTruthy();
   expect(screen.getByRole("link", { name: "商品を見る" })).toBeTruthy();
+});
+
+describe("fechamento por clique fora e reset de conversa", () => {
+  function seedConversation() {
+    useAiChatStore.setState({
+      conversationId: "conv-1",
+      messages: [{ id: "1", role: "user", text: "oi" }],
+      pending: true,
+    });
+  }
+
+  it("fecha ao clicar fora e mantem aberto ao clicar dentro", () => {
+    openWidget();
+    fireEvent.pointerDown(screen.getByTestId("ai-chat-log"));
+    expect(screen.getByTestId("ai-chat-panel")).toBeTruthy();
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByTestId("ai-chat-panel")).toBeNull();
+  });
+
+  it("limpa a conversa ao esconder a aba do navegador", async () => {
+    openWidget();
+    seedConversation();
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+    await waitFor(() => {
+      expect(useAiChatStore.getState().messages).toHaveLength(0);
+      expect(useAiChatStore.getState().conversationId).toBeNull();
+      expect(useAiChatStore.getState().pending).toBe(false);
+    });
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "visible",
+    });
+  });
+
+  it("limpa a conversa no pagehide (refresh/navegacao)", async () => {
+    openWidget();
+    seedConversation();
+    window.dispatchEvent(new Event("pagehide"));
+    await waitFor(() => {
+      expect(useAiChatStore.getState().messages).toHaveLength(0);
+      expect(useAiChatStore.getState().conversationId).toBeNull();
+    });
+  });
+
+  it("limpa a conversa quando o idioma muda", async () => {
+    const view = renderWidget();
+    fireEvent.click(screen.getByTestId("ai-chat-trigger"));
+    seedConversation();
+    view.rerender(widgetTree("en"));
+    await waitFor(() => {
+      expect(useAiChatStore.getState().messages).toHaveLength(0);
+      expect(useAiChatStore.getState().conversationId).toBeNull();
+    });
+  });
+
+  it("limpa a conversa quando o pathname/aba muda", async () => {
+    const view = renderWidget();
+    fireEvent.click(screen.getByTestId("ai-chat-trigger"));
+    seedConversation();
+    pathnameMock.mockReturnValue("/catalog");
+    view.rerender(widgetTree());
+    await waitFor(() => {
+      expect(useAiChatStore.getState().messages).toHaveLength(0);
+      expect(useAiChatStore.getState().conversationId).toBeNull();
+    });
+  });
 });

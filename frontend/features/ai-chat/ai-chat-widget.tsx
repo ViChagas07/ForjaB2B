@@ -9,7 +9,7 @@ import { useAuthStore } from "@/shared/stores/auth-store";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 import { defaultLocale, directionForLocale, isLocale, type Locale } from "@/i18n/locales";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { ApiError, getLlmHealth, sendChatMessage, type LlmHealth } from "@/infrastructure/http";
 
 import { CHAT_CARD_MESSAGES } from "./card-messages";
@@ -34,6 +34,7 @@ type ChatError = "rateLimited" | "unavailable" | "timeout" | "generic";
 export function AiChatWidget() {
   const t = useTranslations("aiChat");
   const locale = useLocale();
+  const pathname = usePathname();
   const siteLocale: Locale = isLocale(locale) ? locale : defaultLocale;
   const status = useAuthStore((s) => s.status);
   const session = useAuthStore((s) => s.session);
@@ -59,8 +60,11 @@ export function AiChatWidget() {
   const [llmHealth, setLlmHealth] = React.useState<LlmHealth | null>(null);
   const [degraded, setDegraded] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const abortRef = React.useRef<AbortController | null>(null);
+  const previousLocaleRef = React.useRef(siteLocale);
+  const previousPathnameRef = React.useRef(pathname);
 
   const cooldownSeconds = cooldownUntil ? Math.max(0, Math.ceil((cooldownUntil - now) / 1000)) : 0;
   const isCoolingDown = cooldownSeconds > 0;
@@ -68,11 +72,51 @@ export function AiChatWidget() {
     !pending && !isCoolingDown && draft.trim().length > 0 && draft.length <= MAX_CHARS;
   const demoMode = degraded || (llmHealth !== null && !llmHealth.available);
 
+  const resetConversation = React.useCallback(() => {
+    abortRef.current?.abort();
+    newConversation();
+    setError(null);
+    setDraft("");
+    setDegraded(false);
+  }, [newConversation]);
+
   React.useEffect(() => {
     if (!cooldownUntil) return;
     const timer = window.setInterval(() => setNow(Date.now()), 500);
     return () => window.clearInterval(timer);
   }, [cooldownUntil]);
+
+  React.useEffect(() => {
+    if (previousLocaleRef.current === siteLocale) return;
+    previousLocaleRef.current = siteLocale;
+    resetConversation();
+  }, [siteLocale, resetConversation]);
+
+  React.useEffect(() => {
+    if (previousPathnameRef.current === pathname) return;
+    previousPathnameRef.current = pathname;
+    resetConversation();
+  }, [pathname, resetConversation]);
+
+  React.useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") resetConversation();
+    }
+    function onPageHide() {
+      resetConversation();
+    }
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) resetConversation();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [resetConversation]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -107,6 +151,19 @@ export function AiChatWidget() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, close]);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
+      abortRef.current?.abort();
+      close();
+    }
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [isOpen, close]);
+
   async function submit(rawMessage: string) {
     const message = rawMessage.trim();
     if (!message || pending || isCoolingDown) return;
@@ -129,6 +186,7 @@ export function AiChatWidget() {
         accessToken: status === "authenticated" ? session?.access_token : null,
         signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       const responseLanguage: Locale =
         typeof response.language === "string" && isLocale(response.language)
           ? response.language
@@ -180,11 +238,7 @@ export function AiChatWidget() {
   }
 
   function handleNewConversation() {
-    abortRef.current?.abort();
-    newConversation();
-    setError(null);
-    setDraft("");
-    setDegraded(false);
+    resetConversation();
     void getLlmHealth(true).then(setLlmHealth);
     inputRef.current?.focus();
   }
@@ -214,6 +268,7 @@ export function AiChatWidget() {
         ? createPortal(
             <div
               id="ai-chat-panel"
+              ref={panelRef}
               data-testid="ai-chat-panel"
               className={cn(
                 "fixed z-[60] flex flex-col overflow-hidden rounded-2xl border border-border",

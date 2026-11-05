@@ -38,8 +38,9 @@ interface AiChatState {
 /**
  * Estado do widget de chat em memória (zustand). Nada é persistido:
  * `conversation_id` vive só no processo do navegador e é descartado ao
- * recarregar a página (decisão do projeto). O histórico canônico fica no
- * backend, sempre escopado por dono/tenant.
+ * recarregar, trocar de aba/rota ou trocar de idioma (o widget reinicia uma
+ * conversa). O histórico canônico fica no backend, sempre escopado por
+ * dono/tenant.
  */
 export const useAiChatStore = create<AiChatState>((set) => ({
   isOpen: false,
