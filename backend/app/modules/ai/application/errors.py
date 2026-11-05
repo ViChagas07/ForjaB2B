@@ -11,7 +11,16 @@ from __future__ import annotations
 
 
 class LLMUnavailableError(RuntimeError):
-    """LLM indisponivel ou falho apos esgotadas as tentativas."""
+    """LLM indisponivel ou falho apos esgotadas as tentativas.
+
+    `kind` e um codigo estavel para log/telemetria (connection_refused,
+    timeout, http_4xx, http_5xx, empty_response, reasoning_only, invalid_json,
+    schema_mismatch, queue_full). Nunca contem prompt/resposta.
+    """
+
+    def __init__(self, message: str, *, kind: str | None = None) -> None:
+        super().__init__(message)
+        self.kind = kind or message
 
 
 class LLMQueueFullError(LLMUnavailableError):

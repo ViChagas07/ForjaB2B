@@ -1,9 +1,11 @@
 """Probe leve do LLM local para `GET /health/llm` (nunca afeta `/health`).
 
 Faz GET em `{base_url}/models` com timeout curto, verifica se o modelo
-configurado esta carregado e cacheia o resultado por ~30 s para nao gerar
-carga na GPU a cada abertura do chat. Qualquer falha vira `available=False`;
-o probe nunca levanta excecao e nunca bloqueia o readiness da aplicacao.
+configurado esta carregado e, opcionalmente, valida uma geracao minima real
+(para nao reportar "available" quando o modelo lista mas nao responde). O
+resultado e cacheado por ~30 s para nao gerar carga na GPU a cada abertura do
+chat. Qualquer falha vira `available=False`; o probe nunca levanta excecao e
+nunca bloqueia o readiness da aplicacao.
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ class LLMHealthProbe:
         cache_seconds: float = 30.0,
         clock: Callable[[], float] = time.monotonic,
         fetch_model_ids: Callable[[], Awaitable[set[str]]] | None = None,
+        fetch_generation: Callable[[], Awaitable[bool]] | None = None,
     ) -> None:
         self._enabled = enabled
         self._base_url = (base_url or "").rstrip("/")
@@ -43,6 +46,7 @@ class LLMHealthProbe:
         self._cache_seconds = cache_seconds
         self._clock = clock
         self._fetch_model_ids = fetch_model_ids or self._default_fetch
+        self._fetch_generation = fetch_generation
         self._cached: LLMHealthResult | None = None
         self._cached_at = 0.0
 
@@ -56,6 +60,8 @@ class LLMHealthProbe:
         try:
             model_ids = await self._fetch_model_ids()
             available = self._model in model_ids
+            if available and self._fetch_generation is not None:
+                available = bool(await self._fetch_generation())
         except Exception:  # noqa: BLE001 - probe nunca derruba a rota
             available = False
         result = LLMHealthResult(available=available, enabled=True, model=self._model)

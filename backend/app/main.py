@@ -90,7 +90,7 @@ from app.modules.ai.infrastructure.chat_repository import SqlAlchemyConversation
 from app.modules.ai.infrastructure.chat_session import RedisChatSessionStore
 from app.modules.ai.infrastructure.language_detector import LangidLanguageDetector
 from app.modules.ai.infrastructure.llm_health import LLMHealthProbe
-from app.modules.ai.infrastructure.llm_openai import build_resilient_llm
+from app.modules.ai.infrastructure.llm_openai import build_resilient_llm, strip_reasoning
 from app.modules.cart.application.cart import CartService
 from app.modules.cart.infrastructure.repository import SqlAlchemyCartRepository
 from app.modules.catalog.application.catalog import (
@@ -703,12 +703,31 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
     endpoint responde 503 neutro e nenhum custo e gerado).
     """
     ai_llm = build_resilient_llm(settings)
+
+    async def probe_llm_generation() -> bool:
+        """Completion minima real; cacheada pelo probe (nao roda por request)."""
+        if ai_llm is None:
+            return False
+        try:
+            text = await asyncio.wait_for(
+                ai_llm.complete_text(
+                    messages=[{"role": "user", "content": "Responda apenas: ok"}],
+                    temperature=0.0,
+                    max_tokens=32,
+                ),
+                timeout=max(10.0, settings.llm_health_timeout_seconds),
+            )
+        except Exception:  # noqa: BLE001 - health nunca deve retornar 500
+            return False
+        return bool(strip_reasoning(text).strip())
+
     app.state.llm_health_probe = LLMHealthProbe(
         enabled=settings.ai_agents_enabled and settings.llm_enabled,
         base_url=settings.llm_base_url,
         model=settings.llm_model,
         timeout_seconds=settings.llm_health_timeout_seconds,
         cache_seconds=settings.llm_health_cache_seconds,
+        fetch_generation=probe_llm_generation,
     )
     ai_tools, ai_cards = build_ai_catalog_wiring(
         search_products=app.state.search_products,
@@ -749,6 +768,9 @@ def _compose_ai_chat(app: FastAPI, settings: Settings) -> None:
             prompt_version=settings.ai_chat_prompt_version,
             max_tokens_cap=settings.llm_max_tokens,
             max_tokens_overrides=settings.ai_chat_max_tokens_by_language,
+            router_timeout_seconds=settings.llm_router_timeout_s,
+            answer_timeout_seconds=settings.llm_answer_timeout_s,
+            regeneration_timeout_seconds=settings.llm_regeneration_timeout_s,
         ),
     )
     app.state.ai_token_budget = InMemoryDailyTokenBudget(

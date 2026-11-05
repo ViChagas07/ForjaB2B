@@ -66,6 +66,12 @@ _COMPARE = re.compile(
     r"이것들을 비교|이 두 개|"
     r"比较这些|这两个)"
 )
+_STOCK_FOLLOWUP = re.compile(
+    r"(?i)(?:^|\b)(?:tem|t[eê]m|has|have|hay|tienen|haben|avez|avete|есть)\b"
+    r".*(?:\bestoque\b|\bstock\b|dispon[ií]vel|available|disponible|verf[uü]gbar|"
+    r"disponibile|в\s+наличии|متوفر|在庫|재고|有货|有貨)"
+    r"|^(?:em\s+estoque|in\s+stock|en\s+stock|auf\s+lager)\s*\??$"
+)
 _FOLLOW_PREFIX = re.compile(
     r"(?i)^(?:[¿¡]?\s*)?(?:e|e a|e o|y|and|und|et|ed|и|а|و|agora|entao|então|"
     r"ahora|entonces|now|then|maintenant|alors|jetzt|dann|adesso|allora|"
@@ -201,7 +207,21 @@ def follow_up_decision(
     size = _size(message)
     is_more = bool(_MORE.search(message))
     is_compare = bool(_COMPARE.search(message))
+    is_stock = bool(_STOCK_FOLLOWUP.search(message))
     attributes = dict(session.attributes)
+    if is_stock and session.query:
+        return IntentDecision(
+            intent=IntentName.AVAILABILITY,
+            query=session.query,
+            query_pt=session.query_pt,
+            query_en=session.query_en,
+            category=session.category,
+            brand=session.brand,
+            attributes=attributes,
+            task=find_task(session.task) if session.task else None,
+            language=reply_language,
+            availability_check=True,
+        )
     if size is not None:
         attributes["tamanho"] = size
     intent = base_intent
@@ -293,6 +313,7 @@ def _is_follow_up(message: str) -> bool:
         or _COMPARE.search(message)
         or _size(message) is not None
         or price_words is not None
+        or _STOCK_FOLLOWUP.search(message) is not None
     )
 
 

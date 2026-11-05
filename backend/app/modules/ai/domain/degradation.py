@@ -1,8 +1,9 @@
+# ruff: noqa: RUF001 - vocabulario intencional em cirilico/arabe/japones/coreano/chines
 """Mensagem amigavel de degradacao do assistente (11 locales).
 
 Usada quando o LLM local esta desligado, sem LM Studio ou falhou. Nunca
 substitui a resposta neutra de seguranca (bloqueio/off-topic): e apenas o
-aviso de "modo demonstracao", acompanhado dos cartoes deterministicos que o
+aviso de "modo catalogo", acompanhado dos cartoes deterministicos que o
 backend conseguir montar. Texto puro, sem HTML/links.
 """
 
@@ -50,7 +51,7 @@ _DEMO_MODE: dict[str, str] = {
     ),
     "ru": (
         "ИИ-ассистент работает в локальном демо-режиме. "
-        "В README описано, как запустить модель в LM Studio."  # noqa: RUF001
+        "В README описано, как запустить модель в LM Studio."
     ),
     "zh-CN": "AI 助手当前处于本地演示模式。请参阅 README 了解如何使用 LM Studio 运行模型。",
 }
@@ -61,6 +62,163 @@ def demo_mode_response(locale: Locale) -> str:
     return _DEMO_MODE.get(locale.value, _DEMO_MODE["pt-BR"])
 
 
+_CATALOG_MODE: dict[str, str] = {
+    "pt-BR": (
+        "Assistente em modo catálogo: posso mostrar produtos, preços e "
+        "informações da loja."
+    ),
+    "en": "Assistant in catalog mode: I can show products, prices and store information.",
+    "es": (
+        "Asistente en modo catálogo: puedo mostrar productos, precios e "
+        "información de la tienda."
+    ),
+    "ar": "المساعد في وضع الكتالوج: يمكنني عرض المنتجات والأسعار ومعلومات المتجر.",
+    "de": (
+        "Assistent im Katalogmodus: Ich kann Produkte, Preise und Informationen "
+        "zum Shop anzeigen."
+    ),
+    "fr": (
+        "Assistant en mode catalogue : je peux afficher les produits, les prix "
+        "et les informations de la boutique."
+    ),
+    "it": (
+        "Assistente in modalità catalogo: posso mostrare prodotti, prezzi e "
+        "informazioni del negozio."
+    ),
+    "ja": "アシスタントはカタログモードです。商品、価格、ストア情報を表示できます。",
+    "ko": "어시스턴트가 카탈로그 모드입니다. 제품, 가격 및 스토어 정보를 보여드릴 수 있습니다.",
+    "ru": "Ассистент в режиме каталога: я могу показать товары, цены и информацию о магазине.",
+    "zh-CN": "助手处于目录模式：我可以显示产品、价格和商店信息。",
+}
+
+_CATALOG_RESULTS: dict[str, str] = {
+    "pt-BR": "Encontrei estas opções no catálogo:",
+    "en": "I found these options in the catalog:",
+    "es": "Encontré estas opciones en el catálogo:",
+    "ar": "وجدت هذه الخيارات في الكتالوج:",
+    "de": "Ich habe diese Optionen im Katalog gefunden:",
+    "fr": "J'ai trouvé ces options dans le catalogue :",
+    "it": "Ho trovato queste opzioni nel catalogo:",
+    "ja": "カタログで次のオプションが見つかりました:",
+    "ko": "카탈로그에서 다음 옵션을 찾았습니다:",
+    "ru": "Я нашёл такие варианты в каталоге:",
+    "zh-CN": "我在目录中找到了这些选项：",
+}
+
+_MORE_RESULTS: dict[str, str] = {
+    "pt-BR": "Aqui estão mais opções do catálogo:",
+    "en": "Here are more catalog options:",
+    "es": "Aquí hay más opciones del catálogo:",
+    "ar": "إليك المزيد من خيارات الكتالوج:",
+    "de": "Hier sind weitere Katalogoptionen:",
+    "fr": "Voici d'autres options du catalogue :",
+    "it": "Ecco altre opzioni del catalogo:",
+    "ja": "カタログの他のオプションです:",
+    "ko": "카탈로그의 추가 옵션입니다:",
+    "ru": "Вот ещё варианты из каталога:",
+    "zh-CN": "以下是目录中的更多选项：",
+}
+
+_EXISTENCE_FOUND: dict[str, str] = {
+    "pt-BR": "Sim, encontrei estas opções:",
+    "en": "Yes, I found these options:",
+    "es": "Sí, encontré estas opciones:",
+    "ar": "نعم، وجدت هذه الخيارات:",
+    "de": "Ja, ich habe diese Optionen gefunden:",
+    "fr": "Oui, j'ai trouvé ces options :",
+    "it": "Sì, ho trovato queste opzioni:",
+    "ja": "はい、次のオプションが見つかりました:",
+    "ko": "네, 다음 옵션을 찾았습니다:",
+    "ru": "Да, я нашёл такие варианты:",
+    "zh-CN": "是的，我找到了这些选项：",
+}
+
+_EXISTENCE_NEAR: dict[str, str] = {
+    "pt-BR": "Não encontrei exatamente esse produto, mas encontrei estas opções próximas:",
+    "en": "I could not find that exact product, but I found these close options:",
+    "es": "No encontré exactamente ese producto, pero encontré estas opciones cercanas:",
+    "ar": "لم أجد هذا المنتج بالتحديد، لكن وجدت هذه الخيارات المشابهة:",
+    "de": "Ich konnte das genaue Produkt nicht finden, aber diese ähnlichen Optionen:",
+    "fr": "Je n'ai pas trouvé ce produit exactement, mais voici des options proches :",
+    "it": "Non ho trovato esattamente quel prodotto, ma queste opzioni simili:",
+    "ja": "その商品は正確には見つかりませんでしたが、近いオプションがあります:",
+    "ko": "해당 제품을 정확히 찾지 못했지만 비슷한 옵션을 찾았습니다:",
+    "ru": "Точно такой товар не нашёл, но вот похожие варианты:",
+    "zh-CN": "没有找到完全匹配的产品，但找到了这些相近选项：",
+}
+
+_EXISTENCE_NOT_FOUND: dict[str, str] = {
+    "pt-BR": "Não encontrei esse produto no catálogo.",
+    "en": "I could not find that product in the catalog.",
+    "es": "No encontré ese producto en el catálogo.",
+    "ar": "لم أجد هذا المنتج في الكتالوج.",
+    "de": "Ich konnte dieses Produkt nicht im Katalog finden.",
+    "fr": "Je n'ai pas trouvé ce produit dans le catalogue.",
+    "it": "Non ho trovato questo prodotto nel catalogo.",
+    "ja": "その商品はカタログに見つかりませんでした。",
+    "ko": "해당 제품을 카탈로그에서 찾지 못했습니다.",
+    "ru": "Я не нашёл этот товар в каталоге.",
+    "zh-CN": "目录中没有找到该产品。",
+}
+
+_EXISTENCE_CATEGORIES: dict[str, str] = {
+    "pt-BR": "Categorias disponíveis: {categories}.",
+    "en": "Available categories: {categories}.",
+    "es": "Categorías disponibles: {categories}.",
+    "ar": "الفئات المتاحة: {categories}.",
+    "de": "Verfügbare Kategorien: {categories}.",
+    "fr": "Catégories disponibles : {categories}.",
+    "it": "Categorie disponibili: {categories}.",
+    "ja": "利用可能なカテゴリ: {categories}。",
+    "ko": "사용 가능한 카테고리: {categories}.",
+    "ru": "Доступные категории: {categories}.",
+    "zh-CN": "可用类别：{categories}。",
+}
+
+_EXISTENCE_INVITE: dict[str, str] = {
+    "pt-BR": "Descreva o que você precisa e eu ajudo a encontrar uma alternativa.",
+    "en": "Tell me what you need and I can help find an alternative.",
+    "es": "Cuéntame qué necesitas y te ayudo a encontrar una alternativa.",
+    "ar": "صف ما تحتاجه وسأساعدك في إيجاد بديل.",
+    "de": "Beschreiben Sie, was Sie brauchen, und ich helfe bei einer Alternative.",
+    "fr": "Décrivez ce dont vous avez besoin et je vous aide à trouver une alternative.",
+    "it": "Descrivi cosa ti serve e ti aiuto a trovare un'alternativa.",
+    "ja": "必要なものを教えていただければ、代替品探しをお手伝いします。",
+    "ko": "필요한 것을 설명해 주시면 대안을 찾아드리겠습니다.",
+    "ru": "Опишите, что вам нужно, и я помогу найти альтернативу.",
+    "zh-CN": "请描述您的需求，我可以帮您寻找替代品。",
+}
+
+
+def catalog_mode_response(locale: Locale) -> str:
+    return _CATALOG_MODE.get(locale.value, _CATALOG_MODE["pt-BR"])
+
+
+def catalog_results_response(locale: Locale) -> str:
+    return _CATALOG_RESULTS.get(locale.value, _CATALOG_RESULTS["pt-BR"])
+
+
+def more_results_response(locale: Locale) -> str:
+    return _MORE_RESULTS.get(locale.value, _MORE_RESULTS["pt-BR"])
+
+
+def existence_found_response(locale: Locale) -> str:
+    return _EXISTENCE_FOUND.get(locale.value, _EXISTENCE_FOUND["pt-BR"])
+
+
+def existence_near_response(locale: Locale) -> str:
+    return _EXISTENCE_NEAR.get(locale.value, _EXISTENCE_NEAR["pt-BR"])
+
+
+def existence_not_found_response(locale: Locale, *, categories: tuple[str, ...] = ()) -> str:
+    parts = [_EXISTENCE_NOT_FOUND.get(locale.value, _EXISTENCE_NOT_FOUND["pt-BR"])]
+    if categories:
+        template = _EXISTENCE_CATEGORIES.get(locale.value, _EXISTENCE_CATEGORIES["pt-BR"])
+        parts.append(template.format(categories=", ".join(categories[:3])))
+    parts.append(_EXISTENCE_INVITE.get(locale.value, _EXISTENCE_INVITE["pt-BR"]))
+    return " ".join(parts)
+
+
 _GREETING: dict[str, str] = {
     "pt-BR": "Olá! Como posso ajudar com o catálogo Forja?",
     "en": "Hello! How can I help you with the Forja catalog?",
@@ -69,10 +227,10 @@ _GREETING: dict[str, str] = {
     "de": "Hallo! Wie kann ich Ihnen mit dem Forja-Katalog helfen?",
     "fr": "Bonjour ! Comment puis-je vous aider avec le catalogue Forja ?",
     "it": "Ciao! Come posso aiutarti con il catalogo Forja?",
-    "ja": "こんにちは！Forjaカタログについてお手伝いできますか？",  # noqa: RUF001
+    "ja": "こんにちは！Forjaカタログについてお手伝いできますか？",
     "ko": "안녕하세요! Forja 카탈로그에서 무엇을 도와드릴까요?",
     "ru": "Здравствуйте! Чем я могу помочь по каталогу Forja?",
-    "zh-CN": "您好！我能帮您了解 Forja 目录吗？",  # noqa: RUF001
+    "zh-CN": "您好！我能帮您了解 Forja 目录吗？",
 }
 
 _INFO: dict[str, str] = {
@@ -107,9 +265,9 @@ _INFO: dict[str, str] = {
     "ko": ("상업 조건, 주문 또는 정책은 계정에 로그인하거나 Forja 팀에 문의하세요."),
     "ru": (
         "По коммерческим условиям, заказам или правилам войдите в аккаунт или "
-        "свяжитесь с командой Forja."  # noqa: RUF001
+        "свяжитесь с командой Forja."
     ),
-    "zh-CN": "有关商业条款、订单或政策，请登录账户或联系 Forja 团队。",  # noqa: RUF001
+    "zh-CN": "有关商业条款、订单或政策，请登录账户或联系 Forja 团队。",
 }
 
 _PRICE_ASC: dict[str, str] = {
@@ -167,7 +325,7 @@ _PRICE_VISITOR_NOTE: dict[str, str] = {
         "Цены для посетителей предоставляются по запросу; войдите, чтобы увидеть "
         "цену вашей компании."
     ),
-    "zh-CN": "访客价格需咨询；登录后可查看贵司价格。",  # noqa: RUF001
+    "zh-CN": "访客价格需咨询；登录后可查看贵司价格。",
 }
 
 
@@ -244,7 +402,7 @@ _NOT_FOUND: dict[str, str] = {
     "it": "Non ho trovato quell'ordine nel tuo account.",
     "ja": "その注文はアカウント内に見つかりませんでした。",
     "ko": "해당 주문을 계정에서 찾을 수 없습니다.",
-    "ru": "Не удалось найти этот заказ в вашем аккаунте.",  # noqa: RUF001
+    "ru": "Не удалось найти этот заказ в вашем аккаунте.",
     "zh-CN": "未在您的账户中找到该订单。",
 }
 
@@ -272,8 +430,8 @@ _TOOL_ERROR: dict[str, str] = {
     "it": "Non sono riuscito a verificare ora. Riprova tra poco.",
     "ja": "今は確認できませんでした。しばらくしてからもう一度お試しください。",
     "ko": "지금은 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.",
-    "ru": "Не удалось проверить сейчас. Повторите попытку чуть позже.",  # noqa: RUF001
-    "zh-CN": "现在无法查询，请稍后重试。",  # noqa: RUF001
+    "ru": "Не удалось проверить сейчас. Повторите попытку чуть позже.",
+    "zh-CN": "现在无法查询，请稍后重试。",
 }
 
 
@@ -420,7 +578,7 @@ _PRICE_UNVERIFIED: dict[str, str] = {
     ),
     "ja": "この回答の値を確認できませんでした。正しい価格は下のカードをご覧ください。",
     "ko": "이 답변의 값을 확인할 수 없습니다. 올바른 가격은 아래 카드를 확인하세요.",
-    "ru": "Не удалось проверить значения в этом ответе. Правильные цены указаны в карточках ниже.",  # noqa: RUF001
+    "ru": "Не удалось проверить значения в этом ответе. Правильные цены указаны в карточках ниже.",
     "zh-CN": "无法验证此回答中的数值。正确价格请查看下方卡片。",
 }
 
@@ -439,7 +597,7 @@ _GROUNDING_FALLBACK: dict[str, str] = {
     "it": "Non ho potuto validare i dettagli di questa risposta. Vedi le schede qui sotto.",
     "ja": "この回答の詳細を確認できませんでした。下のカードをご覧ください。",
     "ko": "이 답변의 세부 정보를 확인할 수 없습니다. 아래 카드를 확인하세요.",
-    "ru": "Не удалось проверить детали этого ответа. См. карточки ниже.",  # noqa: RUF001
+    "ru": "Не удалось проверить детали этого ответа. См. карточки ниже.",
     "zh-CN": "无法验证此回答的详细信息。请查看下方卡片。",
 }
 
@@ -470,7 +628,7 @@ _PRICE_ACCESS: dict[str, str] = {
     "ja": "価格を比較して最も安いオプションを確認するには、企業アカウントでログインしてください。",
     "ko": "가격을 비교하고 가장 저렴한 옵션을 확인하려면 회사 계정으로 로그인하세요.",
     "ru": "Чтобы сравнить цены и увидеть самый доступный вариант, войдите в корпоративный аккаунт.",
-    "zh-CN": "要比较价格并查看最便宜的选项，请使用企业账户登录。",  # noqa: RUF001
+    "zh-CN": "要比较价格并查看最便宜的选项，请使用企业账户登录。",
 }
 
 

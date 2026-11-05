@@ -22,6 +22,7 @@ from app.application.rate_limit import (
 from app.application.security import AuthContext
 from app.core.config import Settings
 from app.core.errors import RateLimitExceededError
+from app.core.logging import get_logger
 from app.core.request_context import client_ip
 from app.interface.deps import ChatLocaleInfo, get_chat_locale, get_optional_auth
 from app.modules.ai.application.chat import ChatResult, ChatService
@@ -34,6 +35,7 @@ from app.modules.ai.interface.schemas import ChatRequest, ChatResponse, card_to_
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 _BUDGET_RETRY_AFTER_SECONDS = 3600
+_logger = get_logger(__name__)
 
 
 def _chat_service(request: Request) -> ChatService:
@@ -121,14 +123,20 @@ async def chat(
         if auth is not None
         else ConversationScope(company_id=None, user_id=None)
     )
-    result: ChatResult | None = await use_case.handle(
-        conversation_id=payload.conversation_id,
-        scope=scope,
-        site_locale=chat_locale.reply_language,
-        content_locale=chat_locale.content_locale,
-        message=payload.message,
-        auth=auth,
-    )
+    try:
+        result: ChatResult | None = await use_case.handle(
+            conversation_id=payload.conversation_id,
+            scope=scope,
+            site_locale=chat_locale.reply_language,
+            content_locale=chat_locale.content_locale,
+            message=payload.message,
+            auth=auth,
+        )
+    except Exception as exc:
+        _logger.exception("chat_request_failed", error_type=type(exc).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=neutral
+        ) from exc
     if result is None:
         # Inexistente OU fora do escopo: mesma resposta, sem vazar existencia.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=neutral)

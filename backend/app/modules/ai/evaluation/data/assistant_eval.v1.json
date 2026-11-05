@@ -231,8 +231,7 @@
       "locale": "pt-BR",
       "message": "como funciona o pagamento B2B com CNPJ?",
       "expected": {
-        "intent": "out_of_scope",
-        "refusal": true
+        "intent": "policy_faq"
       }
     },
     {

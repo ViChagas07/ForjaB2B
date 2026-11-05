@@ -129,8 +129,13 @@ class ResilientLLM:
                     continue
             except Exception as exc:
                 # Nao-transitoria (ex.: saida invalida): converte sem retry.
-                raise LLMUnavailableError("llm_failed") from exc
-        raise LLMUnavailableError("llm_unavailable_after_retries") from last_error
+                raise LLMUnavailableError(
+                    "llm_failed", kind=str(getattr(exc, "kind", "") or "unexpected")
+                ) from exc
+        raise LLMUnavailableError(
+            "llm_unavailable_after_retries",
+            kind=str(getattr(last_error, "kind", "") or "llm_unavailable_after_retries"),
+        ) from last_error
 
 
 class ConcurrencyLimitedLLM:

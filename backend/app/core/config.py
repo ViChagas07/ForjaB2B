@@ -403,6 +403,31 @@ class Settings(BaseSettings):
         gt=0,
         validation_alias=AliasChoices("llm_timeout_seconds", "llm_timeout_s"),
     )
+    # Timeouts por ETAPA do chat (o timeout do adaptador e o teto global).
+    llm_router_timeout_s: float = Field(
+        default=20.0,
+        gt=0,
+        le=120,
+        validation_alias=AliasChoices(
+            "llm_router_timeout_seconds", "llm_router_timeout_s"
+        ),
+    )
+    llm_answer_timeout_s: float = Field(
+        default=60.0,
+        gt=0,
+        le=180,
+        validation_alias=AliasChoices(
+            "llm_answer_timeout_seconds", "llm_answer_timeout_s"
+        ),
+    )
+    llm_regeneration_timeout_s: float = Field(
+        default=20.0,
+        gt=0,
+        le=120,
+        validation_alias=AliasChoices(
+            "llm_regeneration_timeout_seconds", "llm_regeneration_timeout_s"
+        ),
+    )
     llm_max_tokens: int = Field(default=512, ge=1)
     # GPU pequena: UMA requisicao simultanea e fila curta. Quando a fila
     # enche, a chamada falha rapido e o chamador degrada (nunca pendura).

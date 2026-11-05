@@ -14,13 +14,18 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from app.core.logging import get_logger
 from app.modules.ai.application.chat_graph import ChatGraph
 from app.modules.ai.application.conversation_service import (
     ConversationScope,
     ConversationService,
 )
 from app.modules.ai.application.product_cards import ProductCard
+from app.modules.ai.domain.degradation import catalog_mode_response
 from app.modules.ai.domain.language import LanguageDetectorPort, resolve_reply_language
+from app.modules.ai.domain.types import resolve_locale
+
+_logger = get_logger(__name__)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -72,14 +77,30 @@ class ChatService:
             conversation_language=conversation.conversation_language,
             site_locale=site_locale,
         )
-        outcome = await self._graph.run(
-            conversation=conversation,
-            reply_language=reply_language.language.value,
-            content_locale=content_locale,
-            message=message,
-            history=history,
-            auth=auth,
-        )
+        try:
+            outcome = await self._graph.run(
+                conversation=conversation,
+                reply_language=reply_language.language.value,
+                content_locale=content_locale,
+                message=message,
+                history=history,
+                auth=auth,
+            )
+        except Exception as exc:
+            # A causa real fica no log com request_id/trace_id; o usuario recebe
+            # uma resposta curta localizada e a conversa continua utilizavel.
+            _logger.exception(
+                "chat_graph_failed",
+                error_type=type(exc).__name__,
+                language=reply_language.language.value,
+            )
+            return ChatResult(
+                conversation_id=conversation.id,
+                reply=catalog_mode_response(resolve_locale(reply_language.language.value)),
+                product_cards=[],
+                language=reply_language.language.value,
+                degraded=True,
+            )
         return ChatResult(
             conversation_id=conversation.id,
             reply=outcome.reply,

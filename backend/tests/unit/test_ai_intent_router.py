@@ -98,7 +98,9 @@ def test_normalize_corrige_faixa_invertida() -> None:
         product_refs=[],
         quantity=None,
     )
-    normalized = normalize_decision(llm, message="luvas", reply_language="pt-BR")
+    normalized = normalize_decision(
+        llm, message="luvas entre 100 e 10 reais", reply_language="pt-BR"
+    )
     assert normalized.price_min == 10
     assert normalized.price_max == 100
 

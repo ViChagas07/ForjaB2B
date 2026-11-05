@@ -10,12 +10,15 @@ falhar, o fallback continua sendo `product_search` com o texto original.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.modules.ai.application.lexicon import (
+    EXISTENCE_PATTERNS,
+    EXISTENCE_REJECT_TERMS,
     INTENT_TERMS,
     PRICE_SORT_ASC,
     PRICE_SORT_DESC,
@@ -32,11 +35,13 @@ from app.modules.ai.application.money import (
     SUPPORTED_CURRENCIES,
     detect_currency,
     extract_price_filters,
+    has_price_context,
     strip_money_from_query,
 )
 from app.modules.ai.application.ports import ChatTurn, LLMMessage
 from app.modules.ai.application.query_normalization import normalize_query
 from app.modules.ai.application.security.prompt_builder import untrusted_block
+from app.modules.ai.domain.types import Locale
 
 MAX_QUERY_CHARS = 200
 MAX_ATTRIBUTES = 6
@@ -89,6 +94,9 @@ class IntentDecision(BaseModel):
     task: ConsultingTask | None = None
     offset: int = Field(default=0, ge=0, le=50)
     language: str = Field(default="pt-BR", max_length=10)
+    # True = pergunta de existencia ("tem X?", "do you have X?") resolvida por
+    # codigo: busca o produto e responde template localizado, sem LLM.
+    availability_check: bool = False
 
     @field_validator("task", mode="before")
     @classmethod
@@ -217,6 +225,72 @@ def deterministic_decision(message: str, *, reply_language: str) -> IntentDecisi
     return None
 
 
+_EXISTENCE_COMPILED: tuple[tuple[Locale, re.Pattern[str]], ...] = tuple(
+    (locale, re.compile(pattern, re.IGNORECASE))
+    for locale, patterns in EXISTENCE_PATTERNS.items()
+    for pattern in patterns
+)
+
+_EXISTENCE_TRAILING_NOISE = re.compile(
+    r"(?i)\s+(?:por\s+favor|please|bitte|s'il\s+vous\s+pla[iî]t|per\s+favore|"
+    r"пожалуйста|من\s+فضلك|お願いします|제발|请|請)[\s?!.]*$"
+)
+_EXISTENCE_LEADING_ARTICLE = re.compile(
+    r"(?i)^(?:a|o|as|os|um|uma|uns|umas|the|an|some|un|una|une|des|du|der|die|das|"
+    r"ein|eine|il|lo|la|i|gli|le|les|el|los|las)\s+"
+)
+
+
+def existence_decision(message: str, *, reply_language: str) -> IntentDecision | None:
+    """Pergunta de existencia/disponibilidade em QUALQUER dos 11 idiomas.
+
+    Retorna a consulta de produto ja limpa; o grafo busca e responde por
+    template localizado. Nunca deixa o LLM transformar "tem X?" em confirmacao
+    de moeda ou em resposta generica.
+    """
+    if not message or len(message) > 200:
+        return None
+    if _matches(
+        message,
+        (*_SHIPPING_TERMS, *_CART_TERMS, *_ORDER_TERMS, *_POLICY_TERMS, *_GREETING_TERMS),
+    ):
+        return None
+    for _locale, pattern in _EXISTENCE_COMPILED:
+        match = pattern.search(message)
+        if match is None:
+            continue
+        product = _clean_existence_product(match.group("product"))
+        if not product or _matches(product, EXISTENCE_REJECT_TERMS):
+            continue
+        if _matches(product, _AVAILABILITY_TERMS) and len(product.split()) <= 2:
+            continue
+        query_pt, query_en = normalize_query(product)
+        return IntentDecision(
+            intent=IntentName.AVAILABILITY,
+            query=product[:MAX_QUERY_CHARS],
+            query_pt=query_pt[:MAX_QUERY_CHARS],
+            query_en=query_en[:MAX_QUERY_CHARS],
+            language=reply_language,
+            availability_check=True,
+        )
+    return None
+
+
+def _clean_existence_product(raw: str) -> str:
+    value = unicodedata.normalize("NFKC", raw).strip(" \t\n\r?!.¿¡。؟,;:-")
+    value = _EXISTENCE_TRAILING_NOISE.sub("", value)
+    value = re.sub(
+        r"(?i)\s+(?:em\s+estoque|dispon[ií]vel|in\s+stock|available|en\s+stock|"
+        r"disponible|auf\s+lager|verf[uü]gbar|disponibile|in\s+magazzino|"
+        r"в\s+наличии|متوفر|在庫あり|재고\s*있음|有货|有貨)\s*$",
+        "",
+        value,
+    )
+    value = _EXISTENCE_LEADING_ARTICLE.sub("", value)
+    value = re.sub(r"\s+", " ", value).strip(" \t\n\r?!.¿¡。؟,;:-")
+    return value[:MAX_QUERY_CHARS]
+
+
 def _keyword_decision(  # noqa: C901 - prioridades do roteador
     message: str,
     *,
@@ -244,6 +318,16 @@ def _keyword_decision(  # noqa: C901 - prioridades do roteador
         )
     if _matches(message, _CART_TERMS):
         return IntentDecision(intent=IntentName.CART_HELP, query=query, language=reply_language)
+    if _clean_query(message).casefold() in {"epi", "epis", "ppe"}:
+        return IntentDecision(
+            intent=IntentName.PRODUCT_SEARCH,
+            query=query,
+            query_pt="epi",
+            query_en="ppe",
+            category="epis",
+            quantity=extract_quantity(message),
+            language=reply_language,
+        )
     task = _extract_task(message)
     if task is not None:
         return IntentDecision(
@@ -273,6 +357,9 @@ def _keyword_decision(  # noqa: C901 - prioridades do roteador
             quantity=extract_quantity(message),
             language=reply_language,
         )
+    existence = existence_decision(message, reply_language=reply_language)
+    if existence is not None:
+        return existence
     for terms, intent in _FIXED_INTENTS:
         if _matches(message, terms):
             return IntentDecision(
@@ -327,10 +414,19 @@ def normalize_decision(
     default BRL do modelo; moeda fora da lista suportada NUNCA vira filtro.
     """
     deterministic = deterministic_decision(message, reply_language=reply_language)
+    if deterministic is not None and deterministic.availability_check:
+        # Pergunta de existencia sempre vence: a busca e o template localizado
+        # sao deterministas e nao dependem da classificacao do LLM.
+        return deterministic.model_copy(update={"language": reply_language})
     price_sort = decision.price_sort or (deterministic.price_sort if deterministic else None)
     task = decision.task or (deterministic.task if deterministic else None)
     quantity = decision.quantity or (deterministic.quantity if deterministic else None)
     price_min, price_max = _merged_price_range(decision, deterministic)
+    if not has_price_context(message):
+        # O roteador LLM ja inventou price_min/price_max e confirmacao de moeda
+        # em mensagens sem preco (ex.: "A loja tem prensa hidraulica?").
+        price_min = None
+        price_max = None
     query, query_pt, query_en = _resolved_queries(decision, deterministic, message)
     currency, needs_confirmation = _resolved_currency(
         decision, deterministic, message, price_min, price_max
@@ -352,6 +448,8 @@ def normalize_decision(
             "task": task,
             "quantity": quantity,
             "language": reply_language,
+            "availability_check": decision.availability_check
+            or (deterministic.availability_check if deterministic is not None else False),
         }
     )
 
@@ -392,10 +490,13 @@ def _resolved_currency(
 ) -> tuple[str, bool]:
     currency = decision.price_currency or "BRL"
     has_price = price_min is not None or price_max is not None
+    if not has_price:
+        # Sem valor nao ha moeda a converter/confirmar; a busca segue em BRL.
+        return "BRL", False
     message_currency = detect_currency(message)
-    if message_currency is not None and has_price:
+    if message_currency is not None:
         currency = message_currency
-    elif deterministic is not None and deterministic.price_currency != "BRL" and has_price:
+    elif deterministic is not None and deterministic.price_currency != "BRL":
         currency = deterministic.price_currency
     needs_confirmation = decision.price_currency_confirmation or (
         deterministic.price_currency_confirmation if deterministic is not None else False

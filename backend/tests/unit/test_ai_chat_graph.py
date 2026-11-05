@@ -32,8 +32,8 @@ from app.modules.ai.application.tools import (
     ToolProduct,
 )
 from app.modules.ai.domain.degradation import (
-    demo_mode_response,
-    grounding_fallback_response,
+    catalog_results_response,
+    existence_found_response,
     info_response,
     login_required_response,
     minimum_order_response,
@@ -370,7 +370,7 @@ async def test_pedido_sensivel_vira_off_topic_neutro() -> None:
     assert llm.structured_calls == []
 
 
-async def test_kill_switch_devolve_demo_e_cartoes_deterministicos() -> None:
+async def test_kill_switch_devolve_modo_catalogo_e_cartoes_deterministicos() -> None:
     llm = FakeLLM()
     graph, _c, _a, _h = build(llm=llm, ai_enabled=False)
     result = await graph.run(
@@ -380,7 +380,7 @@ async def test_kill_switch_devolve_demo_e_cartoes_deterministicos() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == demo_mode_response(Locale.PT_BR)
+    assert result.reply == catalog_results_response(Locale.PT_BR)
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]  # degradacao
     assert result.degraded is True
     assert llm.structured_calls == []
@@ -402,7 +402,7 @@ async def test_llm_indisponivel_degrada_com_cartoes() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == demo_mode_response(Locale.PT_BR)
+    assert result.reply == catalog_results_response(Locale.PT_BR)
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]
     assert result.degraded is True
 
@@ -625,7 +625,7 @@ async def test_compare_usa_ferramenta_e_responde_com_contexto() -> None:
     assert result.cards
 
 
-async def test_disponibilidade_usa_get_product() -> None:
+async def test_disponibilidade_resolve_por_codigo_com_cartoes() -> None:
     llm = FakeLLM(
         structured=[
             IntentDecision(
@@ -645,7 +645,7 @@ async def test_disponibilidade_usa_get_product() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == "Tem 12 unidades."
+    assert result.reply == existence_found_response(Locale.PT_BR)
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]
 
 
@@ -765,7 +765,7 @@ async def test_preco_inventado_reprova_e_usa_cartoes() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == grounding_fallback_response(Locale.PT_BR)
+    assert result.reply == catalog_results_response(Locale.PT_BR)
     assert [card.product_id for card in result.cards] == [PRODUCT_ID]
 
 
@@ -1138,7 +1138,7 @@ async def test_segunda_resposta_errada_cai_no_fallback_deterministico() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == grounding_fallback_response(Locale.PT_BR)
+    assert result.reply == catalog_results_response(Locale.PT_BR)
     assert result.cards
 
 
@@ -1180,4 +1180,4 @@ async def test_truncamento_persistente_cai_no_fallback_deterministico() -> None:
         history=[],
         auth=auth_like(),
     )
-    assert result.reply == grounding_fallback_response(Locale.PT_BR)
+    assert result.reply == catalog_results_response(Locale.PT_BR)

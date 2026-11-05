@@ -25,6 +25,7 @@ de LLM quando AI_AGENTS_ENABLED=false.
 
 from __future__ import annotations
 
+import asyncio
 import re
 import secrets
 import time
@@ -47,6 +48,7 @@ from app.modules.ai.application.chat_session import (
     session_from_decision,
 )
 from app.modules.ai.application.conversation_service import ConversationService
+from app.modules.ai.application.errors import LLMQueueFullError, LLMUnavailableError
 from app.modules.ai.application.intent_router import (
     IntentDecision,
     IntentName,
@@ -71,6 +73,7 @@ from app.modules.ai.application.ports import (
     LLMPort,
 )
 from app.modules.ai.application.product_cards import ProductCard, ProductCardService
+from app.modules.ai.application.query_normalization import normalize_query
 from app.modules.ai.application.security.budget import estimate_tokens
 from app.modules.ai.application.security.input_gate import InputGate, InputOutcome
 from app.modules.ai.application.security.prompt_builder import (
@@ -88,14 +91,19 @@ from app.modules.ai.application.tools import (
     ToolOutput,
 )
 from app.modules.ai.domain.degradation import (
+    catalog_mode_response,
+    catalog_results_response,
     clarify_response,
     currency_confirmation_response,
-    demo_mode_response,
+    existence_found_response,
+    existence_near_response,
+    existence_not_found_response,
     greeting_response,
     grounding_fallback_response,
     info_response,
     login_required_response,
     minimum_order_response,
+    more_results_response,
     not_found_response,
     price_question_response,
     price_sort_response,
@@ -208,8 +216,12 @@ class ChatState(TypedDict):
     detected_confidence: NotRequired[float]
     regenerated: NotRequired[bool]
     started_at: NotRequired[float]
+    router_ms: NotRequired[float]
     retrieve_ms: NotRequired[float]
     answer_ms: NotRequired[float]
+    suggested_categories: NotRequired[list[str]]
+    existence_not_found: NotRequired[bool]
+    trusted_reply: NotRequired[bool]
     _auth: NotRequired[Any]
     session: NotRequired[ChatSessionState | None]
 
@@ -235,6 +247,9 @@ class ChatGraph:
         prompt_version: str = "v2",
         max_tokens_cap: int = 512,
         max_tokens_overrides: Mapping[str, int] | None = None,
+        router_timeout_seconds: float = 20.0,
+        answer_timeout_seconds: float = 60.0,
+        regeneration_timeout_seconds: float = 20.0,
     ) -> None:
         self._llm = llm
         self._tools = tools
@@ -253,6 +268,9 @@ class ChatGraph:
         self._prompt_version = prompt_version
         self._max_tokens_cap = max_tokens_cap
         self._max_tokens_overrides = dict(max_tokens_overrides or {})
+        self._router_timeout_seconds = max(1.0, float(router_timeout_seconds))
+        self._answer_timeout_seconds = max(1.0, float(answer_timeout_seconds))
+        self._regeneration_timeout_seconds = max(1.0, float(regeneration_timeout_seconds))
         self._system_template = load_system_prompt_template(prompt_version)
         self._graph = self._build()
 
@@ -358,6 +376,12 @@ class ChatGraph:
         # 1) atalhos de codigo (preco/produto/frete/etc.) SEM LLM; 2) LLM
         # curto para o que restar; 3) product_search com o texto original.
         decision = deterministic_decision(state["message"], reply_language=state["reply_language"])
+        if decision is not None and decision.availability_check:
+            return {
+                "intent": ChatIntent.PRODUCT_SEARCH,
+                "intent_decision": decision,
+                "reason_code": "existence_check",
+            }
         reason_code = "keyword_route" if decision is not None else "intent_llm"
         needs_refs = (
             decision is not None
@@ -404,12 +428,17 @@ class ChatGraph:
         )
         started = time.perf_counter()
         try:
-            decision = await self._llm.complete_structured(
-                schema=IntentDecision,
-                messages=messages,
-                temperature=0.1,
+            decision = await asyncio.wait_for(
+                self._llm.complete_structured(
+                    schema=IntentDecision,
+                    messages=messages,
+                    temperature=0.1,
+                ),
+                timeout=self._router_timeout_seconds,
             )
-        except Exception:  # noqa: BLE001 - fallback deterministico
+        except Exception as exc:  # noqa: BLE001 - fallback deterministico
+            state["router_ms"] = round((time.perf_counter() - started) * 1000, 1)
+            _log_llm_failure("router", exc)
             metrics.observe_llm_call(
                 agent="chat",
                 duration=time.perf_counter() - started,
@@ -417,6 +446,7 @@ class ChatGraph:
                 estimated_tokens=estimate_tokens(len(state["message"])),
             )
             return None
+        state["router_ms"] = round((time.perf_counter() - started) * 1000, 1)
         metrics.observe_llm_call(
             agent="chat",
             duration=time.perf_counter() - started,
@@ -472,6 +502,8 @@ class ChatGraph:
         decision = converted_decision
         state["intent_decision"] = decision
         query = _query_for(decision, state["message"])
+        if decision.availability_check:
+            return await self._existence_retrieve(decision, query=query, state=state, auth=auth)
         if intent == ChatIntent.ORDER_STATUS:
             return await self._order_retrieve(state, decision, auth)
         if intent == ChatIntent.CART_HELP:
@@ -549,6 +581,52 @@ class ChatGraph:
             "context_text": output.context_text[:MAX_CONTEXT_CHARS],
             "allowed_ids": set(output.product_ids),
             "quarantined": _quarantine(output),
+        }
+
+    async def _existence_retrieve(
+        self, decision: IntentDecision, *, query: str, state: ChatState, auth: Any
+    ) -> dict[str, Any]:
+        """Busca de existencia: exata e, se vazio, sinonimos/trigram.
+
+        Nao chama LLM. Se nada existir, devolve categorias reais do catalogo
+        para a resposta deterministica de "nao encontrei".
+        """
+        exact = await self._search_retrieve(decision, query=query, state=state, auth=auth)
+        output = exact.get("tool_output")
+        if isinstance(output, ToolOutput) and output.product_ids:
+            return exact
+        near_outputs: list[ToolOutput] = []
+        for near in _near_queries(query):
+            try:
+                near_outputs.append(
+                    await self._tools.search_products(
+                        SearchProductsArgs.model_validate({"query": near[:200], "limit": 3}),
+                        locale=state["content_locale"],
+                        auth=auth,
+                    )
+                )
+            except Exception:  # noqa: BLE001 - sugestao nunca derruba a resposta
+                _logger.warning("chat_existence_near_failed", query_chars=len(near))
+        merged = _merge_tool_outputs(near_outputs, limit=5)
+        if merged.product_ids:
+            return {
+                "tool_output": merged,
+                "context_text": merged.context_text[:MAX_CONTEXT_CHARS],
+                "allowed_ids": set(merged.product_ids),
+                "quarantined": _quarantine(merged),
+                "existence_not_found": True,
+                "suggested_categories": [],
+            }
+        categories_output = await self._tools.list_categories(
+            ListCategoriesArgs(), locale=state["content_locale"]
+        )
+        return {
+            "tool_output": None,
+            "context_text": "",
+            "allowed_ids": set(),
+            "quarantined": _quarantine(categories_output),
+            "existence_not_found": True,
+            "suggested_categories": _category_names(categories_output.context_text),
         }
 
     def _shipping_retrieve(self, state: ChatState) -> dict[str, Any]:
@@ -816,9 +894,51 @@ class ChatGraph:
             "quarantined": _quarantine(output),
         }
 
-    def _direct_answer(self, state: ChatState, locale: Any) -> dict[str, Any] | None:
+    def _direct_answer(  # noqa: C901 - atalhos deterministicos por intencao
+        self, state: ChatState, locale: Any
+    ) -> dict[str, Any] | None:
         """Respostas de codigo (sem LLM): estado, saudacao, frete e preco."""
         decision = state.get("intent_decision")
+        if decision is not None and decision.availability_check:
+            ordered_ids = _ordered_ids(state)
+            if state.get("existence_not_found"):
+                if ordered_ids:
+                    return {
+                        "reply": existence_near_response(locale),
+                        "product_ids": ordered_ids[:5],
+                        "trusted_reply": True,
+                    }
+                return {
+                    "reply": existence_not_found_response(
+                        locale, categories=tuple(state.get("suggested_categories", []))
+                    ),
+                    "product_ids": [],
+                    "trusted_reply": True,
+                }
+            if ordered_ids:
+                return {
+                    "reply": existence_found_response(locale),
+                    "product_ids": ordered_ids[:5],
+                    "trusted_reply": True,
+                }
+            return {
+                "reply": existence_not_found_response(
+                    locale, categories=tuple(state.get("suggested_categories", []))
+                ),
+                "product_ids": [],
+                "trusted_reply": True,
+            }
+        if (
+            decision is not None
+            and decision.offset > 0
+            and state["intent"] == ChatIntent.PRODUCT_SEARCH
+            and _ordered_ids(state)
+        ):
+            return {
+                "reply": more_results_response(locale),
+                "product_ids": _ordered_ids(state)[:5],
+                "trusted_reply": True,
+            }
         if (
             decision is not None
             and decision.intent == IntentName.POLICY_FAQ
@@ -900,7 +1020,11 @@ class ChatGraph:
         decision = state.get("intent_decision")
         fallback = self._deterministic_answer(state, locale)
         llm_fallback = {
-            "reply": demo_mode_response(locale),
+            "reply": (
+                catalog_results_response(locale)
+                if ordered_ids and state["intent"] == ChatIntent.PRODUCT_SEARCH
+                else catalog_mode_response(locale)
+            ),
             "product_ids": (
                 ordered_ids[:5] if state["intent"] == ChatIntent.PRODUCT_SEARCH else []
             ),
@@ -929,10 +1053,14 @@ class ChatGraph:
         limit = self._token_limit(locale)
         started = time.perf_counter()
         try:
-            answer = await self._llm.complete_structured(
-                schema=AnswerDecision, messages=messages, max_tokens=limit
+            answer = await asyncio.wait_for(
+                self._llm.complete_structured(
+                    schema=AnswerDecision, messages=messages, max_tokens=limit
+                ),
+                timeout=self._answer_timeout_seconds,
             )
-        except Exception:  # noqa: BLE001 - tenta UMA regeneracao curta
+        except Exception as exc:  # noqa: BLE001 - tenta UMA regeneracao curta
+            _log_llm_failure("answer", exc)
             metrics.observe_llm_call(
                 agent="chat",
                 duration=time.perf_counter() - started,
@@ -943,6 +1071,7 @@ class ChatGraph:
             )
             regenerated = await self._regenerate_answer(messages, locale, limit, reason="truncated")
             if regenerated is None:
+                state["answer_ms"] = round((time.perf_counter() - started) * 1000, 1)
                 return llm_fallback
             answer = regenerated
         state["answer_ms"] = round((time.perf_counter() - started) * 1000, 1)
@@ -1041,14 +1170,16 @@ class ChatGraph:
         ordered_ids = _ordered_ids(state)
         if state["intent"] == ChatIntent.PRODUCT_SEARCH and ordered_ids:
             return {
-                "reply": grounding_fallback_response(locale),
+                "reply": catalog_results_response(locale),
                 "product_ids": ordered_ids[:5],
                 "degraded": True,
+                "trusted_reply": True,
             }
         return {
-            "reply": demo_mode_response(locale),
+            "reply": catalog_mode_response(locale),
             "product_ids": [],
             "degraded": True,
+            "trusted_reply": True,
         }
 
     async def _regenerate_answer(
@@ -1074,13 +1205,17 @@ class ChatGraph:
                 "CONTEXT and the JSON schema."
             )
         try:
-            return await self._llm.complete_structured(
-                schema=AnswerDecision,
-                messages=[*messages, {"role": "user", "content": instruction}],
-                temperature=0.1,
-                max_tokens=limit,
+            return await asyncio.wait_for(
+                self._llm.complete_structured(
+                    schema=AnswerDecision,
+                    messages=[*messages, {"role": "user", "content": instruction}],
+                    temperature=0.1,
+                    max_tokens=limit,
+                ),
+                timeout=self._regeneration_timeout_seconds,
             )
-        except Exception:  # noqa: BLE001 - fallback deterministico
+        except Exception as exc:  # noqa: BLE001 - fallback deterministico
+            _log_llm_failure(f"regeneration_{reason}", exc)
             return None
 
     async def _maybe_repair(
@@ -1111,13 +1246,17 @@ class ChatGraph:
             problem=problem,
             intent=state.get("intent", "UNKNOWN"),
         )
+        product_search = state["intent"] == ChatIntent.PRODUCT_SEARCH and bool(ordered_ids)
         return {
-            "reply": grounding_fallback_response(locale),
-            "product_ids": (
-                ordered_ids[:5] if state["intent"] == ChatIntent.PRODUCT_SEARCH else []
+            "reply": (
+                catalog_results_response(locale)
+                if product_search
+                else grounding_fallback_response(locale)
             ),
+            "product_ids": ordered_ids[:5] if product_search else [],
             "verdict": "FALLBACK",
             "degraded": True,
+            "trusted_reply": product_search,
             "reason_code": f"grounding_{problem}",
             "blocked_canary": canary,
         }
@@ -1142,12 +1281,16 @@ class ChatGraph:
             "Nao escreva valores inventados."
         )
         try:
-            return await self._llm.complete_structured(
-                schema=AnswerDecision,
-                messages=[*messages, {"role": "user", "content": correction}],
-                temperature=0.1,
+            return await asyncio.wait_for(
+                self._llm.complete_structured(
+                    schema=AnswerDecision,
+                    messages=[*messages, {"role": "user", "content": correction}],
+                    temperature=0.1,
+                ),
+                timeout=self._regeneration_timeout_seconds,
             )
-        except Exception:  # noqa: BLE001 - fallback usa template + cartoes
+        except Exception as exc:  # noqa: BLE001 - fallback usa template + cartoes
+            _log_llm_failure("repair", exc)
             return None
 
     async def _output_guard(self, state: ChatState) -> dict[str, Any]:
@@ -1172,7 +1315,9 @@ class ChatGraph:
             allow_money=state["intent"] == ChatIntent.SHIPPING_POLICY
             or bool(state.get("grounded_context"))
             or bool(state.get("currency_confirmation")),
-            language_detector=self._language_detector,
+            # Respostas deterministicas ja sao localizadas pelo codigo; nao
+            # passam pelo detector (que confundia PT curto com ES).
+            language_detector=None if state.get("trusted_reply") else self._language_detector,
         )
         if (
             not guarded.blocked
@@ -1203,27 +1348,49 @@ class ChatGraph:
             }
         return {"reply": guarded.text or neutral_response(locale)}
 
-    async def _persist(self, state: ChatState) -> dict[str, Any]:
+    async def _safe_audit(self, **kwargs: Any) -> None:
+        """Auditoria nunca derruba a resposta do chat; a causa fica no log."""
+        try:
+            await self._audit.record(**kwargs)
+        except Exception as exc:
+            _logger.exception(
+                "chat_audit_failed",
+                audit_event=str(kwargs.get("event", "")),
+                verdict=str(kwargs.get("verdict", "")),
+                reason_code=str(kwargs.get("reason_code", "")),
+                error_type=type(exc).__name__,
+            )
+
+    async def _persist(self, state: ChatState) -> dict[str, Any]:  # noqa: C901 - resiliencia
         conversation = state["conversation"]
         language = state["reply_language"]
         if not state.get("blocked"):
-            await self._conversations.append_user_message(
-                conversation, sanitized_text=state["message"], language=language
-            )
+            try:
+                await self._conversations.append_user_message(
+                    conversation, sanitized_text=state["message"], language=language
+                )
+            except Exception as exc:  # noqa: BLE001 - resposta nao depende do historico
+                _log_llm_failure("persist_user", exc)
         reply = state.get("reply", "")
-        await self._conversations.append_assistant_message(
-            conversation, approved_text=reply, language=language
-        )
+        try:
+            await self._conversations.append_assistant_message(
+                conversation, approved_text=reply, language=language
+            )
+        except Exception as exc:  # noqa: BLE001 - resposta nao depende do historico
+            _log_llm_failure("persist_assistant", exc)
         cards: list[ProductCard] = []
         if not state.get("blocked"):
-            cards = await self._cards.build(
-                requested_ids=state.get("product_ids", []),
-                allowed_product_ids=set(state.get("allowed_ids", set())),
-                locale=state["content_locale"],
-                auth=state.get("_auth"),
-            )
+            try:
+                cards = await self._cards.build(
+                    requested_ids=state.get("product_ids", []),
+                    allowed_product_ids=set(state.get("allowed_ids", set())),
+                    locale=state["content_locale"],
+                    auth=state.get("_auth"),
+                )
+            except Exception as exc:  # noqa: BLE001 - texto/cards nao podem virar 500
+                _log_llm_failure("persist_cards", exc)
         for product_id, reason in state.get("quarantined", []):
-            await self._audit.record(
+            await self._safe_audit(
                 company_id=state.get("company_id"),
                 event="chat.tool_quarantine",
                 verdict="BLOCK",
@@ -1272,6 +1439,7 @@ class ChatGraph:
                 (time.perf_counter() - state.get("started_at", time.perf_counter())) * 1000,
                 1,
             ),
+            router_ms=state.get("router_ms"),
             retrieve_ms=state.get("retrieve_ms"),
             answer_ms=state.get("answer_ms"),
             fallback=bool(state.get("degraded", False))
@@ -1279,7 +1447,7 @@ class ChatGraph:
             capped=bool(output.price_scan_capped) if output is not None else False,
             reason_code=state.get("reason_code", "chat_turn"),
         )
-        await self._audit.record(
+        await self._safe_audit(
             company_id=state.get("company_id"),
             event="chat.turn",
             verdict=state.get("verdict", "ALLOW"),
@@ -1298,6 +1466,76 @@ class ChatGraph:
 
     def _tag(self) -> str:
         return self._tag_factory()
+
+
+def _log_llm_failure(stage: str, exc: BaseException) -> None:
+    """Loga o TIPO real da falha, sem prompt/conteudo/PII."""
+    kind = "unexpected"
+    if isinstance(exc, LLMQueueFullError):
+        kind = "queue_full"
+    elif isinstance(exc, TimeoutError):
+        kind = "timeout"
+    elif isinstance(exc, LLMUnavailableError):
+        kind = str(getattr(exc, "kind", "") or "llm_unavailable")
+    _logger.warning(
+        "llm_call_failed",
+        stage=stage,
+        kind=kind,
+        error_type=type(exc).__name__,
+    )
+
+
+_NEAR_TOKEN = re.compile(r"[^\W\d_]{3,}", re.UNICODE)
+_NEAR_STOPWORDS = frozenset(
+    {
+        "para",
+        "com",
+        "uma",
+        "dos",
+        "das",
+        "por",
+        "the",
+        "and",
+        "for",
+        "with",
+        "que",
+        "voce",
+        "você",
+        "loja",
+        "tem",
+        "have",
+        "sell",
+        "stock",
+    }
+)
+
+
+def _near_queries(query: str) -> list[str]:
+    """Sinonimos pt/en + token principal, para sugestao quando nao ha exato."""
+    pt, en = normalize_query(query)
+    tokens = [
+        token.casefold()
+        for token in _NEAR_TOKEN.findall(query)
+        if token.casefold() not in _NEAR_STOPWORDS
+    ]
+    candidates = [pt, en, tokens[0] if tokens else ""]
+    result: list[str] = []
+    seen = {query.strip().casefold()}
+    for candidate in candidates:
+        item = candidate.strip()
+        key = item.casefold()
+        if len(item) < 2 or key in seen:
+            continue
+        seen.add(key)
+        result.append(item[:200])
+    return result[:3]
+
+
+def _category_names(context_text: str) -> list[str]:
+    names = [match.strip() for match in re.findall(r"(?m)^name=(.+)$", context_text)]
+    if names:
+        return names[:5]
+    return [line.strip()[:60] for line in context_text.splitlines() if line.strip()][:5]
 
 
 def _quarantine(output: ToolOutput) -> list[tuple[str, str]]:

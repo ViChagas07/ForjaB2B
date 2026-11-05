@@ -278,6 +278,33 @@ def _compose_numbers(values: list[int]) -> int:
     return total
 
 
+_PRICE_QUESTION = re.compile(
+    r"(?i)\b(?:quanto\s+custa|qual\s+o\s+pre[cç]o|pre[cç]o|price|cost|"
+    r"cu[aá]nto\s+cuesta|precio|was\s+kostet|preis|combien|prix|"
+    r"quanto\s+costa|prezzo|сколько\s+стоит|цена|كم\s+سعر|سعر)\b"
+    r"|多少钱|多少錢|价格|價格|いくら|価格|얼마|가격"
+)
+
+
+def has_price_context(text: str) -> bool:
+    """True quando ha valor + marcador de preco/faixa/moeda na mensagem.
+
+    Usado para NAO aceitar `price_min`/`price_max`/`price_currency_confirmation`
+    inventados pelo roteador LLM quando a mensagem nao tem nenhum preco. Um
+    numero solto (ex.: "3 luvas") nao e preco.
+    """
+    has_amount = bool(extract_money_amounts(text)) or bool(_number_word_values(text))
+    if not has_amount:
+        return False
+    if detect_currency_mentions(text) or _range_requested(text):
+        return True
+    if any(term_present(text, term) for term in _flatten(PRICE_MAX_TERMS)):
+        return True
+    if any(term_present(text, term) for term in _flatten(PRICE_MIN_TERMS)):
+        return True
+    return bool(_PRICE_QUESTION.search(text))
+
+
 def extract_price_filters(message: str) -> PriceFilters:
     """Ordenacao, faixa e moeda citadas; nunca aplica moeda estrangeira como BRL."""
     sort: str | None = None

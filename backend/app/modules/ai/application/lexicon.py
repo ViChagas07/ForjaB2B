@@ -48,7 +48,6 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "mudar o preco",
             "mudar o preço",
             "contrato",
-            "cnpj",
         ),
         Locale.EN: (
             "other company",
@@ -61,7 +60,6 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "change the price",
             "modify the price",
             "contract",
-            "tax id",
         ),
         Locale.ES: (
             "otra empresa",
@@ -410,6 +408,10 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "equipamentos",
             "ferramenta",
             "ferramentas",
+            "prensa",
+            "prensas",
+            "prensa hidraulica",
+            "prensa hidráulica",
             "produto",
             "produtos",
             "luvas de seguranca",
@@ -444,6 +446,7 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "equipment",
             "product",
             "products",
+            "hydraulic press",
             "safety gloves",
         ),
         Locale.ES: (
@@ -479,6 +482,10 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "equipos",
             "producto",
             "productos",
+            "prensa",
+            "prensas",
+            "prensa hidraulica",
+            "prensa hidráulica",
             "guantes de seguridad",
         ),
         Locale.DE: (
@@ -513,6 +520,7 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "ausrüstung",
             "produkt",
             "produkte",
+            "presse",
             "sicherheitshandschuhe",
         ),
         Locale.FR: (
@@ -545,6 +553,7 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "équipement",
             "produit",
             "produits",
+            "presse",
             "gants de securite",
             "gants de sécurité",
         ),
@@ -576,6 +585,7 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "attrezzatura",
             "prodotto",
             "prodotti",
+            "pressa",
             "guanti di sicurezza",
         ),
         Locale.RU: (
@@ -705,6 +715,9 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "rastrear",
             "numero do pedido",
             "número do pedido",
+            "comprar de novo",
+            "comprar novamente",
+            "recomprar",
         ),
         Locale.EN: (
             "my order",
@@ -713,6 +726,9 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "tracking",
             "track my order",
             "order number",
+            "buy again",
+            "order again",
+            "reorder",
         ),
         Locale.ES: (
             "mi pedido",
@@ -722,6 +738,9 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "rastrear",
             "numero de pedido",
             "número de pedido",
+            "comprar otra vez",
+            "volver a comprar",
+            "volver a pedir",
         ),
         Locale.DE: (
             "meine bestellung",
@@ -764,8 +783,21 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "garantia",
             "pago",
             "pagar",
+            "cnpj",
+            "b2b",
         ),
-        Locale.EN: ("payment", "invoice", "exchange", "return", "warranty", "pay", "checkout"),
+        Locale.EN: (
+            "payment",
+            "invoice",
+            "exchange",
+            "return",
+            "warranty",
+            "pay",
+            "checkout",
+            "cnpj",
+            "b2b",
+            "tax id",
+        ),
         Locale.ES: (
             "pago",
             "pago",
@@ -776,6 +808,8 @@ INTENT_TERMS: dict[str, _IntentTable] = {
             "garantía",
             "cambio",
             "pagar",
+            "cnpj",
+            "b2b",
         ),
         Locale.DE: (
             "zahlung",
@@ -1959,6 +1993,133 @@ INTENT_TERMS["policy"] = {
     locale: (*terms, *MINIMUM_ORDER_TERMS[locale])
     for locale, terms in INTENT_TERMS["policy"].items()
 }
+
+# ---------------------------------------------------------------------------
+# Perguntas de existencia/disponibilidade ("A loja tem X?", "do you have X?")
+# ---------------------------------------------------------------------------
+# Cada padrao tem um grupo nomeado `product`; a extracao e feita pelo roteador
+# antes do LLM. Os padroes nao decidem o idioma da resposta: isso continua no
+# detector/lexico de idioma.
+EXISTENCE_PATTERNS: dict[Locale, tuple[str, ...]] = {
+    Locale.PT_BR: (
+        r"(?:^|\b)(?:a\s+)?loja\s+tem\s+(?P<product>.+?)(?:\s+em\s+estoque)?[\s?!.]*$",
+        r"(?:^|\b)(?:voc[eê]s?|voce)\s+(?:tem|t[eê]m|vendem|vende|trabalham\s+com|"
+        r"trabalha\s+com|possuem|possui)\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)(?:possui|possuem|trabalha\s+com|trabalham\s+com)\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)tem\s+(?P<product>.+?)(?:\s+em\s+estoque)?[\s?!.]*$",
+        r"(?:^|\b)(?P<product>.+?)\s+(?:est[aá]\s+)?(?:em\s+estoque|dispon[ií]vel)[\s?!.]*$",
+    ),
+    Locale.EN: (
+        r"(?:^|\b)do\s+you\s+(?:have|sell|stock|carry)\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)have\s+you\s+got\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)is\s+(?P<product>.+?)\s+(?:in\s+stock|available)[\s?!.]*$",
+        r"(?:^|\b)can\s+i\s+buy\s+(?P<product>.+?)[\s?!.]*$",
+    ),
+    Locale.ES: (
+        r"(?:^|\b)(?:tienen|tiene|venden|vende|hay)\s+(?P<product>.+?)[\s?!.¿¡]*$",
+        r"(?:^|\b)(?P<product>.+?)\s+(?:est[aá]\s+)?(?:en\s+stock|disponible)[\s?!.¿¡]*$",
+    ),
+    Locale.DE: (
+        r"(?:^|\b)haben\s+sie\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)verkaufen\s+sie\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)gibt\s+es\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)ist\s+(?P<product>.+?)\s+(?:verf[uü]gbar|auf\s+lager)[\s?!.]*$",
+    ),
+    Locale.FR: (
+        r"(?:^|\b)avez[- ]vous\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)vendez[- ]vous\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)est[- ]ce\s+que\s+vous\s+avez\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)(?P<product>.+?)\s+est\s+(?:disponible|en\s+stock)[\s?!.]*$",
+    ),
+    Locale.IT: (
+        r"(?:^|\b)avete\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)vendete\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)c['’]?\s*[eè]\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)(?P<product>.+?)\s+[eè]\s+(?:disponibile|in\s+magazzino)[\s?!.]*$",
+    ),
+    Locale.RU: (
+        r"(?:^|\b)у\s+вас\s+есть\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)вы\s+прода[её]те\s+(?P<product>.+?)[\s?!.]*$",
+        r"(?:^|\b)(?P<product>.+?)\s+(?:в\s+наличии|есть)[\s?!.]*$",
+    ),
+    Locale.AR: (
+        r"هل\s+لديكم\s+(?P<product>.+?)[\s؟?!.]*$",
+        r"هل\s+تبيعون\s+(?P<product>.+?)[\s؟?!.]*$",
+        r"هل\s+(?P<product>.+?)\s+متوفر[\s؟?!.]*$",
+    ),
+    Locale.JA: (
+        r"(?P<product>.+?)はありますか[\s?!。]*$",
+        r"(?P<product>.+?)を販売していますか[\s?!。]*$",
+        r"(?P<product>.+?)の在庫はありますか[\s?!。]*$",
+    ),
+    Locale.KO: (
+        r"(?P<product>.+?)\s*(?:있나요|있어요|재고\s*있나요|판매하나요)[\s?!.]*$",
+    ),
+    Locale.ZH_CN: (
+        r"你们(?:有|卖|賣)(?P<product>.+?)(?:吗|嗎)?[\s?!。]*$",
+        r"(?P<product>.+?)(?:有货吗|有貨嗎|有吗|有嗎)[\s?!。]*$",
+    ),
+}
+
+EXISTENCE_REJECT_TERMS: tuple[str, ...] = (
+    "como",
+    "onde",
+    "quando",
+    "qual",
+    "quais",
+    "quanto",
+    "por que",
+    "porque",
+    "algum",
+    "alguma",
+    "algo",
+    "how",
+    "what",
+    "where",
+    "when",
+    "which",
+    "why",
+    "if",
+    "como",
+    "donde",
+    "cuando",
+    "cuál",
+    "cual",
+    "por qué",
+    "was",
+    "wie",
+    "wo",
+    "wann",
+    "welche",
+    "comment",
+    "où",
+    "quand",
+    "quel",
+    "come",
+    "dove",
+    "quando",
+    "quale",
+    "как",
+    "где",
+    "когда",
+    "какой",
+    "كيف",
+    "أين",
+    "متى",
+    "أي",
+    "どう",
+    "どこ",
+    "いつ",
+    "どの",
+    "어떻게",
+    "어디",
+    "언제",
+    "어떤",
+    "怎么",
+    "哪里",
+    "什么时候",
+    "哪个",
+)
 
 
 def flatten(table: _IntentTable) -> tuple[str, ...]:

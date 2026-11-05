@@ -301,11 +301,37 @@ _STRONG_LATIN_TERMS: dict[Locale, tuple[str, ...]] = {
     Locale.PT_BR: (
         "quero",
         "preciso",
+        "tem",
+        "têm",
+        "loja",
         "luvas",
         "luva",
         "capacete",
         "carrinho",
         "frete",
+        "estoque",
+        "abafador",
+        "protetor",
+        "auricular",
+        "ruído",
+        "nitrílica",
+        "encontrei",
+        "opções",
+        "segurança",
+        "proteção",
+        "óculos",
+        "furadeira",
+        "serra",
+        "martelo",
+        "trena",
+        "ferramenta",
+        "equipamento",
+        "vendem",
+        "trabalham",
+        "trabalha",
+        "possui",
+        "possuem",
+        "disponível",
         "obrigado",
         "obrigada",
         "você",
@@ -331,6 +357,14 @@ _STRONG_LATIN_TERMS: dict[Locale, tuple[str, ...]] = {
         "how much",
         "compare",
         "more options",
+        "do you have",
+        "do you sell",
+        "have you got",
+        "in stock",
+        "available",
+        "cost",
+        "found",
+        "yes",
     ),
     Locale.ES: (
         "quiero",
@@ -346,6 +380,17 @@ _STRONG_LATIN_TERMS: dict[Locale, tuple[str, ...]] = {
         "cuanto",
         "dónde",
         "donde",
+        "tienen",
+        "venden",
+        "hay",
+        "encontré",
+        "opciones",
+        "disponible",
+        "precio",
+        "orejeras",
+        "gafas",
+        "cinturón",
+        "taladro",
         "más barato",
         "más barata",
         "más caro",
@@ -363,6 +408,11 @@ _STRONG_LATIN_TERMS: dict[Locale, tuple[str, ...]] = {
         "günstig",
         "günstiger",
         "teuer",
+        "haben sie",
+        "verkaufen sie",
+        "gibt es",
+        "gefunden",
+        "optionen",
     ),
     Locale.FR: (
         "bonjour",
@@ -378,6 +428,10 @@ _STRONG_LATIN_TERMS: dict[Locale, tuple[str, ...]] = {
         "moins cher",
         "plus cher",
         "s'il vous plaît",
+        "avez-vous",
+        "vendez-vous",
+        "trouvé",
+        "options",
     ),
     Locale.IT: (
         "voglio",
@@ -391,6 +445,10 @@ _STRONG_LATIN_TERMS: dict[Locale, tuple[str, ...]] = {
         "dove",
         "più economico",
         "più caro",
+        "avete",
+        "vendete",
+        "trovato",
+        "opzioni",
     ),
 }
 
@@ -562,23 +620,19 @@ def resolve_reply_language(
             source="explicit",
             changed=explicit != current,
         )
-    # Em mensagem curta, um termo exclusivo de UM idioma vence o detector:
-    # "capacete para soldador" e "como funciona o frete" sao portugues, mesmo
-    # quando o langid devolve espanhol com confianca alta.
+    # Um termo exclusivo de UM idioma vence o detector estatistico quando a
+    # mensagem e curta, quando o detector esta em duvida ou quando o termo e do
+    # proprio idioma da conversa. "A loja tem prensa hidraulica" era espanhol
+    # 0.989 no langid; "tem"/"loja" sao portugues e devem vencer.
     strong = detect_strong_latin_terms(message)
-    if strong is not None and len(_WORD.findall(message)) <= 8:
-        return ReplyLanguage(
-            language=strong,
-            confidence=0.80,
-            source="lexicon",
-            changed=strong != current,
-        )
     confident = (
         detection is not None
         and detection.language is not None
         and detection.confidence >= LANGUAGE_CONFIDENCE_MIN
     )
-    if not confident and strong is not None:
+    if strong is not None and (
+        len(_WORD.findall(message)) <= 10 or strong == current or not confident
+    ):
         return ReplyLanguage(
             language=strong,
             confidence=0.80,
@@ -618,6 +672,10 @@ def guard_language_diverges(
     counts = script_counts(cleaned)
     total = sum(counts.values())
     if total == 0:
+        return False
+    # Vocabulario exclusivo do idioma esperado evita falso positivo do langid
+    # em respostas curtas ("Sim, encontrei estas opcoes.").
+    if detect_strong_latin_terms(text) == expected:
         return False
     expected_scripts = NON_LATIN_SCRIPTS.get(expected)
     if expected_scripts is not None:
