@@ -81,7 +81,9 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     status = 0
     if args.mode in {"offline", "both"}:
-        status |= asyncio.run(_run_offline(cases, output_dir=output_dir))
+        status |= asyncio.run(
+            _run_offline(cases, output_dir=output_dir, catalog_path=args.catalog)
+        )
     if args.mode in {"real", "both"}:
         status |= _run_real(
             cases,
@@ -111,7 +113,9 @@ def _load_cases(path: Path) -> list[dict[str, Any]]:
     return payload
 
 
-async def _run_offline(cases: list[dict[str, Any]], *, output_dir: Path) -> int:
+async def _run_offline(
+    cases: list[dict[str, Any]], *, output_dir: Path, catalog_path: Path
+) -> int:
     if str(BACKEND_ROOT) not in sys.path:
         sys.path.insert(0, str(BACKEND_ROOT))
     # Import tardio: o modo real nao exige dependencias do backend.
@@ -120,7 +124,7 @@ async def _run_offline(cases: list[dict[str, Any]], *, output_dir: Path) -> int:
         new_conversation,
     )
 
-    graph = build_offline_graph(catalog_path=DEFAULT_CATALOG)
+    graph = build_offline_graph(catalog_path=catalog_path)
     results: list[CaseResult] = []
     for case in cases:
         conversation = new_conversation()
