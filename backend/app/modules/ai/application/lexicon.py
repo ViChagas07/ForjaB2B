@@ -1927,6 +1927,40 @@ NUMBER_WORDS: dict[str, int] = {
 }
 
 
+MINIMUM_ORDER_TERMS: _IntentTable = {
+    Locale.PT_BR: (
+        "pedido minimo",
+        "pedido mínimo",
+        "minimo de pedido",
+        "mínimo de pedido",
+        "quantidade minima",
+        "quantidade mínima",
+    ),
+    Locale.EN: ("minimum order", "min order", "minimum quantity", "moq"),
+    Locale.ES: (
+        "pedido minimo",
+        "pedido mínimo",
+        "minimo de pedido",
+        "mínimo de pedido",
+        "cantidad minima",
+        "cantidad mínima",
+    ),
+    Locale.DE: ("mindestbestellung", "mindestbestellwert", "mindestmenge", "mindestabnahme"),
+    Locale.FR: ("commande minimum", "montant minimum", "quantite minimum", "quantité minimum"),
+    Locale.IT: ("ordine minimo", "ordine mínimo", "quantita minima", "quantità minima"),
+    Locale.RU: ("минимальный заказ", "минимальная партия", "минимальное количество"),
+    Locale.AR: ("الحد الأدنى للطلب", "الحد الأدنى للكمية", "أقل كمية"),
+    Locale.JA: ("最低注文", "最小注文", "最小数量", "最低数量"),
+    Locale.KO: ("최소 주문", "최소 수량", "최소 주문량"),
+    Locale.ZH_CN: ("最低订单", "最低订购", "最小起订量", "最低数量"),
+}
+
+INTENT_TERMS["policy"] = {
+    locale: (*terms, *MINIMUM_ORDER_TERMS[locale])
+    for locale, terms in INTENT_TERMS["policy"].items()
+}
+
+
 def flatten(table: _IntentTable) -> tuple[str, ...]:
     """Une os termos de todos os idiomas, preservando a ordem e sem duplicatas."""
     return tuple(dict.fromkeys(term for terms in table.values() for term in terms))
@@ -1984,3 +2018,7 @@ def task_terms(task: ConsultingTask) -> tuple[str, ...]:
 
 def query_noise_terms() -> tuple[str, ...]:
     return flatten(QUERY_NOISE)
+
+
+def minimum_order_question(message: str) -> bool:
+    return matches_any(message, flatten(MINIMUM_ORDER_TERMS))

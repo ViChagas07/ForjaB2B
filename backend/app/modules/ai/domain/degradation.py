@@ -327,6 +327,71 @@ def price_sort_response(
     return text
 
 
+_MINIMUM_ORDER: dict[str, str] = {
+    "pt-BR": (
+        "O pedido mínimo é por produto: cada item mostra a quantidade mínima no "
+        "cartão (por exemplo, 6, 10, 12 ou 24 unidades). Não há um valor mínimo "
+        "único de pedido; o carrinho valida a quantidade mínima do item."
+    ),
+    "en": (
+        "The minimum order is per product: each item shows its minimum quantity "
+        "on the card (for example, 6, 10, 12 or 24 units). There is no single "
+        "minimum order value; the cart validates each item's minimum quantity."
+    ),
+    "es": (
+        "El pedido mínimo es por producto: cada artículo muestra la cantidad "
+        "mínima en la tarjeta (por ejemplo, 6, 10, 12 o 24 unidades). No hay un "
+        "valor mínimo único de pedido; el carrito valida la cantidad mínima."
+    ),
+    "ar": (
+        "الحد الأدنى للطلب يُحدد لكل منتج: تعرض البطاقة الحد الأدنى للكمية "
+        "(مثلاً 6 أو 10 أو 12 أو 24 وحدة). لا توجد قيمة دنيا موحدة للطلب؛ "
+        "تتحقق السلة من الحد الأدنى لكمية المنتج."
+    ),
+    "de": (
+        "Der Mindestbestellwert gilt pro Produkt: Jeder Artikel zeigt die "
+        "Mindestmenge auf der Karte (z. B. 6, 10, 12 oder 24 Stück). Es gibt "
+        "keinen einheitlichen Mindestbestellwert; der Warenkorb prüft die "
+        "Mindestmenge des Artikels."
+    ),
+    "fr": (
+        "La commande minimum est définie par produit : chaque article affiche "
+        "la quantité minimale sur la fiche (par exemple 6, 10, 12 ou 24 unités). "
+        "Il n'y a pas de montant minimum unique ; le panier vérifie la quantité "
+        "minimale de l'article."
+    ),
+    "it": (
+        "L'ordine minimo è per prodotto: ogni articolo mostra la quantità minima "
+        "nella scheda (ad esempio 6, 10, 12 o 24 unità). Non c'è un valore minimo "
+        "unico; il carrello verifica la quantità minima dell'articolo."
+    ),
+    "ja": (
+        "最小注文数量は商品ごとに決まります。カードに最小数量(例: 6、10、12、24個)"
+        "が表示されます。注文全体の一律の最低金額はありません。カートが商品ごとの"
+        "最小数量を確認します。"
+    ),
+    "ko": (
+        "최소 주문 수량은 상품별로 정해집니다. 카드에 최소 수량(예: 6, 10, 12, "
+        "24개)이 표시됩니다. 전체 주문의 단일 최소 금액은 없으며, 장바구니가 "
+        "상품별 최소 수량을 확인합니다."
+    ),
+    "ru": (
+        "Минимальный заказ определяется по товару: в карточке указано "
+        "минимальное количество (например, 6, 10, 12 или 24 шт.). Единого "
+        "минимального значения заказа нет; корзина проверяет минимальное "
+        "количество товара."
+    ),
+    "zh-CN": (
+        "最低订购量按商品设置: 卡片会显示该商品的最小数量 (例如 6、10、12 或 24 件)。"
+        "没有统一的订单最低金额; 购物车会校验该商品的最小数量。"
+    ),
+}
+
+
+def minimum_order_response(locale: Locale) -> str:
+    return _MINIMUM_ORDER.get(locale.value, _MINIMUM_ORDER["pt-BR"])
+
+
 _PRICE_UNVERIFIED: dict[str, str] = {
     "pt-BR": (
         "Não consegui validar os valores desta resposta. Veja os cartões abaixo "

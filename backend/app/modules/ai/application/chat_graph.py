@@ -58,7 +58,12 @@ from app.modules.ai.application.intent_router import (
     normalize_decision,
 )
 from app.modules.ai.application.knowledge import KnowledgeBase
-from app.modules.ai.application.lexicon import INTENT_TERMS, flatten, task_terms
+from app.modules.ai.application.lexicon import (
+    INTENT_TERMS,
+    flatten,
+    minimum_order_question,
+    task_terms,
+)
 from app.modules.ai.application.ports import (
     ChatTurn,
     ConversationView,
@@ -90,6 +95,7 @@ from app.modules.ai.domain.degradation import (
     grounding_fallback_response,
     info_response,
     login_required_response,
+    minimum_order_response,
     not_found_response,
     price_question_response,
     price_sort_response,
@@ -812,6 +818,13 @@ class ChatGraph:
 
     def _direct_answer(self, state: ChatState, locale: Any) -> dict[str, Any] | None:
         """Respostas de codigo (sem LLM): estado, saudacao, frete e preco."""
+        decision = state.get("intent_decision")
+        if (
+            decision is not None
+            and decision.intent == IntentName.POLICY_FAQ
+            and minimum_order_question(state["message"])
+        ):
+            return {"reply": minimum_order_response(locale), "product_ids": []}
         text_fn = _DIRECT_TEXT.get(state["intent"])
         if text_fn is not None:
             return {"reply": text_fn(locale), "product_ids": []}

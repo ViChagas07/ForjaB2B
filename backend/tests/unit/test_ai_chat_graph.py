@@ -36,12 +36,13 @@ from app.modules.ai.domain.degradation import (
     grounding_fallback_response,
     info_response,
     login_required_response,
+    minimum_order_response,
     not_found_response,
     price_sort_response,
     tool_error_response,
 )
-from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.language import LanguageDetection
+from app.modules.ai.domain.security.injection import neutral_response
 from app.modules.ai.domain.types import Locale
 from app.modules.ai.infrastructure.llm_fake import FakeLLM
 
@@ -905,6 +906,21 @@ async def test_followup_reutiliza_estado_da_sessao() -> None:
     assert updated is not None
     assert updated.price_sort == "desc"
     assert updated.language == "es"
+
+
+async def test_pedido_minimo_responde_deterministico_sem_llm() -> None:
+    llm = FakeLLM()
+    graph, _c, _a, _h = build(llm=llm)
+    result = await graph.run(
+        conversation=CONVERSATION,
+        reply_language="pt-BR",
+        message="Qual pedido mínimo",
+        history=[],
+        auth=auth_like(),
+    )
+    assert result.reply == minimum_order_response(Locale.PT_BR)
+    assert result.cards == []
+    assert llm.structured_calls == []
 
 
 def test_price_sort_response_tem_variante_desc_nos_11_idiomas() -> None:
