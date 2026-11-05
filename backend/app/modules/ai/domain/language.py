@@ -562,20 +562,29 @@ def resolve_reply_language(
             source="explicit",
             changed=explicit != current,
         )
+    # Em mensagem curta, um termo exclusivo de UM idioma vence o detector:
+    # "capacete para soldador" e "como funciona o frete" sao portugues, mesmo
+    # quando o langid devolve espanhol com confianca alta.
+    strong = detect_strong_latin_terms(message)
+    if strong is not None and len(_WORD.findall(message)) <= 8:
+        return ReplyLanguage(
+            language=strong,
+            confidence=0.80,
+            source="lexicon",
+            changed=strong != current,
+        )
     confident = (
         detection is not None
         and detection.language is not None
         and detection.confidence >= LANGUAGE_CONFIDENCE_MIN
     )
-    if not confident:
-        strong = detect_strong_latin_terms(message)
-        if strong is not None:
-            return ReplyLanguage(
-                language=strong,
-                confidence=0.80,
-                source="lexicon",
-                changed=strong != current,
-            )
+    if not confident and strong is not None:
+        return ReplyLanguage(
+            language=strong,
+            confidence=0.80,
+            source="lexicon",
+            changed=strong != current,
+        )
     if detection is None or detection.language is None:
         return ReplyLanguage(language=current, source="conversation")
     if detection.source != "script" and not is_substantial(preprocess_for_detection(message)):

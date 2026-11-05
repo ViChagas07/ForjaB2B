@@ -10,10 +10,10 @@ from app.modules.ai.domain.language import (
     detect_script,
     extract_explicit_language_request,
     is_substantial,
+    looks_truncated,
     max_tokens_for,
     preprocess_for_detection,
     resolve_reply_language,
-    looks_truncated,
 )
 from app.modules.ai.domain.types import Locale
 
@@ -215,6 +215,18 @@ def test_adaptador_real_curto_e_desempatado_pelo_lexico() -> None:
     assert resolved.source == "lexicon"
 
 
+def test_termo_forte_curto_vence_detector_errado() -> None:
+    for message in ("Capacete para soldador", "Como funciona o frete"):
+        resolved = resolve_reply_language(
+            message=message,
+            detection=LanguageDetection(language=Locale.ES, confidence=0.95, source="detector"),
+            conversation_language="pt-BR",
+            site_locale="pt-BR",
+        )
+        assert resolved.language == Locale.PT_BR, message
+        assert resolved.source == "lexicon", message
+
+
 def test_max_tokens_por_idioma_respeita_teto() -> None:
     assert max_tokens_for(Locale.PT_BR, cap=512) == 220
     assert max_tokens_for(Locale.JA, cap=512) == 360
@@ -224,9 +236,7 @@ def test_max_tokens_por_idioma_respeita_teto() -> None:
 
 def test_detecta_resposta_truncada_no_meio_da_frase() -> None:
     assert looks_truncated("This answer keeps going and ends without", Locale.EN)
-    assert looks_truncated(
-        "Esta e uma resposta longa que termina no meio,", Locale.PT_BR
-    )
+    assert looks_truncated("Esta e uma resposta longa que termina no meio,", Locale.PT_BR)
     assert not looks_truncated("Resposta completa.", Locale.PT_BR)
     assert not looks_truncated("Curta", Locale.PT_BR)
 
