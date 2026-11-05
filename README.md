@@ -244,10 +244,11 @@ O compromisso é explícito: **a IA é um extra, não uma dependência**. Em pro
 (Render) o LM Studio local não está acessível; por isso:
 
 - `GET /health` e o readiness **nunca** consultam o LLM;
-- `GET /health/llm` é separado, tem cache de ~30 s e sempre responde HTTP 200 com
-  `{available, enabled, model}`;
-- sem LLM, o chat mostra uma mensagem traduzida de "modo demonstração local" e ainda
-  devolve os cartões determinísticos da busca;
+- `GET /health/llm` é separado, tem cache de ~30 s, valida uma completion mínima real
+  (não só `/v1/models`) e sempre responde HTTP 200 com `{available, enabled, model}`;
+- sem LLM, o chat entra em **modo catálogo**: aviso discreto traduzido, cartões
+  determinísticos da busca e conversa utilizável. "Não foi possível responder agora"
+  não aparece quando a busca no catálogo funcionou;
 - o e-mail de carrinho abandonado sempre sai: o LLM só redige o parágrafo persuasivo
   e, se estiver indisponível ou citar valor/percentual divergente, o template fixo
   traduzido é usado. Desconto (máx. 3%, só para quem já comprou) e frete grátis são
@@ -262,7 +263,7 @@ Usuário
 [input guard]  injection/jailbreak, tamanho, janela, rate limit
   │
   ▼
-[entender]  atalhos determinísticos (preço/tamanho/produto/frete) + LLM JSON
+[entender]  atalhos determinísticos (preço/tamanho/produto/frete/existência) + LLM JSON
   │         IntentDecision: intent, query, filtros, task, refs, offset
   ▼
 [buscar]    ferramentas de catálogo/carrinho/pedido + RAG Markdown
@@ -282,6 +283,34 @@ Redis por conversa, com TTL curto e limite de tamanho. O texto do usuário não
 sobrescreve esse estado. O histórico enviado ao modelo é limitado às últimas
 6 mensagens.
 
+**Streaming (proposta, ainda não implementado):** o endpoint atual é
+request/response. Para reduzir a percepção de 15-25 s, a evolução natural é um
+`POST /api/v1/ai/chat/stream` com `StreamingResponse`/SSE emitindo
+`token` (redação), `cards` (IDs reais) e `degraded` (fallback), mantendo o
+mesmo guard/validação antes de liberar o texto. O frontend já tem bolhas
+incrementais prontas para receber deltas; nenhum atalho determinístico precisa
+esperar o LLM.
+
+### Existência, preço e modo catálogo (sem depender do LLM)
+
+- **“A loja tem X?” / “do you have X?” / “¿tienen X?”**: padrões de dados nos 11
+  idiomas, resolvidos no roteador. Se encontrou, responde “Sim, encontrei estas
+  opções” + cartões; se não encontrou, responde “Não encontrei esse produto no
+  catálogo” + categorias reais do banco + convite para descrever a necessidade.
+  O LLM não participa dessa decisão.
+- **Sinônimos de domínio**: abafador de ruído/protetor auricular, capacete/casco,
+  óculos de proteção/lente de segurança e prensa hidráulica/prensa são normalizados
+  antes da busca (tabela de dados em `query_normalization.py`).
+- **Preço**: se o roteador LLM inventar faixa/moeda sem valor na mensagem, o filtro é
+  descartado antes da busca (o caso “prensa hidráulica” não vira confirmação de moeda).
+- **Falha do LLM com busca já feita**: a resposta curta é determinística e localizada,
+  com os cartões reais; o frontend mostra “assistente em modo catálogo” em vez do
+  erro genérico. Auditoria/persistência que falharem não derrubam a resposta.
+- **Resposta vazia/truncada do Qwen**: uma nova tentativa com `reasoning_effort=none`,
+  `chat_template_kwargs.enable_thinking=false` e `max_tokens` maior; `<think>` é
+  removido. Timeouts são explícitos por etapa (roteador, redação, regeneração) e a
+  fila da GPU falha rápido com fallback.
+
 ### Assistente multilíngue (idioma por mensagem)
 
 O assistente responde no idioma da **mensagem**, não no idioma do site, para os 11 locales
@@ -292,7 +321,9 @@ continua resolvendo nome/descrição de produto e cartões.
 - **Detecção:** `langid==1.1.6` offline e restrito aos 11 locales, carregado uma vez.
   Scripts Unicode vêm antes do modelo (`ko`, `ja`, `zh-CN`, `ar`, `ru`); SKUs, números,
   URLs, marcas e símbolos são removidos antes de detectar. Mensagens curtas/ambíguas
-  mantêm o idioma da conversa; um léxico mínimo desempata frases curtas de produto.
+  mantêm o idioma da conversa; termos fortes do domínio (`tem`, `loja`, `estoque`,
+  `luvas`, `gloves`, `tienen`) vencem o detector — sem isso, “A loja tem prensa
+  hidráulica?” era classificado como espanhol com 0,99 de confiança.
 - **Pedido explícito:** “answer in English”/“responda em espanhol” vence a detecção e
   passa a ser o idioma da conversa; mensagens seguintes curtas o mantêm.
 - **Persistência:** `chat_conversations.conversation_language` e `chat_messages.language`
@@ -321,6 +352,8 @@ Limitações conhecidas:
   “mais barato/mais caro” com cartões;
 - idiomas sem atalho determinístico passam pelo LLM de roteamento/redação e podem ser
   mais lentos;
+- os padrões de existência cobrem formulações comuns (“a loja tem X?”, “vocês
+  vendem X?”, “do you have X?”); perguntas muito indiretas ainda usam o roteador;
 - o prompt v3 fica atrás da flag até o smoke real dos 11 idiomas fechar.
 
 #### Como adicionar um novo idioma
@@ -383,6 +416,24 @@ LLM corretamente marcados como skipped quando o LM Studio não está no ar. O
 caso obrigatório das luvas mais baratas passa **sem chamar o LLM** mesmo se o
 roteador falhar, pois o atalho de preço é determinístico.
 
+A bateria de loja (`store_assistant_eval.v1.json`) cobre 67 perguntas reais em
+pt-BR/en/es nas categorias existência, preço, comparação, estoque, frete,
+pagamento B2B/CNPJ, carrinho/pedido, consultoria, termos vagos, erros de
+digitação, follow-ups, fora de escopo e injection:
+
+```bash
+# (a) LLM mockado como indisponível, em processo, com catálogo fixture
+backend/.venv/Scripts/python.exe backend/scripts/eval_store_assistant.py --mode offline
+
+# (b) LM Studio real, lotes de até 10, sequencial, checando RAM antes de cada lote
+backend/.venv/Scripts/python.exe backend/scripts/eval_store_assistant.py --mode real
+```
+
+Cada lote real grava `docs/agent/store-eval-real-batch-NN.txt`; o resumo fica em
+`store-eval-real-summary.json`. O script aborta antes de um lote se a RAM livre
+estiver abaixo de 1,5 GB. No modo offline a regra é a mesma: nenhum produto pode
+virar erro genérico; perguntas que só o LLM redigiria podem cair no modo catálogo.
+
 ### Rodando a IA localmente com LM Studio
 
 1. Instale o [LM Studio](https://lmstudio.ai/) e baixe o modelo **Qwen 3.5 9B**
@@ -401,14 +452,20 @@ roteador falhar, pois o atalho de preço é determinístico.
    LLM_MODEL=qwen/qwen3.5-9b
    LLM_TEMPERATURE=0.3
    LLM_TIMEOUT_SECONDS=60
+   LLM_ROUTER_TIMEOUT_SECONDS=20
+   LLM_ANSWER_TIMEOUT_SECONDS=60
+   LLM_REGENERATION_TIMEOUT_SECONDS=20
    LLM_MAX_TOKENS=512
    LLM_REASONING_EFFORT=none
    # GPU pequena: 1 worker (o semáforo do cliente é por processo)
    WEB_CONCURRENCY=1
    ```
    `LLM_REASONING_EFFORT=none` desliga o bloco de raciocínio do Qwen no LM Studio
-   (respostas rápidas). O cliente também remove qualquer `<think>...</think>` que
-   escapar. `LLM_API_KEY` é fictícia: o LM Studio ignora o valor.
+   (respostas rápidas). Se o modelo ainda devolver `content` vazio ou
+   `finish_reason=length`, o cliente repete uma vez com
+   `chat_template_kwargs.enable_thinking=false` e `max_tokens` maior, e remove
+   qualquer `<think>...</think>` que escapar. `LLM_API_KEY` é fictícia: o LM Studio
+   ignora o valor.
 4. **Docker:** o backend roda em container, então `localhost` aponta para o próprio
    container. O `docker-compose.yml` já declara
    `extra_hosts: host.docker.internal:host-gateway` e usa
@@ -422,8 +479,9 @@ roteador falhar, pois o atalho de preço é determinístico.
    ```
    Esperado: `{"available":true,"enabled":true,"model":"qwen/qwen3.5-9b"}`.
 6. O endpoint de chat é `POST /api/v1/ai/chat`; o widget consulta `/health/llm`
-   (cache de 30 s) e mostra o aviso de demonstração quando o modelo não está
-   disponível. Nenhuma rota de catálogo, carrinho, checkout ou login depende do LLM.
+   (cache de 30 s) e mostra o aviso discreto de **modo catálogo** quando o modelo
+   não está disponível. Nenhuma rota de catálogo, carrinho, checkout ou login
+   depende do LLM.
 7. Para testar o e-mail de carrinho sem enviar mensagens reais:
    ```dotenv
    EMAIL_DRY_RUN=true
