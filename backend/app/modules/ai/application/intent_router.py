@@ -17,9 +17,12 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.modules.ai.application.lexicon import (
+    BRAND_PRODUCTS_PATTERNS,
+    CATALOG_CATEGORY_QUERIES,
     EXISTENCE_PATTERNS,
     EXISTENCE_REJECT_TERMS,
     INTENT_TERMS,
+    OVERVIEW_CATEGORY_CONTEXT,
     PRICE_SORT_ASC,
     PRICE_SORT_DESC,
     QUANTITY_CONTEXT,
@@ -63,6 +66,11 @@ class IntentName(StrEnum):
     ORDER_STATUS = "order_status"
     POLICY_FAQ = "policy_faq"
     CATALOG_HELP = "catalog_help"
+    BRAND_LIST = "brand_list"
+    BRAND_PRODUCTS = "brand_products"
+    CATALOG_OVERVIEW = "catalog_overview"
+    PRICE_RANGE = "price_range"
+    COUNT_PRODUCTS = "count_products"
     GREETING_SMALLTALK = "greeting_smalltalk"
     OUT_OF_SCOPE = "out_of_scope"
 
@@ -156,6 +164,11 @@ _DETAIL_TERMS = flatten(INTENT_TERMS["detail"])
 _AVAILABILITY_TERMS = flatten(INTENT_TERMS["availability"])
 _CATALOG_TERMS = flatten(INTENT_TERMS["catalog"])
 _PRODUCT_TERMS = flatten(INTENT_TERMS["product"])
+_BRAND_LIST_TERMS = flatten(INTENT_TERMS["brand_list"])
+_OVERVIEW_TERMS = flatten(INTENT_TERMS["catalog_overview"])
+_PRICE_RANGE_TERMS = flatten(INTENT_TERMS["price_range"])
+_COUNT_TERMS = flatten(INTENT_TERMS["count_products"])
+_OFF_TOPIC_TERMS = flatten(INTENT_TERMS["out_of_scope"])
 _ORDER_TERMS = flatten(INTENT_TERMS["order"])
 _POLICY_TERMS = flatten(INTENT_TERMS["policy"])
 _GREETING_TERMS = flatten(INTENT_TERMS["greeting"])
@@ -178,7 +191,7 @@ _PRICE_QUESTION = re.compile(
 
 def deterministic_decision(message: str, *, reply_language: str) -> IntentDecision | None:
     """Atalho de codigo para intents claras; None = deixa o LLM decidir."""
-    if _matches(message, _SENSITIVE_TERMS):
+    if _matches(message, _SENSITIVE_TERMS) or _matches(message, _OFF_TOPIC_TERMS):
         return IntentDecision(intent=IntentName.OUT_OF_SCOPE, language=reply_language)
     filters = extract_price_filters(message)
     query = _clean_query(message)
@@ -198,6 +211,25 @@ def deterministic_decision(message: str, *, reply_language: str) -> IntentDecisi
     )
     if keyword is not None:
         return keyword
+    if (
+        (price_sort is not None or filters.min is not None or filters.max is not None)
+        and not _matches(message, _PRODUCT_TERMS)
+    ):
+        # "tem algo barato?" / "algo ate 50?" sem produto nomeado: busca
+        # generica ordenada/filtrada, nunca recusa por falta de termo.
+        return IntentDecision(
+            intent=IntentName.PRODUCT_SEARCH,
+            query="produto",
+            query_pt="",
+            query_en="",
+            price_sort=price_sort,
+            price_min=filters.min,
+            price_max=filters.max,
+            price_currency=filters.currency,
+            price_currency_confirmation=filters.needs_confirmation,
+            quantity=extract_quantity(message),
+            language=reply_language,
+        )
     if (
         _matches(message, _PRODUCT_TERMS)
         or price_sort
@@ -262,6 +294,11 @@ def existence_decision(message: str, *, reply_language: str) -> IntentDecision |
         product = _clean_existence_product(match.group("product"))
         if not product or _matches(product, EXISTENCE_REJECT_TERMS):
             continue
+        if _matches(
+            product,
+            ("catalogo", "catálogo", "catalog", "loja", "coisa", "produto", "produtos"),
+        ):
+            continue
         if _matches(product, _AVAILABILITY_TERMS) and len(product.split()) <= 2:
             continue
         query_pt, query_en = normalize_query(product)
@@ -289,6 +326,152 @@ def _clean_existence_product(raw: str) -> str:
     value = _EXISTENCE_LEADING_ARTICLE.sub("", value)
     value = re.sub(r"\s+", " ", value).strip(" \t\n\r?!.¿¡。؟,;:-")
     return value[:MAX_QUERY_CHARS]
+
+
+_BRAND_COMPILED: tuple[tuple[Locale, re.Pattern[str]], ...] = tuple(
+    (locale, re.compile(pattern, re.IGNORECASE))
+    for locale, patterns in BRAND_PRODUCTS_PATTERNS.items()
+    for pattern in patterns
+)
+
+
+def _clean_brand(raw: str) -> str:
+    value = unicodedata.normalize("NFKC", raw).strip(" \t\n\r?!.¿¡。؟,;:-")
+    value = re.sub(r"(?i)\s+(?:por\s+favor|please|bitte|per\s+favore)\s*$", "", value)
+    value = re.sub(r"\s+", " ", value)
+    return value[:80]
+
+
+def brand_products_decision(
+    message: str, *, reply_language: str
+) -> IntentDecision | None:
+    """Extrai "tem algo da <marca>" / "produtos da <marca>" por padrao."""
+    if not message or len(message) > 200:
+        return None
+    for _locale, pattern in _BRAND_COMPILED:
+        match = pattern.search(message)
+        if match is None:
+            continue
+        brand = _clean_brand(match.group("brand"))
+        if not brand or _matches(brand, EXISTENCE_REJECT_TERMS):
+            continue
+        if _matches(brand, _PRODUCT_TERMS) or _category_query_from_message(brand):
+            # "produtos de protecao auditiva" e categoria, nao marca.
+            continue
+        return IntentDecision(
+            intent=IntentName.BRAND_PRODUCTS,
+            brand=brand,
+            language=reply_language,
+        )
+    return None
+
+
+_GENERIC_QUERY_TERMS = frozenset(
+    {
+        "produto",
+        "produtos",
+        "item",
+        "itens",
+        "coisa",
+        "coisas",
+        "modelo",
+        "modelos",
+        "product",
+        "products",
+        "items",
+        "store",
+        "catalog",
+        "catalogue",
+    }
+)
+
+
+def _product_query_from_message(message: str) -> str:
+    term = first_product_term(message)
+    if term is None:
+        return ""
+    cleaned = term.strip()
+    if cleaned.casefold() in _GENERIC_QUERY_TERMS:
+        return ""
+    return cleaned[:MAX_QUERY_CHARS]
+
+
+def _fold(value: str) -> str:
+    folded = unicodedata.normalize("NFKD", value.casefold())
+    return "".join(char for char in folded if not unicodedata.combining(char))
+
+
+def _category_query_from_message(message: str) -> str | None:
+    folded = _fold(message)
+    for candidate in CATALOG_CATEGORY_QUERIES:
+        if _fold(candidate) and _fold(candidate) in folded:
+            return candidate[:80]
+    return None
+
+
+def _price_range_query(message: str) -> str:
+    term = first_product_term(message)
+    if term is not None:
+        return term[:MAX_QUERY_CHARS]
+    stripped = message
+    for phrase in _PRICE_RANGE_TERMS:
+        stripped = re.sub(re.escape(phrase), " ", stripped, flags=re.IGNORECASE)
+    return _clean_query(stripped)[:MAX_QUERY_CHARS]
+
+
+def brand_list_decision(message: str, *, reply_language: str) -> IntentDecision | None:
+    if not _matches(message, _BRAND_LIST_TERMS):
+        return None
+    query = _product_query_from_message(message)
+    return IntentDecision(
+        intent=IntentName.BRAND_LIST,
+        query=query,
+        query_pt=normalize_query(query)[0] if query else "",
+        query_en=normalize_query(query)[1] if query else "",
+        category=_category_query_from_message(message),
+        language=reply_language,
+    )
+
+
+def overview_decision(message: str, *, reply_language: str) -> IntentDecision | None:
+    category_query = _category_query_from_message(message)
+    if not _matches(message, _OVERVIEW_TERMS) and not (
+        category_query and _matches(message, OVERVIEW_CATEGORY_CONTEXT)
+    ):
+        return None
+    return IntentDecision(
+        intent=IntentName.CATALOG_OVERVIEW,
+        query=category_query or "",
+        language=reply_language,
+    )
+
+
+def price_range_decision(message: str, *, reply_language: str) -> IntentDecision | None:
+    if not _matches(message, _PRICE_RANGE_TERMS):
+        return None
+    query = _price_range_query(message)
+    query_pt, query_en = normalize_query(query) if query else ("", "")
+    return IntentDecision(
+        intent=IntentName.PRICE_RANGE,
+        query=query,
+        query_pt=query_pt,
+        query_en=query_en,
+        language=reply_language,
+    )
+
+
+def count_decision(message: str, *, reply_language: str) -> IntentDecision | None:
+    if not _matches(message, _COUNT_TERMS):
+        return None
+    query = _product_query_from_message(message)
+    return IntentDecision(
+        intent=IntentName.COUNT_PRODUCTS,
+        query=query,
+        query_pt=normalize_query(query)[0] if query else "",
+        query_en=normalize_query(query)[1] if query else "",
+        category=_category_query_from_message(message),
+        language=reply_language,
+    )
 
 
 def _keyword_decision(  # noqa: C901 - prioridades do roteador
@@ -328,6 +511,21 @@ def _keyword_decision(  # noqa: C901 - prioridades do roteador
             quantity=extract_quantity(message),
             language=reply_language,
         )
+    brand_products = brand_products_decision(message, reply_language=reply_language)
+    if brand_products is not None:
+        return brand_products
+    brand_list = brand_list_decision(message, reply_language=reply_language)
+    if brand_list is not None:
+        return brand_list
+    overview = overview_decision(message, reply_language=reply_language)
+    if overview is not None:
+        return overview
+    count = count_decision(message, reply_language=reply_language)
+    if count is not None:
+        return count
+    price_range = price_range_decision(message, reply_language=reply_language)
+    if price_range is not None:
+        return price_range
     task = _extract_task(message)
     if task is not None:
         return IntentDecision(
@@ -382,6 +580,64 @@ _FIXED_INTENTS = (
     (_CATALOG_TERMS, IntentName.CATALOG_HELP),
 )
 
+_STRONG_DETERMINISTIC_INTENTS = frozenset(
+    {
+        IntentName.BRAND_LIST,
+        IntentName.BRAND_PRODUCTS,
+        IntentName.CATALOG_OVERVIEW,
+        IntentName.PRICE_RANGE,
+        IntentName.COUNT_PRODUCTS,
+    }
+)
+
+_STORE_CONTEXT_VERBS: tuple[str, ...] = (
+    "tem",
+    "têm",
+    "vende",
+    "vendem",
+    "comprar",
+    "trabalha",
+    "trabalham",
+    "preciso",
+    "precisa",
+    "indica",
+    "indicar",
+    "marca",
+    "marcas",
+    "produto",
+    "produtos",
+    "categoria",
+    "categorias",
+    "sell",
+    "have",
+    "brand",
+    "brands",
+    "product",
+    "products",
+    "category",
+    "need",
+    "looking for",
+    "venden",
+    "tienen",
+    "marcas",
+    "productos",
+    "categoria",
+)
+
+
+def is_store_context(message: str) -> bool:
+    """Pergunta claramente ligada a loja, mesmo fora de um padrao conhecido."""
+    if not message or _matches(message, _OFF_TOPIC_TERMS):
+        return False
+    return bool(
+        _matches(message, _PRODUCT_TERMS)
+        or _matches(message, _CATALOG_TERMS)
+        or _matches(message, _BRAND_LIST_TERMS)
+        or _matches(message, _OVERVIEW_TERMS)
+        or _matches(message, _POLICY_TERMS)
+        or _matches(message, _STORE_CONTEXT_VERBS)
+    )
+
 
 def fallback_decision(message: str, *, reply_language: str) -> IntentDecision:
     """Nunca recusa por falha de classificacao: busca simples com o texto."""
@@ -418,6 +674,17 @@ def normalize_decision(
         # Pergunta de existencia sempre vence: a busca e o template localizado
         # sao deterministas e nao dependem da classificacao do LLM.
         return deterministic.model_copy(update={"language": reply_language})
+    if deterministic is not None and deterministic.intent in _STRONG_DETERMINISTIC_INTENTS:
+        # Marcas/visao geral/contagem/faixa de preco tem ferramenta propria:
+        # o LLM nao pode rebaixar para out_of_scope nem trocar a consulta.
+        return deterministic.model_copy(update={"language": reply_language})
+    if decision.intent == IntentName.OUT_OF_SCOPE:
+        # Na duvida, buscar: se ha termo/verbo de loja, nunca recusa por
+        # estranheza. Assuntos realmente fora ja foram barrados acima/antes.
+        if deterministic is not None:
+            return deterministic.model_copy(update={"language": reply_language})
+        if is_store_context(message):
+            return fallback_decision(message, reply_language=reply_language)
     price_sort = decision.price_sort or (deterministic.price_sort if deterministic else None)
     task = decision.task or (deterministic.task if deterministic else None)
     quantity = decision.quantity or (deterministic.quantity if deterministic else None)

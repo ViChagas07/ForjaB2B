@@ -303,6 +303,139 @@ def test_fallback_de_produto_nao_usa_mensagem_de_erro_generica() -> None:
     assert "Não foi possível" not in catalog_mode_response(Locale.PT_BR)
 
 
+def _intent(message: str) -> IntentName | None:
+    decision = deterministic_decision(message, reply_language="pt-BR")
+    return decision.intent if decision is not None else None
+
+
+def test_novas_intencoes_de_catalogo_por_codigo() -> None:
+    assert _intent("quais marcas?") is IntentName.BRAND_LIST
+    brand = deterministic_decision("tem algo da PROTEC?", reply_language="pt-BR")
+    assert brand is not None and brand.intent is IntentName.BRAND_PRODUCTS
+    assert brand.brand == "PROTEC"
+    assert _intent("o que vocês vendem?") is IntentName.CATALOG_OVERVIEW
+    assert _intent("quantos produtos vocês têm?") is IntentName.COUNT_PRODUCTS
+    assert _intent("qual a faixa de preço de luvas?") is IntentName.PRICE_RANGE
+
+
+def test_categoria_nao_e_confundida_com_marca() -> None:
+    assert _intent("quantos produtos de proteção auditiva?") is IntentName.COUNT_PRODUCTS
+    decision = deterministic_decision(
+        "produtos de proteção auditiva", reply_language="pt-BR"
+    )
+    assert decision is None or decision.intent is not IntentName.BRAND_PRODUCTS
+
+
+def test_assunto_claramente_fora_nao_vira_busca() -> None:
+    decision = deterministic_decision("Qual a previsão do tempo?", reply_language="pt-BR")
+    assert decision is not None and decision.intent is IntentName.OUT_OF_SCOPE
+
+
+def test_loja_estranha_mas_do_contexto_nao_e_recusada() -> None:
+    decision = deterministic_decision("A loja tem serra?", reply_language="pt-BR")
+    assert decision is not None and decision.availability_check is True
+    assert decision.query == "serra"
+
+
+def _offline_graph():
+    from pathlib import Path
+
+    from app.modules.ai.evaluation.store_fixture import build_offline_graph
+
+    root = Path(__file__).resolve().parents[2]
+    return build_offline_graph(
+        catalog_path=root / "app/modules/ai/evaluation/data/store_catalog_fixture.v1.json"
+    )
+
+
+async def test_brand_list_e_brand_products_offline() -> None:
+    from app.modules.ai.evaluation.store_fixture import new_conversation
+
+    graph = _offline_graph()
+    brands = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="quais marcas?",
+        history=[],
+        auth=None,
+    )
+    assert "PROTEC" in brands.reply and brands.cards == []
+    products = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="tem algo da PROTEC?",
+        history=[],
+        auth=None,
+    )
+    assert products.cards
+    missing = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="tem produto da Bosh?",
+        history=[],
+        auth=None,
+    )
+    assert missing.cards == [] and "PROTEC" in missing.reply
+
+
+async def test_overview_count_e_faixa_de_preco_offline() -> None:
+    from app.modules.ai.evaluation.store_fixture import new_conversation
+
+    graph = _offline_graph()
+    overview = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="o que vocês vendem?",
+        history=[],
+        auth=None,
+    )
+    assert "categorias" in overview.reply and overview.cards == []
+    count = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="quantos produtos vocês têm?",
+        history=[],
+        auth=None,
+    )
+    assert "23" in count.reply
+    price = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="qual a faixa de preço de luvas?",
+        history=[],
+        auth=None,
+    )
+    assert "R$" in price.reply and price.cards
+
+
+def test_fixture_resolve_categoria_por_nome() -> None:
+    from pathlib import Path
+
+    from app.modules.ai.evaluation.store_fixture import FixtureInsights, load_catalog
+
+    root = Path(__file__).resolve().parents[2]
+    products = load_catalog(
+        root / "app/modules/ai/evaluation/data/store_catalog_fixture.v1.json"
+    )
+    insights = FixtureInsights(products)
+    assert insights._resolve_category("proteção auditiva") == "protecao-auditiva"
+
+
+async def test_out_of_scope_nao_devolve_cartoes_offline() -> None:
+    from app.modules.ai.evaluation.store_fixture import new_conversation
+
+    graph = _offline_graph()
+    result = await graph.run(
+        conversation=new_conversation(),
+        reply_language="pt-BR",
+        message="Qual a previsão do tempo?",
+        history=[],
+        auth=None,
+    )
+    assert result.cards == []
+    assert "Não posso" in result.reply
+
+
 async def _ids(values: set[str]) -> set[str]:
     return values
 

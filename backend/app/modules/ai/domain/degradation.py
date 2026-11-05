@@ -9,6 +9,9 @@ backend conseguir montar. Texto puro, sem HTML/links.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from decimal import Decimal
+
 from app.modules.ai.domain.formatting import format_brl, format_foreign_amount
 from app.modules.ai.domain.types import Locale
 
@@ -700,3 +703,386 @@ def currency_confirmation_response(
         brl_amount = " - ".join(format_brl(value, locale) for value in values)
     template = _CURRENCY_CONFIRMATION.get(locale.value, _CURRENCY_CONFIRMATION["pt-BR"])
     return template.format(amount=amount, brl_amount=brl_amount)
+
+
+# ---------------------------------------------------------------------------
+# Operacoes de catalogo: marcas, visao geral, contagem e faixa de preco
+# ---------------------------------------------------------------------------
+
+_BRAND_LIST_INTRO: dict[str, str] = {
+    "pt-BR": "Marcas disponíveis:",
+    "en": "Available brands:",
+    "es": "Marcas disponibles:",
+    "ar": "العلامات التجارية المتاحة:",
+    "de": "Verfügbare Marken:",
+    "fr": "Marques disponibles :",
+    "it": "Marche disponibili:",
+    "ja": "利用可能なブランド:",
+    "ko": "사용 가능한 브랜드:",
+    "ru": "Доступные бренды:",
+    "zh-CN": "可用品牌：",
+}
+
+_BRAND_LIST_FOR: dict[str, str] = {
+    "pt-BR": "Marcas disponíveis para {query}:",
+    "en": "Available brands for {query}:",
+    "es": "Marcas disponibles para {query}:",
+    "ar": "العلامات التجارية المتاحة لـ {query}:",
+    "de": "Verfügbare Marken für {query}:",
+    "fr": "Marques disponibles pour {query} :",
+    "it": "Marche disponibili per {query}:",
+    "ja": "{query} の利用可能なブランド:",
+    "ko": "{query}의 사용 가능한 브랜드:",
+    "ru": "Доступные бренды для {query}:",
+    "zh-CN": "{query} 的可用品牌：",
+}
+
+_BRAND_LIST_EMPTY: dict[str, str] = {
+    "pt-BR": "Não encontrei marcas no catálogo para esse filtro.",
+    "en": "I found no brands in the catalog for that filter.",
+    "es": "No encontré marcas en el catálogo para ese filtro.",
+    "ar": "لم أجد علامات تجارية في الكتالوج بهذا الفلتر.",
+    "de": "Ich fand keine Marken im Katalog für diesen Filter.",
+    "fr": "Je n'ai trouvé aucune marque dans le catalogue pour ce filtre.",
+    "it": "Non ho trovato marchi nel catalogo con quel filtro.",
+    "ja": "その条件に合うブランドはカタログに見つかりませんでした。",
+    "ko": "해당 조건의 브랜드를 카탈로그에서 찾지 못했습니다.",
+    "ru": "Бренды по этому фильтру не найдены в каталоге.",
+    "zh-CN": "该筛选条件下目录中没有找到品牌。",
+}
+
+_BRAND_LIST_NEXT: dict[str, str] = {
+    "pt-BR": "Diga o nome de uma marca para ver os produtos.",
+    "en": "Tell me a brand name to see its products.",
+    "es": "Dime el nombre de una marca para ver sus productos.",
+    "ar": "اذكر اسم علامة تجارية لعرض منتجاتها.",
+    "de": "Nennen Sie eine Marke, um die Produkte zu sehen.",
+    "fr": "Indiquez une marque pour voir ses produits.",
+    "it": "Dimmi il nome di una marca per vedere i prodotti.",
+    "ja": "ブランド名を教えていただければ商品を表示します。",
+    "ko": "브랜드 이름을 알려주시면 제품을 보여드리겠습니다.",
+    "ru": "Назовите бренд, чтобы увидеть товары.",
+    "zh-CN": "告诉我品牌名称即可查看产品。",
+}
+
+_BRAND_PRODUCTS_INTRO: dict[str, str] = {
+    "pt-BR": "Produtos da marca {brand}:",
+    "en": "Products from {brand}:",
+    "es": "Productos de la marca {brand}:",
+    "ar": "منتجات العلامة {brand}:",
+    "de": "Produkte der Marke {brand}:",
+    "fr": "Produits de la marque {brand} :",
+    "it": "Prodotti del marchio {brand}:",
+    "ja": "{brand} の製品:",
+    "ko": "{brand} 제품:",
+    "ru": "Товары бренда {brand}:",
+    "zh-CN": "{brand} 的产品：",
+}
+
+_BRAND_AMBIGUOUS: dict[str, str] = {
+    "pt-BR": "Encontrei mais de uma marca parecida com {brand}: {candidates}. Qual delas?",
+    "en": "I found more than one brand similar to {brand}: {candidates}. Which one?",
+    "es": "Encontré más de una marca parecida a {brand}: {candidates}. ¿Cuál?",
+    "ar": "وجدت أكثر من علامة مشابهة لـ {brand}: {candidates}. أيها؟",
+    "de": "Ich habe mehrere ähnliche Marken zu {brand} gefunden: {candidates}. Welche?",
+    "fr": "J'ai trouvé plusieurs marques proches de {brand} : {candidates}. Laquelle ?",
+    "it": "Ho trovato più marchi simili a {brand}: {candidates}. Quale?",
+    "ja": "{brand} に似たブランドが複数あります: {candidates}。どれですか?",
+    "ko": "{brand}와 비슷한 브랜드가 여러 개 있습니다: {candidates}. 어느 것인가요?",
+    "ru": "Нашёл несколько похожих брендов для {brand}: {candidates}. Какой?",
+    "zh-CN": "找到多个与 {brand} 相近的品牌：{candidates}。哪一个？",
+}
+
+_BRAND_NOT_FOUND: dict[str, str] = {
+    "pt-BR": "Não encontrei a marca {brand} no catálogo. Marcas disponíveis: {available}.",
+    "en": "I could not find the brand {brand} in the catalog. Available brands: {available}.",
+    "es": "No encontré la marca {brand} en el catálogo. Marcas disponibles: {available}.",
+    "ar": "لم أجد العلامة {brand} في الكتالوج. العلامات المتاحة: {available}.",
+    "de": "Ich konnte die Marke {brand} nicht im Katalog finden. Verfügbare Marken: {available}.",
+    "fr": (
+        "Je n'ai pas trouvé la marque {brand} dans le catalogue. "
+        "Marques disponibles : {available}."
+    ),
+    "it": "Non ho trovato il marchio {brand} nel catalogo. Marche disponibili: {available}.",
+    "ja": (
+        "カタログに {brand} というブランドは見つかりませんでした。"
+        "利用可能なブランド: {available}。"
+    ),
+    "ko": "카탈로그에서 {brand} 브랜드를 찾지 못했습니다. 사용 가능한 브랜드: {available}.",
+    "ru": "Бренд {brand} не найден в каталоге. Доступные бренды: {available}.",
+    "zh-CN": "目录中没有找到品牌 {brand}。可用品牌：{available}。",
+}
+
+_BRAND_EMPTY: dict[str, str] = {
+    "pt-BR": "Não encontrei produtos da marca {brand} para esse filtro.",
+    "en": "I found no products from {brand} for that filter.",
+    "es": "No encontré productos de la marca {brand} con ese filtro.",
+    "ar": "لم أجد منتجات من العلامة {brand} بهذا الفلتر.",
+    "de": "Ich fand keine Produkte der Marke {brand} für diesen Filter.",
+    "fr": "Je n'ai trouvé aucun produit de la marque {brand} pour ce filtre.",
+    "it": "Non ho trovato prodotti del marchio {brand} con quel filtro.",
+    "ja": "その条件で {brand} の製品は見つかりませんでした。",
+    "ko": "해당 조건에서 {brand} 제품을 찾지 못했습니다.",
+    "ru": "По этому фильтру товаров бренда {brand} не найдено.",
+    "zh-CN": "该筛选条件下没有找到 {brand} 的产品。",
+}
+
+_OVERVIEW: dict[str, str] = {
+    "pt-BR": "A loja tem {total} produtos em {count} categorias: {categories}.",
+    "en": "The store has {total} products in {count} categories: {categories}.",
+    "es": "La tienda tiene {total} productos en {count} categorías: {categories}.",
+    "ar": "يحتوي المتجر على {total} منتجًا في {count} فئات: {categories}.",
+    "de": "Der Shop hat {total} Produkte in {count} Kategorien: {categories}.",
+    "fr": "La boutique compte {total} produits dans {count} catégories : {categories}.",
+    "it": "Il negozio ha {total} prodotti in {count} categorie: {categories}.",
+    "ja": "ストアには {count} カテゴリに {total} 商品があります: {categories}。",
+    "ko": "스토어에는 {count}개 카테고리에 {total}개 제품이 있습니다: {categories}.",
+    "ru": "В магазине {total} товаров в {count} категориях: {categories}.",
+    "zh-CN": "商店在 {count} 个类别中有 {total} 件产品：{categories}。",
+}
+
+_OVERVIEW_FILTERED: dict[str, str] = {
+    "pt-BR": "Sim, temos {total} produtos nestas categorias de {query}: {categories}.",
+    "en": "Yes, we have {total} products in these {query} categories: {categories}.",
+    "es": "Sí, tenemos {total} productos en estas categorías de {query}: {categories}.",
+    "ar": "نعم، لدينا {total} منتجًا في فئات {query} التالية: {categories}.",
+    "de": "Ja, wir haben {total} Produkte in diesen Kategorien für {query}: {categories}.",
+    "fr": "Oui, nous avons {total} produits dans ces catégories {query} : {categories}.",
+    "it": "Sì, abbiamo {total} prodotti in queste categorie {query}: {categories}.",
+    "ja": "はい、{query} のカテゴリに {total} 商品があります: {categories}。",
+    "ko": "네, {query} 카테고리에 {total}개 제품이 있습니다: {categories}.",
+    "ru": "Да, у нас {total} товаров в категориях {query}: {categories}.",
+    "zh-CN": "是的，我们在这些{query}类别中有 {total} 件产品：{categories}。",
+}
+
+_OVERVIEW_NONE: dict[str, str] = {
+    "pt-BR": "Não encontrei categorias para {query} no catálogo.",
+    "en": "I found no categories for {query} in the catalog.",
+    "es": "No encontré categorías para {query} en el catálogo.",
+    "ar": "لم أجد فئات لـ {query} في الكتالوج.",
+    "de": "Ich fand keine Kategorien für {query} im Katalog.",
+    "fr": "Je n'ai trouvé aucune catégorie pour {query} dans le catalogue.",
+    "it": "Non ho trovato categorie per {query} nel catalogo.",
+    "ja": "カタログに {query} のカテゴリは見つかりませんでした。",
+    "ko": "카탈로그에서 {query} 카테고리를 찾지 못했습니다.",
+    "ru": "Категории для {query} не найдены в каталоге.",
+    "zh-CN": "目录中没有找到 {query} 的类别。",
+}
+
+_PRICE_RANGE: dict[str, str] = {
+    "pt-BR": "A faixa de preço de {query} é de {minimum} a {maximum} ({count} produtos).",
+    "en": "The price range for {query} is {minimum} to {maximum} ({count} products).",
+    "es": "El rango de precio de {query} es de {minimum} a {maximum} ({count} productos).",
+    "ar": "نطاق سعر {query} من {minimum} إلى {maximum} ({count} منتجًا).",
+    "de": "Die Preisspanne für {query} liegt zwischen {minimum} und {maximum} ({count} Produkte).",
+    "fr": "La fourchette de prix pour {query} va de {minimum} à {maximum} ({count} produits).",
+    "it": "La fascia di prezzo per {query} va da {minimum} a {maximum} ({count} prodotti).",
+    "ja": "{query} の価格帯は {minimum} から {maximum} です（{count} 商品）。",
+    "ko": "{query}의 가격대는 {minimum}부터 {maximum}까지입니다({count}개 제품).",
+    "ru": "Диапазон цен для {query}: от {minimum} до {maximum} ({count} товаров).",
+    "zh-CN": "{query} 的价格范围是 {minimum} 到 {maximum}（{count} 件产品）。",
+}
+
+_PRICE_RANGE_EMPTY: dict[str, str] = {
+    "pt-BR": "Não encontrei preços para {query} no catálogo.",
+    "en": "I found no prices for {query} in the catalog.",
+    "es": "No encontré precios para {query} en el catálogo.",
+    "ar": "لم أجد أسعارًا لـ {query} في الكتالوج.",
+    "de": "Ich fand keine Preise für {query} im Katalog.",
+    "fr": "Je n'ai trouvé aucun prix pour {query} dans le catalogue.",
+    "it": "Non ho trovato prezzi per {query} nel catalogo.",
+    "ja": "カタログに {query} の価格は見つかりませんでした。",
+    "ko": "카탈로그에서 {query} 가격을 찾지 못했습니다.",
+    "ru": "Цены для {query} не найдены в каталоге.",
+    "zh-CN": "目录中没有找到 {query} 的价格。",
+}
+
+_COUNT: dict[str, str] = {
+    "pt-BR": "Temos {count} produtos no catálogo.",
+    "en": "We have {count} products in the catalog.",
+    "es": "Tenemos {count} productos en el catálogo.",
+    "ar": "لدينا {count} منتجًا في الكتالوج.",
+    "de": "Wir haben {count} Produkte im Katalog.",
+    "fr": "Nous avons {count} produits dans le catalogue.",
+    "it": "Abbiamo {count} prodotti nel catalogo.",
+    "ja": "カタログには {count} 商品あります。",
+    "ko": "카탈로그에 {count}개 제품이 있습니다.",
+    "ru": "В каталоге {count} товаров.",
+    "zh-CN": "目录中共有 {count} 件产品。",
+}
+
+_COUNT_FILTERED: dict[str, str] = {
+    "pt-BR": "Temos {count} produtos para {filter}.",
+    "en": "We have {count} products for {filter}.",
+    "es": "Tenemos {count} productos para {filter}.",
+    "ar": "لدينا {count} منتجًا لـ {filter}.",
+    "de": "Wir haben {count} Produkte für {filter}.",
+    "fr": "Nous avons {count} produits pour {filter}.",
+    "it": "Abbiamo {count} prodotti per {filter}.",
+    "ja": "{filter} の商品は {count} 件です。",
+    "ko": "{filter} 제품은 {count}개입니다.",
+    "ru": "Для {filter} найдено {count} товаров.",
+    "zh-CN": "{filter} 共有 {count} 件产品。",
+}
+
+_COUNT_EMPTY: dict[str, str] = {
+    "pt-BR": "Não encontrei produtos para {filter} no catálogo.",
+    "en": "I found no products for {filter} in the catalog.",
+    "es": "No encontré productos para {filter} en el catálogo.",
+    "ar": "لم أجد منتجات لـ {filter} في الكتالوج.",
+    "de": "Ich fand keine Produkte für {filter} im Katalog.",
+    "fr": "Je n'ai trouvé aucun produit pour {filter} dans le catalogue.",
+    "it": "Non ho trovato prodotti per {filter} nel catalogo.",
+    "ja": "カタログに {filter} の商品は見つかりませんでした。",
+    "ko": "카탈로그에서 {filter} 제품을 찾지 못했습니다.",
+    "ru": "Товары для {filter} не найдены в каталоге.",
+    "zh-CN": "目录中没有找到 {filter} 的产品。",
+}
+
+_MORE_SUFFIX: dict[str, str] = {
+    "pt-BR": "e mais {count}",
+    "en": "and {count} more",
+    "es": "y {count} más",
+    "ar": "و{count} أخرى",
+    "de": "und {count} weitere",
+    "fr": "et {count} de plus",
+    "it": "e altri {count}",
+    "ja": "ほか {count} 件",
+    "ko": "외 {count}개",
+    "ru": "и ещё {count}",
+    "zh-CN": "以及另外 {count} 个",
+}
+
+
+def _table(table: dict[str, str], locale: Locale) -> str:
+    return table.get(locale.value, table["pt-BR"])
+
+
+def _with_more(items: list[str], total: int, locale: Locale) -> str:
+    text = ", ".join(items)
+    remaining = max(0, total - len(items))
+    if remaining:
+        text = f"{text}; {_table(_MORE_SUFFIX, locale).format(count=remaining)}"
+    return text
+
+
+def brand_list_response(
+    locale: Locale,
+    *,
+    brands: Sequence[tuple[str, int]],
+    total: int,
+    query: str | None = None,
+) -> str:
+    if not brands:
+        return _table(_BRAND_LIST_EMPTY, locale)
+    listed = [f"{name} ({count})" for name, count in brands[:15]]
+    intro = (
+        _table(_BRAND_LIST_FOR, locale).format(query=query)
+        if query
+        else _table(_BRAND_LIST_INTRO, locale)
+    )
+    return f"{intro} {_with_more(listed, total, locale)} {_table(_BRAND_LIST_NEXT, locale)}"
+
+
+def brand_products_response(locale: Locale, *, brand: str) -> str:
+    return _table(_BRAND_PRODUCTS_INTRO, locale).format(brand=brand)
+
+
+def brand_ambiguous_response(
+    locale: Locale, *, brand: str, candidates: Sequence[str]
+) -> str:
+    return _table(_BRAND_AMBIGUOUS, locale).format(
+        brand=brand, candidates=", ".join(candidates[:3])
+    )
+
+
+def brand_not_found_response(
+    locale: Locale, *, brand: str, available: Sequence[str]
+) -> str:
+    return _table(_BRAND_NOT_FOUND, locale).format(
+        brand=brand, available=", ".join(available[:5]) or "-"
+    )
+
+
+def brand_empty_response(locale: Locale, *, brand: str) -> str:
+    return _table(_BRAND_EMPTY, locale).format(brand=brand)
+
+
+def catalog_overview_response(
+    locale: Locale,
+    *,
+    total_products: int,
+    categories: Sequence[tuple[str, int]],
+    category_query: str | None = None,
+) -> str:
+    if not categories:
+        return _table(_OVERVIEW_NONE, locale).format(query=category_query or "")
+    listed = [f"{name} ({count})" for name, count in categories[:8]]
+    text = _with_more(listed, len(categories), locale)
+    if category_query:
+        return _table(_OVERVIEW_FILTERED, locale).format(
+            total=total_products,
+            count=len(categories),
+            query=category_query,
+            categories=text,
+        )
+    return _table(_OVERVIEW, locale).format(
+        total=total_products, count=len(categories), categories=text
+    )
+
+
+def price_range_response(
+    locale: Locale,
+    *,
+    query: str | None,
+    minimum: Decimal | None,
+    maximum: Decimal | None,
+    count: int,
+) -> str:
+    label = query or _table(
+        {
+            "pt-BR": "catálogo",
+            "en": "the catalog",
+            "es": "el catálogo",
+            "ar": "الكتالوج",
+            "de": "den Katalog",
+            "fr": "le catalogue",
+            "it": "il catalogo",
+            "ja": "カタログ",
+            "ko": "카탈로그",
+            "ru": "каталог",
+            "zh-CN": "目录",
+        },
+        locale,
+    )
+    if minimum is None or maximum is None or count <= 0:
+        return _table(_PRICE_RANGE_EMPTY, locale).format(query=label)
+    if minimum == maximum:
+        return _table(_PRICE_RANGE, locale).format(
+            query=label,
+            minimum=format_brl(float(minimum), locale),
+            maximum=format_brl(float(maximum), locale),
+            count=count,
+        )
+    return _table(_PRICE_RANGE, locale).format(
+        query=label,
+        minimum=format_brl(float(minimum), locale),
+        maximum=format_brl(float(maximum), locale),
+        count=count,
+    )
+
+
+def count_products_response(
+    locale: Locale,
+    *,
+    total: int,
+    query: str | None = None,
+    brand: str | None = None,
+    category: str | None = None,
+) -> str:
+    label = brand or query or category
+    if total <= 0:
+        return _table(_COUNT_EMPTY, locale).format(filter=label or "-")
+    if label:
+        return _table(_COUNT_FILTERED, locale).format(count=total, filter=label)
+    return _table(_COUNT, locale).format(count=total)

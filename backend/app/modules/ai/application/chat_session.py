@@ -72,6 +72,10 @@ _STOCK_FOLLOWUP = re.compile(
     r"disponibile|в\s+наличии|متوفر|在庫|재고|有货|有貨)"
     r"|^(?:em\s+estoque|in\s+stock|en\s+stock|auf\s+lager)\s*\??$"
 )
+_BRAND_FOLLOWUP = re.compile(
+    r"(?i)\b(?:os|as|o|a|produtos?|itens?)\s+d[aeo]s?\s+"
+    r"(?P<brand>[A-Za-z0-9][\w&.\- ]{1,40})[\s?!.]*$"
+)
 _FOLLOW_PREFIX = re.compile(
     r"(?i)^(?:[¿¡]?\s*)?(?:e|e a|e o|y|and|und|et|ed|и|а|و|agora|entao|então|"
     r"ahora|entonces|now|then|maintenant|alors|jetzt|dann|adesso|allora|"
@@ -193,7 +197,7 @@ def session_from_decision(
     )
 
 
-def follow_up_decision(
+def follow_up_decision(  # noqa: C901 - follow-ups por tipo
     session: ChatSessionState, message: str, *, reply_language: str
 ) -> IntentDecision | None:
     """Reescreve follow-ups curtos reutilizando o estado do servidor."""
@@ -209,6 +213,15 @@ def follow_up_decision(
     is_compare = bool(_COMPARE.search(message))
     is_stock = bool(_STOCK_FOLLOWUP.search(message))
     attributes = dict(session.attributes)
+    brand_match = _BRAND_FOLLOWUP.search(message)
+    if brand_match is not None and session.intent in {"brand_list", "brand_products"}:
+        brand = brand_match.group("brand").strip(" ?!.,;:-")[:80]
+        if brand:
+            return IntentDecision(
+                intent=IntentName.BRAND_PRODUCTS,
+                brand=brand,
+                language=reply_language,
+            )
     if is_stock and session.query:
         return IntentDecision(
             intent=IntentName.AVAILABILITY,
@@ -314,6 +327,7 @@ def _is_follow_up(message: str) -> bool:
         or _size(message) is not None
         or price_words is not None
         or _STOCK_FOLLOWUP.search(message) is not None
+        or _BRAND_FOLLOWUP.search(message) is not None
     )
 
 

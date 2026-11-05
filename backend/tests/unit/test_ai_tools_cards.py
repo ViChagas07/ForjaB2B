@@ -112,7 +112,7 @@ def test_guard_remove_identidade_do_modelo_e_aplica_allowlist_por_no() -> None:
     assert denied.accepted is False and denied.reason_code == "tool_fora_do_no"
 
 
-def test_registro_tem_exatamente_as_quatro_ferramentas_do_chat() -> None:
+def test_registro_tem_as_ferramentas_do_chat() -> None:
     registry = build_tool_registry()
     names = {spec.name for spec in registry.tools_for_node("chat")}
     assert names == {
@@ -120,6 +120,11 @@ def test_registro_tem_exatamente_as_quatro_ferramentas_do_chat() -> None:
         "get_product",
         "compare_products",
         "list_categories",
+        "list_brands",
+        "brand_products",
+        "catalog_overview",
+        "price_range",
+        "count_products",
         "get_shipping_policy",
         "get_order_status",
     }

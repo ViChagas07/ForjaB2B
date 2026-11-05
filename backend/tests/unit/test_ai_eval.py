@@ -126,7 +126,7 @@ def test_atalho_do_caso_obrigatorio_e_deterministico() -> None:
 
 @pytest.mark.asyncio
 async def test_roteador_malformado_cai_em_product_search() -> None:
-    case = next(case for case in load_eval_cases() if case.id == "br_ca")
+    case = next(case for case in load_eval_cases() if case.id == "en_out_of_scope")
     result = await run_case(case, llm=BrokenLLM())
     assert result.passed is False
     assert result.actual_intent == IntentName.PRODUCT_SEARCH.value

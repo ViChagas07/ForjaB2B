@@ -81,19 +81,36 @@ from app.modules.ai.application.security.prompt_builder import (
     load_system_prompt_template,
 )
 from app.modules.ai.application.tools import (
+    BrandListOutput,
+    BrandProductsArgs,
+    BrandProductsOutput,
+    CatalogOverviewArgs,
+    CatalogOverviewOutput,
     CatalogTools,
     CompareProductsArgs,
+    CountOutput,
+    CountProductsArgs,
     GetProductArgs,
+    ListBrandsArgs,
     ListCategoriesArgs,
     OrderStatusArgs,
+    PriceRangeArgs,
+    PriceRangeOutput,
     SearchProductsArgs,
     ShippingPolicyArgs,
     ToolOutput,
 )
 from app.modules.ai.domain.degradation import (
+    brand_ambiguous_response,
+    brand_empty_response,
+    brand_list_response,
+    brand_not_found_response,
+    brand_products_response,
     catalog_mode_response,
+    catalog_overview_response,
     catalog_results_response,
     clarify_response,
+    count_products_response,
     currency_confirmation_response,
     existence_found_response,
     existence_near_response,
@@ -106,6 +123,7 @@ from app.modules.ai.domain.degradation import (
     more_results_response,
     not_found_response,
     price_question_response,
+    price_range_response,
     price_sort_response,
     price_unverified_response,
     tool_error_response,
@@ -137,6 +155,11 @@ class ChatIntent(StrEnum):
     PRODUCT_SEARCH = "PRODUCT_SEARCH"
     SHIPPING_POLICY = "SHIPPING_POLICY"
     CATALOG_HELP = "CATALOG_HELP"
+    BRAND_LIST = "BRAND_LIST"
+    BRAND_PRODUCTS = "BRAND_PRODUCTS"
+    CATALOG_OVERVIEW = "CATALOG_OVERVIEW"
+    PRICE_RANGE = "PRICE_RANGE"
+    COUNT_PRODUCTS = "COUNT_PRODUCTS"
     CART_HELP = "CART_HELP"
     ORDER_STATUS = "ORDER_STATUS"
     GREETING = "GREETING"
@@ -222,6 +245,11 @@ class ChatState(TypedDict):
     suggested_categories: NotRequired[list[str]]
     existence_not_found: NotRequired[bool]
     trusted_reply: NotRequired[bool]
+    brand_list: NotRequired[BrandListOutput]
+    brand_products: NotRequired[BrandProductsOutput]
+    catalog_overview: NotRequired[CatalogOverviewOutput]
+    price_range: NotRequired[PriceRangeOutput]
+    count_products: NotRequired[CountOutput]
     _auth: NotRequired[Any]
     session: NotRequired[ChatSessionState | None]
 
@@ -480,7 +508,9 @@ class ChatGraph:
                 "reason_code": "tool_error",
             }
 
-    async def _retrieve_inner(self, state: ChatState) -> dict[str, Any]:
+    async def _retrieve_inner(  # noqa: C901 - despacho por intencao
+        self, state: ChatState
+    ) -> dict[str, Any]:
         intent = state["intent"]
         auth = state.get("_auth")
         special = self._special_retrieve(state)
@@ -512,6 +542,16 @@ class ChatGraph:
             return self._shipping_retrieve(state)
         if intent == ChatIntent.CATALOG_HELP:
             return await self._catalog_retrieve(state)
+        if intent == ChatIntent.CATALOG_OVERVIEW:
+            return await self._overview_retrieve(decision, state)
+        if intent == ChatIntent.BRAND_LIST:
+            return await self._brand_list_retrieve(decision, state, auth)
+        if intent == ChatIntent.BRAND_PRODUCTS:
+            return await self._brand_products_retrieve(decision, state, auth)
+        if intent == ChatIntent.PRICE_RANGE:
+            return await self._price_range_retrieve(decision, state, auth)
+        if intent == ChatIntent.COUNT_PRODUCTS:
+            return await self._count_retrieve(decision, state, auth)
         return await self._product_dispatch(decision, query=query, state=state, auth=auth)
 
     async def _convert_currency(self, decision: IntentDecision) -> IntentDecision | None:
@@ -641,14 +681,140 @@ class ChatGraph:
         }
 
     async def _catalog_retrieve(self, state: ChatState) -> dict[str, Any]:
-        output = await self._tools.list_categories(
-            ListCategoriesArgs(), locale=state["content_locale"]
+        overview = await self._tools.overview(
+            CatalogOverviewArgs(), locale=state["content_locale"]
         )
         return {
-            "tool_output": output,
-            "context_text": output.context_text[:MAX_CONTEXT_CHARS],
-            "allowed_ids": set(output.product_ids),
-            "quarantined": _quarantine(output),
+            "catalog_overview": overview,
+            "tool_output": None,
+            "context_text": "",
+            "allowed_ids": set(),
+            "quarantined": [],
+        }
+
+    async def _overview_retrieve(
+        self, decision: IntentDecision, state: ChatState
+    ) -> dict[str, Any]:
+        overview = await self._tools.overview(
+            CatalogOverviewArgs(category_query=decision.query or None),
+            locale=state["content_locale"],
+        )
+        return {
+            "catalog_overview": overview,
+            "tool_output": None,
+            "context_text": "",
+            "allowed_ids": set(),
+            "quarantined": [],
+            "reason_code": "catalog_overview",
+        }
+
+    async def _brand_list_retrieve(
+        self, decision: IntentDecision, state: ChatState, auth: Any
+    ) -> dict[str, Any]:
+        result = await self._tools.list_brands(
+            ListBrandsArgs(
+                category=decision.category,
+                query=decision.query or None,
+                limit=20,
+            ),
+            locale=state["content_locale"],
+            auth=auth,
+        )
+        return {
+            "brand_list": result,
+            "tool_output": None,
+            "context_text": "",
+            "allowed_ids": set(),
+            "quarantined": [],
+            "reason_code": "brand_list",
+        }
+
+    async def _brand_products_retrieve(
+        self, decision: IntentDecision, state: ChatState, auth: Any
+    ) -> dict[str, Any]:
+        result = await self._tools.brand_products(
+            BrandProductsArgs(
+                brand=decision.brand or decision.query or "",
+                category=decision.category,
+                sort=decision.price_sort.value if decision.price_sort else None,
+            ),
+            locale=state["content_locale"],
+            auth=auth,
+        )
+        if result.brand is not None:
+            state["intent_decision"] = decision.model_copy(
+                update={"brand": result.brand.name, "query": ""}
+            )
+        payload: dict[str, Any] = {
+            "brand_products": result,
+            "tool_output": result.tool_output,
+            "context_text": (
+                result.tool_output.context_text[:MAX_CONTEXT_CHARS]
+                if result.tool_output is not None
+                else ""
+            ),
+            "allowed_ids": (
+                set(result.tool_output.product_ids)
+                if result.tool_output is not None
+                else set()
+            ),
+            "quarantined": (
+                _quarantine(result.tool_output)
+                if result.tool_output is not None
+                else []
+            ),
+            "reason_code": result.reason_code or "brand_products",
+        }
+        return payload
+
+    async def _price_range_retrieve(
+        self, decision: IntentDecision, state: ChatState, auth: Any
+    ) -> dict[str, Any]:
+        result = await self._tools.price_range(
+            PriceRangeArgs(category=decision.category, query=decision.query or None),
+            locale=state["content_locale"],
+            auth=auth,
+        )
+        return {
+            "price_range": result,
+            "tool_output": result.tool_output,
+            "context_text": (
+                result.tool_output.context_text[:MAX_CONTEXT_CHARS]
+                if result.tool_output is not None
+                else ""
+            ),
+            "allowed_ids": (
+                set(result.tool_output.product_ids)
+                if result.tool_output is not None
+                else set()
+            ),
+            "quarantined": (
+                _quarantine(result.tool_output)
+                if result.tool_output is not None
+                else []
+            ),
+            "reason_code": "price_range",
+        }
+
+    async def _count_retrieve(
+        self, decision: IntentDecision, state: ChatState, auth: Any
+    ) -> dict[str, Any]:
+        result = await self._tools.count_products(
+            CountProductsArgs(
+                category=decision.category,
+                brand=decision.brand,
+                query=decision.query or None,
+            ),
+            locale=state["content_locale"],
+            auth=auth,
+        )
+        return {
+            "count_products": result,
+            "tool_output": None,
+            "context_text": "",
+            "allowed_ids": set(),
+            "quarantined": [],
+            "reason_code": "count_products",
         }
 
     async def _order_retrieve(
@@ -939,6 +1105,115 @@ class ChatGraph:
                 "product_ids": _ordered_ids(state)[:5],
                 "trusted_reply": True,
             }
+        if state["intent"] == ChatIntent.BRAND_LIST:
+            brand_list_data = state.get("brand_list")
+            if brand_list_data is not None:
+                return {
+                    "reply": brand_list_response(
+                        locale,
+                        brands=tuple(
+                            (brand.name, brand.count) for brand in brand_list_data.brands
+                        ),
+                        total=brand_list_data.total,
+                        query=brand_list_data.query,
+                    ),
+                    "product_ids": [],
+                    "trusted_reply": True,
+                }
+        if state["intent"] == ChatIntent.BRAND_PRODUCTS:
+            brand_products_data = state.get("brand_products")
+            if brand_products_data is not None:
+                if brand_products_data.reason_code == "brand_ambiguous":
+                    return {
+                        "reply": brand_ambiguous_response(
+                            locale,
+                            brand=state["intent_decision"].brand or "",
+                            candidates=tuple(
+                                candidate.name
+                                for candidate in brand_products_data.candidates
+                            ),
+                        ),
+                        "product_ids": [],
+                        "trusted_reply": True,
+                    }
+                if (
+                    brand_products_data.reason_code == "brand_not_found"
+                    or brand_products_data.brand is None
+                ):
+                    return {
+                        "reply": brand_not_found_response(
+                            locale,
+                            brand=state["intent_decision"].brand or "",
+                            available=brand_products_data.available,
+                        ),
+                        "product_ids": [],
+                        "trusted_reply": True,
+                    }
+                if brand_products_data.tool_output is None:
+                    return {
+                        "reply": brand_empty_response(
+                            locale, brand=brand_products_data.brand.name
+                        ),
+                        "product_ids": [],
+                        "trusted_reply": True,
+                    }
+                return {
+                    "reply": brand_products_response(
+                        locale, brand=brand_products_data.brand.name
+                    ),
+                    "product_ids": list(brand_products_data.tool_output.product_ids)[:5],
+                    "trusted_reply": True,
+                }
+        if state["intent"] in (ChatIntent.CATALOG_HELP, ChatIntent.CATALOG_OVERVIEW):
+            overview_data = state.get("catalog_overview")
+            if overview_data is not None:
+                return {
+                    "reply": catalog_overview_response(
+                        locale,
+                        total_products=overview_data.total_products,
+                        categories=tuple(
+                            (category.name, category.count)
+                            for category in overview_data.categories
+                        ),
+                        category_query=overview_data.category_query,
+                    ),
+                    "product_ids": [],
+                    "trusted_reply": True,
+                }
+        if state["intent"] == ChatIntent.PRICE_RANGE:
+            price_data = state.get("price_range")
+            if price_data is not None:
+                product_ids = (
+                    list(price_data.tool_output.product_ids)[:2]
+                    if price_data.tool_output is not None
+                    else []
+                )
+                return {
+                    "reply": price_range_response(
+                        locale,
+                        query=state["intent_decision"].query or None,
+                        minimum=price_data.min_price,
+                        maximum=price_data.max_price,
+                        count=price_data.count,
+                    ),
+                    "product_ids": product_ids,
+                    "trusted_reply": True,
+                }
+        if state["intent"] == ChatIntent.COUNT_PRODUCTS:
+            count_data = state.get("count_products")
+            if count_data is not None:
+                decision = state.get("intent_decision")
+                return {
+                    "reply": count_products_response(
+                        locale,
+                        total=count_data.total,
+                        query=decision.query if decision is not None else None,
+                        brand=decision.brand if decision is not None else None,
+                        category=decision.category if decision is not None else None,
+                    ),
+                    "product_ids": [],
+                    "trusted_reply": True,
+                }
         if (
             decision is not None
             and decision.intent == IntentName.POLICY_FAQ
@@ -1314,7 +1589,8 @@ class ChatGraph:
             # validada contra os precos do banco abaixo.
             allow_money=state["intent"] == ChatIntent.SHIPPING_POLICY
             or bool(state.get("grounded_context"))
-            or bool(state.get("currency_confirmation")),
+            or bool(state.get("currency_confirmation"))
+            or state["intent"] == ChatIntent.PRICE_RANGE,
             # Respostas deterministicas ja sao localizadas pelo codigo; nao
             # passam pelo detector (que confundia PT curto com ES).
             language_detector=None if state.get("trusted_reply") else self._language_detector,
@@ -1612,7 +1888,7 @@ def _tool_error_state(reason: str) -> dict[str, Any]:
     return _base_state(ChatIntent.TOOL_ERROR, reason)
 
 
-def _map_intent(intent: IntentName) -> ChatIntent:
+def _map_intent(intent: IntentName) -> ChatIntent:  # noqa: C901 - tabela de intencoes
     """Mapeia a intencao da Fase 1 para o no de recuperacao existente."""
     if intent in (
         IntentName.PRODUCT_SEARCH,
@@ -1630,6 +1906,16 @@ def _map_intent(intent: IntentName) -> ChatIntent:
         return ChatIntent.ORDER_STATUS
     if intent == IntentName.CATALOG_HELP:
         return ChatIntent.CATALOG_HELP
+    if intent == IntentName.BRAND_LIST:
+        return ChatIntent.BRAND_LIST
+    if intent == IntentName.BRAND_PRODUCTS:
+        return ChatIntent.BRAND_PRODUCTS
+    if intent == IntentName.CATALOG_OVERVIEW:
+        return ChatIntent.CATALOG_OVERVIEW
+    if intent == IntentName.PRICE_RANGE:
+        return ChatIntent.PRICE_RANGE
+    if intent == IntentName.COUNT_PRODUCTS:
+        return ChatIntent.COUNT_PRODUCTS
     if intent == IntentName.GREETING_SMALLTALK:
         return ChatIntent.GREETING
     if intent == IntentName.POLICY_FAQ:

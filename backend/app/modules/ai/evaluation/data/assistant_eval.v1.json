@@ -128,7 +128,7 @@
       "locale": "pt-BR",
       "message": "quais categorias vocês têm?",
       "expected": {
-        "intent": "catalog_help"
+        "intent": "catalog_overview"
       }
     },
     {
@@ -403,7 +403,7 @@
       "locale": "en",
       "message": "which categories do you have?",
       "expected": {
-        "intent": "catalog_help"
+        "intent": "catalog_overview"
       }
     },
     {

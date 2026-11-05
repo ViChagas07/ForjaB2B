@@ -32,6 +32,7 @@ from app.modules.ai.application.tools import (
 )
 from app.modules.search.application.ports import ProductReader, SearchQuery
 from app.modules.search.application.search import SearchProducts
+from app.wiring.catalog_insights import CatalogInsightsAdapter
 
 _CATEGORY_ID_BY_SLUG = text("SELECT id FROM categories WHERE slug = :slug AND is_active = true")
 _logger = get_logger(__name__)
@@ -465,7 +466,18 @@ def build_ai_catalog_wiring(
     )
     categories = CategoriesAdapter(product_reader=product_reader, uow_factory=uow_factory)
     orders = order_status_port or BuyerOrderStatusAdapter(uow_factory=uow_factory)
-    tools = CatalogTools(search_port=adapter, categories_port=categories, order_status_port=orders)
+    insights = CatalogInsightsAdapter(
+        search_port=adapter,
+        hydrator=adapter,
+        uow_factory=uow_factory,
+        product_reader=product_reader,
+    )
+    tools = CatalogTools(
+        search_port=adapter,
+        categories_port=categories,
+        order_status_port=orders,
+        insights_port=insights,
+    )
     cards = ProductCardService(hydrator=adapter)
     return tools, cards
 

@@ -109,6 +109,44 @@ class ListCategoriesArgs(ToolSchema):
     """Lista categorias do catalogo (sem parametros)."""
 
 
+class ListBrandsArgs(ToolSchema):
+    """Marcas distintas com contagem, opcionalmente filtradas por categoria/termo."""
+
+    category: str | None = Field(default=None, max_length=60)
+    query: str | None = Field(default=None, max_length=200)
+    limit: int = Field(default=15, ge=1, le=30)
+
+
+class BrandProductsArgs(ToolSchema):
+    """Produtos de uma marca (resolve grafia aproximada e ambiguidade)."""
+
+    brand: str = Field(min_length=1, max_length=80)
+    category: str | None = Field(default=None, max_length=60)
+    sort: Literal["asc", "desc"] | None = None
+    limit: int = Field(default=5, ge=1, le=6)
+
+
+class CatalogOverviewArgs(ToolSchema):
+    """Visao geral por categoria, com filtro opcional de categoria/termo."""
+
+    category_query: str | None = Field(default=None, max_length=80)
+
+
+class PriceRangeArgs(ToolSchema):
+    """Menor/maior preco de um recorte do catalogo."""
+
+    category: str | None = Field(default=None, max_length=60)
+    query: str | None = Field(default=None, max_length=200)
+
+
+class CountProductsArgs(ToolSchema):
+    """Contagem de produtos por categoria/marca/termo."""
+
+    category: str | None = Field(default=None, max_length=60)
+    brand: str | None = Field(default=None, max_length=80)
+    query: str | None = Field(default=None, max_length=200)
+
+
 class ShippingPolicyArgs(ToolSchema):
     """Regra publica de frete simulado (sem parametros)."""
 
@@ -186,6 +224,94 @@ class ToolOrderStatus:
 
 
 @dataclass(frozen=True, kw_only=True)
+class BrandCount:
+    name: str
+    slug: str
+    count: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class CategoryCount:
+    name: str
+    slug: str
+    count: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class BrandListData:
+    brands: tuple[BrandCount, ...]
+    total: int
+    query: str | None = None
+    category: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class BrandProductsData:
+    brand: BrandCount | None
+    products: tuple[ToolProduct, ...]
+    candidates: tuple[BrandCount, ...] = ()
+    available: tuple[str, ...] = ()
+    reason_code: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CatalogOverviewData:
+    categories: tuple[CategoryCount, ...]
+    total_products: int
+    total_brands: int
+    brand_names: tuple[str, ...] = ()
+    category_query: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class PriceRangeData:
+    min_price: Decimal | None
+    max_price: Decimal | None
+    count: int
+    min_product: ToolProduct | None = None
+    max_product: ToolProduct | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class BrandListOutput:
+    brands: tuple[BrandCount, ...]
+    total: int
+    query: str | None = None
+    category: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class BrandProductsOutput:
+    brand: BrandCount | None
+    tool_output: ToolOutput | None
+    candidates: tuple[BrandCount, ...] = ()
+    available: tuple[str, ...] = ()
+    reason_code: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CatalogOverviewOutput:
+    categories: tuple[CategoryCount, ...]
+    total_products: int
+    total_brands: int
+    brand_names: tuple[str, ...] = ()
+    category_query: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class PriceRangeOutput:
+    min_price: Decimal | None
+    max_price: Decimal | None
+    count: int
+    tool_output: ToolOutput | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CountOutput:
+    total: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class QuarantinedDocument:
     """Documento suspeito (audit): product_id + motivo estavel, sem conteudo."""
 
@@ -257,6 +383,63 @@ class OrderStatusPort(Protocol):
     ) -> ToolOrderStatus | None: ...
 
 
+@dataclass(frozen=True, kw_only=True)
+class BrandResolution:
+    matched: BrandCount | None
+    candidates: tuple[BrandCount, ...] = ()
+    available: tuple[str, ...] = ()
+
+
+class CatalogInsightsPort(Protocol):
+    """Consultas agregadas do catalogo (implementadas na raiz de composicao)."""
+
+    async def resolve_brand(self, *, text: str) -> BrandResolution: ...
+
+    async def list_brands(
+        self,
+        *,
+        category: str | None,
+        query: str | None,
+        limit: int,
+        locale: str,
+        auth: Any,
+    ) -> BrandListData: ...
+
+    async def brand_products(
+        self,
+        *,
+        brand: str,
+        category: str | None,
+        sort: str | None,
+        limit: int,
+        locale: str,
+        auth: Any,
+    ) -> BrandProductsData: ...
+
+    async def overview(
+        self, *, locale: str, category_query: str | None
+    ) -> CatalogOverviewData: ...
+
+    async def price_range(
+        self,
+        *,
+        category: str | None,
+        query: str | None,
+        locale: str,
+        auth: Any,
+    ) -> PriceRangeData: ...
+
+    async def count_products(
+        self,
+        *,
+        category: str | None,
+        brand: str | None,
+        query: str | None,
+        locale: str,
+        auth: Any,
+    ) -> int: ...
+
+
 _SHIPPING_POLICY = {
     "pt-BR": (
         "Frete simulado no checkout: valor base de {base} mais {rate} por kg "
@@ -313,10 +496,12 @@ class CatalogTools:
         search_port: ProductSearchPort,
         categories_port: CategoriesPort,
         order_status_port: OrderStatusPort | None = None,
+        insights_port: CatalogInsightsPort | None = None,
     ) -> None:
         self._search = search_port
         self._categories = categories_port
         self._order_status = order_status_port
+        self._insights = insights_port
 
     async def search_products(
         self, args: SearchProductsArgs, *, locale: str, auth: Any
@@ -398,6 +583,127 @@ class CatalogTools:
             quarantined=tuple(quarantined),
         )
 
+    async def list_brands(
+        self, args: ListBrandsArgs, *, locale: str, auth: Any
+    ) -> BrandListOutput:
+        if self._insights is None:
+            return BrandListOutput(brands=(), total=0, query=args.query, category=args.category)
+        data = await self._insights.list_brands(
+            category=args.category,
+            query=args.query,
+            limit=args.limit,
+            locale=locale,
+            auth=auth,
+        )
+        brands = tuple(
+            brand for item in data.brands if (brand := _sanitize_brand(item)) is not None
+        )
+        return BrandListOutput(
+            brands=brands,
+            total=data.total,
+            query=data.query,
+            category=data.category,
+        )
+
+    async def brand_products(
+        self, args: BrandProductsArgs, *, locale: str, auth: Any
+    ) -> BrandProductsOutput:
+        if self._insights is None:
+            return BrandProductsOutput(
+                brand=None, tool_output=None, reason_code="tool_unavailable"
+            )
+        data = await self._insights.brand_products(
+            brand=args.brand,
+            category=args.category,
+            sort=args.sort,
+            limit=args.limit,
+            locale=locale,
+            auth=auth,
+        )
+        brand = _sanitize_brand(data.brand) if data.brand is not None else None
+        candidates = tuple(
+            candidate
+            for raw in data.candidates
+            if (candidate := _sanitize_brand(raw)) is not None
+        )
+        available = tuple(
+            available_name
+            for raw in data.available
+            if (available_name := _sanitize_name(raw, label="marca")) is not None
+        )
+        output: ToolOutput | None = None
+        if data.reason_code is None and data.products:
+            output = _sanitize(data.products, auth=auth)
+            if not output.product_ids:
+                return BrandProductsOutput(
+                    brand=brand,
+                    tool_output=None,
+                    candidates=candidates,
+                    available=available,
+                    reason_code="brand_products_empty",
+                )
+        return BrandProductsOutput(
+            brand=brand,
+            tool_output=output,
+            candidates=candidates,
+            available=available,
+            reason_code=data.reason_code,
+        )
+
+    async def overview(
+        self, args: CatalogOverviewArgs, *, locale: str
+    ) -> CatalogOverviewOutput:
+        if self._insights is None:
+            return CatalogOverviewOutput(
+                categories=(), total_products=0, total_brands=0
+            )
+        data = await self._insights.overview(
+            locale=locale, category_query=args.category_query
+        )
+        categories = tuple(
+            item for raw in data.categories if (item := _sanitize_category(raw)) is not None
+        )
+        return CatalogOverviewOutput(
+            categories=categories,
+            total_products=data.total_products,
+            total_brands=data.total_brands,
+            brand_names=data.brand_names,
+            category_query=data.category_query,
+        )
+
+    async def price_range(
+        self, args: PriceRangeArgs, *, locale: str, auth: Any
+    ) -> PriceRangeOutput:
+        if self._insights is None:
+            return PriceRangeOutput(min_price=None, max_price=None, count=0)
+        data = await self._insights.price_range(
+            category=args.category, query=args.query, locale=locale, auth=auth
+        )
+        products = tuple(
+            item for item in (data.min_product, data.max_product) if item is not None
+        )
+        output = _sanitize(products, auth=auth) if products else None
+        return PriceRangeOutput(
+            min_price=data.min_price,
+            max_price=data.max_price,
+            count=data.count,
+            tool_output=output,
+        )
+
+    async def count_products(
+        self, args: CountProductsArgs, *, locale: str, auth: Any
+    ) -> CountOutput:
+        if self._insights is None:
+            return CountOutput(total=0)
+        total = await self._insights.count_products(
+            category=args.category,
+            brand=args.brand,
+            query=args.query,
+            locale=locale,
+            auth=auth,
+        )
+        return CountOutput(total=total)
+
     def get_shipping_policy(self, args: ShippingPolicyArgs, *, locale: str) -> ToolOutput:
         template = _SHIPPING_POLICY.get(locale, _SHIPPING_POLICY["pt-BR"])
         text = template.format(
@@ -442,6 +748,36 @@ def build_tool_registry() -> ToolRegistry:
             allowed_nodes=frozenset({CHAT_NODE}),
         ),
         ToolSpec(
+            name="list_brands",
+            description="Lista marcas com contagem de produtos (somente leitura)",
+            schema=ListBrandsArgs,
+            allowed_nodes=frozenset({CHAT_NODE}),
+        ),
+        ToolSpec(
+            name="brand_products",
+            description="Produtos de uma marca (somente leitura)",
+            schema=BrandProductsArgs,
+            allowed_nodes=frozenset({CHAT_NODE}),
+        ),
+        ToolSpec(
+            name="catalog_overview",
+            description="Visao geral de categorias/produtos (somente leitura)",
+            schema=CatalogOverviewArgs,
+            allowed_nodes=frozenset({CHAT_NODE}),
+        ),
+        ToolSpec(
+            name="price_range",
+            description="Menor/maior preco de um recorte do catalogo (somente leitura)",
+            schema=PriceRangeArgs,
+            allowed_nodes=frozenset({CHAT_NODE}),
+        ),
+        ToolSpec(
+            name="count_products",
+            description="Contagem de produtos por categoria/marca/termo (somente leitura)",
+            schema=CountProductsArgs,
+            allowed_nodes=frozenset({CHAT_NODE}),
+        ),
+        ToolSpec(
             name="get_shipping_policy",
             description="Regra publica de frete simulado (somente leitura)",
             schema=ShippingPolicyArgs,
@@ -450,6 +786,33 @@ def build_tool_registry() -> ToolRegistry:
     ):
         registry.register(spec)
     return registry
+
+
+def _sanitize_name(value: str, *, label: str) -> str | None:
+    doc = sanitize_tool_text(value, label=label, max_chars=80)
+    if doc.quarantined or not doc.context_text:
+        return None
+    # sanitize_tool_text devolve "label=valor"; aqui o valor e usado como
+    # NOME em resposta determinista, sem o prefixo de campo.
+    _, separator, cleaned = doc.context_text.partition("=")
+    value = cleaned if separator else doc.context_text
+    return value.strip() or None
+
+
+def _sanitize_brand(brand: BrandCount) -> BrandCount | None:
+    name = _sanitize_name(brand.name, label="marca")
+    if name is None:
+        return None
+    slug = _sanitize_name(brand.slug, label="marca_slug") or ""
+    return BrandCount(name=name, slug=slug[:60], count=max(0, brand.count))
+
+
+def _sanitize_category(category: CategoryCount) -> CategoryCount | None:
+    name = _sanitize_name(category.name, label="categoria")
+    if name is None:
+        return None
+    slug = _sanitize_name(category.slug, label="categoria_slug") or ""
+    return CategoryCount(name=name, slug=slug[:60], count=max(0, category.count))
 
 
 def _sanitize(
