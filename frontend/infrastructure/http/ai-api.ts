@@ -3,7 +3,9 @@ import type { components } from "@/core/domain/api-schema";
 import { apiClient } from "./client";
 
 const HEALTH_TTL_MS = 30_000;
-const HEALTH_TIMEOUT_MS = 4_000;
+// O backend faz uma completion minima real (nao so /v1/models); o Qwen local
+// pode levar alguns segundos. 12 s cabe no timeout de 10 s do probe.
+const HEALTH_TIMEOUT_MS = 12_000;
 
 export interface LlmHealth {
   available: boolean;
