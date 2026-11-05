@@ -1002,7 +1002,7 @@
     "viewProduct": "View product",
     "addToCart": "Add to cart",
     "goToCatalog": "Go to catalog",
-    "demoMode": "AI assistant available in local demo mode.",
+    "demoMode": "AI assistant in catalog mode: product and store information remains available.",
     "demoModeLink": "See how to run it in the README",
     "suggestion1": "Which is the cheapest glove?",
     "suggestion2": "How does shipping work?",

@@ -1002,7 +1002,7 @@
     "viewProduct": "상품 보기",
     "addToCart": "장바구니에 추가",
     "goToCatalog": "카탈로그로",
-    "demoMode": "AI 어시스턴트를 로컬 데모 모드로 사용할 수 있습니다.",
+    "demoMode": "AI 어시스턴트가 카탈로그 모드입니다. 제품 및 스토어 정보는 계속 이용할 수 있습니다.",
     "demoModeLink": "실행 방법은 README에서 확인하세요",
     "suggestion1": "가장 저렴한 장갑은 무엇인가요?",
     "suggestion2": "배송은 어떻게 계산되나요?",

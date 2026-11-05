@@ -1002,7 +1002,7 @@
     "viewProduct": "查看商品",
     "addToCart": "加入购物车",
     "goToCatalog": "前往目录",
-    "demoMode": "AI 助手当前可在本地演示模式下使用。",
+    "demoMode": "AI 助手处于目录模式：产品和商店信息仍然可用。",
     "demoModeLink": "查看 README 了解如何运行",
     "suggestion1": "最便宜的手套是哪款？",
     "suggestion2": "运费如何计算？",

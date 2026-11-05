@@ -1002,7 +1002,7 @@
     "viewProduct": "Voir le produit",
     "addToCart": "Ajouter au panier",
     "goToCatalog": "Aller au catalogue",
-    "demoMode": "Assistant IA disponible en mode démonstration local.",
+    "demoMode": "Assistant IA en mode catalogue : les informations produits et boutique restent disponibles.",
     "demoModeLink": "Voir comment le lancer dans le README",
     "suggestion1": "Quel est le gant le moins cher ?",
     "suggestion2": "Comment fonctionne la livraison ?",

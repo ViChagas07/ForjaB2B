@@ -1002,7 +1002,7 @@
     "viewProduct": "Ver producto",
     "addToCart": "Añadir al carrito",
     "goToCatalog": "Ir al catálogo",
-    "demoMode": "Asistente de IA disponible en modo demostración local.",
+    "demoMode": "Asistente de IA en modo catálogo: la información de productos y de la tienda sigue disponible.",
     "demoModeLink": "Ver cómo ejecutarlo en el README",
     "suggestion1": "¿Cuál es el guante más barato?",
     "suggestion2": "¿Cómo funciona el envío?",

@@ -1,0 +1,1 @@
+ABORTADO antes do lote 1: RAM livre 0.93 GB < 1.5 GB. Nenhum teste real executado.

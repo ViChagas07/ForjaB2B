@@ -1,0 +1,211 @@
+[
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000001",
+    "sku": "MAQ-006",
+    "name": "Prensa Hidráulica 15T",
+    "category": "maquinas-estacionarias",
+    "price": "3499.90",
+    "stock": 12,
+    "tokens": ["prensa", "hidraulica", "hydraulic press", "prensa hidraulica"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000002",
+    "sku": "MAQ-005",
+    "name": "Compressor de Ar 100L",
+    "category": "maquinas-estacionarias",
+    "price": "2499.90",
+    "stock": 49,
+    "tokens": ["compressor", "ar", "compressed air"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000003",
+    "sku": "AUD-003",
+    "name": "Abafador de Ruído Acoplado ao Capacete",
+    "category": "protecao-auditiva",
+    "price": "79.90",
+    "stock": 15,
+    "tokens": ["abafador", "ruido", "protetor auricular", "ear protection", "earmuff"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000004",
+    "sku": "AUD-004",
+    "name": "Protetor Auricular Plug Moldável",
+    "category": "protecao-auditiva",
+    "price": "2.90",
+    "stock": 43,
+    "min_order_qty": 10,
+    "tokens": ["protetor auricular", "plug", "earplug", "ear protection"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000005",
+    "sku": "AUD-001",
+    "name": "Protetor Auricular Plug Silicone",
+    "category": "protecao-auditiva",
+    "price": "4.90",
+    "stock": 49,
+    "tokens": ["protetor auricular", "silicone", "earplug", "ear protection"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000006",
+    "sku": "AUD-002",
+    "name": "Protetor Auricular Tipo Concha",
+    "category": "protecao-auditiva",
+    "price": "39.90",
+    "stock": 35,
+    "tokens": ["protetor auricular", "concha", "earmuff", "ear protection"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000007",
+    "sku": "EPI-CAP-001",
+    "name": "Capacete de Segurança Pro",
+    "category": "epis",
+    "price": "39.90",
+    "stock": 222,
+    "min_order_qty": 6,
+    "tokens": ["capacete", "helmet", "casco", "capacetes"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000008",
+    "sku": "CAP-002",
+    "name": "Capacete de Segurança Classe A Aba Frontal",
+    "category": "protecao-cabeca",
+    "price": "29.90",
+    "stock": 44,
+    "tokens": ["capacete", "helmet", "casco", "aba frontal"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000009",
+    "sku": "CAP-003",
+    "name": "Capacete de Segurança Classe B com Jugular",
+    "category": "protecao-cabeca",
+    "price": "59.90",
+    "stock": 49,
+    "tokens": ["capacete", "helmet", "casco", "jugular"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000010",
+    "sku": "ACE-25H",
+    "name": "Capacete Recovery 25h",
+    "category": "epi-recovery",
+    "price": "1600.00",
+    "stock": 49,
+    "tokens": ["capacete", "helmet", "recovery"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000011",
+    "sku": "LUV-005",
+    "name": "Luva Nitrílica Descartável",
+    "category": "protecao-maos",
+    "price": "3.90",
+    "stock": 48,
+    "tokens": ["luva", "nitrilica", "gloves", "guantes"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000012",
+    "sku": "LUV-003",
+    "name": "Luva de Raspa de Couro",
+    "category": "protecao-maos",
+    "price": "19.90",
+    "stock": 44,
+    "tokens": ["luva", "raspa", "couro", "gloves", "guantes"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000013",
+    "sku": "LUV-004",
+    "name": "Luvas de Raspa Premium",
+    "category": "protecao-maos",
+    "price": "29.90",
+    "stock": 28,
+    "tokens": ["luva", "luvas", "raspa", "gloves", "guantes"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000014",
+    "sku": "LUV-007",
+    "name": "Luva Anticorte Nível 5",
+    "category": "protecao-maos",
+    "price": "49.90",
+    "stock": 17,
+    "tokens": ["luva", "anticorte", "gloves", "guantes"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000015",
+    "sku": "OCV-001",
+    "name": "Óculos de Proteção Incolor",
+    "category": "protecao-visual",
+    "price": "7.90",
+    "stock": 25,
+    "tokens": ["oculos", "protecao", "goggles", "lente de seguranca", "gafas"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000016",
+    "sku": "OCV-003",
+    "name": "Óculos de Proteção Ampla Visão",
+    "category": "protecao-visual",
+    "price": "24.90",
+    "stock": 35,
+    "tokens": ["oculos", "protecao", "goggles", "lente de seguranca", "gafas"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000017",
+    "sku": "BOT-001",
+    "name": "Botina de Segurança Couro",
+    "category": "protecao-pes",
+    "price": "89.90",
+    "stock": 35,
+    "tokens": ["bota", "botina", "seguranca", "boot", "calzado"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000018",
+    "sku": "RES-004",
+    "name": "Respirador PFF2 Sem Válvula",
+    "category": "protecao-respiratoria",
+    "price": "2.90",
+    "stock": 37,
+    "tokens": ["respirador", "pff2", "mascara", "respirator"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000019",
+    "sku": "QUE-001",
+    "name": "Cinto Paraquedista 4 Pontos",
+    "category": "protecao-quedas",
+    "price": "189.90",
+    "stock": 45,
+    "tokens": ["cinto", "paraquedista", "quedas", "harness"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000020",
+    "sku": "FUR-001",
+    "name": "Furadeira de Impacto 850W",
+    "category": "ferramentas-eletricas",
+    "price": "249.90",
+    "stock": 50,
+    "tokens": ["furadeira", "impacto", "drill"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000021",
+    "sku": "FUR-004",
+    "name": "Serra Circular 7 1/4",
+    "category": "ferramentas-eletricas",
+    "price": "399.90",
+    "stock": 30,
+    "tokens": ["serra", "circular", "saw"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000022",
+    "sku": "LUV-006",
+    "name": "Luva de Vaqueta Petroleira",
+    "category": "protecao-maos",
+    "price": "34.90",
+    "stock": 34,
+    "tokens": ["luva", "vaqueta", "gloves", "guantes"]
+  },
+  {
+    "product_id": "a0000000-0000-4000-8000-000000000023",
+    "sku": "LUV-008",
+    "name": "Luva de Látex Forrada",
+    "category": "protecao-maos",
+    "price": "9.80",
+    "stock": 0,
+    "tokens": ["luva", "latex", "gloves", "guantes"]
+  }
+]

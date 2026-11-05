@@ -229,11 +229,11 @@ describe("AiChatWidget", () => {
   });
 });
 
-it("mostra modo demonstração quando /health/llm está indisponível", async () => {
+it("mostra modo catálogo quando /health/llm está indisponível", async () => {
   getLlmHealthMock.mockResolvedValue({ available: false, enabled: true, model: "qwen/qwen3.5-9b" });
   openWidget();
   const banner = await screen.findByTestId("ai-chat-demo");
-  expect(banner.textContent).toMatch(/modo demonstração local/i);
+  expect(banner.textContent).toMatch(/modo catálogo/i);
   expect(screen.getByRole("link", { name: /README/i }).getAttribute("href")).toContain(
     "github.com/ViChagas07/ForjaB2B",
   );
