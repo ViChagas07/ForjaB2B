@@ -1,0 +1,1 @@
+ABORTADO: LM Studio/LLM indisponivel para o modo real ({'available': False, 'enabled': True, 'model': 'qwen/qwen3.5-9b'}).

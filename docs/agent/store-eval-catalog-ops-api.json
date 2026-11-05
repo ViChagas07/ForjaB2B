@@ -1,0 +1,116 @@
+[
+  {
+    "id": "api-01",
+    "message": "quais marcas?",
+    "reply": "Marcas disponíveis: PROTEC (9), VULCANO (7), NORTON (6), TITAN (6), AEGIS (5), FERRUM (5), GUARDIAN (3) Diga o nome de uma marca para ver os produtos.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-02",
+    "message": "que marcas de luva vocês têm?",
+    "reply": "Marcas disponíveis para luva: PROTEC (3), FERRUM (2), TITAN (1) Diga o nome de uma marca para ver os produtos.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-03",
+    "message": "tem algo da PROTEC?",
+    "reply": "Produtos da marca PROTEC:",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": [
+      "CAP-002",
+      "EPI-CAP-001",
+      "CAP-004",
+      "LUV-003",
+      "EPI-LUV-002"
+    ]
+  },
+  {
+    "id": "api-04",
+    "message": "tem produto da Bosh?",
+    "reply": "Não encontrei a marca Bosh no catálogo. Marcas disponíveis: PROTEC, VULCANO, NORTON, TITAN, AEGIS.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-05",
+    "message": "o que vocês vendem?",
+    "reply": "A loja tem 42 produtos em 12 categorias: Ferramentas Elétricas (5), Máquinas Estacionárias (5), Proteção das Mãos (5), Proteção Visual (5), Proteção Auditiva (4), Proteção dos Pés (4), Proteção Respiratória (4), Proteção contra Quedas (3); e mais 4.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-06",
+    "message": "quantos produtos vocês têm?",
+    "reply": "Temos 42 produtos no catálogo.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-07",
+    "message": "qual a faixa de preço de luvas?",
+    "reply": "A faixa de preço de luvas é de R$ 3,90 a R$ 49,90 (6 produtos).",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": [
+      "LUV-005",
+      "LUV-007"
+    ]
+  },
+  {
+    "id": "api-08",
+    "message": "vocês trabalham com máquinas?",
+    "reply": "Sim, temos 6 produtos nestas categorias de maquinas: Máquinas Estacionárias (5), Máquinas e Ferramentas (1).",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-09",
+    "message": "A loja tem serra?",
+    "reply": "Sim, encontrei estas opções:",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": [
+      "FUR-004",
+      "MAQ-008"
+    ]
+  },
+  {
+    "id": "api-11",
+    "message": "quantos produtos de proteção auditiva?",
+    "reply": "Temos 4 produtos para protecao.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-12",
+    "message": "Qual a previsão do tempo?",
+    "reply": "Não posso ajudar com esse pedido. Podemos voltar aos produtos do catálogo?",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": []
+  },
+  {
+    "id": "api-13",
+    "message": "tem algo barato?",
+    "reply": "A opção mais econômica que encontrei é Máscara de Proteção PFF1. Veja o cartão abaixo.",
+    "language": "pt-BR",
+    "degraded": false,
+    "skus": [
+      "RES-007",
+      "AUD-004",
+      "RES-004",
+      "LUV-005",
+      "AUD-001"
+    ]
+  }
+]

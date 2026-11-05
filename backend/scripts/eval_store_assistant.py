@@ -19,6 +19,7 @@ import argparse
 import asyncio
 import ctypes
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -183,6 +184,25 @@ def _run_real(
 ) -> int:
     status = 0
     summaries: list[dict[str, Any]] = []
+    backend = _backend_health(base_url)
+    if backend is None:
+        message = f"ABORTADO: backend indisponivel em {base_url}/health."
+        print(message)
+        (output_dir / "store-eval-real-unavailable.txt").write_text(
+            message + "\n", encoding="utf-8"
+        )
+        return 1
+    llm = _llm_health(base_url)
+    if not llm or not llm.get("available"):
+        message = (
+            "ABORTADO: LM Studio/LLM indisponivel para o modo real "
+            f"({llm or 'sem resposta de /health/llm'})."
+        )
+        print(message)
+        (output_dir / "store-eval-real-unavailable.txt").write_text(
+            message + "\n", encoding="utf-8"
+        )
+        return 1
     for index, start in enumerate(range(0, len(cases), batch_size), start=1):
         free_gb = _free_ram_gb()
         if free_gb is not None and free_gb < MIN_FREE_RAM_GB:
@@ -269,6 +289,28 @@ def _run_real_case(case: dict[str, Any], *, base_url: str) -> CaseResult:
     )
 
 
+def _backend_health(base_url: str) -> dict[str, Any] | None:
+    try:
+        with urllib.request.urlopen(  # noqa: S310 - URL local/controlada
+            f"{base_url.rstrip('/')}/health", timeout=5
+        ) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001 - preflight de bateria
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _llm_health(base_url: str) -> dict[str, Any] | None:
+    try:
+        with urllib.request.urlopen(  # noqa: S310 - URL local/controlada
+            f"{base_url.rstrip('/')}/health/llm", timeout=30
+        ) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001 - preflight de bateria
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 def _post_chat(
     base_url: str, *, message: str, conversation_id: str | None, locale: str
 ) -> str:
@@ -312,6 +354,12 @@ def check_case(case: dict[str, Any], result: CaseResult) -> list[str]:  # noqa: 
     contains_any = expected.get("reply_contains_any", [])
     if contains_any and not any(item.casefold() in reply_lower for item in contains_any):
         failures.append(f"resposta nao contem {contains_any}: {result.reply[:160]!r}")
+    for item in expected.get("reply_contains_all", []):
+        if item.casefold() not in reply_lower:
+            failures.append(f"resposta nao contem {item!r}")
+    for pattern in expected.get("reply_matches", []):
+        if re.search(pattern, result.reply, re.IGNORECASE | re.DOTALL) is None:
+            failures.append(f"resposta nao casa regex {pattern!r}")
     for bad in GENERIC_ERRORS:
         if bad in reply_lower:
             failures.append(f"mensagem de erro generica: {bad}")

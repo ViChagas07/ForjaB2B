@@ -11,10 +11,12 @@ import json
 import re
 import unicodedata
 import uuid
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +29,14 @@ from app.modules.ai.application.product_cards import HydratedProduct, ProductCar
 from app.modules.ai.application.security.input_gate import InputGate
 from app.modules.ai.application.security.ports import InMemoryBlockCounter
 from app.modules.ai.application.tools import (
+    BrandCount,
+    BrandListData,
+    BrandProductsData,
+    BrandResolution,
+    CatalogOverviewData,
     CatalogTools,
+    CategoryCount,
+    PriceRangeData,
     ProductSearchResult,
     ToolOrderStatus,
     ToolProduct,
@@ -74,6 +83,24 @@ _STOPWORDS = frozenset(
     }
 )
 _TOKEN = re.compile(r"[a-z0-9]{2,}")
+_GENERIC_QUERY_TERMS = frozenset(
+    {
+        "produto",
+        "produtos",
+        "item",
+        "itens",
+        "coisa",
+        "coisas",
+        "loja",
+        "catalogo",
+        "catalog",
+        "product",
+        "products",
+        "items",
+        "store",
+        "catalogue",
+    }
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -82,6 +109,7 @@ class EvalProduct:
     sku: str
     name: str
     category: str
+    brand: str
     price: Decimal
     stock: int
     min_order_qty: int = 1
@@ -94,7 +122,7 @@ class FixtureSearch:
     def __init__(self, products: list[EvalProduct]) -> None:
         self._products = products
 
-    async def search(
+    async def search(  # noqa: C901 - fixture de busca para a bateria
         self,
         *,
         query: str,
@@ -111,18 +139,26 @@ class FixtureSearch:
         attributes: Mapping[str, str] | None = None,
         offset: int = 0,
     ) -> ProductSearchResult:
-        terms = _terms(" ".join((query, query_pt, query_en)))
+        combined = " ".join((query, query_pt, query_en)).strip()
+        generic = not combined or combined.casefold() in _GENERIC_QUERY_TERMS
+        terms = set() if generic else _terms(combined)
+        if not generic and not terms:
+            return ProductSearchResult(products=(), capped=False)
         scored: list[tuple[int, EvalProduct]] = []
         for item in self._products:
             if category is not None and item.category != category:
+                continue
+            if brand is not None and brand.casefold() not in item.brand.casefold():
                 continue
             if price_min is not None and item.price < Decimal(str(price_min)):
                 continue
             if price_max is not None and item.price > Decimal(str(price_max)):
                 continue
-            haystack = _terms(f"{item.name} {item.category} {' '.join(item.tokens)}")
+            haystack = _terms(
+                f"{item.name} {item.category} {item.brand} {' '.join(item.tokens)}"
+            )
             score = len(terms & haystack)
-            if score:
+            if not terms or score:
                 scored.append((score, item))
         scored.sort(key=lambda pair: (-pair[0], pair[1].name.casefold()))
         items = [item for _, item in scored]
@@ -142,6 +178,225 @@ class FixtureSearch:
             if item.product_id.casefold() == wanted or item.sku.casefold() == wanted:
                 return _tool_product(item)
         return None
+
+
+class FixtureInsights:
+    """Agregacoes do fixture com o mesmo contrato do adaptador real."""
+
+    def __init__(self, products: list[EvalProduct]) -> None:
+        self._products = products
+
+    async def resolve_brand(self, *, text: str) -> BrandResolution:
+        brands = _fixture_brands(self._products)
+        wanted = _norm_key(text)
+        names = tuple(brand.name for brand in brands[:5])
+        if not wanted:
+            return BrandResolution(matched=None, available=names)
+        exact = [
+            brand
+            for brand in brands
+            if wanted in {_norm_key(brand.name), _norm_key(brand.slug)}
+        ]
+        if exact:
+            return BrandResolution(matched=exact[0], available=names)
+        scored = [
+            (
+                max(
+                    SequenceMatcher(None, wanted, _norm_key(brand.name)).ratio(),
+                    SequenceMatcher(None, wanted, _norm_key(brand.slug)).ratio(),
+                ),
+                brand,
+            )
+            for brand in brands
+        ]
+        scored.sort(key=lambda item: (-item[0], item[1].name))
+        if not scored or scored[0][0] < 0.78:
+            return BrandResolution(matched=None, available=names)
+        close = [brand for ratio, brand in scored if ratio >= 0.75]
+        if len(close) > 1:
+            return BrandResolution(
+                matched=None, candidates=tuple(close[:3]), available=names
+            )
+        return BrandResolution(matched=scored[0][1], available=names)
+
+    async def list_brands(
+        self,
+        *,
+        category: str | None,
+        query: str | None,
+        limit: int,
+        locale: str,
+        auth: Any,
+    ) -> BrandListData:
+        items = self._filter(category=category, query=query)
+        brands = tuple(_fixture_brands(items))
+        return BrandListData(
+            brands=brands[:limit],
+            total=len(brands),
+            query=query,
+            category=category,
+        )
+
+    async def brand_products(
+        self,
+        *,
+        brand: str,
+        category: str | None,
+        sort: str | None,
+        limit: int,
+        locale: str,
+        auth: Any,
+    ) -> BrandProductsData:
+        resolution = await self.resolve_brand(text=brand)
+        if resolution.matched is None:
+            return BrandProductsData(
+                brand=None,
+                products=(),
+                candidates=resolution.candidates,
+                available=resolution.available,
+                reason_code=(
+                    "brand_ambiguous" if resolution.candidates else "brand_not_found"
+                ),
+            )
+        items = [
+            item
+            for item in self._filter(category=category)
+            if item.brand.casefold() == resolution.matched.name.casefold()
+        ]
+        if sort == "asc":
+            items.sort(key=lambda item: (item.price, item.name.casefold()))
+        elif sort == "desc":
+            items.sort(key=lambda item: (-item.price, item.name.casefold()))
+        return BrandProductsData(
+            brand=resolution.matched,
+            products=tuple(_tool_product(item) for item in items[:limit]),
+            available=resolution.available,
+            reason_code=None if items else "brand_products_empty",
+        )
+
+    async def overview(
+        self, *, locale: str, category_query: str | None
+    ) -> CatalogOverviewData:
+        categories = _fixture_categories(self._products)
+        query = (category_query or "").strip()
+        if query:
+            wanted = _norm_key(query)
+            categories = tuple(
+                item
+                for item in categories
+                if wanted in _norm_key(item.name) or wanted in _norm_key(item.slug)
+            )
+        brands = _fixture_brands(self._products)
+        return CatalogOverviewData(
+            categories=categories,
+            total_products=sum(item.count for item in categories),
+            total_brands=len(brands),
+            brand_names=tuple(item.name for item in brands[:10]),
+            category_query=query or None,
+        )
+
+    async def price_range(
+        self,
+        *,
+        category: str | None,
+        query: str | None,
+        locale: str,
+        auth: Any,
+    ) -> PriceRangeData:
+        items = self._filter(category=category, query=query)
+        if not items:
+            return PriceRangeData(min_price=None, max_price=None, count=0)
+        cheapest = min(items, key=lambda item: (item.price, item.name.casefold()))
+        priciest = max(items, key=lambda item: (item.price, item.name.casefold()))
+        return PriceRangeData(
+            min_price=cheapest.price,
+            max_price=priciest.price,
+            count=len(items),
+            min_product=_tool_product(cheapest),
+            max_product=_tool_product(priciest),
+        )
+
+    async def count_products(
+        self,
+        *,
+        category: str | None,
+        brand: str | None,
+        query: str | None,
+        locale: str,
+        auth: Any,
+    ) -> int:
+        if category:
+            resolved_category = self._resolve_category(category)
+            if resolved_category is not None:
+                category = resolved_category
+            else:
+                query = f"{query or ''} {category}".strip()
+                category = None
+        items = self._filter(category=category, query=query)
+        if brand:
+            resolution = await self.resolve_brand(text=brand)
+            if resolution.matched is None:
+                return 0
+            items = [
+                item
+                for item in items
+                if item.brand.casefold() == resolution.matched.name.casefold()
+            ]
+        return len(items)
+
+    def _resolve_category(self, text: str) -> str | None:
+        wanted = _norm_key(text)
+        if not wanted:
+            return None
+        categories = _fixture_categories(self._products)
+        exact = [
+            item
+            for item in categories
+            if wanted in {_norm_key(item.name), _norm_key(item.slug)}
+        ]
+        if exact:
+            return exact[0].slug
+        contains = [
+            item
+            for item in categories
+            if wanted in _norm_key(item.name) or wanted in _norm_key(item.slug)
+        ]
+        if len(contains) == 1:
+            return contains[0].slug
+        if contains:
+            scored = sorted(
+                (
+                    (
+                        max(
+                            SequenceMatcher(None, wanted, _norm_key(item.name)).ratio(),
+                            SequenceMatcher(None, wanted, _norm_key(item.slug)).ratio(),
+                        ),
+                        item,
+                    )
+                    for item in contains
+                ),
+                key=lambda pair: pair[0],
+            )
+            if scored[-1][0] >= 0.82:
+                return scored[-1][1].slug
+        return None
+
+    def _filter(
+        self, *, category: str | None = None, query: str | None = None
+    ) -> list[EvalProduct]:
+        terms = _terms(query or "")
+        items: list[EvalProduct] = []
+        for item in self._products:
+            if category is not None and item.category != category:
+                continue
+            if terms:
+                haystack = _terms(
+                    f"{item.name} {item.category} {item.brand} {' '.join(item.tokens)}"
+                )
+                if not (terms & haystack):
+                    continue
+            items.append(item)
+        return items
 
 
 class FixtureCategories:
@@ -225,6 +480,7 @@ def load_catalog(path: Path) -> list[EvalProduct]:
             sku=str(item["sku"]),
             name=str(item["name"]),
             category=str(item["category"]),
+            brand=str(item.get("brand", "Forja")),
             price=Decimal(str(item["price"])),
             stock=int(item.get("stock", 0)),
             min_order_qty=int(item.get("min_order_qty", 1)),
@@ -241,6 +497,7 @@ def build_offline_graph(*, catalog_path: Path) -> ChatGraph:
         search_port=FixtureSearch(products),
         categories_port=FixtureCategories([f"{name} (1)" for name in categories]),
         order_status_port=FixtureOrderStatus(),
+        insights_port=FixtureInsights(products),
     )
     return ChatGraph(
         llm=None,
@@ -279,12 +536,52 @@ def localized_locale(value: str) -> Locale:
         return Locale.PT_BR
 
 
+def _fixture_brands(products: Sequence[EvalProduct]) -> tuple[BrandCount, ...]:
+    counts = Counter(item.brand for item in products)
+    return tuple(
+        BrandCount(name=name, slug=_norm_key(name), count=count)
+        for name, count in counts.most_common()
+    )
+
+
+_FIXTURE_CATEGORY_NAMES = {
+    "protecao-maos": "Proteção das Mãos",
+    "ferramentas-eletricas": "Ferramentas Elétricas",
+    "maquinas-estacionarias": "Máquinas Estacionárias",
+    "protecao-pes": "Proteção dos Pés",
+    "protecao-respiratoria": "Proteção Respiratória",
+    "protecao-visual": "Proteção Visual",
+    "protecao-auditiva": "Proteção Auditiva",
+    "protecao-quedas": "Proteção contra Quedas",
+    "epis": "EPIs",
+    "protecao-cabeca": "Proteção da Cabeça",
+    "epi-recovery": "EPI Recovery",
+    "maquinas-e-ferramentas": "Máquinas e Ferramentas",
+}
+
+
+def _fixture_categories(products: Sequence[EvalProduct]) -> tuple[CategoryCount, ...]:
+    counts = Counter(item.category for item in products)
+    return tuple(
+        CategoryCount(
+            name=_FIXTURE_CATEGORY_NAMES.get(slug, slug), slug=slug, count=count
+        )
+        for slug, count in counts.most_common()
+    )
+
+
+def _norm_key(value: str) -> str:
+    folded = unicodedata.normalize("NFKD", value.casefold())
+    folded = "".join(char for char in folded if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", "", folded)
+
+
 def _tool_product(item: EvalProduct) -> ToolProduct:
     return ToolProduct(
         product_id=item.product_id,
         name=item.name,
         sku=item.sku,
-        brand="Forja",
+        brand=item.brand,
         category=item.category,
         description=item.name,
         attributes={"estoque": str(item.stock)},

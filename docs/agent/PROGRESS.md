@@ -6,6 +6,60 @@
 > exemplo, "rate limiting herdado do middleware" nÃ£o corresponde ao cÃ³digo
 > atual); em caso de divergÃªncia, vale o cÃ³digo e o `STATUS.md`.
 
+## Assistente: perguntas estranhas de loja, marcas e visao geral - 2026-11-05
+
+### Implementado
+
+- **Roteador**: novas intencoes `brand_list`, `brand_products`, `catalog_overview`,
+  `price_range`, `count_products`; tabelas de termos nos 11 idiomas e padroes de
+  marca (`tem algo da X?`, `produtos da X`, `me mostra os da X`) em `lexicon.py`.
+  Pergunta com termo/verbo de loja que o LLM classifique como `out_of_scope` e
+  rebaixada para busca (`is_store_context`). Assuntos realmente fora (clima, politica,
+  poema, programacao) seguem bloqueados.
+- **Operacoes deterministicas**: `list_brands`, `products_by_brand`,
+  `catalog_overview`, `price_range`, `count_products` no `CatalogTools`, com
+  `CatalogInsightsPort` implementado em `app/wiring/catalog_insights.py`:
+  contagens SQL de marca/categoria, busca existente para ids/termos, hidratacao de
+  preco por papel (visitante/CPF publico, CNPJ empresa), resolucao fuzzy de marca
+  (`proteck` -> PROTEC) e de categoria, nomes saneados contra injection.
+- **Respostas**: templates localizados nos 11 idiomas para marcas, marca nao
+  encontrada/ambigua, visao geral, contagem e faixa de preco; a faixa usa
+  `format_brl` e valores do banco (permitido no output guard somente nessa intencao).
+  Marca inexistente (`Bosh`, `3M`) lista as marcas reais; nada e inventado.
+- **Sessao**: follow-up de marca (`e os da VULCANO?`) reutiliza o estado de marca;
+  nao confunde `e a de raspa?` com marca.
+- **Busca tolerante**: sinonimos de dominio continuam em `query_normalization.py`;
+  o fixture de avaliacao ganhou marcas reais e categorias legiveis; “produtos de
+  protecao auditiva” e reconhecido como categoria, nao marca.
+- **Health/eval**: `eval_store_assistant.py` agora faz preflight de `/health` e
+  `/health/llm` antes de qualquer lote real; aborta sem chamar o modelo se o backend
+  ou o LM Studio estiverem fora.
+
+### Resultados
+
+- **Offline (LLM indisponivel): 136/136 (100%)** — existencia 27/27, marcas 15/15,
+  visao geral/contagem 10/10, faixa de preco 7/7, preco 10/10, consultoria 9/9,
+  curto/vago 9/9, follow-ups 6/6, internacional 9/9, fora de escopo 10/10, demais
+  categorias 100%. Evidencia: `docs/agent/store-eval-offline-summary.json`.
+- **API real, deterministico (sem LM Studio): 12/12** — marcas (PROTEC/VULCANO/
+  NORTON/TITAN/AEGIS/FERRUM/GUARDIAN), marcas de luva (PROTEC 3, FERRUM 2, TITAN 1),
+  PROTEC com cartoes, Bosh nao encontrada + marcas reais, visao geral 42 produtos/12
+  categorias, contagem 42, faixa de luvas R$ 3,90–R$ 49,90, maquinas 6 produtos,
+  “A loja tem serra?” (FUR-004/MAQ-008), 4 produtos de protecao auditiva, fora de
+  escopo neutro e “algo barato” com cartoes. Evidencia:
+  `docs/agent/store-eval-catalog-ops-api.json`.
+- **LM Studio real: BLOQUEADO** — o Docker Desktop caiu durante a sessao; apos
+  religar, o LM Studio nao estava escutando em `:1235` e a RAM livre voltou a
+  0,63 GB. O script abortou no preflight (`store-eval-real-unavailable.txt`), sem
+  chamar o modelo. Latencia real por etapa ainda nao medida; a API deterministic
+  respondeu em <1 s para as operacoes de catalogo.
+- **Testes**: 523 testes de IA/seguranca passaram; 136 casos offline passaram;
+  ruff e mypy --strict limpos nos arquivos alterados (exceto avisos antigos ja
+  listados). A API real deterministica respondeu 12/12 casos de catalogo.
+
+**Falhas antigas fora do escopo (nao corrigidas):** audit FALLBACK, downgrade da
+0045, drift `users`/`user_preferences`, `format:check` em 10 arquivos.
+
 ## Assistente confiavel: diagnostico das perguntas de existencia - 2026-11-05
 
 - **Reproducao pela API real** (`POST /api/v1/ai/chat`, `Accept-Language: pt-BR`, backend Docker em :8000): "A loja tem prensa hidraulica?" respondeu HTTP 200 com `language=es` e a confirmacao de moeda ("Los precios del catalogo son en R$..."), zero cartoes. "A loja tem abafador de ruido?" respondeu HTTP 200 com `language=es`, a mensagem "No pude validar los detalles..." e 4 cartoes reais (AUD-003, AUD-004, AUD-001, AUD-002). O erro generico visto no frontend e o `errors.generic` do widget, usado para HTTP 5xx/erro nao classificado; nao foi reproduzido 500 nessas duas chamadas, mas o caminho de persistencia/auditoria pode derrubar a resposta e sera isolado.
